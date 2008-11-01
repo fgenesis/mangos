@@ -36,6 +36,7 @@
 #include "PlayerDump.h"
 #include "SocialMgr.h"
 #include "Util.h"
+#include "ArenaTeam.h"
 #include "Language.h"
 
 class LoginQueryHolder : public SqlQueryHolder

@@ -182,7 +182,7 @@ void WorldSession::HandleArenaTeamInviteAcceptOpcode(WorldPacket & /*recv_data*/
         return;
     }
 
-    if(_player->GetArenaTeamId(at->GetSlot()))
+    if(_player->GetArenaTeamIdFromDB(_player->GetGUIDLow(), at->GetType()))
     {
         // already in arena team that size
         return;

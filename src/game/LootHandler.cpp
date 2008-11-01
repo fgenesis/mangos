@@ -29,6 +29,7 @@
 #include "Group.h"
 #include "World.h"
 #include "Util.h"
+#include "ObjectAccessor.h"
 
 void WorldSession::HandleAutostoreLootItemOpcode( WorldPacket & recv_data )
 {
@@ -67,6 +68,16 @@ void WorldSession::HandleAutostoreLootItemOpcode( WorldPacket & recv_data )
         }
 
         loot = &pItem->loot;
+    }
+    else if (IS_CORPSE_GUID(lguid))
+    {
+        Corpse *bones = ObjectAccessor::GetCorpse(*player, lguid);
+        if (!bones)
+        {
+            player->SendLootRelease(lguid);
+            return;
+        }
+        loot = &bones->loot;
     }
     else
     {

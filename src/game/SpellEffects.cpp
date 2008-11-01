@@ -2597,7 +2597,7 @@ void Spell::DoCreateItem(uint32 i, uint32 itemtype)
                 return;
         }
 
-        if(BattleGround* bg = sBattleGroundMgr.GetBattleGround(bgType))
+        if(BattleGround* bg = sBattleGroundMgr.GetBattleGroundTemplate(bgType))
             bg->SendRewardMarkByMail(player,newitemid,no_space);
     }
 }
@@ -2844,7 +2844,7 @@ void Spell::EffectOpenLock(uint32 /*i*/)
             if(BattleGround *bg = player->GetBattleGround())
             {
                 // check if it's correct bg
-                if(bg && bg->GetTypeID() == BATTLEGROUND_AB)
+                if(bg->GetTypeID() == BATTLEGROUND_AB || bg->GetTypeID() == BATTLEGROUND_AV)
                     bg->EventPlayerClickedOnFlag(player, gameObjTarget);
                 return;
             }

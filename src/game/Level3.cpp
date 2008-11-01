@@ -47,6 +47,7 @@
 #include "Config/ConfigEnv.h"
 #include "Util.h"
 #include "ItemEnchantmentMgr.h"
+#include "BattleGroundMgr.h"
 #include "InstanceSaveMgr.h"
 #include "InstanceData.h"
 #include "AccountMgr.h"
@@ -6213,5 +6214,12 @@ bool ChatHandler::HandleModifyGenderCommand(const char *args)
     PSendSysMessage(LANG_YOU_CHANGE_GENDER, player->GetName(),gender_full);
     if (needReportToTarget(player))
         ChatHandler(player).PSendSysMessage(LANG_YOUR_GENDER_CHANGED, gender_full,GetName());
+
+    return true;
+}
+
+bool ChatHandler::HandleFlushArenaPointsCommand(const char * /*args*/)
+{
+    sBattleGroundMgr.DistributeArenaPoints();
     return true;
 }

@@ -616,6 +616,22 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
                 if(BattleGround *bg = killed->GetBattleGround())
                     bg->HandleKillPlayer(killed, killer);   // drop flags and etc
         }
+        else if(pVictim->GetTypeId() == TYPEID_UNIT)
+        {
+            Player *killer = NULL;
+            if(GetTypeId() == TYPEID_PLAYER)
+                killer = ((Player*)this);
+            else if(GetTypeId() == TYPEID_UNIT && ((Creature*)this)->isPet())
+            {
+                if(Unit *owner = GetOwner())
+                    if(owner->GetTypeId() == TYPEID_PLAYER)
+                        killer = ((Player*)owner);
+            }
+
+            if(killer)
+                if(BattleGround *bg = killer->GetBattleGround())
+                    bg->HandleKillUnit((Creature*)pVictim,killer);
+        }
 
         DEBUG_LOG("DealDamage: victim just died");
 
@@ -754,6 +770,25 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
             he->CombatStopWithPets(true);
 
             he->DuelComplete(DUEL_INTERUPTED);
+        }
+
+        // battleground things (do this at the end, so the death state flag will be properly set to handle in the bg->handlekill)
+        if(pVictim->GetTypeId() == TYPEID_PLAYER && (((Player*)pVictim)->InBattleGround()))
+        {
+            Player *killed = ((Player*)pVictim);
+            Player *killer = NULL;
+            if(GetTypeId() == TYPEID_PLAYER)
+                killer = ((Player*)this);
+            else if(GetTypeId() == TYPEID_UNIT && ((Creature*)this)->isPet())
+            {
+                Unit *owner = GetOwner();
+                if(owner && owner->GetTypeId() == TYPEID_PLAYER)
+                    killer = ((Player*)owner);
+            }
+
+            if(killer)
+                if(BattleGround *bg = killed->GetBattleGround())
+                    bg->HandleKillPlayer(killed, killer);   // drop flags and etc
         }
     }
     else                                                    // if (health <= damage)
@@ -3607,7 +3642,7 @@ int32 Unit::GetMaxNegativeAuraModifierByMiscValue(AuraType auratype, int32 misc_
 bool Unit::AddAura(Aura *Aur)
 {
     // ghost spell check, allow apply any auras at player loading in ghost mode (will be cleanup after load)
-    if( !isAlive() && Aur->GetId() != 20584 && Aur->GetId() != 8326 && Aur->GetId() != 2584 &&
+    if( !isAlive() && Aur->GetId() != 20584 && Aur->GetId() != 8326 && Aur->GetId() != SPELL_WAITING_FOR_RESURRECT &&
         (GetTypeId()!=TYPEID_PLAYER || !((Player*)this)->GetSession()->PlayerLoading()) )
     {
         delete Aur;
@@ -4145,6 +4180,22 @@ void Unit::RemoveAllAuras()
     {
         AuraMap::iterator iter = m_Auras.begin();
         RemoveAura(iter);
+    }
+}
+
+void Unit::RemoveArenaAuras(bool onleave)
+{
+    // in join, remove positive buffs, on end, remove negative
+    // used to remove positive visible auras in arenas
+    for(AuraMap::iterator iter = m_Auras.begin(); iter != m_Auras.end();)
+    {
+        if ( !(iter->second->GetSpellProto()->AttributesEx4 & (1<<21)) // don't remove stances, shadowform, pally/hunter auras
+            && !iter->second->IsPassive()                               // don't remove passive auras
+            && (!(iter->second->GetSpellProto()->Attributes & SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY) || !(iter->second->GetSpellProto()->Attributes & SPELL_ATTR_UNK8))   // not unaffected by invulnerability auras or not having that unknown flag (that seemed the most probable)
+            && (iter->second->IsPositive() ^ onleave))                   // remove positive buffs on enter, negative buffs on leave
+            RemoveAura(iter);
+        else
+            ++iter;
     }
 }
 
