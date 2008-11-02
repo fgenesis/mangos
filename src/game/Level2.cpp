@@ -859,11 +859,17 @@ bool ChatHandler::HandleItemMoveCommand(const char* args)
     srcslot = (uint8)atoi(pParam1);
     dstslot = (uint8)atoi(pParam2);
 
-    uint16 src = ((INVENTORY_SLOT_BAG_0 << 8) | srcslot);
-    uint16 dst = ((INVENTORY_SLOT_BAG_0 << 8) | dstslot);
-
     if(srcslot==dstslot)
         return true;
+
+    if(!m_session->GetPlayer()->IsValidPos(INVENTORY_SLOT_BAG_0,srcslot))
+        return false;
+
+    if(!m_session->GetPlayer()->IsValidPos(INVENTORY_SLOT_BAG_0,dstslot))
+        return false;
+
+    uint16 src = ((INVENTORY_SLOT_BAG_0 << 8) | srcslot);
+    uint16 dst = ((INVENTORY_SLOT_BAG_0 << 8) | dstslot);
 
     m_session->GetPlayer()->SwapItem( src, dst );
 
@@ -2855,12 +2861,7 @@ bool ChatHandler::HandleWpShowCommand(const char* args)
     std::string show = show_str;
     uint32 Maxpoint;
 
-    sLog.outDebug("DEBUG: HandleWpShowCommand: lowguid: %u", lowguid);
-
-    sLog.outDebug("DEBUG: HandleWpShowCommand: Habe creature: %ld", target );
-
-    sLog.outDebug("DEBUG: HandleWpShowCommand: wpshow - show: %s", show_str);
-    //PSendSysMessage("wpshow - show: %s", show);
+    sLog.outDebug("DEBUG: HandleWpShowCommand: lowguid: %u show: %s", lowguid, show_str);
 
     // Show info for the selected waypoint
     if(show == "info")
@@ -2881,7 +2882,7 @@ bool ChatHandler::HandleWpShowCommand(const char* args)
 
         QueryResult *result =
             WorldDatabase.PQuery( "SELECT id, point, waittime, emote, spell, text1, text2, text3, text4, text5, model1, model2 FROM creature_movement WHERE wpguid = %u",
-            target->GetGUID() );
+            target->GetGUIDLow() );
         if(!result)
         {
             // Since we compare float values, we have to deal with
@@ -4201,7 +4202,6 @@ bool ChatHandler::HandleNpcTameCommand(const char* args)
 
     // set pet to defensive mode by default (some classes can't control contolled pets in fact).
     pet->GetCharmInfo()->SetReactState(REACT_DEFENSIVE);
-
 
     // prepare visual effect for levelup
     pet->SetUInt32Value(UNIT_FIELD_LEVEL,creatureTarget->getLevel()-1);
