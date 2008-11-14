@@ -6043,7 +6043,6 @@ uint32 Player::GetRankFromDB(uint64 guid)
 
 uint32 Player::GetArenaTeamIdFromDB(uint64 guid, uint8 type)
 {
-<<<<<<< HEAD:src/game/Player.cpp
     // need fix it!
     QueryResult *result = CharacterDatabase.PQuery("SELECT arenateamid FROM arena_team_member WHERE guid='%u'", GUID_LOPART(guid));
     if(result)
@@ -6071,15 +6070,6 @@ uint32 Player::GetArenaTeamIdFromDB(uint64 guid, uint8 type)
     }
     // no arenateam for the specified guid, return 0
     return 0;
-=======
-    QueryResult *result = CharacterDatabase.PQuery("SELECT arena_team_member.arenateamid FROM arena_team_member JOIN arena_team ON arena_team_member.arenateamid = arena_team.arenateamid WHERE guid='%u' AND type='%u' LIMIT 1", GUID_LOPART(guid), type);
-    if(!result)
-        return 0;
-
-    uint32 id = (*result)[0].GetUInt32();
-    delete result;
-    return id;
->>>>>>> 20f087fd73f496999efc1465dfbf612fd017f634:src/game/Player.cpp
 }
 
 uint32 Player::GetZoneIdFromDB(uint64 guid)
