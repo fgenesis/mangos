@@ -21,15 +21,15 @@
 
 #include "zthread/Thread.h"
 #include "../src/zthread/ThreadImpl.h"
-#include "Utilities/HashMap.h"
+#include "Utilities/UnorderedMap.h"
 #include "Database/SqlDelayThread.h"
 
 class SqlTransaction;
 class SqlResultQueue;
 class SqlQueryHolder;
 
-typedef HM_NAMESPACE::hash_map<ZThread::ThreadImpl*, SqlTransaction*> TransactionQueues;
-typedef HM_NAMESPACE::hash_map<ZThread::ThreadImpl*, SqlResultQueue*> QueryQueues;
+typedef UNORDERED_MAP<ZThread::ThreadImpl*, SqlTransaction*> TransactionQueues;
+typedef UNORDERED_MAP<ZThread::ThreadImpl*, SqlResultQueue*> QueryQueues;
 
 #define MAX_QUERY_LEN   1024
 
@@ -59,14 +59,22 @@ class MANGOS_DLL_SPEC Database
             bool AsyncQuery(Class *object, void (Class::*method)(QueryResult*), const char *sql);
         template<class Class, typename ParamType1>
             bool AsyncQuery(Class *object, void (Class::*method)(QueryResult*, ParamType1), ParamType1 param1, const char *sql);
+        template<class Class, typename ParamType1, typename ParamType2>
+            bool AsyncQuery(Class *object, void (Class::*method)(QueryResult*, ParamType1, ParamType2), ParamType1 param1, ParamType2 param2, const char *sql);
         template<typename ParamType1>
             bool AsyncQuery(void (*method)(QueryResult*, ParamType1), ParamType1 param1, const char *sql);
+        template<typename ParamType1, typename ParamType2>
+            bool AsyncQuery(void (*method)(QueryResult*, ParamType1, ParamType2), ParamType1 param1, ParamType2 param2, const char *sql);
         template<class Class>
             bool AsyncPQuery(Class *object, void (Class::*method)(QueryResult*), const char *format,...) ATTR_PRINTF(4,5);
         template<class Class, typename ParamType1>
             bool AsyncPQuery(Class *object, void (Class::*method)(QueryResult*, ParamType1), ParamType1 param1, const char *format,...) ATTR_PRINTF(5,6);
+        template<class Class, typename ParamType1, typename ParamType2>
+            bool AsyncPQuery(Class *object, void (Class::*method)(QueryResult*, ParamType1, ParamType2), ParamType1 param1, ParamType2 param2, const char *format,...) ATTR_PRINTF(5,6);
         template<typename ParamType1>
             bool AsyncPQuery(void (*method)(QueryResult*, ParamType1), ParamType1 param1, const char *format,...) ATTR_PRINTF(5,6);
+        template<typename ParamType1, typename ParamType2>
+            bool AsyncPQuery(void (*method)(QueryResult*, ParamType1, ParamType2), ParamType1 param1, ParamType2 param2, const char *format,...) ATTR_PRINTF(5,6);
         template<class Class>
             bool DelayQueryHolder(Class *object, void (Class::*method)(QueryResult*, SqlQueryHolder*), SqlQueryHolder *holder);
         template<class Class, typename ParamType1>

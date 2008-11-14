@@ -1353,7 +1353,7 @@ uint32 Group::CanJoinBattleGroundQueue(uint32 bgTypeId, uint32 bgQueueType, uint
 void Roll::targetObjectBuildLink()
 {
     // called from link()
-    this->getTarget()->addLootValidatorRef(this);
+    getTarget()->addLootValidatorRef(this);
 }
 
 void Group::SetDifficulty(uint8 difficulty)

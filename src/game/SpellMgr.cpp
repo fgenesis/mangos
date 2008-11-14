@@ -1458,7 +1458,7 @@ void SpellMgr::LoadSpellChains()
     mSpellChains.clear();                                   // need for reload case
     mSpellChainsNext.clear();                               // need for reload case
 
-    QueryResult *result = WorldDatabase.PQuery("SELECT spell_id, prev_spell, first_spell, rank, req_spell FROM spell_chain");
+    QueryResult *result = WorldDatabase.Query("SELECT spell_id, prev_spell, first_spell, rank, req_spell FROM spell_chain");
     if(result == NULL)
     {
         barGoLink bar( 1 );
@@ -1648,8 +1648,6 @@ void SpellMgr::LoadSpellLearnSkills()
                     dbc_node.value    = (entry->EffectBasePoints[i]+1)*75;
                 dbc_node.maxvalue = (entry->EffectBasePoints[i]+1)*75;
 
-                SpellLearnSkillNode const* db_node = GetSpellLearnSkill(spell);
-
                 mSpellLearnSkills[spell] = dbc_node;
                 ++dbc_count;
                 break;
@@ -1665,7 +1663,7 @@ void SpellMgr::LoadSpellLearnSpells()
 {
     mSpellLearnSpells.clear();                              // need for reload case
 
-    QueryResult *result = WorldDatabase.PQuery("SELECT entry, SpellID FROM spell_learn_spell");
+    QueryResult *result = WorldDatabase.Query("SELECT entry, SpellID FROM spell_learn_spell");
     if(!result)
     {
         barGoLink bar( 1 );

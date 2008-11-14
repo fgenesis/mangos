@@ -88,7 +88,7 @@ struct SpellModifier
     Spell const* lastAffected;
 };
 
-typedef HM_NAMESPACE::hash_map<uint16, PlayerSpell*> PlayerSpellMap;
+typedef UNORDERED_MAP<uint16, PlayerSpell*> PlayerSpellMap;
 typedef std::list<SpellModifier*> SpellModList;
 
 struct SpellCooldown
@@ -676,12 +676,6 @@ struct ItemPosCount
     uint8 count;
 };
 typedef std::vector<ItemPosCount> ItemPosCountVec;
-
-enum SwitchWeapon
-{
-    DEFAULT_SWITCH_WEAPON       = 1500,                     //cooldown in ms
-    ROGUE_SWITCH_WEAPON         = 1000
-};
 
 enum TradeSlots
 {
@@ -1296,7 +1290,7 @@ class MANGOS_DLL_SPEC Player : public Unit
             if(d < 0)
                 SetMoney (GetMoney() > uint32(-d) ? GetMoney() + d : 0);
             else
-                SetMoney (GetMoney() < MAX_MONEY_AMOUNT - d ? GetMoney() + d : MAX_MONEY_AMOUNT);
+                SetMoney (GetMoney() < uint32(MAX_MONEY_AMOUNT - d) ? GetMoney() + d : MAX_MONEY_AMOUNT);
 
             // "At Gold Limit"
             if(GetMoney() >= MAX_MONEY_AMOUNT)
@@ -1359,7 +1353,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         uint8 unReadMails;
         time_t m_nextMailDelivereTime;
 
-        typedef HM_NAMESPACE::hash_map<uint32, Item*> ItemMap;
+        typedef UNORDERED_MAP<uint32, Item*> ItemMap;
 
         ItemMap mMitems;                                    //template defined in objectmgr.cpp
 
@@ -1507,8 +1501,8 @@ class MANGOS_DLL_SPEC Player : public Unit
         void RemoveFromGroup() { RemoveFromGroup(GetGroup(),GetGUID()); }
         void SendUpdateToOutOfRangeGroupMembers();
 
-        void SetInGuild(uint32 GuildId) { SetUInt32Value(PLAYER_GUILDID, GuildId); Player::SetUInt32ValueInDB(PLAYER_GUILDID, GuildId, this->GetGUID()); }
-        void SetRank(uint32 rankId){ SetUInt32Value(PLAYER_GUILDRANK, rankId); Player::SetUInt32ValueInDB(PLAYER_GUILDRANK, rankId, this->GetGUID()); }
+        void SetInGuild(uint32 GuildId) { SetUInt32Value(PLAYER_GUILDID, GuildId); Player::SetUInt32ValueInDB(PLAYER_GUILDID, GuildId, GetGUID()); }
+        void SetRank(uint32 rankId){ SetUInt32Value(PLAYER_GUILDRANK, rankId); Player::SetUInt32ValueInDB(PLAYER_GUILDRANK, rankId, GetGUID()); }
         void SetGuildIdInvited(uint32 GuildId) { m_GuildIdInvited = GuildId; }
         uint32 GetGuildId() { return GetUInt32Value(PLAYER_GUILDID);  }
         static uint32 GetGuildIdFromDB(uint64 guid);
@@ -1521,7 +1515,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         void SetInArenaTeam(uint32 ArenaTeamId, uint8 slot)
         {
             SetUInt32Value(PLAYER_FIELD_ARENA_TEAM_INFO_1_1 + (slot * 6), ArenaTeamId);
-            SetUInt32ValueInDB(PLAYER_FIELD_ARENA_TEAM_INFO_1_1 + (slot * 6), ArenaTeamId, this->GetGUID());
+            SetUInt32ValueInDB(PLAYER_FIELD_ARENA_TEAM_INFO_1_1 + (slot * 6), ArenaTeamId, GetGUID());
         }
         uint32 GetArenaTeamId(uint8 slot) { return GetUInt32Value(PLAYER_FIELD_ARENA_TEAM_INFO_1_1 + (slot * 6)); }
         static uint32 GetArenaTeamIdFromDB(uint64 guid, uint8 slot);
@@ -1630,7 +1624,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         void CreateCorpse();
         void KillPlayer();
         uint32 GetResurrectionSpellId();
-        void ResurrectPlayer(float restore_percent, bool updateToWorld = true, bool applySickness = false);
+        void ResurrectPlayer(float restore_percent, bool applySickness = false);
         void BuildPlayerRepop();
         void RepopAtGraveyard();
 
@@ -1754,7 +1748,7 @@ class MANGOS_DLL_SPEC Player : public Unit
 
         void SetRegularAttackTime();
         void SetBaseModValue(BaseModGroup modGroup, BaseModType modType, float value) { m_auraBaseMod[modGroup][modType] = value; }
-        void HandleBaseModValue(BaseModGroup modGroup, BaseModType modType, float amount, bool apply, bool affectStats = true);
+        void HandleBaseModValue(BaseModGroup modGroup, BaseModType modType, float amount, bool apply);
         float GetBaseModValue(BaseModGroup modGroup, BaseModType modType) const;
         float GetTotalBaseModValue(BaseModGroup modGroup) const;
         float GetTotalPercentageModValue(BaseModGroup modGroup) const { return m_auraBaseMod[modGroup][FLAT_MOD] + m_auraBaseMod[modGroup][PCT_MOD]; }
@@ -2007,7 +2001,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         /***                 INSTANCE SYSTEM                   ***/
         /*********************************************************/
 
-        typedef HM_NAMESPACE::hash_map< uint32 /*mapId*/, InstancePlayerBind > BoundInstancesMap;
+        typedef UNORDERED_MAP< uint32 /*mapId*/, InstancePlayerBind > BoundInstancesMap;
 
         void UpdateHomebindTime(uint32 time);
 

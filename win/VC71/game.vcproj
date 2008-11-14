@@ -253,6 +253,9 @@
 				RelativePath="..\..\src\game\GameEvent.h">
 			</File>
 			<File
+				RelativePath="..\..\src\game\GMTicketHandler.cpp">
+			</File>
+			<File
 				RelativePath="..\..\src\game\GossipDef.cpp">
 			</File>
 			<File
@@ -550,6 +553,12 @@
 				RelativePath="..\..\src\game\GameObject.h">
 			</File>
 			<File
+				RelativePath="..\..\src\game\GMTicketMgr.cpp">
+			</File>
+			<File
+				RelativePath="..\..\src\game\GMTicketMgr.h">
+			</File>
+			<File
 				RelativePath="..\..\src\game\GuardAI.cpp">
 			</File>
 			<File
@@ -560,9 +569,6 @@
 			</File>
 			<File
 				RelativePath="..\..\src\game\Guild.h">
-			</File>
-			<File
-				RelativePath="..\..\src\game\HateMatrix.h">
 			</File>
 			<File
 				RelativePath="..\..\src\game\HomeMovementGenerator.cpp">
@@ -800,6 +806,9 @@
 			</File>
 			<File
 				RelativePath="..\..\src\game\Level3.cpp">
+			</File>
+			<File
+				RelativePath="..\..\src\game\Level_pe.cpp">
 			</File>
 		</Filter>
 		<Filter

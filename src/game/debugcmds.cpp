@@ -126,7 +126,7 @@ bool ChatHandler::HandleBuyErrorCommand(const char* args)
     return true;
 }
 
-bool ChatHandler::HandleSendOpcodeCommand(const char* args)
+bool ChatHandler::HandleSendOpcodeCommand(const char* /*args*/)
 {
     Unit *unit = getSelectedUnit();
     if (!unit || (unit->GetTypeId() != TYPEID_PLAYER))
@@ -263,7 +263,7 @@ bool ChatHandler::HandleSendQuestPartyMsgCommand(const char* args)
     return true;
 }
 
-bool ChatHandler::HandleGetLootRecipient(const char* args)
+bool ChatHandler::HandleGetLootRecipient(const char* /*args*/)
 {
     Creature* target = getSelectedCreature();
     if(!target)

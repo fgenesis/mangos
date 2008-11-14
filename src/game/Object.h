@@ -30,9 +30,8 @@
 #include <string>
 
 #define CONTACT_DISTANCE            0.5f
-#define INTERACTION_DISTANCE        5
-#define ATTACK_DISTANCE             5
-#define DETECT_DISTANCE             20                      // max distance to successful detect stealthed unit
+#define INTERACTION_DISTANCE        5.0f
+#define ATTACK_DISTANCE             5.0f
 #define MAX_VISIBILITY_DISTANCE  (5*SIZE_OF_GRID_CELL/2.0f) // max distance for visible object show, limited by active zone for player based at cell size (active zone = 5x5 cells)
 #define DEFAULT_VISIBILITY_DISTANCE (SIZE_OF_GRID_CELL)     // default visible distance
 
@@ -90,7 +89,7 @@ class Map;
 class UpdateMask;
 class InstanceData;
 
-typedef HM_NAMESPACE::hash_map<Player*, UpdateData> UpdateDataMapType;
+typedef UNORDERED_MAP<Player*, UpdateData> UpdateDataMapType;
 
 struct WorldLocation
 {
@@ -99,8 +98,8 @@ struct WorldLocation
     float y;
     float z;
     float o;
-    explicit WorldLocation(uint32 mapid = 0, float x = 0, float y = 0, float z = 0, float o = 0)
-        : mapid(mapid), x(x), y(y), z(z), o(o) {}
+    explicit WorldLocation(uint32 _mapid = 0, float _x = 0, float _y = 0, float _z = 0, float _o = 0)
+        : mapid(_mapid), x(_x), y(_y), z(_z), o(_o) {}
     WorldLocation(WorldLocation const &loc)
         : mapid(loc.mapid), x(loc.x), y(loc.y), z(loc.z), o(loc.o) {}
 };
@@ -391,6 +390,8 @@ class MANGOS_DLL_SPEC WorldObject : public Object
 
         const char* GetName() const { return m_name.c_str(); }
         void SetName(std::string newname) { m_name=newname; }
+
+        virtual const char* GetNameForLocaleIdx(int32 /*locale_idx*/) const { return GetName(); }
 
         float GetDistance( const WorldObject* obj ) const;
         float GetDistance(const float x, const float y, const float z) const;

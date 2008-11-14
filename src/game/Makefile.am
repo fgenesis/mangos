@@ -103,6 +103,9 @@ libmangosgame_a_SOURCES = \
     GameObject.h \
     GlobalEvents.cpp \
     GlobalEvents.h \
+    GMTicketHandler.cpp \
+    GMTicketMgr.cpp \
+    GMTicketMgr.h \
     GossipDef.cpp \
     GossipDef.h \
     GridDefines.h \
@@ -119,7 +122,6 @@ libmangosgame_a_SOURCES = \
     Guild.cpp \
     Guild.h \
     GuildHandler.cpp \
-    HateMatrix.h \
     HomeMovementGenerator.cpp \
     HomeMovementGenerator.h \
     HostilRefManager.cpp \

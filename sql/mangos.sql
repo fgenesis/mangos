@@ -16,6 +16,27 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
+-- Table structure for table `db_version`
+--
+
+DROP TABLE IF EXISTS `db_version`;
+CREATE TABLE `db_version` (
+  `version` varchar(120) default NULL,
+  `required_2008_11_14_01_mangos_scripts` bit(1) default NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=FIXED COMMENT='Used DB version notes';
+
+--
+-- Dumping data for table `db_version`
+--
+
+LOCK TABLES `db_version` WRITE;
+/*!40000 ALTER TABLE `db_version` DISABLE KEYS */;
+INSERT INTO `db_version` VALUES
+('Mangos default database.',NULL);
+/*!40000 ALTER TABLE `db_version` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `areatrigger_involvedrelation`
 --
 
@@ -45,6 +66,15 @@ CREATE TABLE `areatrigger_scripts` (
     `ScriptName` CHAR( 64 ) NOT NULL ,
     PRIMARY KEY ( `entry` )
 ) ENGINE = MYISAM DEFAULT CHARSET=utf8;
+
+--
+-- Dumping data for table `areatrigger_scripts`
+--
+
+LOCK TABLES `areatrigger_scripts` WRITE;
+/*!40000 ALTER TABLE `areatrigger_scripts` DISABLE KEYS */;
+/*!40000 ALTER TABLE `areatrigger_scripts` ENABLE KEYS */;
+UNLOCK TABLES;
 
 --
 -- Table structure for table `areatrigger_tavern`
@@ -373,7 +403,9 @@ INSERT INTO `command` VALUES
 ('revive',3,'Syntax: .revive\r\n\r\nRevive the selected player. If no player is selected, it will revive you.'),
 ('save',0,'Syntax: .save\r\n\r\nSaves your character.'),
 ('saveall',1,'Syntax: .saveall\r\n\r\nSave all characters in game.'),
-('sendmail',1,'Syntax: .sendmail #playername "#subject" "#text" itemid1[:count1] itemid2[:count2] ... itemidN[:countN]\r\n\r\nSend a mail to a player. Subject and mail text must be in "". If for itemid not provided related count values then expected 1, if count > max items in stack then items will be send in required amount stacks. All stacks amount in mail limited to 12.'),
+('senditems',3,'Syntax: .senditems #playername "#subject" "#text" itemid1[:count1] itemid2[:count2] ... itemidN[:countN]\r\n\r\nSend a mail to a player. Subject and mail text must be in "". If for itemid not provided related count values then expected 1, if count > max items in stack then items will be send in required amount stacks. All stacks amount in mail limited to 12.'),
+('sendmail',1,'Syntax: .sendmail #playername "#subject" "#text"\r\n\r\nSend a mail to a player. Subject and mail text must be in "".'),
+('sendmoney','3','Syntax: .sendmoney #playername "#subject" "#text" #money\r\n\r\nSend mail with money to a player. Subject and mail text must be in "".'),
 ('sendmessage',3,'Syntax: .sendmessage $playername $message\r\n\r\nSend screen message to player from ADMINISTRATOR.'),
 ('server corpses',2,'Syntax: .server corpses\r\n\r\nTriggering corpses expire check in world.'),
 ('server exit',4,'Syntax: .server exit\r\n\r\nTerminate mangosd NOW.'),
@@ -791,24 +823,31 @@ LOCK TABLES `creature_template_addon` WRITE;
 UNLOCK TABLES;
 
 --
--- Table structure for table `db_version`
+-- Table structure for table `db_script_string`
 --
 
-DROP TABLE IF EXISTS `db_version`;
-CREATE TABLE `db_version` (
-  `version` varchar(120) default NULL,
-  `required_2008_10_29_03_mangos_db_version` bit(1) default NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=FIXED COMMENT='Used DB version notes';
+DROP TABLE IF EXISTS `db_script_string`;
+CREATE TABLE `db_script_string` (
+  `entry` mediumint(8) unsigned NOT NULL default '0',
+  `content_default` text NOT NULL,
+  `content_loc1` text,
+  `content_loc2` text,
+  `content_loc3` text,
+  `content_loc4` text,
+  `content_loc5` text,
+  `content_loc6` text,
+  `content_loc7` text,
+  `content_loc8` text,
+  PRIMARY KEY  (`entry`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 --
--- Dumping data for table `db_version`
+-- Dumping data for table `db_script_string`
 --
 
-LOCK TABLES `db_version` WRITE;
-/*!40000 ALTER TABLE `db_version` DISABLE KEYS */;
-INSERT INTO `db_version` VALUES
-('Mangos default database.',NULL);
-/*!40000 ALTER TABLE `db_version` ENABLE KEYS */;
+LOCK TABLES `db_script_string` WRITE;
+/*!40000 ALTER TABLE `db_script_string` DISABLE KEYS */;
+/*!40000 ALTER TABLE `db_script_string` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -849,7 +888,7 @@ CREATE TABLE `event_scripts` (
   `command` mediumint(8) unsigned NOT NULL default '0',
   `datalong` mediumint(8) unsigned NOT NULL default '0',
   `datalong2` int(10) unsigned NOT NULL default '0',
-  `datatext` text NOT NULL,
+  `dataint` int(11) NOT NULL default '0',
   `x` float NOT NULL default '0',
   `y` float NOT NULL default '0',
   `z` float NOT NULL default '0',
@@ -1301,7 +1340,7 @@ CREATE TABLE `gameobject_scripts` (
   `command` mediumint(8) unsigned NOT NULL default '0',
   `datalong` mediumint(8) unsigned NOT NULL default '0',
   `datalong2` int(10) unsigned NOT NULL default '0',
-  `datatext` text NOT NULL,
+  `dataint` int(11) NOT NULL default '0',
   `x` float NOT NULL default '0',
   `y` float NOT NULL default '0',
   `z` float NOT NULL default '0',
@@ -2472,7 +2511,6 @@ INSERT INTO `mangos_string` VALUES
 (450,'Graveyard #%u already linked to zone #%u (current).',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
 (451,'Graveyard #%u linked to zone #%u (current).',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
 (452,'Graveyard #%u can\'t be linked to subzone or not existed zone #%u (internal error).',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
-(453,'Graveyard can be linked to zone at another map only for all factions (no faction value).',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
 (454,'No faction in Graveyard with id= #%u , fix your DB',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
 (455,'invalid team, please fix database',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
 (456,'any',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
@@ -10530,7 +10568,7 @@ CREATE TABLE `quest_end_scripts` (
   `command` mediumint(8) unsigned NOT NULL default '0',
   `datalong` mediumint(8) unsigned NOT NULL default '0',
   `datalong2` int(10) unsigned NOT NULL default '0',
-  `datatext` text NOT NULL,
+  `dataint` int(11) NOT NULL default '0',
   `x` float NOT NULL default '0',
   `y` float NOT NULL default '0',
   `z` float NOT NULL default '0',
@@ -10557,7 +10595,7 @@ CREATE TABLE `quest_start_scripts` (
   `command` mediumint(8) unsigned NOT NULL default '0',
   `datalong` mediumint(8) unsigned NOT NULL default '0',
   `datalong2` int(10) unsigned NOT NULL default '0',
-  `datatext` text NOT NULL,
+  `dataint` int(11) NOT NULL default '0',
   `x` float NOT NULL default '0',
   `y` float NOT NULL default '0',
   `z` float NOT NULL default '0',
@@ -15282,7 +15320,7 @@ CREATE TABLE `spell_scripts` (
   `command` mediumint(8) unsigned NOT NULL default '0',
   `datalong` mediumint(8) unsigned NOT NULL default '0',
   `datalong2` int(10) unsigned NOT NULL default '0',
-  `datatext` text NOT NULL,
+  `dataint` int(11) NOT NULL default '0',
   `x` float NOT NULL default '0',
   `y` float NOT NULL default '0',
   `z` float NOT NULL default '0',

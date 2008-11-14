@@ -511,6 +511,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\game\GMTicketHandler.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\game\GossipDef.cpp"
 				>
 			</File>
@@ -907,6 +911,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\game\GMTicketMgr.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\game\GMTicketMgr.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\game\GuardAI.cpp"
 				>
 			</File>
@@ -920,10 +932,6 @@
 			</File>
 			<File
 				RelativePath="..\..\src\game\Guild.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\game\HateMatrix.h"
 				>
 			</File>
 			<File

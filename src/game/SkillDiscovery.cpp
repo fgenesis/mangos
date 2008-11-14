@@ -40,7 +40,7 @@ struct SkillDiscoveryEntry
 };
 
 typedef std::list<SkillDiscoveryEntry> SkillDiscoveryList;
-typedef HM_NAMESPACE::hash_map<int32, SkillDiscoveryList> SkillDiscoveryMap;
+typedef UNORDERED_MAP<int32, SkillDiscoveryList> SkillDiscoveryMap;
 
 static SkillDiscoveryMap SkillDiscoveryStore;
 
@@ -52,7 +52,7 @@ void LoadSkillDiscoveryTable()
     uint32 count = 0;
 
     //                                                 0        1         2
-    QueryResult *result = WorldDatabase.PQuery("SELECT spellId, reqSpell, chance FROM skill_discovery_template");
+    QueryResult *result = WorldDatabase.Query("SELECT spellId, reqSpell, chance FROM skill_discovery_template");
 
     if (result)
     {

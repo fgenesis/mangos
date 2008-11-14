@@ -388,7 +388,7 @@ enum MangosStrings
     LANG_COMMAND_GRAVEYARDALRLINKED     = 450,
     LANG_COMMAND_GRAVEYARDLINKED        = 451,
     LANG_COMMAND_GRAVEYARDWRONGZONE     = 452,
-    LANG_COMMAND_GRAVEYARDWRONGTEAM     = 453,
+    //                                  = 453,
     LANG_COMMAND_GRAVEYARDERROR         = 454,
     LANG_COMMAND_GRAVEYARD_NOTEAM       = 455,
     LANG_COMMAND_GRAVEYARD_ANY          = 456,
@@ -764,6 +764,8 @@ enum MangosStrings
 
     // Use for custom patches             11000-11999
 
-    // NOT RESERVED IDS                   12000-
+    // NOT RESERVED IDS                   12000-1999999999
+    // `db_script_string` table index     2000000000-2000009999 (MIN_DB_SCRIPT_STRING_ID-MAX_DB_SCRIPT_STRING_ID)
+    // For other tables maybe             2000010000-2147483647 (max index)
 };
 #endif

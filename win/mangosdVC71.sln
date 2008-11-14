@@ -44,11 +44,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "realmd", "VC71\realmd.vcpro
 		{262199E8-EEDF-4700-A1D1-E9CC901CF480} = {262199E8-EEDF-4700-A1D1-E9CC901CF480}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "script", "VC71\script.vcproj", "{4205C8A9-79B7-4354-8064-F05FB9CA0C96}"
-	ProjectSection(ProjectDependencies) = postProject
-		{A3A04E47-43A2-4C08-90B3-029CEF558594} = {A3A04E47-43A2-4C08-90B3-029CEF558594}
-	EndProjectSection
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "g3dlite", "VC71\g3dlite.vcproj", "{DE0380F9-C910-4E99-A841-93550D0E61D7}"
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
@@ -61,16 +56,19 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "genrevision", "VC71\genrevi
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ACE_Wraper", "VC71\ACE_vc71.vcproj", "{7C74F49E-FECA-1BAD-6757-8A6348EA12C8}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ACE_Wrappers", "VC71\ACE_vc71.vcproj", "{7C74F49E-FECA-1BAD-6757-8A6348EA12C8}"
 	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ScriptDev2", "..\src\bindings\ScriptDev2\VC71\71ScriptDev2.vcproj", "{4295C8A9-79B7-4354-8064-F05FB9CA0C96}"
+	ProjectSection(ProjectDependencies) = postProject
+		{A3A04E47-43A2-4C08-90B3-029CEF558594} = {A3A04E47-43A2-4C08-90B3-029CEF558594}
 	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
 		Release = Release
-	EndGlobalSection
-	GlobalSection(ProjectDependencies) = postSolution
 	EndGlobalSection
 	GlobalSection(ProjectConfiguration) = postSolution
 		{1DC6C4DA-A028-41F3-877D-D5400C594F88}.Debug.ActiveCfg = Debug|Win32
@@ -101,10 +99,6 @@ Global
 		{563E9905-3657-460C-AE63-0AC39D162E23}.Debug.Build.0 = Debug|Win32
 		{563E9905-3657-460C-AE63-0AC39D162E23}.Release.ActiveCfg = Release|Win32
 		{563E9905-3657-460C-AE63-0AC39D162E23}.Release.Build.0 = Release|Win32
-		{4205C8A9-79B7-4354-8064-F05FB9CA0C96}.Debug.ActiveCfg = Debug|Win32
-		{4205C8A9-79B7-4354-8064-F05FB9CA0C96}.Debug.Build.0 = Debug|Win32
-		{4205C8A9-79B7-4354-8064-F05FB9CA0C96}.Release.ActiveCfg = Release|Win32
-		{4205C8A9-79B7-4354-8064-F05FB9CA0C96}.Release.Build.0 = Release|Win32
 		{DE0380F9-C910-4E99-A841-93550D0E61D7}.Debug.ActiveCfg = Debug|Win32
 		{DE0380F9-C910-4E99-A841-93550D0E61D7}.Debug.Build.0 = Debug|Win32
 		{DE0380F9-C910-4E99-A841-93550D0E61D7}.Release.ActiveCfg = Release|Win32
@@ -121,6 +115,10 @@ Global
 		{7C74F49E-FECA-1BAD-6757-8A6348EA12C8}.Debug.Build.0 = Debug|Win32
 		{7C74F49E-FECA-1BAD-6757-8A6348EA12C8}.Release.ActiveCfg = Release|Win32
 		{7C74F49E-FECA-1BAD-6757-8A6348EA12C8}.Release.Build.0 = Release|Win32
+		{4295C8A9-79B7-4354-8064-F05FB9CA0C96}.Debug.ActiveCfg = Debug|Win32
+		{4295C8A9-79B7-4354-8064-F05FB9CA0C96}.Debug.Build.0 = Debug|Win32
+		{4295C8A9-79B7-4354-8064-F05FB9CA0C96}.Release.ActiveCfg = Release|Win32
+		{4295C8A9-79B7-4354-8064-F05FB9CA0C96}.Release.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection

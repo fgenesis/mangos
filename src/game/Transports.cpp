@@ -114,7 +114,7 @@ void MapManager::LoadTransports()
     sLog.outString( ">> Loaded %u transports", count );
 
     // check transport data DB integrity
-    result = WorldDatabase.PQuery("SELECT gameobject.guid,gameobject.id,transports.name FROM gameobject,transports WHERE gameobject.id = transports.entry");
+    result = WorldDatabase.Query("SELECT gameobject.guid,gameobject.id,transports.name FROM gameobject,transports WHERE gameobject.id = transports.entry");
     if(result)                                              // wrong data found
     {
         do
@@ -146,7 +146,8 @@ bool Transport::Create(uint32 guidlow, uint32 mapid, float x, float y, float z, 
 
     if(!IsPositionValid())
     {
-        sLog.outError("ERROR: Transport (GUID: %u) not created. Suggested coordinates isn't valid (X: %d Y: ^%d)",guidlow,x,y);
+        sLog.outError("ERROR: Transport (GUID: %u) not created. Suggested coordinates isn't valid (X: %f Y: %f)",
+            guidlow,x,y);
         return false;
     }
 
@@ -463,7 +464,7 @@ bool Transport::AddPassenger(Player* passenger)
 {
     if (m_passengers.find(passenger) == m_passengers.end())
     {
-        sLog.outDetail("Player %s boarded transport %s.", passenger->GetName(), this->m_name.c_str());
+        sLog.outDetail("Player %s boarded transport %s.", passenger->GetName(), m_name.c_str());
         m_passengers.insert(passenger);
     }
     return true;
@@ -473,7 +474,7 @@ bool Transport::RemovePassenger(Player* passenger)
 {
     if (m_passengers.find(passenger) != m_passengers.end())
     {
-        sLog.outDetail("Player %s removed from transport %s.", passenger->GetName(), this->m_name.c_str());
+        sLog.outDetail("Player %s removed from transport %s.", passenger->GetName(), m_name.c_str());
         m_passengers.erase(passenger);
     }
     return true;
@@ -497,7 +498,7 @@ void Transport::Update(uint32 /*p_time*/)
         }
         else
         {
-            //MapManager::Instance().GetMap(m_curr->second.mapid)->GameobjectRelocation((GameObject *)this, m_curr->second.x, m_curr->second.y, m_curr->second.z, this->m_orientation);
+            //MapManager::Instance().GetMap(m_curr->second.mapid)->GameobjectRelocation((GameObject *)this, m_curr->second.x, m_curr->second.y, m_curr->second.z, m_orientation);
             Relocate(m_curr->second.x, m_curr->second.y, m_curr->second.z);
         }
 
@@ -513,13 +514,13 @@ void Transport::Update(uint32 /*p_time*/)
         m_nextNodeTime = m_curr->first;
 
         if (m_curr == m_WayPoints.begin() && (sLog.getLogFilter() & LOG_FILTER_TRANSPORT_MOVES)==0)
-            sLog.outDetail(" ************ BEGIN ************** %s", this->m_name.c_str());
+            sLog.outDetail(" ************ BEGIN ************** %s", m_name.c_str());
 
         //        MapManager::Instance().GetMap(m_curr->second.mapid)->Add(&this); // -> // ->Add(t);
         //MapManager::Instance().GetMap(m_curr->second.mapid)->Remove((GameObject *)this, false); // -> // ->Add(t);
         //MapManager::Instance().GetMap(m_curr->second.mapid)->Add((GameObject *)this); // -> // ->Add(t);
 
         if ((sLog.getLogFilter() & LOG_FILTER_TRANSPORT_MOVES)==0)
-            sLog.outDetail("%s moved to %f %f %f %d", this->m_name.c_str(), m_curr->second.x, m_curr->second.y, m_curr->second.z, m_curr->second.mapid);
+            sLog.outDetail("%s moved to %f %f %f %d", m_name.c_str(), m_curr->second.x, m_curr->second.y, m_curr->second.z, m_curr->second.mapid);
     }
 }

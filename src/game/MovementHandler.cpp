@@ -110,7 +110,7 @@ void WorldSession::HandleMoveWorldportAckOpcode()
     {
         if( mEntry->IsDungeon() )
         {
-            GetPlayer()->ResurrectPlayer(0.5f,false);
+            GetPlayer()->ResurrectPlayer(0.5f);
             GetPlayer()->SpawnCorpseBones();
             GetPlayer()->SaveToDB();
         }
@@ -129,29 +129,23 @@ void WorldSession::HandleMoveWorldportAckOpcode()
     if(!mEntry->IsMountAllowed())
         _player->RemoveSpellsCausingAura(SPELL_AURA_MOUNTED);
 
-    // battleground state preper
-    // only add to bg group and object, if the player was invited (else he entered through command)
-    if(_player->InBattleGround() && _player->IsInvitedForBattleGroundInstance(_player->GetBattleGroundId()))
+    // battleground state prepare
+    if(_player->InBattleGround())
     {
         BattleGround *bg = _player->GetBattleGround();
         if(bg)
         {
-            bg->AddPlayer(_player);
             if(bg->GetMapId() == _player->GetMapId())       // we teleported to bg
             {
-                // get the team this way, because arenas might 'override' the teams.
-                uint32 team = bg->GetPlayerTeam(_player->GetGUID());
-                if(!team)
-                    team = _player->GetTeam();
-                if(!bg->GetBgRaid(team))      // first player joined
+                if(!bg->GetBgRaid(_player->GetTeam()))      // first player joined
                 {
                     Group *group = new Group;
-                    bg->SetBgRaid(team, group);
+                    bg->SetBgRaid(_player->GetTeam(), group);
                     group->Create(_player->GetGUIDLow(), _player->GetName());
                 }
                 else                                        // raid already exist
                 {
-                    bg->GetBgRaid(team)->AddMember(_player->GetGUID(), _player->GetName());
+                    bg->GetBgRaid(_player->GetTeam())->AddMember(_player->GetGUID(), _player->GetName());
                 }
             }
         }
@@ -293,7 +287,7 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
         movementInfo.t_time = 0;
     }
 
-    // fall damage generation (ignore in flight case that can be triggred also at lags in moment teleportation to another map).
+    // fall damage generation (ignore in flight case that can be triggered also at lags in moment teleportation to another map).
     if (recv_data.GetOpcode() == MSG_MOVE_FALL_LAND && !GetPlayer()->isInFlight())
     {
         Player *target = GetPlayer();
@@ -371,29 +365,20 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
 
     if(movementInfo.z < -500.0f)
     {
-        if(GetPlayer()->InBattleGround() 
-            && GetPlayer()->GetBattleGround() 
-            && GetPlayer()->GetBattleGround()->HandlePlayerUnderMap(_player))
+        // NOTE: this is actually called many times while falling
+        // even after the player has been teleported away
+        // TODO: discard movement packets after the player is rooted
+        if(GetPlayer()->isAlive())
         {
-            // do nothing, the handle already did if returned true
+            GetPlayer()->EnvironmentalDamage(GetPlayer()->GetGUID(),DAMAGE_FALL_TO_VOID, GetPlayer()->GetMaxHealth());
+            // change the death state to CORPSE to prevent the death timer from
+            // starting in the next player update
+            GetPlayer()->KillPlayer();
+            GetPlayer()->BuildPlayerRepop();
         }
-        else
-        {
-            // NOTE: this is actually called many times while falling
-            // even after the player has been teleported away
-            // TODO: discard movement packets after the player is rooted
-            if(GetPlayer()->isAlive())
-            {
-                GetPlayer()->EnvironmentalDamage(GetPlayer()->GetGUID(),DAMAGE_FALL_TO_VOID, GetPlayer()->GetMaxHealth());
-                // change the death state to CORPSE to prevent the death timer from
-                // starting in the next player update
-                GetPlayer()->KillPlayer();
-                GetPlayer()->BuildPlayerRepop();
-            }
 
-            // cancel the death timer here if started
-            GetPlayer()->RepopAtGraveyard();
-        }
+        // cancel the death timer here if started
+        GetPlayer()->RepopAtGraveyard();
     }
 }
 

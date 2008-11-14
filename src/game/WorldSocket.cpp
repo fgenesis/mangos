@@ -81,7 +81,7 @@ m_Seed (static_cast<uint32> (rand32 ())),
 m_OverSpeedPings (0),
 m_LastPingTime (ACE_Time_Value::zero)
 {
-    this->reference_counting_policy ().value (ACE_Event_Handler::Reference_Counting_Policy::ENABLED);
+    reference_counting_policy ().value (ACE_Event_Handler::Reference_Counting_Policy::ENABLED);
 }
 
 WorldSocket::~WorldSocket (void)
@@ -92,9 +92,9 @@ WorldSocket::~WorldSocket (void)
     if (m_OutBuffer)
         m_OutBuffer->release ();
 
-    this->closing_ = true;
+    closing_ = true;
 
-    this->peer ().close ();
+    peer ().close ();
 
     WorldPacket* pct;
     while (m_PacketQueue.dequeue_head (pct) == 0)
@@ -103,7 +103,7 @@ WorldSocket::~WorldSocket (void)
 
 bool WorldSocket::IsClosed (void) const
 {
-    return this->closing_;
+    return closing_;
 }
 
 void WorldSocket::CloseSocket (void)
@@ -111,12 +111,12 @@ void WorldSocket::CloseSocket (void)
     {
         ACE_GUARD (LockType, Guard, m_OutBufferLock);
 
-        if (this->closing_)
+        if (closing_)
         return;
 
-        this->closing_ = true;
+        closing_ = true;
 
-        this->peer ().close_writer ();
+        peer ().close_writer ();
     }
 
     {
@@ -135,7 +135,7 @@ int WorldSocket::SendPacket (const WorldPacket& pct)
 {
     ACE_GUARD_RETURN (LockType, Guard, m_OutBufferLock, -1);
 
-    if (this->closing_)
+    if (closing_)
         return -1;
 
     // Dump outgoing packet.
@@ -180,12 +180,12 @@ int WorldSocket::SendPacket (const WorldPacket& pct)
 
 long WorldSocket::AddReference (void)
 {
-    return static_cast<long> (this->add_reference ());
+    return static_cast<long> (add_reference ());
 }
 
 long WorldSocket::RemoveReference (void)
 {
-    return static_cast<long> (this->remove_reference ());
+    return static_cast<long> (remove_reference ());
 }
 
 int WorldSocket::open (void *a)
@@ -210,7 +210,7 @@ int WorldSocket::open (void *a)
     // Store peer address.
     ACE_INET_Addr remote_addr;
 
-    if (this->peer ().get_remote_addr (remote_addr) == -1)
+    if (peer ().get_remote_addr (remote_addr) == -1)
     {
         sLog.outError ("WorldSocket::open: peer ().get_remote_addr errno = %s", ACE_OS::strerror (errno));
         return -1;
@@ -226,42 +226,42 @@ int WorldSocket::open (void *a)
         return -1;
 
     // Register with ACE Reactor
-    if (this->reactor ()->register_handler(this, ACE_Event_Handler::READ_MASK | ACE_Event_Handler::WRITE_MASK) == -1)
+    if (reactor ()->register_handler(this, ACE_Event_Handler::READ_MASK | ACE_Event_Handler::WRITE_MASK) == -1)
     {
         sLog.outError ("WorldSocket::open: unable to register client handler errno = %s", ACE_OS::strerror (errno));
         return -1;
     }
 
     // reactor takes care of the socket from now on
-    this->remove_reference ();
+    remove_reference ();
 
     return 0;
 }
 
 int WorldSocket::close (int)
 {
-    this->shutdown ();
+    shutdown ();
 
-    this->closing_ = true;
+    closing_ = true;
 
-    this->remove_reference ();
+    remove_reference ();
 
     return 0;
 }
 
 int WorldSocket::handle_input (ACE_HANDLE)
 {
-    if (this->closing_)
+    if (closing_)
         return -1;
 
-    switch (this->handle_input_missing_data ())
+    switch (handle_input_missing_data ())
     {
         case -1 :
         {
             if ((errno == EWOULDBLOCK) ||
                 (errno == EAGAIN))
             {
-                return this->Update (); // interesting line ,isnt it ?
+                return Update (); // interesting line ,isn't it ?
             }
 
             DEBUG_LOG ("WorldSocket::handle_input: Peer error closing connection errno = %s", ACE_OS::strerror (errno));
@@ -279,7 +279,7 @@ int WorldSocket::handle_input (ACE_HANDLE)
         case 1:
             return 1;
         default:
-            return this->Update (); // another interesting line ;)
+            return Update (); // another interesting line ;)
     }
 
     ACE_NOTREACHED(return -1);
@@ -289,18 +289,18 @@ int WorldSocket::handle_output (ACE_HANDLE)
 {
     ACE_GUARD_RETURN (LockType, Guard, m_OutBufferLock, -1);
 
-    if (this->closing_)
+    if (closing_)
         return -1;
 
     const size_t send_len = m_OutBuffer->length ();
 
     if (send_len == 0)
-        return this->cancel_wakeup_output (Guard);
+        return cancel_wakeup_output (Guard);
 
 #ifdef MSG_NOSIGNAL
-    ssize_t n = this->peer ().send (m_OutBuffer->rd_ptr (), send_len, MSG_NOSIGNAL);
+    ssize_t n = peer ().send (m_OutBuffer->rd_ptr (), send_len, MSG_NOSIGNAL);
 #else
-    ssize_t n = this->peer ().send (m_OutBuffer->rd_ptr (), send_len);
+    ssize_t n = peer ().send (m_OutBuffer->rd_ptr (), send_len);
 #endif // MSG_NOSIGNAL
 
     if (n == 0)
@@ -308,7 +308,7 @@ int WorldSocket::handle_output (ACE_HANDLE)
     else if (n == -1)
     {
         if (errno == EWOULDBLOCK || errno == EAGAIN)
-            return this->schedule_wakeup_output (Guard);
+            return schedule_wakeup_output (Guard);
 
         return -1;
     }
@@ -319,16 +319,16 @@ int WorldSocket::handle_output (ACE_HANDLE)
         // move the data to the base of the buffer
         m_OutBuffer->crunch ();
 
-        return this->schedule_wakeup_output (Guard);
+        return schedule_wakeup_output (Guard);
     }
     else //now n == send_len
     {
         m_OutBuffer->reset ();
 
         if (!iFlushPacketQueue ())
-            return this->cancel_wakeup_output (Guard);
+            return cancel_wakeup_output (Guard);
         else
-            return this->schedule_wakeup_output (Guard);
+            return schedule_wakeup_output (Guard);
     }
 
     ACE_NOTREACHED (return 0);
@@ -340,10 +340,10 @@ int WorldSocket::handle_close (ACE_HANDLE h, ACE_Reactor_Mask)
     {
         ACE_GUARD_RETURN (LockType, Guard, m_OutBufferLock, -1);
 
-        this->closing_ = true;
+        closing_ = true;
 
         if (h == ACE_INVALID_HANDLE)
-            this->peer ().close_writer ();
+            peer ().close_writer ();
     }
 
     // Critical section
@@ -358,13 +358,13 @@ int WorldSocket::handle_close (ACE_HANDLE h, ACE_Reactor_Mask)
 
 int WorldSocket::Update (void)
 {
-    if (this->closing_)
+    if (closing_)
         return -1;
 
     if (m_OutActive || m_OutBuffer->length () == 0)
         return 0;
 
-    return this->handle_output (this->get_handle ());
+    return handle_output (get_handle ());
 }
 
 int WorldSocket::handle_input_header (void)
@@ -416,7 +416,7 @@ int WorldSocket::handle_input_payload (void)
     ACE_ASSERT (m_Header.space () == 0);
     ACE_ASSERT (m_RecvWPct != NULL);
 
-    const int ret = this->ProcessIncoming (m_RecvWPct);
+    const int ret = ProcessIncoming (m_RecvWPct);
 
     m_RecvPct.base (NULL, 0);
     m_RecvPct.reset ();
@@ -448,7 +448,7 @@ int WorldSocket::handle_input_missing_data (void)
 
     const size_t recv_size = message_block.space ();
 
-    const ssize_t n = this->peer ().recv (message_block.wr_ptr (),
+    const ssize_t n = peer ().recv (message_block.wr_ptr (),
                                           recv_size);
 
     if (n <= 0)
@@ -460,21 +460,21 @@ int WorldSocket::handle_input_missing_data (void)
     {
         if (m_Header.space () > 0)
         {
-            //need to recieve the header
+            //need to receive the header
             const size_t to_header = (message_block.length () > m_Header.space () ? m_Header.space () : message_block.length ());
             m_Header.copy (message_block.rd_ptr (), to_header);
             message_block.rd_ptr (to_header);
 
             if (m_Header.space () > 0)
             {
-                //couldnt recieve the whole header this time
+                // Couldn't receive the whole header this time.
                 ACE_ASSERT (message_block.length () == 0);
                 errno = EWOULDBLOCK;
                 return -1;
             }
 
-          //we just recieved nice new header
-            if (this->handle_input_header () == -1)
+          // We just received nice new header
+            if (handle_input_header () == -1)
             {
                 ACE_ASSERT ((errno != EWOULDBLOCK) && (errno != EAGAIN));
                 return -1;
@@ -482,16 +482,16 @@ int WorldSocket::handle_input_missing_data (void)
         }
 
         // Its possible on some error situations that this happens
-        // for example on closing when epoll recieves more chunked data and stuff
+        // for example on closing when epoll receives more chunked data and stuff
         // hope this is not hack ,as proper m_RecvWPct is asserted around
         if (!m_RecvWPct)
         {
-            sLog.outError ("Forsing close on input m_RecvWPct = NULL");
+            sLog.outError ("Forcing close on input m_RecvWPct = NULL");
             errno = EINVAL;
             return -1;
         }
 
-        // We have full readed header, now check the data payload
+        // We have full read header, now check the data payload
         if (m_RecvPct.space () > 0)
         {
             //need more data in the payload
@@ -501,15 +501,15 @@ int WorldSocket::handle_input_missing_data (void)
 
             if (m_RecvPct.space () > 0)
             {
-                //couldnt recieve the whole data this time
+                // Couldn't receive the whole data this time.
                 ACE_ASSERT (message_block.length () == 0);
                 errno = EWOULDBLOCK;
                 return -1;
             }
         }
 
-        //just recieved fresh new payload
-        if (this->handle_input_payload () == -1)
+        //just received fresh new payload
+        if (handle_input_payload () == -1)
         {
             ACE_ASSERT ((errno != EWOULDBLOCK) && (errno != EAGAIN));
             return -1;
@@ -528,7 +528,7 @@ int WorldSocket::cancel_wakeup_output (GuardType& g)
 
     g.release ();
 
-    if (this->reactor ()->cancel_wakeup
+    if (reactor ()->cancel_wakeup
         (this, ACE_Event_Handler::WRITE_MASK) == -1)
     {
         // would be good to store errno from reactor with errno guard
@@ -548,7 +548,7 @@ int WorldSocket::schedule_wakeup_output (GuardType& g)
 
     g.release ();
 
-    if (this->reactor ()->schedule_wakeup
+    if (reactor ()->schedule_wakeup
         (this, ACE_Event_Handler::WRITE_MASK) == -1)
     {
         sLog.outError ("WorldSocket::schedule_wakeup_output");
@@ -567,10 +567,10 @@ int WorldSocket::ProcessIncoming (WorldPacket* new_pct)
 
     const ACE_UINT16 opcode = new_pct->GetOpcode ();
 
-    if (this->closing_)
+    if (closing_)
         return -1;
 
-    // dump recieved packet
+    // Dump received packet.
     if (sWorldLog.LogWorld ())
     {
         sWorldLog.Log ("CLIENT:\nSOCKET: %u\nLENGTH: %u\nOPCODE: %s (0x%.4X)\nDATA:\n",
@@ -635,7 +635,7 @@ int WorldSocket::ProcessIncoming (WorldPacket* new_pct)
 
 int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
 {
-    // NOTE: ATM the socket is singlethreaded, have this in mind ...
+    // NOTE: ATM the socket is singlethread, have this in mind ...
     uint8 digest[20];
     uint32 clientSeed;
     uint32 unk2;
@@ -853,7 +853,7 @@ int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
         return -1;
     }
 
-    std::string address = this->GetRemoteAddress ();
+    std::string address = GetRemoteAddress ();
 
     DEBUG_LOG ("WorldSocket::HandleAuthSession: Client '%s' authenticated successfully from %s.",
                 account.c_str (),
@@ -878,7 +878,7 @@ int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
     // In case needed sometime the second arg is in microseconds 1 000 000 = 1 sec
     ACE_OS::sleep (ACE_Time_Value (0, 10000));
 
-    sWorld.AddSession (this->m_Session);
+    sWorld.AddSession (m_Session);
 
     // Create and send the Addon packet
     if (sAddOnHandler.BuildAddonPacket (&recvPacket, &SendAddonPacked))
@@ -924,7 +924,7 @@ int WorldSocket::HandlePing (WorldPacket& recvPacket)
                 if (m_Session && m_Session->GetSecurity () == SEC_PLAYER)
                 {
                     sLog.outError  ("WorldSocket::HandlePing: Player kicked for "
-                                    "overspeeded pings adress = %s",
+                                    "over-speed pings address = %s",
                                     GetRemoteAddress ().c_str ());
 
                     return -1;
@@ -945,15 +945,15 @@ int WorldSocket::HandlePing (WorldPacket& recvPacket)
         {
             sLog.outError ("WorldSocket::HandlePing: peer sent CMSG_PING, "
                             "but is not authenticated or got recently kicked,"
-                            " adress = %s",
-                            this->GetRemoteAddress ().c_str ());
+                            " address = %s",
+                            GetRemoteAddress ().c_str ());
              return -1;
         }
     }
 
     WorldPacket packet (SMSG_PONG, 4);
     packet << ping;
-    return this->SendPacket (packet);
+    return SendPacket (packet);
 }
 
 int WorldSocket::iSendPacket (const WorldPacket& pct)

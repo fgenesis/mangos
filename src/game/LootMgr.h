@@ -120,7 +120,7 @@ class LootTemplate;
 typedef std::vector<QuestItem> QuestItemList;
 typedef std::map<uint32, QuestItemList *> QuestItemMap;
 typedef std::vector<LootStoreItem> LootStoreItemList;
-typedef HM_NAMESPACE::hash_map<uint32, LootTemplate*> LootTemplateMap;
+typedef UNORDERED_MAP<uint32, LootTemplate*> LootTemplateMap;
 
 typedef std::set<uint32> LootIdSet;
 
@@ -172,7 +172,7 @@ class LootTemplate
 
         // Checks integrity of the template
         void Verify(LootStore const& store, uint32 Id) const;
-        void CheckLootRefs(LootTemplateMap const& store, LootIdSet* ref_set) const;
+        void CheckLootRefs(LootIdSet* ref_set) const;
     private:
         LootStoreItemList Entries;                          // not grouped only
         LootGroups        Groups;                           // groups have own (optimised) processing, grouped entries go there

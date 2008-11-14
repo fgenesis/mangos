@@ -56,6 +56,7 @@
 #include "CellImpl.h"
 #include "InstanceSaveMgr.h"
 #include "WaypointManager.h"
+#include "GMTicketMgr.h"
 #include "Util.h"
 
 INSTANTIATE_SINGLETON_1( World );
@@ -197,18 +198,20 @@ World::AddSession_ (WorldSession* s)
         return;
     }
 
-    WorldSession* old = m_sessions[s->GetAccountId ()];
-    m_sessions[s->GetAccountId ()] = s;
-
     // if session already exist, prepare to it deleting at next world update
     // NOTE - KickPlayer() should be called on "old" in RemoveSession()
-    if (old)
-        m_kicked_sessions.insert (old);
+    {
+      SessionMap::const_iterator old = m_sessions.find(s->GetAccountId ());
+
+      if(old != m_sessions.end())
+        m_kicked_sessions.insert (old->second);
+    }
+
+    m_sessions[s->GetAccountId ()] = s;
 
     uint32 Sessions = GetActiveAndQueuedSessionCount ();
     uint32 pLimit = GetPlayerAmountLimit ();
     uint32 QueueSize = GetQueueSize (); //number of players in the queue
-    bool inQueue = false;
     //so we don't count the user trying to
     //login as a session and queue the socket that we are using
     --Sessions;
@@ -286,9 +289,7 @@ void World::RemoveQueuedPlayer(WorldSession* sess)
     {
         if(*iter==sess)
         {
-            Queue::iterator iter2 = iter;
-            ++iter;
-            m_QueuedPlayer.erase(iter2);
+            iter = m_QueuedPlayer.erase(iter);
             decrease_session = false;                       // removing queued session
             break;
         }
@@ -480,7 +481,8 @@ void World::LoadConfigSettings(bool reload)
     }
     else if(rate_values[RATE_TARGET_POS_RECALCULATION_RANGE] > ATTACK_DISTANCE)
     {
-        sLog.outError("TargetPosRecalculateRange (%f) must be <= %f. Using %f instead.",rate_values[RATE_TARGET_POS_RECALCULATION_RANGE],ATTACK_DISTANCE,ATTACK_DISTANCE);
+        sLog.outError("TargetPosRecalculateRange (%f) must be <= %f. Using %f instead.",
+            rate_values[RATE_TARGET_POS_RECALCULATION_RANGE],ATTACK_DISTANCE,ATTACK_DISTANCE);
         rate_values[RATE_TARGET_POS_RECALCULATION_RANGE] = ATTACK_DISTANCE;
     }
 
@@ -1131,6 +1133,9 @@ void World::SetInitialWorldSettings()
     sLog.outString( "Loading Waypoints..." );
     WaypointMgr.Load();
 
+    sLog.outString( "Loading GM tickets...");
+    ticketmgr.LoadGMTickets();
+
     ///- Handle outdated emails (delete/return)
     sLog.outString( "Returning old mails..." );
     objmgr.ReturnOrDeleteOldMails(false);
@@ -1142,6 +1147,9 @@ void World::SetInitialWorldSettings()
     objmgr.LoadSpellScripts();                              // must be after load Creature/Gameobject(Template/Data)
     objmgr.LoadGameObjectScripts();                         // must be after load Creature/Gameobject(Template/Data)
     objmgr.LoadEventScripts();                              // must be after load Creature/Gameobject(Template/Data)
+
+    sLog.outString( "Loading Scripts text locales..." );    // must be after Load*Scripts calls
+    objmgr.LoadDbScriptStrings();
 
     sLog.outString( "Initializing Scripts..." );
     if(!LoadScriptingModule())
@@ -1160,7 +1168,8 @@ void World::SetInitialWorldSettings()
     sprintf( isoDate, "%04d-%02d-%02d %02d:%02d:%02d",
         local.tm_year+1900, local.tm_mon+1, local.tm_mday, local.tm_hour, local.tm_min, local.tm_sec);
 
-    WorldDatabase.PExecute("INSERT INTO uptime (startstring, starttime, uptime) VALUES('%s', %ld, 0)", isoDate, m_startTime );
+    WorldDatabase.PExecute("INSERT INTO uptime (startstring, starttime, uptime) VALUES('%s', " I64FMTD ", 0)",
+        isoDate, uint64(m_startTime));
 
     m_timers[WUPDATE_OBJECTS].SetInterval(0);
     m_timers[WUPDATE_SESSIONS].SetInterval(0);
@@ -1563,11 +1572,6 @@ void World::ScriptsProcess()
                     sLog.outError("SCRIPT_COMMAND_TALK call for non-creature (TypeId: %u), skipping.",source->GetTypeId());
                     break;
                 }
-                if(step.script->datalong > 3)
-                {
-                    sLog.outError("SCRIPT_COMMAND_TALK invalid chat type (%u), skipping.",step.script->datalong);
-                    break;
-                }
 
                 uint64 unit_target = target ? target->GetGUID() : 0;
 
@@ -1575,7 +1579,7 @@ void World::ScriptsProcess()
                 switch(step.script->datalong)
                 {
                     case 0:                                 // Say
-                        ((Creature *)source)->Say(step.script->datatext.c_str(), LANG_UNIVERSAL, unit_target);
+                        ((Creature *)source)->Say(step.script->dataint, LANG_UNIVERSAL, unit_target);
                         break;
                     case 1:                                 // Whisper
                         if(!unit_target)
@@ -1583,13 +1587,13 @@ void World::ScriptsProcess()
                             sLog.outError("SCRIPT_COMMAND_TALK attempt to whisper (%u) NULL, skipping.",step.script->datalong);
                             break;
                         }
-                        ((Creature *)source)->Whisper(step.script->datatext.c_str(),unit_target);
+                        ((Creature *)source)->Whisper(step.script->dataint,unit_target);
                         break;
                     case 2:                                 // Yell
-                        ((Creature *)source)->Yell(step.script->datatext.c_str(), LANG_UNIVERSAL, unit_target);
+                        ((Creature *)source)->Yell(step.script->dataint, LANG_UNIVERSAL, unit_target);
                         break;
                     case 3:                                 // Emote text
-                        ((Creature *)source)->TextEmote(step.script->datatext.c_str(), unit_target);
+                        ((Creature *)source)->TextEmote(step.script->dataint, unit_target);
                         break;
                     default:
                         break;                              // must be already checked at load
