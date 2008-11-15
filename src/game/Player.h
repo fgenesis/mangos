@@ -32,6 +32,7 @@
 #include "WorldSession.h"
 #include "Pet.h"
 #include "Util.h"                                           // for Tokens typedef
+#include "AchievementMgr.h"
 
 #include<string>
 #include<vector>
@@ -45,6 +46,8 @@ class PlayerMenu;
 class Transport;
 class UpdateMask;
 class PlayerSocial;
+class AchievementMgr;
+class Vehicle;
 
 typedef std::deque<Mail*> PlayerMails;
 
@@ -388,7 +391,7 @@ enum PlayerFlags
     PLAYER_FLAGS_UNK3           = 0x00008000,               // strange visual effect (2.0.1), looks like PLAYER_FLAGS_GHOST flag
     PLAYER_FLAGS_SANCTUARY      = 0x00010000,               // player entered sanctuary
     PLAYER_FLAGS_UNK4           = 0x00020000,               // taxi benchmark mode (on/off) (2.0.1)
-    PLAYER_UNK                  = 0x00040000,               // 2.0.8...
+    PLAYER_FLAGS_PVP_TIMER      = 0x00040000,               // 3.0.2, pvp timer active (after you disable pvp manually)
 };
 
 // used for PLAYER__FIELD_KNOWN_TITLES field (uint64), (1<<bit_index) without (-1)
@@ -540,7 +543,7 @@ enum PlayerSlots
     // first slot for item stored (in any way in player m_items data)
     PLAYER_SLOT_START           = 0,
     // last+1 slot for item stored (in any way in player m_items data)
-    PLAYER_SLOT_END             = 118,
+    PLAYER_SLOT_END             = 200,
     PLAYER_SLOTS_COUNT          = (PLAYER_SLOT_END - PLAYER_SLOT_START)
 };
 
@@ -668,6 +671,24 @@ enum KeyRingSlots
     KEYRING_SLOT_END            = 118
 };
 
+enum VanityPetSlots
+{
+    VANITYPET_SLOT_START        = 118,
+    VANITYPET_SLOT_END          = 136
+};
+
+enum CurrencyTokenSlots
+{
+    CURRENCYTOKEN_SLOT_START    = 136,
+    CURRENCYTOKEN_SLOT_END      = 168
+};
+
+enum QuestBagSlots
+{
+    QUESTBAG_SLOT_START         = 168,
+    QUESTBAG_SLOT_END           = 200
+};
+
 struct ItemPosCount
 {
     ItemPosCount(uint16 _pos, uint8 _count) : pos(_pos), count(_count) {}
@@ -686,14 +707,15 @@ enum TradeSlots
 
 enum TransferAbortReason
 {
-    TRANSFER_ABORT_MAX_PLAYERS          = 0x0001,           // Transfer Aborted: instance is full
-    TRANSFER_ABORT_NOT_FOUND            = 0x0002,           // Transfer Aborted: instance not found
-    TRANSFER_ABORT_TOO_MANY_INSTANCES   = 0x0003,           // You have entered too many instances recently.
-    TRANSFER_ABORT_ZONE_IN_COMBAT       = 0x0005,           // Unable to zone in while an encounter is in progress.
-    TRANSFER_ABORT_INSUF_EXPAN_LVL1     = 0x0106,           // You must have TBC expansion installed to access this area.
-    TRANSFER_ABORT_DIFFICULTY1          = 0x0007,           // Normal difficulty mode is not available for %s.
-    TRANSFER_ABORT_DIFFICULTY2          = 0x0107,           // Heroic difficulty mode is not available for %s.
-    TRANSFER_ABORT_DIFFICULTY3          = 0x0207            // Epic difficulty mode is not available for %s.
+    TRANSFER_ABORT_ERROR                    = 0x00,
+    TRANSFER_ABORT_MAX_PLAYERS              = 0x01,         // Transfer Aborted: instance is full
+    TRANSFER_ABORT_NOT_FOUND                = 0x02,         // Transfer Aborted: instance not found
+    TRANSFER_ABORT_TOO_MANY_INSTANCES       = 0x03,         // You have entered too many instances recently.
+    TRANSFER_ABORT_ZONE_IN_COMBAT           = 0x05,         // Unable to zone in while an encounter is in progress.
+    TRANSFER_ABORT_INSUF_EXPAN_LVL          = 0x06,         // You must have <TBC,WotLK> expansion installed to access this area.
+    TRANSFER_ABORT_DIFFICULTY               = 0x07,         // <Normal,Heroic,Epic> difficulty mode is not available for %s.
+    TRANSFER_ABORT_UNIQUE_MESSAGE           = 0x08,         // Until you've escaped TLK's grasp, you cannot leave this place!
+    TRANSFER_ABORT_TOO_MANY_REALM_INSTANCES = 0x09          // Additional instances cannot be launched, please try again later.
 };
 
 enum InstanceResetWarningType
@@ -708,14 +730,15 @@ struct MovementInfo
 {
     // common
     //uint32  flags;
-    uint8   unk1;
+    uint16  unk1;
     uint32  time;
     float   x, y, z, o;
     // transport
     uint64  t_guid;
     float   t_x, t_y, t_z, t_o;
     uint32  t_time;
-    // swimming and unk
+    int8    t_seat;
+    // swimming and unknown
     float   s_pitch;
     // last fall time
     uint32  fallTime;
@@ -808,9 +831,11 @@ enum PlayerLoginQueryIndex
     PLAYER_LOGIN_QUERY_LOADSPELLCOOLDOWNS       = 15,
     PLAYER_LOGIN_QUERY_LOADDECLINEDNAMES        = 16,
     PLAYER_LOGIN_QUERY_LOADGUILD                = 17,
+    PLAYER_LOGIN_QUERY_LOADACHIEVEMENTS         = 18,
+    PLAYER_LOGIN_QUERY_LOADCRITERIAPROGRESS     = 19,
+    MAX_PLAYER_LOGIN_QUERY                      = 20
 };
 
-#define MAX_PLAYER_LOGIN_QUERY                    18
 
 // Player summoning auto-decline time (in secs)
 #define MAX_PLAYER_SUMMON_DELAY                   (2*MINUTE)
@@ -832,7 +857,7 @@ class MANGOS_DLL_SPEC PlayerTaxi
         PlayerTaxi();
         ~PlayerTaxi() {}
         // Nodes
-        void InitTaxiNodesForLevel(uint32 race, uint32 level);
+        void InitTaxiNodesForLevel(uint32 race, uint32 chrClass, uint32 level);
         void LoadTaxiMask(const char* data);
         void SaveTaxiMask(const char* data);
 
@@ -924,7 +949,7 @@ class MANGOS_DLL_SPEC Player : public Unit
 
         void SendInitialPacketsBeforeAddToMap();
         void SendInitialPacketsAfterAddToMap();
-        void SendTransferAborted(uint32 mapid, uint16 reason);
+        void SendTransferAborted(uint32 mapid, uint8 reason, uint8 arg = 0);
         void SendInstanceResetWarning(uint32 mapid, uint32 time);
 
         bool CanInteractWithNPCs(bool alive = true) const;
@@ -937,10 +962,12 @@ class MANGOS_DLL_SPEC Player : public Unit
         std::string afkMsg;
         std::string dndMsg;
 
+        uint32 GetBarberShopCost(uint8 newhairstyle, uint8 newhaircolor, uint8 newfacialhair);
+
         PlayerSocial *GetSocial() { return m_social; }
 
         PlayerTaxi m_taxi;
-        void InitTaxiNodesForLevel() { m_taxi.InitTaxiNodesForLevel(getRace(),getLevel()); }
+        void InitTaxiNodesForLevel() { m_taxi.InitTaxiNodesForLevel(getRace(), getClass(), getLevel()); }
         bool ActivateTaxiPathTo(std::vector<uint32> const& nodes, uint32 mount_id = 0 , Creature* npc = NULL);
                                                             // mount_id can be used in scripting calls
         bool isAcceptTickets() const { return GetSession()->GetSecurity() >= SEC_GAMEMASTER && (m_ExtraFlags & PLAYER_EXTRA_GM_ACCEPT_TICKETS); }
@@ -1406,6 +1433,12 @@ class MANGOS_DLL_SPEC Player : public Unit
         uint32 resetTalentsCost() const;
         void InitTalentForLevel();
 
+        void InitGlyphsForLevel();
+        void SetGlyphSlot(uint8 slot, uint32 slottype) { SetUInt32Value(PLAYER_FIELD_GLYPH_SLOTS_1 + slot, slottype); }
+        uint32 GetGlyphSlot(uint8 slot) { return GetUInt32Value(PLAYER_FIELD_GLYPH_SLOTS_1 + slot); }
+        void SetGlyph(uint8 slot, uint32 glyph) { SetUInt32Value(PLAYER_FIELD_GLYPHS_1 + slot, glyph); }
+        uint32 GetGlyph(uint8 slot) { return GetUInt32Value(PLAYER_FIELD_GLYPHS_1 + slot); }
+
         uint32 GetFreePrimaryProffesionPoints() const { return GetUInt32Value(PLAYER_CHARACTER_POINTS2); }
         void SetFreePrimaryProffesions(uint16 profs) { SetUInt32Value(PLAYER_CHARACTER_POINTS2,profs); }
         void InitPrimaryProffesions();
@@ -1778,7 +1811,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         void SendUpdateWorldState(uint32 Field, uint32 Value);
         void SendDirectMessage(WorldPacket *data);
 
-        void SendAuraDurationsForTarget(Unit* target);
+        void SendAurasForTarget(Unit *target);
 
         PlayerMenu* PlayerTalkClass;
         std::vector<ItemSetEffect *> ItemSetEff;
@@ -1801,32 +1834,24 @@ class MANGOS_DLL_SPEC Player : public Unit
         static uint32 GetMaxLevelForBattleGroundQueueId(uint32 queue_id);
         uint32 GetBattleGroundQueueIdFromLevel() const;
 
-        bool InBattleGroundQueue() const 	 
-	    { 	 
-	        for (int i=0; i < PLAYER_MAX_BATTLEGROUND_QUEUES; i++) 	 
-                if (m_bgBattleGroundQueueID[i].bgQueueType != 0) 	 
-	                return true; 	 
-	        return false; 	 
-	    }
-
-        uint32 GetBattleGroundQueueId(uint32 index) const { return m_bgBattleGroundQueueID[index].bgQueueType; }
-        uint32 GetBattleGroundQueueIndex(uint32 bgQueueType) const
+        uint32 GetBattleGroundQueueId(uint32 index) const { return m_bgBattleGroundQueueID[index].bgType; }
+        uint32 GetBattleGroundQueueIndex(uint32 bgType) const
         {
             for (int i=0; i < PLAYER_MAX_BATTLEGROUND_QUEUES; i++)
-                if (m_bgBattleGroundQueueID[i].bgQueueType == bgQueueType)
+                if (m_bgBattleGroundQueueID[i].bgType == bgType)
                     return i;
             return PLAYER_MAX_BATTLEGROUND_QUEUES;
         }
-        bool IsInvitedForBattleGroundQueueType(uint32 bgQueueType) const
+        bool IsInvitedForBattleGroundType(uint32 bgType) const
         {
             for (int i=0; i < PLAYER_MAX_BATTLEGROUND_QUEUES; i++)
-                if (m_bgBattleGroundQueueID[i].bgQueueType == bgQueueType)
-                    return m_bgBattleGroundQueueID[i].invitedToInstance != 0;
+                if (m_bgBattleGroundQueueID[i].bgType == bgType)
+                    return m_bgBattleGroundQueueID[i].invited;
             return PLAYER_MAX_BATTLEGROUND_QUEUES;
         }
-        bool InBattleGroundQueueForBattleGroundQueueType(uint32 bgQueueType) const
+        bool InBattleGroundQueueForBattleGroundType(uint32 bgType) const
         {
-            return GetBattleGroundQueueIndex(bgQueueType) < PLAYER_MAX_BATTLEGROUND_QUEUES;
+            return GetBattleGroundQueueIndex(bgType) < PLAYER_MAX_BATTLEGROUND_QUEUES;
         }
 
         void SetBattleGroundId(uint32 val)  { m_bgBattleGroundID = val; }
@@ -1834,47 +1859,34 @@ class MANGOS_DLL_SPEC Player : public Unit
         {
             for (int i=0; i < PLAYER_MAX_BATTLEGROUND_QUEUES; i++)
             {
-                if (m_bgBattleGroundQueueID[i].bgQueueType == 0 || m_bgBattleGroundQueueID[i].bgQueueType == val)
+                if (m_bgBattleGroundQueueID[i].bgType == 0 || m_bgBattleGroundQueueID[i].bgType == val)
                 {
-                    m_bgBattleGroundQueueID[i].bgQueueType = val;
-                    m_bgBattleGroundQueueID[i].invitedToInstance = 0;
+                    m_bgBattleGroundQueueID[i].bgType = val;
+                    m_bgBattleGroundQueueID[i].invited = false;
                     return i;
                 }
             }
             return PLAYER_MAX_BATTLEGROUND_QUEUES;
         }
-        bool HasFreeBattleGroundQueueId()
-        {
-            for (int i=0; i < PLAYER_MAX_BATTLEGROUND_QUEUES; i++)
-                if (m_bgBattleGroundQueueID[i].bgQueueType == 0)
-                    return true;
-            return false;
-        }
         void RemoveBattleGroundQueueId(uint32 val)
         {
             for (int i=0; i < PLAYER_MAX_BATTLEGROUND_QUEUES; i++)
             {
-                if (m_bgBattleGroundQueueID[i].bgQueueType == val)
+                if (m_bgBattleGroundQueueID[i].bgType == val)
                 {
-                    m_bgBattleGroundQueueID[i].bgQueueType = 0;
-                    m_bgBattleGroundQueueID[i].invitedToInstance = 0;
+                    m_bgBattleGroundQueueID[i].bgType = 0;
+                    m_bgBattleGroundQueueID[i].invited = false;
                     return;
                 }
             }
         }
-        void SetInviteForBattleGroundQueueType(uint32 bgQueueType, uint32 instanceId)
+        void SetInviteForBattleGroundType(uint32 bgType)
         {
             for (int i=0; i < PLAYER_MAX_BATTLEGROUND_QUEUES; i++)
-                if (m_bgBattleGroundQueueID[i].bgQueueType == bgQueueType)
-                    m_bgBattleGroundQueueID[i].invitedToInstance = instanceId;
+                if (m_bgBattleGroundQueueID[i].bgType == bgType)
+                    m_bgBattleGroundQueueID[i].invited = true;
         }
-        bool IsInvitedForBattleGroundInstance(uint32 instanceId) const
-        {
-            for (int i=0; i < PLAYER_MAX_BATTLEGROUND_QUEUES; i++)
-                if (m_bgBattleGroundQueueID[i].invitedToInstance == instanceId)
-                    return true;
-            return false;
-        }
+
         uint32 GetBattleGroundEntryPointMap() const { return m_bgEntryPointMap; }
         float GetBattleGroundEntryPointX() const { return m_bgEntryPointX; }
         float GetBattleGroundEntryPointY() const { return m_bgEntryPointY; }
@@ -1928,6 +1940,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         /***                 VARIOUS SYSTEMS                   ***/
         /*********************************************************/
         MovementInfo m_movementInfo;
+        MovementInfo m_fallMovementInfo;
         bool isMoving() const { return HasUnitMovementFlag(movementFlagsMask); }
         bool isMovingOrTurning() const { return HasUnitMovementFlag(movementOrTurningFlagsMask); }
 
@@ -1938,6 +1951,9 @@ class MANGOS_DLL_SPEC Player : public Unit
 
         void SetClientControl(Unit* target, uint8 allowMove);
 
+        void EnterVehicle(Vehicle *vehicle);
+        void ExitVehicle(Vehicle *vehicle);
+
         // Transports
         Transport * GetTransport() const { return m_transport; }
         void SetTransport(Transport * t) { m_transport = t; }
@@ -1947,6 +1963,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         float GetTransOffsetZ() const { return m_movementInfo.t_z; }
         float GetTransOffsetO() const { return m_movementInfo.t_o; }
         uint32 GetTransTime() const { return m_movementInfo.t_time; }
+        int8 GetTransSeat() const { return m_movementInfo.t_seat; }
 
         uint32 GetSaveTimer() const { return m_nextSave; }
         void   SetSaveTimer(uint32 timer) { m_nextSave = timer; }
@@ -2042,6 +2059,7 @@ class MANGOS_DLL_SPEC Player : public Unit
 
         DeclinedName const* GetDeclinedNames() const { return m_declinedname; }
 
+        AchievementMgr& GetAchievementMgr() { return m_achievementMgr; }
     protected:
 
         /*********************************************************/
@@ -2055,8 +2073,8 @@ class MANGOS_DLL_SPEC Player : public Unit
         */
         struct BgBattleGroundQueueID_Rec
         {
-            uint32 bgQueueType;
-            uint32 invitedToInstance;
+            uint32 bgType;
+            bool   invited;
         };
         BgBattleGroundQueueID_Rec m_bgBattleGroundQueueID[PLAYER_MAX_BATTLEGROUND_QUEUES];
         uint32 m_bgEntryPointMap;
@@ -2272,6 +2290,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         WorldLocation m_teleport_dest;
 
         DeclinedName *m_declinedname;
+        AchievementMgr m_achievementMgr;
     private:
         // internal common parts for CanStore/StoreItem functions
         uint8 _CanStoreItem_InSpecificSlot( uint8 bag, uint8 slot, ItemPosCountVec& dest, ItemPrototype const *pProto, uint32& count, bool swap, Item *pSrcItem ) const;

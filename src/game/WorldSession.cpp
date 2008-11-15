@@ -473,38 +473,77 @@ void WorldSession::Handle_NULL( WorldPacket& recvPacket )
 
 void WorldSession::Handle_EarlyProccess( WorldPacket& recvPacket )
 {
-    sLog.outError( "SESSION: received opcode %s (0x%.4X) that must be proccessed in WorldSocket::OnRead",
+    sLog.outError( "SESSION: received opcode %s (0x%.4X) that must be processed in WorldSocket::OnRead",
         LookupOpcodeName(recvPacket.GetOpcode()),
         recvPacket.GetOpcode());
 }
 
 void WorldSession::Handle_ServerSide( WorldPacket& recvPacket )
 {
-    sLog.outError( "SESSION: received sever-side opcode %s (0x%.4X)",
+    sLog.outError( "SESSION: received server-side opcode %s (0x%.4X)",
         LookupOpcodeName(recvPacket.GetOpcode()),
         recvPacket.GetOpcode());
 }
 
-void WorldSession::Handle_Depricated( WorldPacket& recvPacket )
+void WorldSession::Handle_Deprecated( WorldPacket& recvPacket )
 {
-    sLog.outError( "SESSION: received depricated opcode %s (0x%.4X)",
+    sLog.outError( "SESSION: received deprecated opcode %s (0x%.4X)",
         LookupOpcodeName(recvPacket.GetOpcode()),
         recvPacket.GetOpcode());
 }
 
 void WorldSession::SendAuthWaitQue(uint32 position)
- {
-     if(position == 0)
-     {
-         WorldPacket packet( SMSG_AUTH_RESPONSE, 1 );
-         packet << uint8( AUTH_OK );
-         SendPacket(&packet);
-     }
-     else
-     {
-         WorldPacket packet( SMSG_AUTH_RESPONSE, 5 );
-         packet << uint8( AUTH_WAIT_QUEUE );
-         packet << uint32 (position);
-         SendPacket(&packet);
-     }
- }
+{
+    if(position == 0)
+    {
+        WorldPacket packet( SMSG_AUTH_RESPONSE, 1 );
+        packet << uint8( AUTH_OK );
+        SendPacket(&packet);
+    }
+    else
+    {
+        WorldPacket packet( SMSG_AUTH_RESPONSE, 5 );
+        packet << uint8( AUTH_WAIT_QUEUE );
+        packet << uint32 (position);
+        SendPacket(&packet);
+    }
+}
+
+void WorldSession::LoadAccountData()
+{
+    for (uint32 i = 0; i < NUM_ACCOUNT_DATA_TYPES; ++i)
+    {
+        AccountData data;
+        m_accountData[i] = data;
+    }
+
+    QueryResult *result = CharacterDatabase.PQuery("SELECT type, time, data FROM account_data WHERE account='%u'", GetAccountId());
+
+    if(!result)
+        return;
+
+    do 
+    {
+        Field *fields = result->Fetch();
+
+        uint32 type = fields[0].GetUInt32();
+        if(type < NUM_ACCOUNT_DATA_TYPES)
+        {
+            m_accountData[type].Time = fields[1].GetUInt32();
+            m_accountData[type].Data = fields[2].GetCppString();
+        }
+    } while (result->NextRow());
+
+    delete result;
+}
+
+void WorldSession::SetAccountData(uint32 type, time_t time_, std::string data)
+{
+    m_accountData[type].Time = time_;
+    m_accountData[type].Data = data;
+
+    uint32 acc = GetAccountId();
+    CharacterDatabase.PExecute("DELETE FROM account_data WHERE account='%u' AND type='%u'", acc, type);
+    CharacterDatabase.escape_string(data);
+    CharacterDatabase.PExecute("INSERT INTO account_data VALUES ('%u','%u','%u','%s')", acc, type, (uint32)time_, data.c_str());
+}

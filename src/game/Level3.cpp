@@ -47,7 +47,6 @@
 #include "Config/ConfigEnv.h"
 #include "Util.h"
 #include "ItemEnchantmentMgr.h"
-#include "BattleGroundMgr.h"
 #include "InstanceSaveMgr.h"
 #include "InstanceData.h"
 
@@ -4350,7 +4349,7 @@ static bool HandleResetStatsOrLevelHelper(Player* player)
 
     // set UNIT_FIELD_BYTES_1 to init state but preserve m_form value
     player->SetUInt32Value(UNIT_FIELD_BYTES_1, unitfield);
-    player->SetByteValue(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_UNK3 | UNIT_BYTE2_FLAG_UNK5 );
+    player->SetByteValue(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_PVP );
     player->SetByteValue(UNIT_FIELD_BYTES_2, 3, player->m_form);
 
     player->SetUInt32Value(UNIT_FIELD_FLAGS, UNIT_FLAG_PVP_ATTACKABLE);
@@ -4395,6 +4394,7 @@ bool ChatHandler::HandleResetLevelCommand(const char * args)
     player->SetLevel(1);
     player->InitStatsForLevel(true);
     player->InitTaxiNodesForLevel();
+    player->InitGlyphsForLevel();
     player->InitTalentForLevel();
     player->SetUInt32Value(PLAYER_XP,0);
 
@@ -4438,6 +4438,7 @@ bool ChatHandler::HandleResetStatsCommand(const char * args)
 
     player->InitStatsForLevel(true);
     player->InitTaxiNodesForLevel();
+    player->InitGlyphsForLevel();
     player->InitTalentForLevel();
 
     return true;
@@ -6465,12 +6466,5 @@ bool ChatHandler::HandleModifyGenderCommand(const char *args)
     PSendSysMessage(LANG_YOU_CHANGE_GENDER, player->GetName(),gender_full);
     if (needReportToTarget(player))
         ChatHandler(player).PSendSysMessage(LANG_YOUR_GENDER_CHANGED, gender_full,GetName());
-
-    return true;
-}
-
-bool ChatHandler::HandleFlushArenaPointsCommand(const char * /*args*/)
-{
-    sBattleGroundMgr.DistributeArenaPoints();
     return true;
 }

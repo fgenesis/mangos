@@ -807,9 +807,6 @@
 			<File
 				RelativePath="..\..\src\game\Level3.cpp">
 			</File>
-			<File
-				RelativePath="..\..\src\game\Level_pe.cpp">
-			</File>
 		</Filter>
 		<Filter
 			Name="Tool">
@@ -861,6 +858,37 @@
 			</File>
 			<File
 				RelativePath="..\..\src\game\ThreatManager.h">
+			</File>
+		</Filter>
+		<Filter
+			Name="PE"
+			Filter="">
+			<File
+				RelativePath="..\..\src\game\AuctionHouseBot.cpp">
+			</File>
+			<File
+				RelativePath="..\..\src\game\AuctionHouseBot.h">
+			</File>
+			<File
+				RelativePath="..\..\src\game\Level_pe.cpp">
+				<FileConfiguration
+					Name="Debug|Win32"
+					ExcludedFromBuild="TRUE">
+					<Tool
+						Name="VCCLCompilerTool"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\..\src\game\PlayerDropMgr.cpp">
+			</File>
+			<File
+				RelativePath="..\..\src\game\PlayerDropMgr.h">
+			</File>
+			<File
+				RelativePath="..\..\src\game\VirtualPlayerMgr.cpp">
+			</File>
+			<File
+				RelativePath="..\..\src\game\VirtualPlayerMgr.h">
 			</File>
 		</Filter>
 	</Files>

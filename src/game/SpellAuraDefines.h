@@ -18,14 +18,19 @@
 #ifndef MANGOS_SPELLAURADEFINES_H
 #define MANGOS_SPELLAURADEFINES_H
 
-#define MAX_AURAS 56
-#define MAX_POSITIVE_AURAS 40
+#define MAX_AURAS 64                                        // client support up to 255, but it will cause problems with group auras updating
 
 enum AURA_FLAGS
 {
-    AFLAG_NEGATIVE          = 0x09,
-    AFLAG_POSITIVE          = 0x1F,
-    AFLAG_MASK              = 0xFF
+    AFLAG_NONE              = 0x00,
+    AFLAG_EFF_INDEX_0       = 0x01,
+    AFLAG_EFF_INDEX_1       = 0x02,
+    AFLAG_EFF_INDEX_2       = 0x04,
+    AFLAG_NOT_CASTER        = 0x08,
+    AFLAG_POSITIVE          = 0x10,
+    AFLAG_DURATION          = 0x20,
+    AFLAG_UNK2              = 0x40,
+    AFLAG_NEGATIVE          = 0x80
 };
 
 //m_schoolAbsorb
@@ -273,7 +278,7 @@ enum AuraType
     SPELL_AURA_233 = 233,
     SPELL_AURA_MECHANIC_DURATION_MOD_NOT_STACK = 234,
     SPELL_AURA_MOD_DISPEL_RESIST = 235,
-    SPELL_AURA_236 = 236,
+    SPELL_AURA_CONTROL_VEHICLE = 236,
     SPELL_AURA_MOD_SPELL_DAMAGE_OF_ATTACK_POWER = 237,
     SPELL_AURA_MOD_SPELL_HEALING_OF_ATTACK_POWER = 238,
     SPELL_AURA_MOD_SCALE_2 = 239,
@@ -299,12 +304,35 @@ enum AuraType
     SPELL_AURA_259 = 259,
     SPELL_AURA_260 = 260,
     SPELL_AURA_261 = 261,
-    TOTAL_AURAS=262
+    SPELL_AURA_262 = 262,
+    SPELL_AURA_263 = 263,
+    SPELL_AURA_264 = 264,
+    SPELL_AURA_265 = 265,
+    SPELL_AURA_266 = 266,
+    SPELL_AURA_267 = 267,
+    SPELL_AURA_268 = 268,
+    SPELL_AURA_269 = 269,
+    SPELL_AURA_270 = 270,
+    SPELL_AURA_271 = 271,
+    SPELL_AURA_272 = 272,
+    SPELL_AURA_273 = 273,
+    SPELL_AURA_274 = 274,
+    SPELL_AURA_275 = 275,
+    SPELL_AURA_276 = 276,
+    SPELL_AURA_277 = 277,
+    SPELL_AURA_278 = 278,
+    SPELL_AURA_279 = 279,
+    SPELL_AURA_280 = 280,
+    SPELL_AURA_281 = 281,
+    SPELL_AURA_282 = 282,
+    SPELL_AURA_283 = 283,
+    TOTAL_AURAS = 284
 };
 
 enum AreaAuraType
 {
     AREA_AURA_PARTY,
+    AREA_AURA_RAID,
     AREA_AURA_FRIEND,
     AREA_AURA_ENEMY,
     AREA_AURA_PET,

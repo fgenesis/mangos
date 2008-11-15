@@ -235,9 +235,7 @@ struct NpcOptionLocale
 struct EquipmentInfo
 {
     uint32  entry;
-    uint32  equipmodel[3];
-    uint32  equipinfo[3];
-    uint32  equipslot[3];
+    uint32  equipentry[3];
 };
 
 // from `creature` table
@@ -412,6 +410,7 @@ class MANGOS_DLL_SPEC Creature : public Unit
         uint32 GetEquipmentId() const { return m_equipmentId; }
 
         bool isPet() const { return m_isPet; }
+        bool isVehicle() const { return m_isVehicle; }
         void SetCorpseDelay(uint32 delay) { m_corpseDelay = delay; }
         bool isTotem() const { return m_isTotem; }
         bool isRacialLeader() const { return GetCreatureInfo()->RacialLeader; }
@@ -620,6 +619,7 @@ class MANGOS_DLL_SPEC Creature : public Unit
 
         uint8 m_emoteState;
         bool m_isPet;                                       // set only in Pet::Pet
+        bool m_isVehicle;                                   // set only in Vehicle::Vehicle
         bool m_isTotem;                                     // set only in Totem::Totem
         void RegenerateMana();
         void RegenerateHealth();

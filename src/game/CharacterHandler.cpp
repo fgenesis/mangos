@@ -36,7 +36,6 @@
 #include "PlayerDump.h"
 #include "SocialMgr.h"
 #include "Util.h"
-#include "ArenaTeam.h"
 #include "Language.h"
 
 class LoginQueryHolder : public SqlQueryHolder
@@ -80,6 +79,8 @@ bool LoginQueryHolder::Initialize()
         res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADDECLINEDNAMES,   "SELECT genitive, dative, accusative, instrumental, prepositional FROM character_declinedname WHERE guid = '%u'",GUID_LOPART(m_guid));
     // in other case still be dummy query
     res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADGUILD,           "SELECT guildid,rank FROM guild_member WHERE guid = '%u'", GUID_LOPART(m_guid));
+    res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADACHIEVEMENTS,    "SELECT achievement, date FROM character_achievement WHERE guid = '%u'", GUID_LOPART(m_guid));
+    res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADCRITERIAPROGRESS,"SELECT criteria, counter, date FROM character_achievement_progress WHERE guid = '%u'", GUID_LOPART(m_guid));
 
     return res;
 }
@@ -227,17 +228,16 @@ void WorldSession::HandleCharCreateOpcode( WorldPacket & recv_data )
     if (raceEntry->addon > Expansion())
     {
         data << (uint8)CHAR_CREATE_EXPANSION;
-        sLog.outError("Not Expansion 1 account:[%d] but tried to Create character with expansion 1 race (%u)",GetAccountId(),race_);
+        sLog.outError("Expansion %u account:[%d] tried to Create character with expansion %u race (%u)",Expansion(),GetAccountId(),raceEntry->addon,race_);
         SendPacket( &data );
         return;
     }
 
     // prevent character creating Expansion class without Expansion account
-    // TODO: use possible addon field in ChrClassesEntry in next dbc version
-    if (Expansion() < 2 && class_ == CLASS_DEATH_KNIGHT)
+    if (classEntry->addon > Expansion())
     {
-        data << (uint8)CHAR_CREATE_EXPANSION;
-        sLog.outError("Not Expansion 2 account:[%d] but tried to Create character with expansion 2 class (%u)",GetAccountId(),class_);
+        data << (uint8)CHAR_CREATE_EXPANSION_CLASS;
+        sLog.outError("Expansion %u account:[%d] tried to Create character with expansion %u class (%u)",Expansion(),GetAccountId(),classEntry->addon,class_);
         SendPacket( &data );
         return;
     }
@@ -308,25 +308,37 @@ void WorldSession::HandleCharCreateOpcode( WorldPacket & recv_data )
     uint32 skipCinematics = sWorld.getConfig(CONFIG_SKIP_CINEMATICS);
 
     bool have_same_race = false;
-    if(!AllowTwoSideAccounts || skipCinematics == 1)
+    if(!AllowTwoSideAccounts || skipCinematics == 1 || class_ == CLASS_DEATH_KNIGHT)
     {
-        QueryResult *result2 = CharacterDatabase.PQuery("SELECT DISTINCT race FROM characters WHERE account = '%u' %s", GetAccountId(),skipCinematics == 1 ? "" : "LIMIT 1");
+        QueryResult *result2 = CharacterDatabase.PQuery("SELECT race,class FROM characters WHERE account = '%u' %s",
+            GetAccountId(), (skipCinematics == 1 || class_ == CLASS_DEATH_KNIGHT) ? "" : "LIMIT 1");
         if(result2)
         {
             uint32 team_= Player::TeamForRace(race_);
 
             Field* field = result2->Fetch();
-            uint8 race = field[0].GetUInt32();
+            uint8 acc_race  = field[0].GetUInt32();
+
+            if(class_ == CLASS_DEATH_KNIGHT)
+            {
+                uint8 acc_class = field[1].GetUInt32();
+                if(acc_class == CLASS_DEATH_KNIGHT)
+                {
+                    data << (uint8)CHAR_CREATE_UNIQUE_CLASS_LIMIT;
+                    SendPacket( &data );
+                    return;
+                }
+            }
 
             // need to check team only for first character
             // TODO: what to if account already has characters of both races?
             if (!AllowTwoSideAccounts)
             {
-                uint32 team=0;
-                if(race > 0)
-                    team = Player::TeamForRace(race);
+                uint32 acc_team=0;
+                if(acc_race > 0)
+                    acc_team = Player::TeamForRace(acc_race);
 
-                if(team != team_)
+                if(acc_team != team_)
                 {
                     data << (uint8)CHAR_CREATE_PVP_TEAMS_VIOLATION;
                     SendPacket( &data );
@@ -335,15 +347,29 @@ void WorldSession::HandleCharCreateOpcode( WorldPacket & recv_data )
                 }
             }
 
-            if (skipCinematics == 1)
+            // search same race for cinematic or same class if need
+            // TODO: check if cinematic already shown? (already logged in?; cinematic field)
+            while ((skipCinematics == 1 && !have_same_race) || class_ == CLASS_DEATH_KNIGHT)
             {
-                // TODO: check if cinematic already shown? (already logged in?; cinematic field)
-                while (race_ != race && result2->NextRow())
+                if(!result2->NextRow())
+                    break;
+
+                field = result2->Fetch();
+                acc_race = field[0].GetUInt32();
+
+                if(!have_same_race)
+                    have_same_race = race_ == acc_race;
+
+                if(class_ == CLASS_DEATH_KNIGHT)
                 {
-                    field = result2->Fetch();
-                    race = field[0].GetUInt32();
+                    uint8 acc_class = field[1].GetUInt32();
+                    if(acc_class == CLASS_DEATH_KNIGHT)
+                    {
+                        data << (uint8)CHAR_CREATE_UNIQUE_CLASS_LIMIT;
+                        SendPacket( &data );
+                        return;
+                    }
                 }
-                have_same_race = race_ == race;
             }
             delete result2;
         }
@@ -499,9 +525,11 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder * holder)
     data << pCurrChar->GetOrientation();
     SendPacket(&data);
 
-    data.Initialize( SMSG_ACCOUNT_DATA_TIMES, 128 );
-    for(int i = 0; i < 32; i++)
-        data << uint32(0);
+    data.Initialize( SMSG_ACCOUNT_DATA_TIMES, 4+1+8*4 );    // changed in WotLK
+    data << uint32(time(NULL));                             // unix time of something
+    data << uint8(1);
+    for(int i = 0; i < NUM_ACCOUNT_DATA_TYPES; i++)
+        data << uint32(GetAccountData(i)->Time);            // also unix time
     SendPacket(&data);
 
     data.Initialize(SMSG_FEATURE_SYSTEM_STATUS, 2);         // added in 2.2.0
@@ -583,11 +611,16 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder * holder)
     {
         pCurrChar->setCinematic(1);
 
-        ChrRacesEntry const* rEntry = sChrRacesStore.LookupEntry(pCurrChar->getRace());
-        if(rEntry)
+        if(ChrClassesEntry const* cEntry = sChrClassesStore.LookupEntry(pCurrChar->getClass()))
         {
-            data.Initialize( SMSG_TRIGGER_CINEMATIC,4 );
-            data << uint32(rEntry->startmovie);
+            data.Initialize(SMSG_TRIGGER_CINEMATIC, 4);
+            data << uint32(cEntry->CinematicSequence);
+            SendPacket( &data );
+        }
+        else if(ChrRacesEntry const* rEntry = sChrRacesStore.LookupEntry(pCurrChar->getRace()))
+        {
+            data.Initialize(SMSG_TRIGGER_CINEMATIC, 4);
+            data << uint32(rEntry->CinematicSequence);
             SendPacket( &data );
         }
     }
@@ -1080,4 +1113,74 @@ void WorldSession::HandleDeclinedPlayerNameOpcode(WorldPacket& recv_data)
     data << uint32(0);                                      // OK
     data << uint64(guid);
     SendPacket(&data);
+}
+
+void WorldSession::HandleAlterAppearance( WorldPacket & recv_data )
+{
+    sLog.outDebug("CMSG_ALTER_APPEARANCE");
+
+    CHECK_PACKET_SIZE(recv_data, 4+4+4);
+
+    uint32 Hair, Color, FacialHair;
+    recv_data >> Hair >> Color >> FacialHair;
+
+    BarberShopStyleEntry const* bs_hair = sBarberShopStyleStore.LookupEntry(Hair);
+
+    if(!bs_hair)
+        return;
+
+    BarberShopStyleEntry const* bs_facialHair = sBarberShopStyleStore.LookupEntry(FacialHair);
+
+    if(!bs_facialHair)
+        return;
+
+    uint32 Cost = _player->GetBarberShopCost(bs_hair->hair_id, Color, bs_facialHair->hair_id);
+
+    // 0 - ok
+    // 1,3 - not enough money
+    // 2 - you have to seat on barber chair
+    if(_player->GetMoney() < Cost)
+    {
+        WorldPacket data(SMSG_BARBER_SHOP_RESULT, 4);
+        data << uint32(1);                                  // no money
+        SendPacket(&data);
+        return;
+    }
+    else
+    {
+        WorldPacket data(SMSG_BARBER_SHOP_RESULT, 4);
+        data << uint32(0);                                  // ok
+        SendPacket(&data);
+    }
+
+    _player->SetMoney(_player->GetMoney() - Cost);          // it isn't free
+
+    _player->SetByteValue(PLAYER_BYTES, 2, uint8(bs_hair->hair_id));
+    _player->SetByteValue(PLAYER_BYTES, 3, uint8(Color));
+    _player->SetByteValue(PLAYER_BYTES_2, 0, uint8(bs_facialHair->hair_id));
+
+    _player->SetStandState(0);                              // stand up
+}
+
+void WorldSession::HandleRemoveGlyph( WorldPacket & recv_data )
+{
+    CHECK_PACKET_SIZE(recv_data, 4);
+
+    uint32 slot;
+    recv_data >> slot;
+
+	if(slot > 5)
+	{
+		sLog.outDebug("Client sent wrong glyph slot number in opcode CMSG_REMOVE_GLYPH %u", slot);
+		return;
+	}
+
+	if(uint32 glyph = _player->GetGlyph(slot))
+    {
+        if(GlyphPropertiesEntry const *gp = sGlyphPropertiesStore.LookupEntry(glyph))
+        {
+            _player->RemoveAurasDueToSpell(gp->SpellId);
+            _player->SetGlyph(slot, 0);
+        }
+    }
 }

@@ -41,6 +41,7 @@
 #include "SpellAuras.h"
 #include "Pet.h"
 #include "SocialMgr.h"
+#include "Tools.h"
 
 void WorldSession::HandleRepopRequestOpcode( WorldPacket & /*recv_data*/ )
 {
@@ -312,7 +313,7 @@ void WorldSession::HandleLogoutRequestOpcode( WorldPacket & /*recv_data*/ )
         data.append(GetPlayer()->GetPackGUID());
         data << (uint32)2;
         SendPacket( &data );
-        GetPlayer()->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_DISABLE_ROTATE);
+        GetPlayer()->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_STUNNED);
     }
 
     WorldPacket data( SMSG_LOGOUT_RESPONSE, 5 );
@@ -349,7 +350,7 @@ void WorldSession::HandleLogoutCancelOpcode( WorldPacket & /*recv_data*/ )
         GetPlayer()->SetStandState(PLAYER_STATE_NONE);
 
         //! DISABLE_ROTATE
-        GetPlayer()->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_DISABLE_ROTATE);
+        GetPlayer()->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_STUNNED);
     }
 
     sLog.outDebug( "WORLD: sent SMSG_LOGOUT_CANCEL_ACK Message" );
@@ -363,10 +364,12 @@ void WorldSession::HandleTogglePvP( WorldPacket & recv_data )
         bool newPvPStatus;
         recv_data >> newPvPStatus;
         GetPlayer()->ApplyModFlag(PLAYER_FLAGS, PLAYER_FLAGS_IN_PVP, newPvPStatus);
+        GetPlayer()->ApplyModFlag(PLAYER_FLAGS, PLAYER_FLAGS_PVP_TIMER, !newPvPStatus);
     }
     else
     {
         GetPlayer()->ToggleFlag(PLAYER_FLAGS, PLAYER_FLAGS_IN_PVP);
+        GetPlayer()->ToggleFlag(PLAYER_FLAGS, PLAYER_FLAGS_PVP_TIMER);
     }
 
     if(GetPlayer()->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_IN_PVP))
@@ -661,10 +664,6 @@ void WorldSession::HandleCorpseReclaimOpcode(WorldPacket &recv_data)
     if (GetPlayer()->isAlive())
         return;
 
-    if (BattleGround * bg = _player->GetBattleGround())
-        if(bg->isArena())
-            return;
-
     // body not released yet
     if(!GetPlayer()->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_GHOST))
         return;
@@ -872,7 +871,7 @@ void WorldSession::HandleAreaTriggerOpcode(WorldPacket & recv_data)
             if(missingItem)
                 SendAreaTriggerMessage(GetMangosString(LANG_LEVEL_MINREQUIRED_AND_ITEM), at->requiredLevel, objmgr.GetItemPrototype(missingItem)->Name1);
             else if(missingKey)
-                GetPlayer()->SendTransferAborted(at->target_mapId, TRANSFER_ABORT_DIFFICULTY2);
+                GetPlayer()->SendTransferAborted(at->target_mapId, TRANSFER_ABORT_DIFFICULTY, DIFFICULTY_HEROIC);
             else if(missingQuest)
                 SendAreaTriggerMessage(at->requiredFailedText.c_str());
             else if(missingLevel)
@@ -884,16 +883,96 @@ void WorldSession::HandleAreaTriggerOpcode(WorldPacket & recv_data)
     GetPlayer()->TeleportTo(at->target_mapId,at->target_X,at->target_Y,at->target_Z,at->target_Orientation,TELE_TO_NOT_LEAVE_TRANSPORT);
 }
 
-void WorldSession::HandleUpdateAccountData(WorldPacket &/*recv_data*/)
+void WorldSession::HandleUpdateAccountData(WorldPacket &recv_data)
 {
     sLog.outDetail("WORLD: Received CMSG_UPDATE_ACCOUNT_DATA");
-    //recv_data.hexlike();
+
+    CHECK_PACKET_SIZE(recv_data, 4+4+4);
+
+    uint32 type, timestamp, decompressedSize;
+    recv_data >> type >> timestamp >> decompressedSize;
+
+    sLog.outDebug("UAD: type %u, time %u, decompressedSize %u", type, timestamp, decompressedSize);
+
+    if(type > NUM_ACCOUNT_DATA_TYPES)
+        return;
+
+    if(decompressedSize == 0)                               // erase
+    {
+        SetAccountData(type, timestamp, "");
+
+        WorldPacket data(SMSG_UPDATE_ACCOUNT_DATA_COMPLETE, 4+4);
+        data << uint32(type);
+        data << uint32(0);
+        SendPacket(&data);
+
+        return;
+    }
+
+    if(decompressedSize > 0xFFFF)
+    {
+        sLog.outError("UAD: Account data packet too big, size %u", decompressedSize);
+        return;
+    }
+
+    ByteBuffer dest;
+    dest.resize(decompressedSize);
+
+    uLongf realSize = decompressedSize;
+    if(uncompress(const_cast<uint8*>(dest.contents()), &realSize, const_cast<uint8*>(recv_data.contents() + recv_data.rpos()), recv_data.size() - recv_data.rpos()) != Z_OK)
+    {
+        sLog.outError("UAD: Failed to decompress account data");
+        return;
+    }
+
+    std::string adata;
+    dest >> adata;
+
+    SetAccountData(type, timestamp, adata);
+
+    WorldPacket data(SMSG_UPDATE_ACCOUNT_DATA_COMPLETE, 4+4);
+    data << uint32(type);
+    data << uint32(0);
+    SendPacket(&data);
 }
 
-void WorldSession::HandleRequestAccountData(WorldPacket& /*recv_data*/)
+void WorldSession::HandleRequestAccountData(WorldPacket& recv_data)
 {
     sLog.outDetail("WORLD: Received CMSG_REQUEST_ACCOUNT_DATA");
-    //recv_data.hexlike();
+
+    CHECK_PACKET_SIZE(recv_data, 4);
+
+    uint32 type;
+    recv_data >> type;
+
+    sLog.outDebug("RAD: type %u", type);
+
+    if(type > NUM_ACCOUNT_DATA_TYPES)
+        return;
+
+    AccountData *adata = GetAccountData(type);
+
+    uint32 size = adata->Data.size();
+
+    ByteBuffer dest;
+    dest.resize(size);
+
+    uLongf destSize = size;
+    if(compress(const_cast<uint8*>(dest.contents()), &destSize, (uint8*)adata->Data.c_str(), size) != Z_OK)
+    {
+        sLog.outDebug("RAD: Failed to compress account data");
+        return;
+    }
+
+    dest.resize(destSize);
+
+    WorldPacket data (SMSG_UPDATE_ACCOUNT_DATA, 8+4+4+4+destSize);
+    data << uint64(_player->GetGUID());                     // player guid
+    data << uint32(type);                                   // type (0-7)
+    data << uint32(adata->Time);                            // unix time
+    data << uint32(size);                                   // decompressed length
+    data.append(dest);                                      // compressed data
+    SendPacket(&data);
 }
 
 void WorldSession::HandleSetActionButtonOpcode(WorldPacket& recv_data)
@@ -1573,4 +1652,47 @@ void WorldSession::HandleSetTaxiBenchmarkOpcode( WorldPacket & recv_data )
     recv_data >> mode;
 
     sLog.outDebug("Client used \"/timetest %d\" command", mode);
+}
+
+void WorldSession::HandleSpellClick( WorldPacket & recv_data )
+{
+    CHECK_PACKET_SIZE(recv_data, 8);
+
+    uint64 guid;
+    recv_data >> guid;
+
+    Vehicle *vehicle = ObjectAccessor::GetVehicle(guid);
+
+    if(!vehicle)
+        return;
+
+    _player->EnterVehicle(vehicle);
+}
+
+void WorldSession::HandleDismissControlledVehicle( WorldPacket & recv_data )
+{
+    //CHECK_PACKET_SIZE(recv_data, 8);
+    recv_data.hexlike();                                    // standard movement packet
+
+    // using charm guid, because we don't have vehicle guid...
+    Vehicle *vehicle = ObjectAccessor::GetVehicle(_player->GetCharmGUID());
+
+    if(!vehicle)
+        return;
+
+    _player->ExitVehicle(vehicle);
+}
+
+void WorldSession::HandleInspectAchievements( WorldPacket & recv_data )
+{
+    CHECK_PACKET_SIZE(recv_data, 1);
+    uint64 guid;
+    if(!readGUID(recv_data, guid))
+        return;
+
+    Player *player = objmgr.GetPlayer(guid);
+    if(!player)
+        return;
+
+    player->GetAchievementMgr().SendRespondInspectAchievements(_player);
 }

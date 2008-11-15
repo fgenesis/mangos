@@ -638,7 +638,7 @@ int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
     // NOTE: ATM the socket is singlethread, have this in mind ...
     uint8 digest[20];
     uint32 clientSeed;
-    uint32 unk2;
+    uint32 unk2, unk3;
     uint32 BuiltNumberClient;
     uint32 id, security;
     uint8 expansion = 0;
@@ -660,6 +660,7 @@ int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
     recvPacket >> BuiltNumberClient;                        // for now no use
     recvPacket >> unk2;
     recvPacket >> account;
+    recvPacket >> unk3;
 
     if (recvPacket.size () < (4 + 4 + (account.size () + 1) + 4 + 20))
     {
@@ -712,7 +713,7 @@ int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
 
     Field* fields = result->Fetch ();
 
-    expansion = fields[8].GetUInt8 () && sWorld.getConfig (CONFIG_EXPANSION) > 0;
+    expansion = ((sWorld.getConfig(CONFIG_EXPANSION) > fields[8].GetUInt8()) ? fields[8].GetUInt8() : sWorld.getConfig(CONFIG_EXPANSION));
 
     N.SetHexStr ("894B645E89E1535BBDAD5B8B290650530801B18EBFBF5E8FAB3C82872A3E9BB7");
     g.SetDword (7);
@@ -734,8 +735,8 @@ int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
     x.SetBinary (sha1.GetDigest (), sha1.GetLength ());
     v = g.ModExp (x, N);
 
-    const char* sStr = s.AsHexStr (); //Must be freed by OPENSSL_free()
-    const char* vStr = v.AsHexStr (); //Must be freed by OPENSSL_free()
+    const char* sStr = s.AsHexStr ();                       //Must be freed by OPENSSL_free()
+    const char* vStr = v.AsHexStr ();                       //Must be freed by OPENSSL_free()
     const char* vold = fields[6].GetString ();
 
     DEBUG_LOG ("WorldSocket::HandleAuthSession: (s,v) check s: %s v_old: %s v_new: %s",
@@ -825,7 +826,7 @@ int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
 
         SendPacket (packet);
 
-        sLog.outBasic ("WorldSocket::HandleAuthSession: User tryes to login but his security level is not enough");
+        sLog.outBasic ("WorldSocket::HandleAuthSession: User tries to login but his security level is not enough");
         return -1;
     }
 
@@ -874,6 +875,8 @@ int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
 
     m_Crypt.SetKey (&K);
     m_Crypt.Init ();
+
+    m_Session->LoadAccountData();
 
     // In case needed sometime the second arg is in microseconds 1 000 000 = 1 sec
     ACE_OS::sleep (ACE_Time_Value (0, 10000));
@@ -940,7 +943,7 @@ int WorldSocket::HandlePing (WorldPacket& recvPacket)
         ACE_GUARD_RETURN (LockType, Guard, m_SessionLock, -1);
 
         if (m_Session)
-        m_Session->SetLatency (latency);
+            m_Session->SetLatency (latency);
         else
         {
             sLog.outError ("WorldSocket::HandlePing: peer sent CMSG_PING, "

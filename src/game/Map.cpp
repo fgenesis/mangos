@@ -42,7 +42,7 @@
 #define MAX_GRID_LOAD_TIME      50
 
 // magic *.map header
-const char MAP_MAGIC[] = "MAP_2.00";
+const char MAP_MAGIC[] = "MAP_2.01";
 
 GridState* si_GridStates[MAX_GRID_STATE];
 
@@ -253,7 +253,7 @@ template<>
 void Map::AddToGrid(Creature* obj, NGridType *grid, Cell const& cell)
 {
     // add to world object registry in grid
-    if(obj->isPet())
+    if(obj->isPet() || obj->isVehicle())
     {
         (*grid)(cell.CellX(), cell.CellY()).AddWorldObject<Creature>(obj, obj->GetGUID());
         obj->SetCurrentCell(cell);
@@ -297,7 +297,7 @@ template<>
 void Map::RemoveFromGrid(Creature* obj, NGridType *grid, Cell const& cell)
 {
     // remove from world object registry in grid
-    if(obj->isPet())
+    if(obj->isPet() || obj->isVehicle())
     {
         (*grid)(cell.CellX(), cell.CellY()).RemoveWorldObject<Creature>(obj, obj->GetGUID());
     }
@@ -564,12 +564,6 @@ void Map::Update(const uint32 &t_diff)
 {
     resetMarkedCells();
 
-    MaNGOS::ObjectUpdater updater(t_diff);
-    // for creature
-    TypeContainerVisitor<MaNGOS::ObjectUpdater, GridTypeMapContainer  > grid_object_update(updater);
-    // for pets
-    TypeContainerVisitor<MaNGOS::ObjectUpdater, WorldTypeMapContainer > world_object_update(updater);
-
     //TODO: Player guard
     HashMapHolder<Player>::MapType& playerMap = HashMapHolder<Player>::GetContainer();
     for(HashMapHolder<Player>::MapType::iterator iter = playerMap.begin(); iter != playerMap.end(); ++iter)
@@ -598,27 +592,32 @@ void Map::Update(const uint32 &t_diff)
         end_cell >> 1; end_cell += 1;                   // lower right
 
         for(uint32 x = begin_cell.x_coord; x <= end_cell.x_coord; ++x)
-        {
             for(uint32 y = begin_cell.y_coord; y <= end_cell.y_coord; ++y)
+                markCell(x,y);
+    }
+
+    MaNGOS::ObjectUpdater updater(t_diff);
+    // for creature
+    TypeContainerVisitor<MaNGOS::ObjectUpdater, GridTypeMapContainer  > grid_object_update(updater);
+    // for pets
+    TypeContainerVisitor<MaNGOS::ObjectUpdater, WorldTypeMapContainer > world_object_update(updater);
+
+    for(int x = 0; x < TOTAL_NUMBER_OF_CELLS_PER_MAP; ++x)
+    {
+        for(int y = 0; y < TOTAL_NUMBER_OF_CELLS_PER_MAP; ++y)
+        {
+            if(isCellMarked(x,y))
             {
-                // marked cells are those that have been visited
-                // don't visit the same cell twice
-                uint32 cell_id = (y * TOTAL_NUMBER_OF_CELLS_PER_MAP) + x;
-                if(!isCellMarked(cell_id))
-                {
-                    markCell(cell_id);
-                    CellPair pair(x,y);
-                    Cell cell(pair);
-                    cell.data.Part.reserved = CENTER_DISTRICT;
-                    cell.SetNoCreate();
-                    CellLock<NullGuard> cell_lock(cell, pair);
-                    cell_lock->Visit(cell_lock, grid_object_update,  *this);
-                    cell_lock->Visit(cell_lock, world_object_update, *this);
-                }
+                CellPair pair(x,y);
+                Cell cell(pair);
+                cell.data.Part.reserved = CENTER_DISTRICT;
+                cell.SetNoCreate();
+                CellLock<NullGuard> cell_lock(cell, pair);
+                cell_lock->Visit(cell_lock, grid_object_update,  *this);
+                cell_lock->Visit(cell_lock, world_object_update, *this);
             }
         }
     }
-
 
     // Don't unload grids if it's battleground, since we may have manually added GOs,creatures, those doesn't load from DB at grid re-load !
     // This isn't really bother us, since as soon as we have instanced BG-s, the whole map unloads as the BG gets ended

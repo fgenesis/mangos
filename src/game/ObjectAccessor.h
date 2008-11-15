@@ -31,6 +31,7 @@
 #include "GridDefines.h"
 #include "Object.h"
 #include "Player.h"
+#include "Vehicle.h"
 
 #include <set>
 
@@ -72,7 +73,7 @@ class HashMapHolder
         static LockType* GetLock() { return &i_lock; }
     private:
 
-        //Non instanciable only static
+        //Non instanceable only static
         HashMapHolder() {}
 
         static LockType i_lock;
@@ -148,6 +149,7 @@ class MANGOS_DLL_DECL ObjectAccessor : public MaNGOS::Singleton<ObjectAccessor, 
         static DynamicObject* GetDynamicObject(Unit const &, uint64);
         static Corpse* GetCorpse(WorldObject const &u, uint64 guid);
         static Pet* GetPet(uint64 guid);
+        static Vehicle* GetVehicle(uint64 guid);
         static Player* FindPlayer(uint64);
 
         Player* FindPlayerByName(const char *name) ;

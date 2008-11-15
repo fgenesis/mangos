@@ -219,6 +219,17 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>, public MaNGOS::Obj
         bool IsBattleGround() const { return i_mapEntry && i_mapEntry->IsBattleGround(); }
         bool IsBattleArena() const { return i_mapEntry && i_mapEntry->IsBattleArena(); }
         bool IsBattleGroundOrArena() const { return i_mapEntry && i_mapEntry->IsBattleGroundOrArena(); }
+        bool GetEntrancePos(int32 &mapid, float &x, float &y)
+        {
+            if(!i_mapEntry)
+                return false;
+            if(i_mapEntry->entrance_map < 0)
+                return false;
+            mapid = i_mapEntry->entrance_map;
+            x = i_mapEntry->entrance_x;
+            y = i_mapEntry->entrance_y;
+            return true;
+        }
 
         void AddObjectToRemoveList(WorldObject *obj);
         void DoDelayedMovesAndRemoves();
@@ -230,9 +241,8 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>, public MaNGOS::Obj
         void UpdateObjectsVisibilityFor(Player* player, Cell cell, CellPair cellpair);
 
         void resetMarkedCells() { marked_cells.reset(); }
-        bool isCellMarked(uint32 pCellId) { return marked_cells.test(pCellId); }
-        void markCell(uint32 pCellId) { marked_cells.set(pCellId); }
-
+        bool isCellMarked(uint32 x, uint32 y) { return marked_cells.test(y * TOTAL_NUMBER_OF_CELLS_PER_MAP + x); }
+        void markCell(uint32 x, uint32 y) { marked_cells.set(y * TOTAL_NUMBER_OF_CELLS_PER_MAP + x); }
     private:
         void LoadVMap(int pX, int pY);
         void LoadMap(uint32 mapid, uint32 instanceid, int x,int y);

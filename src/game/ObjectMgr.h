@@ -242,6 +242,8 @@ typedef std::list<GossipOption> CacheNpcOptionList;
 typedef UNORDERED_MAP<uint32, VendorItemData> CacheVendorItemMap;
 typedef UNORDERED_MAP<uint32, TrainerSpellData> CacheTrainerSpellMap;
 
+typedef std::list<const AchievementCriteriaEntry*> AchievementCriteriaEntryList;
+
 enum SkillRangeType
 {
     SKILL_RANGE_LANGUAGE,                                   // 300..300
@@ -320,8 +322,6 @@ class ObjectMgr
         ArenaTeam* GetArenaTeamByCapitan(uint64 const& guid) const;
         void AddArenaTeam(ArenaTeam* arenateam) { mArenaTeamSet.insert( arenateam ); }
         void RemoveArenaTeam(ArenaTeam* arenateam) { mArenaTeamSet.erase( arenateam ); }
-        ArenaTeamSet::iterator GetArenaTeamSetBegin() { return mArenaTeamSet.begin(); }
-        ArenaTeamSet::iterator GetArenaTeamSetEnd() { return mArenaTeamSet.end(); }
 
         static CreatureInfo const *GetCreatureTemplate( uint32 id );
         CreatureModelInfo const *GetCreatureModelInfo( uint32 modelid );
@@ -561,6 +561,7 @@ class ObjectMgr
         void LoadNpcTextId();
         void LoadVendors();
         void LoadTrainerSpell();
+        void LoadCompletedAchievements();
 
         std::string GeneratePetName(uint32 entry);
         uint32 GetBaseXP(uint32 level);
@@ -765,6 +766,9 @@ class ObjectMgr
         void AddVendorItem(uint32 entry,uint32 item, uint32 maxcount, uint32 incrtime, uint32 ExtendedCost);
         bool RemoveVendorItem(uint32 entry,uint32 item);
         bool IsVendorItemValid( uint32 vendor_entry, uint32 item, uint32 maxcount, uint32 ptime, uint32 ExtendedCost, Player* pl = NULL, std::set<uint32>* skip_vendors = NULL ) const;
+        void LoadAchievementCriteriaList();
+        AchievementCriteriaEntryList const& GetAchievementCriteriaByType(AchievementCriteriaTypes type);
+        std::set<uint32> allCompletedAchievements;
 
     protected:
         uint32 m_auctionid;
@@ -776,6 +780,7 @@ class ObjectMgr
         uint32 m_hiCharGuid;
         uint32 m_hiCreatureGuid;
         uint32 m_hiPetGuid;
+        uint32 m_hiVehicleGuid;
         uint32 m_hiItemGuid;
         uint32 m_hiGoGuid;
         uint32 m_hiDoGuid;
@@ -832,6 +837,7 @@ class ObjectMgr
         int GetOrNewIndexForLocale(LocaleConstant loc);
 
         int DBCLocaleIndex;
+
     private:
         void LoadScripts(ScriptMapMap& scripts, char const* tablename);
         void CheckScripts(ScriptMapMap const& scripts,std::set<int32>& ids);
@@ -882,6 +888,9 @@ class ObjectMgr
         CacheNpcTextIdMap m_mCacheNpcTextIdMap;
         CacheVendorItemMap m_mCacheVendorItemMap;
         CacheTrainerSpellMap m_mCacheTrainerSpellMap;
+
+        // store achievement criterias by type to speed up lookup
+        AchievementCriteriaEntryList m_AchievementCriteriasByType[ACHIEVEMENT_CRITERIA_TYPE_TOTAL];
 };
 
 #define objmgr MaNGOS::Singleton<ObjectMgr>::Instance()

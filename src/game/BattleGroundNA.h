@@ -26,9 +26,7 @@ enum BattleGroundNAObjectTypes
     BG_NA_OBJECT_DOOR_2         = 1,
     BG_NA_OBJECT_DOOR_3         = 2,
     BG_NA_OBJECT_DOOR_4         = 3,
-    BG_NA_OBJECT_BUFF_1         = 4,
-    BG_NA_OBJECT_BUFF_2         = 5,
-    BG_NA_OBJECT_MAX            = 6
+    BG_NA_OBJECT_MAX            = 4
 };
 
 enum BattleGroundNAObjects
@@ -36,9 +34,7 @@ enum BattleGroundNAObjects
     BG_NA_OBJECT_TYPE_DOOR_1    = 183978,
     BG_NA_OBJECT_TYPE_DOOR_2    = 183980,
     BG_NA_OBJECT_TYPE_DOOR_3    = 183977,
-    BG_NA_OBJECT_TYPE_DOOR_4    = 183979,
-    BG_NA_OBJECT_TYPE_BUFF_1    = 184663,
-    BG_NA_OBJECT_TYPE_BUFF_2    = 184664
+    BG_NA_OBJECT_TYPE_DOOR_4    = 183979
 };
 
 class BattleGroundNAScore : public BattleGroundScore
@@ -65,8 +61,9 @@ class BattleGroundNA : public BattleGround
         void HandleAreaTrigger(Player *Source, uint32 Trigger);
         bool SetupBattleGround();
         virtual void ResetBGSubclass();
-        virtual void FillInitialWorldStates(WorldPacket &d);
         void HandleKillPlayer(Player* player, Player *killer);
-        bool HandlePlayerUnderMap(Player * plr);
+
+    private:
+        uint32 m_TeamKills[2];                              // count of kills for each team
 };
 #endif

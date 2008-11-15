@@ -170,7 +170,7 @@ void WorldSession::HandleMoveWorldportAckOpcode()
 
 void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
 {
-    CHECK_PACKET_SIZE(recv_data, 4+1+4+4+4+4+4);
+    CHECK_PACKET_SIZE(recv_data, 4+2+4+4+4+4+4);
 
     if(GetPlayer()->GetDontMove())
         return;
@@ -193,7 +193,7 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
     if(MovementFlags & MOVEMENTFLAG_ONTRANSPORT)
     {
         // recheck
-        CHECK_PACKET_SIZE(recv_data, recv_data.rpos()+8+4+4+4+4+4);
+        CHECK_PACKET_SIZE(recv_data, recv_data.rpos()+8+4+4+4+4+4+1);
 
         recv_data >> movementInfo.t_guid;
         recv_data >> movementInfo.t_x;
@@ -201,9 +201,10 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
         recv_data >> movementInfo.t_z;
         recv_data >> movementInfo.t_o;
         recv_data >> movementInfo.t_time;
+        recv_data >> movementInfo.t_seat;
     }
 
-    if(MovementFlags & (MOVEMENTFLAG_SWIMMING | MOVEMENTFLAG_FLYING2))
+    if((MovementFlags & (MOVEMENTFLAG_SWIMMING | MOVEMENTFLAG_FLYING2)) || (movementInfo.unk1 & 0x20))
     {
         // recheck
         CHECK_PACKET_SIZE(recv_data, recv_data.rpos()+4);
@@ -290,10 +291,14 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
     // fall damage generation (ignore in flight case that can be triggered also at lags in moment teleportation to another map).
     if (recv_data.GetOpcode() == MSG_MOVE_FALL_LAND && !GetPlayer()->isInFlight())
     {
+        // calculate total z distance of the fall
+        // it is currently only used for the achievement system. It might be used in a more correct falldamage formula later
+        float z_diff = GetPlayer()->m_fallMovementInfo.z - movementInfo.z;
+        sLog.outDebug("zDiff = %f", z_diff);
         Player *target = GetPlayer();
 
         //Players with Feather Fall or low fall time, or physical immunity (charges used) are ignored
-        if (movementInfo.fallTime > 1100 && !target->isDead() && !target->isGameMaster() &&
+        if (movementInfo.fallTime > 1500 && !target->isDead() && !target->isGameMaster() &&
             !target->HasAuraType(SPELL_AURA_HOVER) && !target->HasAuraType(SPELL_AURA_FEATHER_FALL) &&
             !target->HasAuraType(SPELL_AURA_FLY) && !target->IsImmunedToDamage(SPELL_SCHOOL_MASK_NORMAL,true) )
         {
@@ -301,10 +306,10 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
             int32 safe_fall = target->GetTotalAuraModifier(SPELL_AURA_SAFE_FALL);
             uint32 fall_time = (movementInfo.fallTime > (safe_fall*10)) ? movementInfo.fallTime - (safe_fall*10) : 0;
 
-            if(fall_time > 1100)                            //Prevent damage if fall time < 1100
+            if(fall_time > 1500)                            //Prevent damage if fall time < 1500
             {
                 //Fall Damage calculation
-                float fallperc = float(fall_time)/1100;
+                float fallperc = float(fall_time)/1500;
                 uint32 damage = (uint32)(((fallperc*fallperc -1) / 9 * target->GetMaxHealth())*sWorld.getRate(RATE_DAMAGE_FALL));
 
                 float height = movementInfo.z;
@@ -321,6 +326,10 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
                         damage = target->GetMaxHealth()/2;
 
                     target->EnvironmentalDamage(target->GetGUID(), DAMAGE_FALL, damage);
+
+                    // recheck alive, might have died of EnvironmentalDamage
+                    if (target->isAlive())
+                        target->GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_FALL_WITHOUT_DYING, uint32(z_diff*100));
                 }
 
                 //Z given by moveinfo, LastZ, FallTime, WaterZ, MapZ, Damage, Safefall reduction
@@ -351,7 +360,7 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
     /*----------------------*/
 
     /* process position-change */
-    recv_data.put<uint32>(5, getMSTime());                  // offset flags(4) + unk(1)
+    recv_data.put<uint32>(6, getMSTime());                  // offset flags(4) + unk(2)
     WorldPacket data(recv_data.GetOpcode(), (GetPlayer()->GetPackGUID().size()+recv_data.size()));
     data.append(GetPlayer()->GetPackGUID());
     data.append(recv_data.contents(), recv_data.size());
@@ -359,6 +368,8 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
 
     GetPlayer()->SetPosition(movementInfo.x, movementInfo.y, movementInfo.z, movementInfo.o);
     GetPlayer()->m_movementInfo = movementInfo;
+    if (GetPlayer()->m_fallMovementInfo.fallTime >= movementInfo.fallTime || GetPlayer()->m_fallMovementInfo.z <=movementInfo.z)
+        GetPlayer()->m_fallMovementInfo = movementInfo;
 
     if(GetPlayer()->isMovingOrTurning())
         GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
@@ -384,17 +395,18 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
 
 void WorldSession::HandleForceSpeedChangeAck(WorldPacket &recv_data)
 {
-    CHECK_PACKET_SIZE(recv_data, 8+4+4+1+4+4+4+4+4);
+    CHECK_PACKET_SIZE(recv_data, 8+4+4+2+4+4+4+4+4);
 
     /* extract packet */
     uint64 guid;
-    uint8  unkB;
+    uint16 unkB;
     uint32 unk1, flags, time, fallTime;
     float x, y, z, orientation;
 
     uint64 t_GUID;
     float  t_x, t_y, t_z, t_o;
     uint32 t_time;
+    uint8  t_unk;
     float  s_pitch;
     float  j_unk1, j_sinAngle, j_cosAngle, j_xyspeed;
     float  u_unk1;
@@ -414,12 +426,12 @@ void WorldSession::HandleForceSpeedChangeAck(WorldPacket &recv_data)
     if (flags & MOVEMENTFLAG_ONTRANSPORT)
     {
         // recheck
-        CHECK_PACKET_SIZE(recv_data, recv_data.rpos()+8+4+4+4+4+4);
+        CHECK_PACKET_SIZE(recv_data, recv_data.rpos()+8+4+4+4+4+4+1);
 
         recv_data >> t_GUID;
-        recv_data >> t_x >> t_y >> t_z >> t_o >> t_time;
+        recv_data >> t_x >> t_y >> t_z >> t_o >> t_time >> t_unk;
     }
-    if (flags & (MOVEMENTFLAG_SWIMMING | MOVEMENTFLAG_FLYING2))
+    if ((flags & (MOVEMENTFLAG_SWIMMING | MOVEMENTFLAG_FLYING2)) || (unkB & 0x20))
     {
         // recheck
         CHECK_PACKET_SIZE(recv_data, recv_data.rpos()+4);
@@ -461,7 +473,7 @@ void WorldSession::HandleForceSpeedChangeAck(WorldPacket &recv_data)
     UnitMoveType move_type;
     UnitMoveType force_move_type;
 
-    static char const* move_type_name[MAX_MOVE_TYPE] = {  "Walk", "Run", "Walkback", "Swim", "Swimback", "Turn", "Fly", "Flyback" };
+    static char const* move_type_name[MAX_MOVE_TYPE] = {  "Walk", "Run", "Walkback", "Swim", "Swimback", "Turn", "Fly", "Flyback", "Pitch" };
 
     uint16 opcode = recv_data.GetOpcode();
     switch(opcode)

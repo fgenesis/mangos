@@ -107,7 +107,7 @@ MapManager::_GetBaseMap(uint32 id)
         Guard guard(*this);
 
         const MapEntry* entry = sMapStore.LookupEntry(id);
-        if (entry && entry->Instanceable())
+        if (entry && entry->IsDungeon())
         {
             m = new MapInstanced(id, i_gridCleanUpDelay);
         }
@@ -173,7 +173,8 @@ bool MapManager::CanPlayerEnter(uint32 mapid, Player* player)
         //The player has a heroic mode and tries to enter into instance which has no a heroic mode
         if (!entry->SupportsHeroicMode() && player->GetDifficulty() == DIFFICULTY_HEROIC)
         {
-            player->SendTransferAborted(mapid, TRANSFER_ABORT_DIFFICULTY2);      //Send aborted message
+            //Send aborted message
+            player->SendTransferAborted(mapid, TRANSFER_ABORT_DIFFICULTY, DIFFICULTY_HEROIC);
             return false;
         }
 

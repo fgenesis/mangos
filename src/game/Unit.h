@@ -163,14 +163,14 @@ enum SheathState
 // byte (1 from 0..3) of UNIT_FIELD_BYTES_2
 enum UnitBytes2_Flags
 {
-    UNIT_BYTE2_FLAG_UNK0  = 0x01,
-    UNIT_BYTE2_FLAG_UNK1  = 0x02,
-    UNIT_BYTE2_FLAG_UNK2  = 0x04,
-    UNIT_BYTE2_FLAG_UNK3  = 0x08,
-    UNIT_BYTE2_FLAG_AURAS = 0x10,                           // show possitive auras as positive, and allow its dispel
-    UNIT_BYTE2_FLAG_UNK5  = 0x20,
-    UNIT_BYTE2_FLAG_UNK6  = 0x40,
-    UNIT_BYTE2_FLAG_UNK7  = 0x80
+    UNIT_BYTE2_FLAG_PVP     = 0x01,
+    UNIT_BYTE2_FLAG_UNK1    = 0x02,
+    UNIT_BYTE2_FLAG_FFA_PVP = 0x04,
+    UNIT_BYTE2_FLAG_UNK3    = 0x08,
+    UNIT_BYTE2_FLAG_AURAS   = 0x10,                         // show possitive auras as positive, and allow its dispel
+    UNIT_BYTE2_FLAG_UNK5    = 0x20,
+    UNIT_BYTE2_FLAG_UNK6    = 0x40,
+    UNIT_BYTE2_FLAG_UNK7    = 0x80
 };
 
 // byte (2 from 0..3) of UNIT_FIELD_BYTES_2
@@ -208,16 +208,27 @@ enum HitInfo
     HITINFO_UNK1                = 0x00000001,               // req correct packet structure
     HITINFO_NORMALSWING2        = 0x00000002,
     HITINFO_LEFTSWING           = 0x00000004,
+    HITINFO_UNK2                = 0x00000008,
     HITINFO_MISS                = 0x00000010,
-    HITINFO_ABSORB              = 0x00000020,               // plays absorb sound
-    HITINFO_RESIST              = 0x00000040,               // resisted atleast some damage
-    HITINFO_CRITICALHIT         = 0x00000080,
-    HITINFO_UNK2                = 0x00000100,               // wotlk?
-    HITINFO_UNK3                = 0x00002000,               // wotlk?
-    HITINFO_GLANCING            = 0x00004000,
-    HITINFO_CRUSHING            = 0x00008000,
-    HITINFO_NOACTION            = 0x00010000,
-    HITINFO_SWINGNOHITSOUND     = 0x00080000
+    HITINFO_ABSORB              = 0x00000020,               // absorbed damage
+    HITINFO_ABSORB2             = 0x00000040,               // absorbed damage
+    HITINFO_RESIST              = 0x00000080,               // resisted atleast some damage
+    HITINFO_RESIST2             = 0x00000100,               // resisted atleast some damage
+    HITINFO_CRITICALHIT         = 0x00000200,               // critical hit
+    // 0x00000400
+    // 0x00000800
+    // 0x00001000
+    HITINFO_BLOCK               = 0x00002000,               // blocked damage
+    // 0x00004000
+    // 0x00008000
+    HITINFO_GLANCING            = 0x00010000,
+    HITINFO_CRUSHING            = 0x00020000,
+    HITINFO_NOACTION            = 0x00040000,               // guessed
+    // 0x00080000
+    // 0x00100000
+    HITINFO_SWINGNOHITSOUND     = 0x00200000,               // guessed
+    // 0x00400000
+    HITINFO_UNK3                = 0x00800000
 };
 
 //i would like to remove this: (it is defined in item.h
@@ -372,10 +383,11 @@ enum UnitMoveType
     MOVE_SWIMBACK   = 4,
     MOVE_TURN       = 5,
     MOVE_FLY        = 6,
-    MOVE_FLYBACK    = 7
+    MOVE_FLYBACK    = 7,
+    MOVE_PITCH      = 8
 };
 
-#define MAX_MOVE_TYPE 8
+#define MAX_MOVE_TYPE 9
 
 extern float baseMoveSpeed[MAX_MOVE_TYPE];
 
@@ -413,10 +425,11 @@ enum CombatRating
     CR_WEAPON_SKILL_MAINHAND    = 20,
     CR_WEAPON_SKILL_OFFHAND     = 21,
     CR_WEAPON_SKILL_RANGED      = 22,
-    CR_EXPERTISE                = 23
+    CR_EXPERTISE                = 23,
+    CR_ARMOR_PENETRATION        = 24
 };
 
-#define MAX_COMBAT_RATING         24
+#define MAX_COMBAT_RATING         25
 
 enum DamageEffectType
 {
@@ -450,19 +463,19 @@ enum UnitFlags
     UNIT_FLAG_UNKNOWN9         = 0x00000040,
     UNIT_FLAG_NOT_ATTACKABLE_1 = 0x00000080,                // ?? (UNIT_FLAG_PVP_ATTACKABLE | UNIT_FLAG_NOT_ATTACKABLE_1) is NON_PVP_ATTACKABLE
     UNIT_FLAG_UNKNOWN2         = 0x00000100,                // 2.0.8
-    UNIT_FLAG_UNKNOWN11        = 0x00000200,
+    UNIT_FLAG_UNKNOWN11        = 0x00000200,                // 3.0.3 - makes you unable to attack everything
     UNIT_FLAG_LOOTING          = 0x00000400,                // loot animation
     UNIT_FLAG_PET_IN_COMBAT    = 0x00000800,                // in combat?, 2.0.8
-    UNIT_FLAG_PVP              = 0x00001000,
+    UNIT_FLAG_PVP              = 0x00001000,                // changed in 3.0.3
     UNIT_FLAG_SILENCED         = 0x00002000,                // silenced, 2.1.1
     UNIT_FLAG_UNKNOWN4         = 0x00004000,                // 2.0.8
     UNIT_FLAG_UNKNOWN13        = 0x00008000,
     UNIT_FLAG_UNKNOWN14        = 0x00010000,
-    UNIT_FLAG_PACIFIED         = 0x00020000,
-    UNIT_FLAG_DISABLE_ROTATE   = 0x00040000,                // stunned, 2.1.1
+    UNIT_FLAG_PACIFIED         = 0x00020000,                // 3.0.3 ok
+    UNIT_FLAG_STUNNED          = 0x00040000,                // 3.0.3 ok
     UNIT_FLAG_IN_COMBAT        = 0x00080000,
     UNIT_FLAG_TAXI_FLIGHT      = 0x00100000,                // disable casting at client side spell not allowed by taxi flight (mounted?), probably used with 0x4 flag
-    UNIT_FLAG_DISARMED         = 0x00200000,                // disable melee spells casting..., "Required melee weapon" added to melee spells tooltip.
+    UNIT_FLAG_DISARMED         = 0x00200000,                // 3.0.3, disable melee spells casting..., "Required melee weapon" added to melee spells tooltip.
     UNIT_FLAG_CONFUSED         = 0x00400000,
     UNIT_FLAG_FLEEING          = 0x00800000,
     UNIT_FLAG_UNKNOWN5         = 0x01000000,                // used in spell Eyes of the Beast for pet...
@@ -477,9 +490,10 @@ enum UnitFlags
 // Value masks for UNIT_FIELD_FLAGS_2
 enum UnitFlags2
 {
-    UNIT_FLAG2_FEIGN_DEATH    = 0x00000001,
-    UNIT_FLAG2_COMPREHEND_LANG= 0x00000008,
-    UNIT_FLAG2_FORCE_MOVE     = 0x00000040
+    UNIT_FLAG2_FEIGN_DEATH      = 0x00000001,
+    UNIT_FLAG2_COMPREHEND_LANG  = 0x00000008,
+    UNIT_FLAG2_FORCE_MOVE       = 0x00000040,
+    UNIT_FLAG2_UNKNOWN1         = 0x00000800
 };
 
 /// Non Player Character flags
@@ -580,8 +594,18 @@ struct CleanDamage
 
 struct UnitActionBarEntry
 {
-    uint32 Type;
-    uint32 SpellOrAction;
+    union
+    {
+        struct 
+        {
+            uint16 SpellOrAction;
+            uint16 Type;
+        };
+        struct
+        {
+            uint32 Raw;
+        };
+    };
 };
 
 #define MAX_DECLINED_NAME_CASES 5
@@ -603,13 +627,12 @@ enum CurrentSpellTypes
 
 enum ActiveStates
 {
-    ACT_ENABLED  = 0xC100,
-    ACT_DISABLED = 0x8100,
-    ACT_COMMAND  = 0x0700,
-    ACT_REACTION = 0x0600,
-    ACT_CAST     = 0x0100,
-    ACT_PASSIVE  = 0x0000,
-    ACT_DECIDE   = 0x0001
+    ACT_PASSIVE  = 0x0100,                                  // 0x0100 - passive
+    ACT_DISABLED = 0x8100,                                  // 0x8000 - castable
+    ACT_ENABLED  = 0xC100,                                  // 0x4000 | 0x8000 - auto cast + castable
+    ACT_COMMAND  = 0x0700,                                  // 0x0100 | 0x0200 | 0x0400
+    ACT_REACTION = 0x0600,                                  // 0x0200 | 0x0400
+    ACT_DECIDE   = 0x0001                                   // what is it?
 };
 
 enum ReactStates
@@ -694,6 +717,7 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         typedef std::list<DiminishingReturn> Diminishing;
         typedef std::set<AuraType> AuraTypeSet;
         typedef std::set<uint32> ComboPointHolderSet;
+        typedef std::map<uint8, uint32> VisibleAuraMap;
 
         virtual ~Unit ( );
 
@@ -813,8 +837,14 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
 
             return false;
         }
-        bool IsPvP() const { return HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PVP); }
-        void SetPvP(bool state) { if(state) SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PVP); else RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PVP); }
+        bool IsPvP() const { return HasByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_PVP); }
+        void SetPvP(bool state)
+        {
+            if(state)
+                SetByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_PVP);
+            else
+                RemoveByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_PVP);
+        }
         uint32 GetCreatureType() const;
         uint32 GetCreatureTypeMask() const
         {
@@ -1006,7 +1036,6 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         void RemoveAurasWithDispelType( DispelType type );
 
         void RemoveAllAuras();
-        void RemoveArenaAuras(bool onleave = false);
         void RemoveAllAurasOnDeath();
         void DelayAura(uint32 spellId, uint32 effindex, int32 delaytime);
 
@@ -1127,6 +1156,30 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         void addHatedBy(HostilReference* pHostilReference) { m_HostilRefManager.insertFirst(pHostilReference); };
         void removeHatedBy(HostilReference* /*pHostilReference*/ ) { /* nothing to do yet */ }
         HostilRefManager& getHostilRefManager() { return m_HostilRefManager; }
+
+        uint32 GetVisibleAura(uint8 slot)
+        {
+            VisibleAuraMap::iterator itr = m_visibleAuras.find(slot);
+            if(itr != m_visibleAuras.end())
+                return itr->second;
+            return 0;
+        }
+        void SetVisibleAura(uint8 slot, uint32 spellid)
+        {
+            if(spellid == 0)
+            {
+                VisibleAuraMap::iterator itr = m_visibleAuras.find(slot);
+                if(itr != m_visibleAuras.end())
+                {
+                    m_visibleAuras.erase(itr);
+                    return;
+                }
+            }
+            else
+                m_visibleAuras[slot] = spellid;
+        }
+        VisibleAuraMap const *GetVisibleAuras() { return &m_visibleAuras; }
+        uint8 GetVisibleAurasCount() { return m_visibleAuras.size(); }
 
         Aura* GetAura(uint32 spellId, uint32 effindex);
         AuraMap      & GetAuras()       { return m_Auras; }
@@ -1300,6 +1353,7 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         float m_weaponDamage[MAX_ATTACK][2];
         bool m_canModifyStats;
         //std::list< spellEffectPair > AuraSpells[TOTAL_AURAS];  // TODO: use this if ok for mem
+        VisibleAuraMap m_visibleAuras;
 
         float m_speed_rate[MAX_MOVE_TYPE];
 

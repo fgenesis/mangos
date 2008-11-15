@@ -351,14 +351,7 @@ bool ChatHandler::HandleNamegoCommand(const char* args)
 
         Map* pMap = MapManager::Instance().GetMap(m_session->GetPlayer()->GetMapId(),m_session->GetPlayer());
 
-        if(pMap->IsBattleGroundOrArena())
-        {
-            // cannot summon to bg
-            PSendSysMessage(LANG_CANNOT_SUMMON_TO_BG,chr->GetName());
-            SetSentErrorMessage(true);
-            return false;
-        }
-        else if(pMap->IsDungeon())
+        if(pMap->Instanceable())
         {
             Map* cMap = MapManager::Instance().GetMap(chr->GetMapId(),chr);
             if( cMap->Instanceable() && cMap->GetInstanceId() != pMap->GetInstanceId() )
@@ -443,27 +436,7 @@ bool ChatHandler::HandleGonameCommand(const char* args)
     if (chr)
     {
         Map* cMap = MapManager::Instance().GetMap(chr->GetMapId(),chr);
-        if(cMap->IsBattleGroundOrArena())
-        {
-            // only allow if gm mode is on
-            if (!_player->isGameMaster())
-            {
-                PSendSysMessage(LANG_CANNOT_GO_TO_BG_GM,chr->GetName());
-                SetSentErrorMessage(true);
-                return false;
-            }
-            // if already in a bg, don't let port to other
-            else if (_player->GetBattleGroundId())
-            {
-                PSendSysMessage(LANG_CANNOT_GO_TO_BG_FROM_BG,chr->GetName());
-                SetSentErrorMessage(true);
-                return false;
-            }
-            // all's well, set bg id
-            // when porting out from the bg, it will be reset to 0
-            _player->SetBattleGroundId(chr->GetBattleGroundId());
-        }
-        else if(cMap->IsDungeon())
+        if(cMap->Instanceable())
         {
             // we have to go to instance, and can go to player only if:
             //   1) we are in his group (either as leader or as member)

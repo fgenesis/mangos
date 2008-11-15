@@ -121,7 +121,7 @@ pEffect SpellEffects[TOTAL_SPELL_EFFECTS]=
     &Spell::EffectPowerBurn,                                // 62 SPELL_EFFECT_POWER_BURN
     &Spell::EffectThreat,                                   // 63 SPELL_EFFECT_THREAT
     &Spell::EffectTriggerSpell,                             // 64 SPELL_EFFECT_TRIGGER_SPELL
-    &Spell::EffectUnused,                                   // 65 SPELL_EFFECT_HEALTH_FUNNEL            unused
+    &Spell::EffectApplyAreaAura,                            // 65 SPELL_EFFECT_APPLY_AREA_AURA_RAID
     &Spell::EffectUnused,                                   // 66 SPELL_EFFECT_POWER_FUNNEL             unused
     &Spell::EffectHealMaxHealth,                            // 67 SPELL_EFFECT_HEAL_MAX_HEALTH
     &Spell::EffectInterruptCast,                            // 68 SPELL_EFFECT_INTERRUPT_CAST
@@ -130,7 +130,7 @@ pEffect SpellEffects[TOTAL_SPELL_EFFECTS]=
     &Spell::EffectPickPocket,                               // 71 SPELL_EFFECT_PICKPOCKET
     &Spell::EffectAddFarsight,                              // 72 SPELL_EFFECT_ADD_FARSIGHT
     &Spell::EffectSummonGuardian,                           // 73 SPELL_EFFECT_SUMMON_POSSESSED
-    &Spell::EffectSummonTotem,                              // 74 SPELL_EFFECT_SUMMON_TOTEM
+    &Spell::EffectApplyGlyph,                               // 74 SPELL_EFFECT_APPLY_GLYPH
     &Spell::EffectHealMechanical,                           // 75 SPELL_EFFECT_HEAL_MECHANICAL          one spell: Mechanical Patch Kit
     &Spell::EffectSummonObjectWild,                         // 76 SPELL_EFFECT_SUMMON_OBJECT_WILD
     &Spell::EffectScriptEffect,                             // 77 SPELL_EFFECT_SCRIPT_EFFECT
@@ -210,6 +210,12 @@ pEffect SpellEffects[TOTAL_SPELL_EFFECTS]=
     &Spell::EffectTriggerRitualOfSummoning,                 //151 SPELL_EFFECT_TRIGGER_SPELL_2
     &Spell::EffectNULL,                                     //152 SPELL_EFFECT_152                      summon Refer-a-Friend
     &Spell::EffectNULL,                                     //153 SPELL_EFFECT_CREATE_PET               misc value is creature entry
+    &Spell::EffectNULL,                                     //154 unused
+    &Spell::EffectNULL,                                     //155 Allows you to equip two-handed axes, maces and swords in one hand, but you attack $49152s1% slower than normal.
+    &Spell::EffectNULL,                                     //156 Add Socket
+    &Spell::EffectNULL,                                     //157 create/learn random item/spell for profession
+    &Spell::EffectNULL,                                     //158 milling
+    &Spell::EffectNULL                                      //159 allow rename pet once again
 };
 
 void Spell::EffectNULL(uint32 /*i*/)
@@ -380,7 +386,7 @@ void Spell::EffectSchoolDMG(uint32 effect_idx)
             case SPELLFAMILY_DRUID:
             {
                 // Ferocious Bite
-                if((m_spellInfo->SpellFamilyFlags & 0x000800000) && m_spellInfo->SpellVisual==6587)
+                if((m_spellInfo->SpellFamilyFlags & 0x000800000) && m_spellInfo->SpellVisual[0]==6587)
                 {
                     // converts each extra point of energy into ($f1+$AP/630) additional damage
                     float multiple = m_caster->GetTotalAttackPowerValue(BASE_ATTACK) / 630 + m_spellInfo->DmgMultiplier[effect_idx];
@@ -460,7 +466,7 @@ void Spell::EffectSchoolDMG(uint32 effect_idx)
                         {
                             // Deadly poison (only attacker applied)
                             if( (*itr)->GetSpellProto()->SpellFamilyName==SPELLFAMILY_ROGUE && ((*itr)->GetSpellProto()->SpellFamilyFlags & 0x10000) &&
-                                (*itr)->GetSpellProto()->SpellVisual==5100 && (*itr)->GetCasterGUID()==m_caster->GetGUID() )
+                                (*itr)->GetSpellProto()->SpellVisual[0]==5100 && (*itr)->GetCasterGUID()==m_caster->GetGUID() )
                             {
                                 --combo;
                                 ++doses;
@@ -498,7 +504,7 @@ void Spell::EffectSchoolDMG(uint32 effect_idx)
             case SPELLFAMILY_HUNTER:
             {
                 // Mongoose Bite
-                if((m_spellInfo->SpellFamilyFlags & 0x000000002) && m_spellInfo->SpellVisual==342)
+                if((m_spellInfo->SpellFamilyFlags & 0x000000002) && m_spellInfo->SpellVisual[0]==342)
                 {
                     damage += int32(m_caster->GetTotalAttackPowerValue(BASE_ATTACK)*0.2);
                 }
@@ -1185,7 +1191,7 @@ void Spell::EffectDummy(uint32 i)
             break;
         case SPELLFAMILY_WARRIOR:
             // Charge
-            if(m_spellInfo->SpellFamilyFlags & 0x1 && m_spellInfo->SpellVisual == 867)
+            if(m_spellInfo->SpellFamilyFlags & 0x1 && m_spellInfo->SpellVisual[0] == 867)
             {
                 int32 chargeBasePoints0 = damage;
                 m_caster->CastCustomSpell(m_caster,34846,&chargeBasePoints0,NULL,NULL,true);
@@ -2598,7 +2604,7 @@ void Spell::DoCreateItem(uint32 i, uint32 itemtype)
                 return;
         }
 
-        if(BattleGround* bg = sBattleGroundMgr.GetBattleGroundTemplate(bgType))
+        if(BattleGround* bg = sBattleGroundMgr.GetBattleGround(bgType))
             bg->SendRewardMarkByMail(player,newitemid,no_space);
     }
 }
@@ -2845,7 +2851,7 @@ void Spell::EffectOpenLock(uint32 /*i*/)
             if(BattleGround *bg = player->GetBattleGround())
             {
                 // check if it's correct bg
-                if(bg->GetTypeID() == BATTLEGROUND_AB || bg->GetTypeID() == BATTLEGROUND_AV)
+                if(bg && bg->GetTypeID() == BATTLEGROUND_AB)
                     bg->EventPlayerClickedOnFlag(player, gameObjTarget);
                 return;
             }
@@ -2893,10 +2899,10 @@ void Spell::EffectOpenLock(uint32 /*i*/)
     }
 
     // check key
-    for(int i = 0; i < 5; ++i)
+    for(int i = 0; i < 8; ++i)
     {
-        // type==1 This means lockInfo->key[i] is an item
-        if(lockInfo->keytype[i]==LOCK_KEY_ITEM && lockInfo->key[i] && m_CastItem && m_CastItem->GetEntry()==lockInfo->key[i])
+        // Type==1 This means lockInfo->Index[i] is an item
+        if(lockInfo->Type[i]==LOCK_KEY_ITEM && lockInfo->Index[i] && m_CastItem && m_CastItem->GetEntry()==lockInfo->Index[i])
         {
             SendLoot(guid, loottype);
             return;
@@ -2914,9 +2920,9 @@ void Spell::EffectOpenLock(uint32 /*i*/)
     // skill bonus provided by casting spell (mostly item spells)
     uint32 spellSkillBonus = uint32(m_currentBasePoints[0]+1);
 
-    uint32 reqSkillValue = lockInfo->requiredminingskill;
+    uint32 reqSkillValue = lockInfo->Skill[0];
 
-    if(lockInfo->requiredlockskill)                         // required pick lock skill applying
+    if(lockInfo->Skill[1])                                  // required pick lock skill applying
     {
         if(SkillId != SKILL_LOCKPICKING)                    // wrong skill (cheating?)
         {
@@ -2924,7 +2930,7 @@ void Spell::EffectOpenLock(uint32 /*i*/)
             return;
         }
 
-        reqSkillValue = lockInfo->requiredlockskill;
+        reqSkillValue = lockInfo->Skill[1];
     }
     else if(SkillId == SKILL_LOCKPICKING)                   // apply picklock skill to wrong target
     {
@@ -3196,16 +3202,16 @@ void Spell::EffectSummon(uint32 i)
     if(duration > 0)
         spawnCreature->SetDuration(duration);
 
-    spawnCreature->SetUInt64Value(UNIT_FIELD_SUMMONEDBY,m_caster->GetGUID());
-    spawnCreature->SetUInt32Value(UNIT_NPC_FLAGS , 0);
+    spawnCreature->SetUInt64Value(UNIT_FIELD_SUMMONEDBY, m_caster->GetGUID());
+    spawnCreature->SetUInt32Value(UNIT_NPC_FLAGS, 0);
     spawnCreature->setPowerType(POWER_MANA);
-    spawnCreature->SetUInt32Value(UNIT_FIELD_FACTIONTEMPLATE,m_caster->getFaction());
-    spawnCreature->SetUInt32Value(UNIT_FIELD_FLAGS,0);
-    spawnCreature->SetUInt32Value(UNIT_FIELD_BYTES_0,2048);
-    spawnCreature->SetUInt32Value(UNIT_FIELD_BYTES_1,0);
-    spawnCreature->SetUInt32Value(UNIT_FIELD_PET_NAME_TIMESTAMP,0);
-    spawnCreature->SetUInt32Value(UNIT_FIELD_PETEXPERIENCE,0);
-    spawnCreature->SetUInt32Value(UNIT_FIELD_PETNEXTLEVELEXP,1000);
+    spawnCreature->SetUInt32Value(UNIT_FIELD_FACTIONTEMPLATE, m_caster->getFaction());
+    spawnCreature->SetUInt32Value(UNIT_FIELD_FLAGS, 0);
+    spawnCreature->SetUInt32Value(UNIT_FIELD_BYTES_0, 2048);
+    spawnCreature->SetUInt32Value(UNIT_FIELD_BYTES_1, 0);
+    spawnCreature->SetUInt32Value(UNIT_FIELD_PET_NAME_TIMESTAMP, 0);
+    spawnCreature->SetUInt32Value(UNIT_FIELD_PETEXPERIENCE, 0);
+    spawnCreature->SetUInt32Value(UNIT_FIELD_PETNEXTLEVELEXP, 1000);
     spawnCreature->SetUInt64Value(UNIT_FIELD_CREATEDBY, m_caster->GetGUID());
     spawnCreature->SetUInt32Value(UNIT_CREATED_BY_SPELL, m_spellInfo->Id);
 
@@ -3248,7 +3254,7 @@ void Spell::EffectLearnSpell(uint32 i)
 
     Player *player = (Player*)unitTarget;
 
-    uint32 spellToLearn = (m_spellInfo->Id==SPELL_ID_GENERIC_LEARN) ? damage : m_spellInfo->EffectTriggerSpell[i];
+    uint32 spellToLearn = ((m_spellInfo->Id==SPELL_ID_GENERIC_LEARN) || (m_spellInfo->Id==SPELL_ID_GENERIC_LEARN_PET)) ? damage : m_spellInfo->EffectTriggerSpell[i];
     player->learnSpell(spellToLearn);
 
     sLog.outDebug( "Spell: Player %u have learned spell %u from NpcGUID=%u", player->GetGUIDLow(), spellToLearn, m_caster->GetGUIDLow() );
@@ -3835,13 +3841,13 @@ void Spell::EffectEnchantItemTmp(uint32 i)
     else if(m_spellInfo->SpellFamilyName==SPELLFAMILY_SHAMAN)
         duration = 1800;                                    // 30 mins
     // other cases with this SpellVisual already selected
-    else if(m_spellInfo->SpellVisual==215)
+    else if(m_spellInfo->SpellVisual[0]==215)
         duration = 1800;                                    // 30 mins
     // some fishing pole bonuses
-    else if(m_spellInfo->SpellVisual==563)
+    else if(m_spellInfo->SpellVisual[0]==563)
         duration = 600;                                     // 10 mins
     // shaman rockbiter enchantments
-    else if(m_spellInfo->SpellVisual==0)
+    else if(m_spellInfo->SpellVisual[0]==0)
         duration = 1800;                                    // 30 mins
     else if(m_spellInfo->Id==29702)
         duration = 300;                                     // 5 mins
@@ -3901,14 +3907,16 @@ void Spell::EffectTameCreature(uint32 /*i*/)
     creatureTarget->RemoveCorpse();
     creatureTarget->SetHealth(0);                       // just for nice GM-mode view
 
+    uint32 level = (creatureTarget->getLevel() < (m_caster->getLevel() - 5)) ? (m_caster->getLevel() - 5) : creatureTarget->getLevel();
+
     // prepare visual effect for levelup
-    pet->SetUInt32Value(UNIT_FIELD_LEVEL,creatureTarget->getLevel()-1);
+    pet->SetUInt32Value(UNIT_FIELD_LEVEL, level - 1);
 
     // add to world
     MapManager::Instance().GetMap(pet->GetMapId(), pet)->Add((Creature*)pet);
 
     // visual effect for levelup
-    pet->SetUInt32Value(UNIT_FIELD_LEVEL,creatureTarget->getLevel());
+    pet->SetUInt32Value(UNIT_FIELD_LEVEL, level);
 
     // caster have pet now
     m_caster->SetPet(pet);
@@ -4032,13 +4040,13 @@ void Spell::EffectSummonPet(uint32 i)
 
     NewSummon->SetUInt64Value(UNIT_FIELD_SUMMONEDBY, m_caster->GetGUID());
     NewSummon->SetUInt64Value(UNIT_FIELD_CREATEDBY, m_caster->GetGUID());
-    NewSummon->SetUInt32Value(UNIT_NPC_FLAGS , 0);
+    NewSummon->SetUInt32Value(UNIT_NPC_FLAGS, 0);
     NewSummon->SetUInt32Value(UNIT_FIELD_FACTIONTEMPLATE, faction);
-    NewSummon->SetUInt32Value(UNIT_FIELD_BYTES_0,2048);
-    NewSummon->SetUInt32Value(UNIT_FIELD_BYTES_1,0);
-    NewSummon->SetUInt32Value(UNIT_FIELD_PET_NAME_TIMESTAMP,time(NULL));
-    NewSummon->SetUInt32Value(UNIT_FIELD_PETEXPERIENCE,0);
-    NewSummon->SetUInt32Value(UNIT_FIELD_PETNEXTLEVELEXP,1000);
+    NewSummon->SetUInt32Value(UNIT_FIELD_BYTES_0, 2048);
+    NewSummon->SetUInt32Value(UNIT_FIELD_BYTES_1, 0);
+    NewSummon->SetUInt32Value(UNIT_FIELD_PET_NAME_TIMESTAMP, time(NULL));
+    NewSummon->SetUInt32Value(UNIT_FIELD_PETEXPERIENCE, 0);
+    NewSummon->SetUInt32Value(UNIT_FIELD_PETNEXTLEVELEXP, 1000);
     NewSummon->SetUInt32Value(UNIT_CREATED_BY_SPELL, m_spellInfo->Id);
 
     NewSummon->GetCharmInfo()->SetPetNumber(pet_number, true);
@@ -4047,7 +4055,7 @@ void Spell::EffectSummonPet(uint32 i)
     // this enables popup window (pet dismiss, cancel), hunter pet additional flags set later
     NewSummon->SetUInt32Value(UNIT_FIELD_FLAGS,UNIT_FLAG_PVP_ATTACKABLE);
 
-    NewSummon->InitStatsForLevel( petlevel);
+    NewSummon->InitStatsForLevel(petlevel);
     NewSummon->InitPetCreateSpells();
 
     if(NewSummon->getPetType()==SUMMON_PET)
@@ -4106,7 +4114,6 @@ void Spell::EffectLearnPetSpell(uint32 i)
     if(!learn_spellproto)
         return;
 
-    pet->SetTP(pet->m_TrainingPoints - pet->GetTPForSpell(learn_spellproto->Id));
     pet->learnSpell(learn_spellproto->Id);
 
     pet->SavePetToDB(PET_SAVE_AS_CURRENT);
@@ -4174,7 +4181,7 @@ void Spell::EffectWeaponDmg(uint32 i)
                     spell_bonus += m_caster->CalculateDamage (OFF_ATTACK, normalized);
             }
             // Devastate bonus and sunder armor refresh
-            else if(m_spellInfo->SpellVisual == 671 && m_spellInfo->SpellIconID == 1508)
+            else if(m_spellInfo->SpellVisual[0] == 671 && m_spellInfo->SpellIconID == 1508)
             {
                 customBonusDamagePercentMod = true;
                 bonusDamagePercentMod = 0.0f;               // only applied if auras found
@@ -4183,11 +4190,11 @@ void Spell::EffectWeaponDmg(uint32 i)
                 for(Unit::AuraList::const_iterator itr=list.begin();itr!=list.end();++itr)
                 {
                     SpellEntry const *proto = (*itr)->GetSpellProto();
-                    if(proto->SpellVisual == 406 && proto->SpellIconID == 565)
+                    if(proto->SpellVisual[0] == 406 && proto->SpellIconID == 565)
                     {
                         int32 duration = GetSpellDuration(proto);
                         (*itr)->SetAuraDuration(duration);
-                        (*itr)->UpdateAuraDuration();
+                        (*itr)->SendAuraUpdate(false);
                         bonusDamagePercentMod += 1.0f;      // +100%
                     }
                 }
@@ -5073,6 +5080,45 @@ void Spell::EffectActivateObject(uint32 effect_idx)
     sWorld.ScriptCommandStart(activateCommand, delay_secs, m_caster, gameObjTarget);
 }
 
+void Spell::EffectApplyGlyph(uint32 i)
+{
+    if(m_caster->GetTypeId() != TYPEID_PLAYER)
+        return;
+
+    Player *player = (Player*)m_caster;
+
+    // remove old glyph
+    if(uint32 oldglyph = player->GetGlyph(m_glyphIndex))
+    {
+        if(GlyphPropertiesEntry const *old_gp = sGlyphPropertiesStore.LookupEntry(oldglyph))
+        {
+            player->RemoveAurasDueToSpell(old_gp->SpellId);
+            player->SetGlyph(m_glyphIndex, 0);
+        }
+    }
+
+    // apply new one
+    if(uint32 glyph = m_spellInfo->EffectMiscValue[i])
+    {
+        if(GlyphPropertiesEntry const *gp = sGlyphPropertiesStore.LookupEntry(glyph))
+        {
+            if(GlyphSlotEntry const *gs = sGlyphSlotStore.LookupEntry(player->GetGlyphSlot(m_glyphIndex)))
+            {
+                if(gp->TypeFlags != gs->TypeFlags)
+                {
+                    SendCastResult(SPELL_FAILED_INVALID_GLYPH);
+                    return;                                 // glyph slot missmatch
+                }
+            }
+
+            player->CastSpell(m_caster, gp->SpellId, true);
+            player->SetGlyph(m_glyphIndex, glyph);
+            if(m_CastItem)
+                player->DestroyItemCount(m_CastItem->GetEntry(), 1, true);
+        }
+    }
+}
+
 void Spell::EffectSummonTotem(uint32 i)
 {
     uint8 slot = 0;
@@ -5920,9 +5966,9 @@ void Spell::EffectTransmitted(uint32 effIndex)
         {
             m_caster->SetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT,pGameObj->GetGUID());
                                                             // Orientation3
-            pGameObj->SetFloatValue(GAMEOBJECT_ROTATION + 2, 0.88431775569915771 );
+            pGameObj->SetFloatValue(GAMEOBJECT_PARENTROTATION + 2, 0.88431775569915771 );
                                                             // Orientation4
-            pGameObj->SetFloatValue(GAMEOBJECT_ROTATION + 3, -0.4668855369091033 );
+            pGameObj->SetFloatValue(GAMEOBJECT_PARENTROTATION + 3, -0.4668855369091033 );
             m_caster->AddGameObject(pGameObj);              // will removed at spell cancel
 
             // end time of range when possible catch fish (FISHING_BOBBER_READY_TIME..GetDuration(m_spellInfo))
