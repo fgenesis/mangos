@@ -6,6 +6,7 @@
 	ProjectGUID="{1DC6C4DA-A028-41F3-877D-D5400C594F88}"
 	RootNamespace="game"
 	Keyword="Win32Proj"
+	TargetFrameworkVersion="0"
 	>
 	<Platforms>
 		<Platform
@@ -356,6 +357,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\game\AchievementMgr.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\game\AchievementMgr.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\game\AddonHandler.cpp"
 				>
 			</File>
@@ -453,6 +462,10 @@
 			</File>
 			<File
 				RelativePath="..\..\src\game\BattleGroundWS.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\game\CalendarHandler.cpp"
 				>
 			</File>
 			<File
@@ -820,6 +833,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\game\Calendar.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\game\Calendar.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\game\ConfusedMovementGenerator.cpp"
 				>
 			</File>
@@ -1161,6 +1182,14 @@
 			</File>
 			<File
 				RelativePath="..\..\src\game\UpdateMask.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\game\Vehicle.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\game\Vehicle.h"
 				>
 			</File>
 			<File
