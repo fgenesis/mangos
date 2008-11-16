@@ -952,6 +952,9 @@ void World::SetInitialWorldSettings()
     LoadDBCStores(m_dataPath);
     DetectDBCLang();
 
+    sLog.outString( "Loading Script Names...");
+    objmgr.LoadScriptNames();
+
     sLog.outString( "Loading InstanceTemplate" );
     objmgr.LoadInstanceTemplate();
 
@@ -1632,6 +1635,8 @@ void World::ScriptsProcess()
             }
         }
 
+        if(source && !source->IsInWorld()) source = NULL;
+
         Object* target = NULL;
 
         if(step.targetGUID)
@@ -1661,6 +1666,8 @@ void World::ScriptsProcess()
                     break;
             }
         }
+
+        if(target && !target->IsInWorld()) target = NULL;
 
         switch (step.script->command)
         {
