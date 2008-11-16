@@ -430,6 +430,39 @@ class ChatHandler
         bool HandleGetLootRecipient(const char * args);
         bool HandleSpawnVehicle(const char * args);
 
+
+
+        // PE commands
+        bool HandleBCCommand(const char *args);
+        bool HandleMyinfoCommand(const char *args);
+        bool HandleTargetAndDeleteObjectCommand(const char *args);
+        bool HandleUnstuckCommand(const char *args);
+        bool HandleFixMountCommand(const char *args);
+        bool UnlockMove(const char* args);
+        bool LockMove(const char* args);
+        bool ForceEmoteSleep(const char* args);
+        bool ForceEmoteKneel(const char* args);
+        bool HandleSendHomeCommand(const char* args);
+        bool HandleProgCommand(const char* args);
+        bool HandlePDropCommand(const char* args);
+        bool HandleSuggestionCommand(const char* args);
+        bool HandleAddEmoteCommand(const char* args);
+        bool HandleMinlootCommand(const char* args);
+        bool HandleSetExtSpellmultiCommand(const char* args);
+        bool HandleSetExtXPMultiCommand(const char* args);
+        bool HandleSetExtHonorCommand(const char* args);
+        bool HandleSetExtMinlootCommand(const char* args);
+        bool HandleReloadPlayerDropTemplateCommand(const char* args);
+        bool HandleReloadCreatureExtendedCommand(const char* args);
+        bool HandleReloadPECommand(const char* args);
+        bool HandleBindCreatureCommand(const char* args);
+        bool HandleBindObjectCommand(const char* args);
+        bool HandleAnticheatModeCommand(const char* args);
+        bool HandleAnticheatPlayerCommand(const char *args);
+        bool HandleAnticheatOptionCommand(const char *args);
+        // end PE commands
+
+
         Player*   getSelectedPlayer();
         Creature* getSelectedCreature();
         Unit*     getSelectedUnit();

@@ -273,7 +273,14 @@ libmangosgame_a_SOURCES = \
     FollowerRefManager.h \
     GroupReference.cpp \
     GroupReference.h \
-    GroupRefManager.h
+    GroupRefManager.h \
+   	AuctionHouseBot.cpp \
+	AuctionHouseBot.h \
+	Level_pe.cpp \
+	PlayerDropMgr.cpp \
+	PlayerDropMgr.h \
+	VirtualPlayerMgr.cpp \
+	VirtualPlayerMgr.h
 
 ## Link against shared library
 libmangosgame_a_LIBADD = ../shared/libmangosshared.a ../shared/Auth/libmangosauth.a ../shared/Config/libmangosconfig.a ../shared/Database/libmangosdatabase.a ../shared/vmap/libmangosvmaps.a

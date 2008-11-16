@@ -610,6 +610,15 @@ void Spell::EffectDummy(uint32 i)
     if(!unitTarget && !gameObjTarget && !itemTarget)
         return;
 
+    // FG: allow teleport effects also for dummy spells
+    SpellTargetPosition const* st = spellmgr.GetSpellTargetPosition(m_spellInfo->Id);
+    if(st && unitTarget && unitTarget->GetTypeId() == TYPEID_PLAYER)
+    {
+        sLog.outDebug( "SPELL: dummy spell ID %u has teleport coords", m_spellInfo->Id );
+        if(unitTarget->GetTypeId() == TYPEID_PLAYER)
+            ((Player*)unitTarget)->TeleportTo(st->target_mapId,st->target_X,st->target_Y,st->target_Z,st->target_Orientation);
+    }
+
     // selection by spell family
     switch(m_spellInfo->SpellFamilyName)
     {
@@ -4170,6 +4179,7 @@ void Spell::EffectWeaponDmg(uint32 i)
     bool normalized = false;
 
     int32 spell_bonus = 0;                                  // bonus specific for spell
+    int32 fixed_bonus = 0;
     switch(m_spellInfo->SpellFamilyName)
     {
         case SPELLFAMILY_WARRIOR:
@@ -4183,6 +4193,25 @@ void Spell::EffectWeaponDmg(uint32 i)
             // Devastate bonus and sunder armor refresh
             else if(m_spellInfo->SpellVisual[0] == 671 && m_spellInfo->SpellIconID == 1508)
             {
+                // FG: --start--
+                uint32 ranks[] = { 25225,11597,11596,8380,7405,7386,0 };
+                uint32 sunder = 0;
+                for(uint32 j = 0; ranks[j]; j++)
+                {
+                    if(m_caster->HasSpell(ranks[j]))
+                    {
+                        sunder = ranks[j];
+                        break;
+                    }
+                }
+                sLog.outDebug("-- FG: devastate, sunder=%u", sunder);
+                if(sunder && unitTarget)
+                {
+                    m_caster->CastSpell(unitTarget, sunder, true);
+                    fixed_bonus = 0.5f * m_caster->CalculateDamage(BASE_ATTACK, true); // FG: must be normalized
+                }
+                // FG: --end--
+
                 customBonusDamagePercentMod = true;
                 bonusDamagePercentMod = 0.0f;               // only applied if auras found
 
@@ -4265,7 +4294,7 @@ void Spell::EffectWeaponDmg(uint32 i)
         }
     }
 
-    int32 fixed_bonus = 0;
+    //int32 fixed_bonus = 0; // FG: moved to above
     for (int j = 0; j < 3; j++)
     {
         switch(m_spellInfo->Effect[j])

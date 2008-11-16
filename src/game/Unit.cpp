@@ -1409,6 +1409,17 @@ uint32 Unit::SpellNonMeleeDamageLog(Unit *pVictim, uint32 spellID, uint32 damage
         uint32 absorb = 0;
         uint32 resist = 0;
 
+        // FG: custom spell damage multipliers
+        if(GetTypeId() == TYPEID_UNIT)
+        {
+            const CreatureExtendedInfo *exinfo = sCreatureExtendedStorage.LookupEntry<CreatureExtendedInfo>(GetEntry());
+            if(exinfo)
+            {
+                sLog.outDebug("-- SpellNonMeleeDamageLog: multi %f applied to dmg %u",exinfo->SpellDmgMulti,damage);
+                damage *= exinfo->SpellDmgMulti;
+            }
+        }
+
         CalcAbsorbResist(pVictim,GetSpellSchoolMask(spellInfo), SPELL_DIRECT_DAMAGE, damage, &absorb, &resist);
 
         //No more damage left, target absorbed and/or resisted all damage
@@ -10916,3 +10927,34 @@ bool Unit::HandleMeandingAuraProc( Aura* triggeredByAura )
     CastCustomSpell(this,33110,&heal,NULL,NULL,true,NULL,NULL,caster_guid);
     return true;
 }
+
+bool Unit::ApplySpellAura(uint32 spellID)
+{
+    bool added = false;
+    SpellEntry const *spellInfo = sSpellStore.LookupEntry( spellID );
+    if(spellInfo)
+    {
+        for(uint32 i = 0;i<3;i++)
+        {
+            uint8 eff = spellInfo->Effect[i];
+            if (eff>=TOTAL_SPELL_EFFECTS)
+                continue;
+            switch(eff)
+            {
+            case SPELL_EFFECT_APPLY_AURA:
+            case SPELL_EFFECT_PERSISTENT_AREA_AURA:
+            case SPELL_EFFECT_APPLY_AREA_AURA_PARTY:
+            case SPELL_EFFECT_APPLY_AREA_AURA_PET:
+            case SPELL_EFFECT_APPLY_AREA_AURA_FRIEND:
+            case SPELL_EFFECT_APPLY_AREA_AURA_ENEMY:
+            case SPELL_EFFECT_APPLY_AREA_AURA_OWNER:
+
+                Aura *Aur = CreateAura(spellInfo, i, NULL, this);
+                this->AddAura(Aur);
+            }
+        }
+    }
+    return added;
+}
+
+

@@ -511,7 +511,8 @@ enum AtLoginFlags
     AT_LOGIN_NONE          = 0,
     AT_LOGIN_RENAME        = 1,
     AT_LOGIN_RESET_SPELLS  = 2,
-    AT_LOGIN_RESET_TALENTS = 4
+    AT_LOGIN_RESET_TALENTS = 4,
+    AT_LOGIN_LOW_HP = 8192 // FG: required for almost-dead state when logging out in combat and logging in back
 };
 
 typedef std::map<uint32, QuestStatusData> QuestStatusMap;
@@ -2005,6 +2006,7 @@ class MANGOS_DLL_SPEC Player : public Unit
 
         bool HasAtLoginFlag(AtLoginFlags f) const { return m_atLoginFlags & f; }
         void SetAtLoginFlag(AtLoginFlags f) { m_atLoginFlags |= f; }
+        void UnsetAtLoginFlag(AtLoginFlags f) { m_atLoginFlags &= ~f; }
 
         LookingForGroup m_lookingForGroup;
 
@@ -2060,6 +2062,12 @@ class MANGOS_DLL_SPEC Player : public Unit
         DeclinedName const* GetDeclinedNames() const { return m_declinedname; }
 
         AchievementMgr& GetAchievementMgr() { return m_achievementMgr; }
+
+
+        // FG: more custom stuff
+        void GivePlayerDropReward(Player *victim);
+
+
     protected:
 
         /*********************************************************/

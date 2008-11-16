@@ -274,8 +274,10 @@ void WorldSession::LogoutPlayer(bool Save)
             }
 
             _player->SetPvPDeath(!aset.empty());
-            _player->KillPlayer();
-            _player->BuildPlayerRepop();
+            //_player->KillPlayer();
+            //_player->BuildPlayerRepop();
+            // FG: disabled above; we want to login back with 1 hp...
+            _player->SetAtLoginFlag(AT_LOGIN_LOW_HP);
             _player->RepopAtGraveyard();
 
             // give honor to all attackers from set like group case

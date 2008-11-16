@@ -272,6 +272,14 @@ bool Creature::UpdateEntry(uint32 Entry, uint32 team, const CreatureData *data )
     SetCanModifyStats(true);
     UpdateAllStats();
 
+    // FG
+    const CreatureExtendedInfo *exinfo = sCreatureExtendedStorage.LookupEntry<CreatureExtendedInfo>(Entry);
+    if(exinfo && exinfo->size > 0)
+        SetFloatValue(OBJECT_FIELD_SCALE_X,exinfo->size);
+    else
+        SetFloatValue(OBJECT_FIELD_SCALE_X, GetCreatureInfo()->scale);
+
+
     FactionTemplateEntry const* factionTemplate = sFactionTemplateStore.LookupEntry(GetCreatureInfo()->faction_A);
     if (factionTemplate)                                    // check and error show at loading templates
     {

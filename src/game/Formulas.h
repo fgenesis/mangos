@@ -138,7 +138,7 @@ namespace MaNGOS
             }
             else
             {
-                return (235 + (5*lvl));
+                return (105 + (5*lvl));
             }
         }
 

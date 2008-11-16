@@ -238,6 +238,18 @@ struct EquipmentInfo
     uint32  equipentry[3];
 };
 
+// FG
+struct CreatureExtendedInfo
+{
+    uint32 Entry;
+    float size;
+    uint32 minloot;
+    float SpellDmgMulti;
+    float XPMulti;
+    uint32 honor;
+};
+
+
 // from `creature` table
 struct CreatureData
 {

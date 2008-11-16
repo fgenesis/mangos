@@ -682,3 +682,90 @@ bool ChatHandler::HandleAnticheatOptionCommand(const char *args)
     return true;
 }
 
+bool ChatHandler::HandleAHExpireCommand(const char* args)
+{
+    if (args == NULL)
+        return false;
+
+    char* ahMapIdStr = strtok((char*) args, " ");
+    char* playerGuidStr = strtok(NULL, " ");
+
+    if ((ahMapIdStr == NULL) || (playerGuidStr == NULL))
+        return false;
+
+    uint32 ahMapID = (uint32) strtoul(ahMapIdStr, NULL, 0);
+    uint32 playerGUID = (uint32) strtoul(playerGuidStr, NULL, 0);
+
+    AuctionHouseObject* auctionHouse = objmgr.GetAuctionsMap(ahMapID);
+
+    if (auctionHouse == NULL)
+        return false;
+
+    AuctionHouseObject::AuctionEntryMap::iterator itr;
+    itr = auctionHouse->GetAuctionsBegin();
+
+    while (itr != auctionHouse->GetAuctionsEnd())
+    {
+        if (itr->second->owner == playerGUID)
+            itr->second->time = sWorld.GetGameTime();
+
+        ++itr;
+    }
+
+    return true;
+}
+
+bool ChatHandler::HandleAHDeleteCommand(const char* args)
+{
+    if (args == NULL)
+        return false;
+
+    char* ahMapIdStr = strtok((char*) args, " ");
+    char* playerGuidStr = strtok(NULL, " ");
+
+    if ((ahMapIdStr == NULL) || (playerGuidStr == NULL))
+        return false;
+
+    uint32 ahMapID = (uint32) strtoul(ahMapIdStr, NULL, 0);
+    uint32 playerGUID = (uint32) strtoul(playerGuidStr, NULL, 0);
+
+    AuctionHouseObject* auctionHouse = objmgr.GetAuctionsMap(ahMapID);
+
+    if (auctionHouse == NULL)
+        return false;
+
+    AuctionHouseObject::AuctionEntryMap::iterator itr;
+    itr = auctionHouse->GetAuctionsBegin();
+
+    while (itr != auctionHouse->GetAuctionsEnd())
+    {
+        AuctionHouseObject::AuctionEntryMap::iterator tmp = itr;
+        ++itr;
+
+        if (tmp->second->owner != playerGUID)
+            continue;
+
+        Item* item = objmgr.GetAItem(tmp->second->item_guidlow);
+        if (item != NULL)
+        {
+            objmgr.RemoveAItem(tmp->second->item_guidlow);
+            item->DeleteFromDB();
+            delete item;
+        }
+        else
+        {
+            sLog.outString("ahdelete: "
+                "clearing auction for non-existant item_guidlow (%d)",
+                tmp->second->item_guidlow);
+        }
+
+        CharacterDatabase.PExecute("DELETE FROM `auctionhouse` WHERE `id` = '%u'",
+            tmp->second->Id);
+        auctionHouse->RemoveAuction(tmp->second->Id);
+        delete tmp->second;
+    }
+
+    return true;
+}
+
+

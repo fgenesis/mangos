@@ -62,6 +62,11 @@
 
 #include <cmath>
 
+// FG
+#include "PlayerDropMgr.h"
+extern PlayerDropStorage sPlayerDropStore;
+// FG end
+
 #define ZONE_UPDATE_INTERVAL 1000
 
 #define PLAYER_SKILL_INDEX(x)       (PLAYER_SKILL_INFO_1_1 + ((x)*3))
@@ -5962,7 +5967,12 @@ bool Player::RewardHonor(Unit *uVictim, uint32 groupsize, float honor)
             if (!cVictim->isRacialLeader())
                 return false;
 
-            honor = 100;                                    // ??? need more info
+            // FG: custom honor values
+            const CreatureExtendedInfo *exinfo = sCreatureExtendedStorage.LookupEntry<CreatureExtendedInfo>(cVictim->GetEntry());
+            if(exinfo)
+                honor = exinfo->honor ? exinfo->honor : 100;
+            else
+                honor = 100;                                    // ??? need more info
             victim_rank = 19;                               // HK: Leader
         }
     }
@@ -7247,8 +7257,15 @@ void Player::SendLoot(uint64 guid, LootType loot_type)
                 creature->lootForBody = true;
                 loot->clear();
 
+                // FG: handle minloot
+                uint32 minloot = 0;
+                const CreatureExtendedInfo *exinfo = sCreatureExtendedStorage.LookupEntry<CreatureExtendedInfo>(creature->GetEntry());
+                if(exinfo)
+                    minloot = exinfo->minloot;
+                // FG: -end-
+
                 if (uint32 lootid = creature->GetCreatureInfo()->lootid)
-                    loot->FillLoot(lootid, LootTemplates_Creature, recipient);
+                    loot->FillLoot(lootid, LootTemplates_Creature, recipient, minloot);
 
                 loot->generateMoneyLoot(creature->GetCreatureInfo()->mingold,creature->GetCreatureInfo()->maxgold);
 
@@ -15047,6 +15064,15 @@ void Player::SaveToDB()
     // first save/honor gain after midnight will also update the player's honor fields
     UpdateHonorFields();
 
+    // FG: update anticheat account info
+    /*loginDatabase.PExecute("INSERT IGNORE INTO anticheat_acc_info (id) VALUES (%u)",GetSession()->GetAccountId());
+    loginDatabase.PExecute("UPDATE anticheat_acc_info SET warnings=warnings+%u WHERE id=%u",GetSession()->anticheat_new_warnings,GetSession()->GetAccountId());
+    GetSession()->anticheat_new_warnings = 0;
+    // players aren't saved on battleground maps
+    uint32 mapid = IsBeingTeleported() ? GetTeleportDest().mapid : GetMapId();
+    const MapEntry * me = sMapStore.LookupEntry(mapid);
+    if(!me || me->IsBattleGroundOrArena())*/
+
     // Must saved before enter into BattleGround
     if(InBattleGround())
         return;
@@ -18295,6 +18321,13 @@ bool Player::RewardPlayerAndGroupAtKill(Unit* pVictim)
                 KilledMonster(pVictim->GetEntry(),pVictim->GetGUID());
         }
     }
+
+    if(pVictim->GetTypeId() == TYPEID_PLAYER)
+    {
+        sLog.outDebug("-- Adding pdrop items to %s ...",GetName());
+        GivePlayerDropReward((Player*)pVictim);
+    }
+
     return xp || honored_kill;
 }
 
@@ -18716,3 +18749,65 @@ void Player::ExitVehicle(Vehicle *vehicle)
     // only for flyable vehicles?
     CastSpell(this, 45472, true);                           // Parachute
 }
+
+void Player::GivePlayerDropReward(Player *victim)
+{
+    Player *killer = this;
+    if( killer && victim && killer != victim && killer->IsHostileTo(victim) )
+    {
+        if(killer->GetTypeId() != TYPEID_PLAYER || victim->GetTypeId() != TYPEID_PLAYER)
+            return;
+
+        uint32 items = 0;
+
+        for(PlayerDropStorage::iterator it = sPlayerDropStore.begin(); it != sPlayerDropStore.end(); it++)
+        {
+            if( 
+                (it->guid == 0 || victim->GetGUIDLow() == it->guid)
+                && (victim->getRaceMask() & it->racemask)
+                && (victim->getClassMask() & it->classmask)
+                && (it->gender == 0 || it->gender > 2 || (victim->getGender() == 0 && it->gender == 1) || (victim->getGender() == 1 && it->gender == 2))
+                && (victim->getLevel() >= it->vminlvl)
+                && (it->vmaxlvl == 0 || victim->getLevel() <= it->vmaxlvl)
+                && (killer->getLevel() >= it->kminlvl)
+                && (it->kmaxlvl == 0 || killer->getLevel() <= it->kmaxlvl)
+                && (it->lvldiff <= int32(victim->getLevel() - killer->getLevel()))
+                && (it->map < 0 || uint32(it->map) == victim->GetMapId())
+                )
+            {
+                if(roll_chance_f(it->chance))
+                {
+                    const ItemPrototype *proto = objmgr.GetItemPrototype(it->item);
+                    if(proto)
+                    {
+                        uint32 itemcount = urand(it->mincount,it->maxcount);
+                        ItemPosCountVec dest;
+                        if( CanStoreNewItem( NULL_BAG, NULL_SLOT, dest, it->item, itemcount ) == EQUIP_ERR_OK )
+                        {
+                            Item* item = StoreNewItem( dest, it->item, true);
+                            SendNewItem(item, itemcount, true, false, true);
+                            items++;
+                            DEBUG_LOG("++ playerloot: added %u",it->item);
+                        }
+                    }
+                }
+                else
+                {
+                    DEBUG_LOG("-- playerloot: roll failed for %u",it->item);
+                }
+            }
+            else
+            {
+                DEBUG_LOG("-- playerloot: not %u",it->item);
+            }
+        }
+
+        sLog.outDetail("-- PLAYERLOOT: %s killed %s, added %u items", killer->GetName(), victim->GetName(), items);
+    }
+    else
+    {
+        sLog.outError("-- Player::FillPlayerLoot(): ptr error: victim=0x%X, killer=0x%X");
+    }
+}
+
+

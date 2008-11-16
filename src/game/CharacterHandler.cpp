@@ -38,6 +38,10 @@
 #include "Util.h"
 #include "Language.h"
 
+#include "Chat.h"
+#include "VirtualPlayerMgr.h"
+
+
 class LoginQueryHolder : public SqlQueryHolder
 {
     private:
@@ -272,6 +276,16 @@ void WorldSession::HandleCharCreateOpcode( WorldPacket & recv_data )
         SendPacket( &data );
         return;
     }
+
+    // FG: check if any virtual player has this name..
+    if(sVPlayerMgr.NameExists(name))
+    {
+        data << (uint8)CHAR_CREATE_NAME_IN_USE;
+        SendPacket( &data );
+        return;
+    }
+
+
 
     QueryResult *resultacct = loginDatabase.PQuery("SELECT SUM(numchars) FROM realmcharacters WHERE acctid = '%d'", GetAccountId());
     if ( resultacct )
@@ -775,12 +789,36 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder * holder)
         SendNotification(LANG_RESET_TALENTS);
     }
 
+    // FG: If logged out during combat, player will login back with 1 hp
+    if(pCurrChar->HasAtLoginFlag(AT_LOGIN_LOW_HP) && pCurrChar->isAlive())
+    {
+        pCurrChar->UnsetAtLoginFlag(AT_LOGIN_LOW_HP);
+        pCurrChar->SetHealth(1);
+        SendNotification("You were in combat when you logged out, health set to 1!");
+    }
+
     // show time before shutdown if shutdown planned.
     if(sWorld.IsShutdowning())
         sWorld.ShutdownMsg(true,pCurrChar);
 
     if(pCurrChar->isGameMaster())
         SendNotification(LANG_GM_ON);
+
+    // FG: .myinfo start
+    QueryResult *resultmyinfo = CharacterDatabase.PQuery("SELECT `msg` FROM `character_myinfo` WHERE `guid`='%u'",GUID_LOPART(playerGuid));
+    std::string myinf = (resultmyinfo) ? resultmyinfo->Fetch()[0].GetString() : "";
+    std::string inf = (myinf.empty()) ? "You have no personal information set. Use \".myinfo <msg>\" to set." : "Your current personal info message is: \""+myinf+"\"";
+    ChatHandler(this).FillSystemMessageData(&data, inf.c_str());
+    SendPacket( &data );
+    if(resultmyinfo)
+        delete resultmyinfo;
+    // FG: end
+
+    // FG: show uptime on login
+    uint32 uptime_ = sWorld.GetUptime();
+    std::string suptime_ = "|cff00FF00* Server Uptime: " + secsToTimeString(uptime_,true,false);
+    ChatHandler(this).FillSystemMessageData(&data, suptime_.c_str());
+    SendPacket( &data );
 
     std::string IP_str = GetRemoteAddress();
     sLog.outChar("Account: %d (IP: %s) Login Character:[%s] (guid:%u)",

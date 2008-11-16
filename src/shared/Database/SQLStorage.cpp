@@ -49,6 +49,13 @@ SQLStorage sPageTextStore(PageTextfmt,"entry","page_text");
 SQLStorage sSpellThreatStore(SpellThreatfmt,"entry","spell_threat");
 SQLStorage sInstanceTemplate(InstanceTemplatefmt,"map","instance_template");
 
+// FG
+const char CreatureExtendedFormat[]="ififfi";
+const char PlayerDropTemplateFormat[]="iiiiifiiiiii"; 
+SQLStorage sCreatureExtendedStorage(CreatureExtendedFormat,"entry","creature_extended");
+SQLStorage sPlayerDropStorage(CreatureExtendedFormat,"entry","creature_extended");
+
+
 void SQLStorage::Free ()
 {
     uint32 offset=0;

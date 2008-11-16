@@ -221,6 +221,13 @@ Map::Map(uint32 id, time_t expiry, uint32 InstanceId, uint8 SpawnMode)
     }
 }
 
+bool Map::Instanceable(void) const
+{
+    return i_mapEntry
+        && (i_mapEntry->Instanceable() || i_mapEntry->IsBattleGroundOrArena())
+        && !sWorld.IsNonInstanceableMap(i_mapEntry->MapID);
+}
+
 // Template specialization of utility methods
 template<class T>
 void Map::AddToGrid(T* obj, NGridType *grid, Cell const& cell)
@@ -1073,6 +1080,13 @@ float Map::GetHeight(float x, float y, float z, bool pUseVmaps) const
 
 uint16 Map::GetAreaFlag(float x, float y ) const
 {
+    // FG: possible crashfix
+    if(!MaNGOS::IsValidMapCoord(x,y))
+    {
+        sLog.outError("-- Map::GetAreaFlag() crashfix!");
+        return 0;
+    }
+
     //local x,y coords
     float lx,ly;
     int gx,gy;

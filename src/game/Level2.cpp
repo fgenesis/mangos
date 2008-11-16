@@ -1826,12 +1826,32 @@ bool ChatHandler::HandlePInfoCommand(const char* args)
         accId = objmgr.GetPlayerAccountIdByGUID(targetGUID);
     }
 
+    // FG: get chars on that acc from DB
+    std::stringstream ss_ch;
+    if(accId > 1)
+    {
+        QueryResult *acc_chars = CharacterDatabase.PQuery("SELECT name FROM characters WHERE account=%u",accId);
+        if(acc_chars)
+        {
+            ss_ch << "Chars: ";
+            do 
+            {
+                Field *fields = acc_chars->Fetch();
+                std::string n = fields[0].GetCppString();
+                ss_ch << n << " ";
+            }
+            while(acc_chars->NextRow());
+            delete acc_chars;
+        }
+    }
+
     std::string username = GetMangosString(LANG_ERROR);
     std::string last_ip = GetMangosString(LANG_ERROR);
     uint32 security = 0;
     std::string last_login = GetMangosString(LANG_ERROR);
+    std::string joindate = GetMangosString(LANG_ERROR);
 
-    QueryResult* result = loginDatabase.PQuery("SELECT username,gmlevel,last_ip,last_login FROM account WHERE id = '%u'",accId);
+    QueryResult* result = loginDatabase.PQuery("SELECT username,gmlevel,last_ip,last_login,joindate FROM account WHERE id = '%u'",accId);
     if(result)
     {
         Field* fields = result->Fetch();
@@ -1842,15 +1862,29 @@ bool ChatHandler::HandlePInfoCommand(const char* args)
         {
             last_ip = fields[2].GetCppString();
             last_login = fields[3].GetCppString();
+            joindate = fields[4].GetCppString();
         }
         else
         {
             last_ip = "-";
             last_login = "-";
+            joindate = "-";
         }
 
         delete result;
     }
+
+    /*uint32 ac_warnings = target ? target->GetSession()->anticheat_new_warnings : 0, ac_mode = 0;
+    QueryResult *result_anticheat = loginDatabase.PQuery("SELECT mode,warnings FROM anticheat_acc_info WHERE id=%u",accId);
+    if(result_anticheat)
+    {
+        Field *fields = result_anticheat->Fetch();
+        ac_mode = fields[0].GetUInt32();
+        ac_warnings += fields[1].GetUInt32();
+        delete result_anticheat;
+    }*/
+
+
 
     PSendSysMessage(LANG_PINFO_ACCOUNT, (target?"":GetMangosString(LANG_OFFLINE)), name.c_str(), GUID_LOPART(targetGUID), username.c_str(), accId, security, last_ip.c_str(), last_login.c_str(), latency);
 
@@ -1899,6 +1933,19 @@ bool ChatHandler::HandlePInfoCommand(const char* args)
             SendSysMessage(ss.str().c_str());
         }
     }
+
+    joindate = "Account joindate: " + joindate;
+    PSendSysMessage(joindate.c_str());
+
+    if(ss_ch.str().length())
+    {
+        PSendSysMessage(ss_ch.str().c_str());
+    }
+
+    /*std::stringstream ss2;
+    ss2 << "Anticheat mode: " << ac_mode << ", warnings: " << ac_warnings;
+    SendSysMessage(ss2.str().c_str());*/
+
     return true;
 }
 

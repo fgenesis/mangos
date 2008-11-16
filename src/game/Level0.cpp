@@ -33,6 +33,8 @@
 #include "revision_nr.h"
 #include "Util.h"
 
+#include "VirtualPlayerMgr.h"
+
 bool ChatHandler::HandleHelpCommand(const char* args)
 {
     char* cmd = strtok((char*)args, " ");
@@ -88,9 +90,9 @@ bool ChatHandler::HandleStartCommand(const char* /*args*/)
 
 bool ChatHandler::HandleServerInfoCommand(const char* /*args*/)
 {
-    uint32 activeClientsNum = sWorld.GetActiveSessionCount();
+    uint32 activeClientsNum = sWorld.GetActiveSessionCount() + sVPlayerMgr.GetOnlineCount();
     uint32 queuedClientsNum = sWorld.GetQueuedSessionCount();
-    uint32 maxActiveClientsNum = sWorld.GetMaxActiveSessionCount();
+    uint32 maxActiveClientsNum = sWorld.GetMaxActiveSessionCount() + sVPlayerMgr.GetHistoryMaxOnlineCount();
     uint32 maxQueuedClientsNum = sWorld.GetMaxQueuedSessionCount();
     std::string str = secsToTimeString(sWorld.GetUptime());
 

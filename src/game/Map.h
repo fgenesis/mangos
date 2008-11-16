@@ -211,7 +211,7 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>, public MaNGOS::Obj
         virtual bool CanEnter(Player* /*player*/) { return true; }
         const char* GetMapName() const;
 
-        bool Instanceable() const { return i_mapEntry && i_mapEntry->Instanceable(); }
+        bool Instanceable() const;
         // NOTE: this duplicate of Instanceable(), but Instanceable() can be changed when BG also will be instanceable
         bool IsDungeon() const { return i_mapEntry && i_mapEntry->IsDungeon(); }
         bool IsRaid() const { return i_mapEntry && i_mapEntry->IsRaid(); }

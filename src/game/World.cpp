@@ -59,6 +59,10 @@
 #include "GMTicketMgr.h"
 #include "Util.h"
 
+#include "AuctionHouseBot.h"
+#include "PlayerDropMgr.h"
+#include "VirtualPlayerMgr.h"
+
 INSTANTIATE_SINGLETON_1( World );
 
 volatile bool World::m_stopEvent = false;
@@ -876,6 +880,27 @@ void World::LoadConfigSettings(bool reload)
     sLog.outString( "WORLD: VMap support included. LineOfSight:%i, getHeight:%i",enableLOS, enableHeight);
     sLog.outString( "WORLD: VMap data directory is: %svmaps",m_dataPath.c_str());
     sLog.outString( "WORLD: VMap config keys are: vmap.enableLOS, vmap.enableHeight, vmap.ignoreMapIds, vmap.ignoreSpellIds");
+
+
+    // FG: custom stuffs
+    m_configs[CONFIG_AUTOBROADCAST_INTERVAL] = sConfig.GetIntDefault("AutoBroadcastInterval",0);
+    std::string nonInstMaps = sConfig.GetStringDefault("NonInstanceMaps","");
+    Tokens tok = StrSplit(nonInstMaps,",");
+    for(uint32 ti = 0; ti < tok.size(); ti++)
+    {
+        uint32 t_map = atoi(tok[ti].c_str());
+        m_nonInstanceMaps.push_back(t_map);
+        sLog.outString("FG: Map %u marked as non-instanceable", t_map);
+    }
+    sVPlayerMgr.SetEnabled( sConfig.GetBoolDefault("VP.Enabled", false) );
+    sVPlayerMgr.SetMaxLevel( sConfig.GetIntDefault("VP.Maxlevel",70) );
+    sVPlayerMgr.SetOnlineSpread( sConfig.GetFloatDefault("VP.OnlineSpread",0.12f) );
+    sVPlayerMgr.SetOnlineSpreadUpdateTime( sConfig.GetIntDefault("VP.OnlineSpreadUpdateTime",240) );
+    sVPlayerMgr.SetHourOffset( sConfig.GetIntDefault("VP.HourOffset", 0) );
+    sVPlayerMgr.SetLoginCheckInterval( sConfig.GetIntDefault("VP.LoginCheckInterval", 5) );
+
+    // FG: -end-
+
 }
 
 /// Initialize the World
@@ -1094,6 +1119,15 @@ void World::SetInitialWorldSettings()
     sLog.outString( "Loading Skill Fishing base level requirements..." );
     objmgr.LoadFishingBaseSkillLevel();
 
+    // FG: -- custom databases --
+    sLog.outString( "[FG] Loading Creature extended data..." );
+    objmgr.LoadCreaturesExtended();
+
+    sLog.outString( "[FG] Loading Player Drops..." );
+    LoadPlayerDrops();
+    // FG: -end-
+
+
     ///- Load dynamic data tables from the database
     sLog.outString( "Loading Auctions..." );
     objmgr.LoadAuctionItems();
@@ -1172,6 +1206,7 @@ void World::SetInitialWorldSettings()
 
     WorldDatabase.PExecute("INSERT INTO uptime (startstring, starttime, uptime) VALUES('%s', " I64FMTD ", 0)",
         isoDate, uint64(m_startTime));
+    WorldDatabase.PExecute("UPDATE uptime SET realmid=%u WHERE starttime=%u",realmID,m_startTime);
 
     m_timers[WUPDATE_OBJECTS].SetInterval(0);
     m_timers[WUPDATE_SESSIONS].SetInterval(0);
@@ -1180,6 +1215,7 @@ void World::SetInitialWorldSettings()
     m_timers[WUPDATE_UPTIME].SetInterval(m_configs[CONFIG_UPTIME_UPDATE]*MINUTE*1000);
                                                             //Update "uptime" table based on configuration entry in minutes.
     m_timers[WUPDATE_CORPSES].SetInterval(20*MINUTE*1000);  //erase corpses every 20 minutes
+    m_timers[WUPDATE_ONLINESTATS].SetInterval(60000); // FG: addition
 
     //to set mailtimer to return mails every day between 4 and 5 am
     //mailtimer is increased when updating auctions
@@ -1215,6 +1251,32 @@ void World::SetInitialWorldSettings()
     sLog.outString("Starting Game Event system..." );
     uint32 nextGameEvent = gameeventmgr.Initialize();
     m_timers[WUPDATE_EVENTS].SetInterval(nextGameEvent);    //depend on next event
+
+    // FG: more custom stuff
+    AuctionHouseBotInit();
+
+    if(sWorld.getConfig(CONFIG_AUTOBROADCAST_INTERVAL) > 0)
+    {
+        sLog.outString("ProjectEden: Starting AutoBroadcast Handler");
+        m_timers[WUPDATE_AUTOBROADCAST].SetInterval(1000 * sWorld.getConfig(CONFIG_AUTOBROADCAST_INTERVAL));
+    }
+    else
+        sLog.outString("ProjectEden: AutoBroadcast INACTIVE.");
+
+    // FG: TODO: use conf timer interval here!!
+    m_timers[WUPDATE_ANTICHEAT_ACC_INFO].SetInterval(1000 * 300);
+    objmgr.LoadAnticheatAccInfo();
+
+    // FG: load virtual players and related
+    m_timers[WUPDATE_VPLAYERS].SetInterval(1000); // 1 sec update interval
+    if(sVPlayerMgr.IsEnabled())
+    {
+        sLog.outString("[FG] Loading Virtual Player system...");
+        sVPlayerMgr.Load();
+    }
+    sVPlayerMgr.ClearOnlineBots();
+    // FG: -end-
+
 
     sLog.outString( "WORLD: World initialized" );
 }
@@ -1285,6 +1347,9 @@ void World::Update(time_t diff)
     if (m_timers[WUPDATE_AUCTIONS].Passed())
     {
         m_timers[WUPDATE_AUCTIONS].Reset();
+
+        // FG: AHBot handler
+        AuctionHouseBot();
 
         ///- Update mails (return old mails with item, or delete them)
         //(tested... works on win)
@@ -1416,6 +1481,39 @@ void World::Update(time_t diff)
         m_timers[WUPDATE_EVENTS].SetInterval(nextGameEvent);
         m_timers[WUPDATE_EVENTS].Reset();
     }
+
+    if (m_timers[WUPDATE_ONLINESTATS].Passed())
+    {
+        m_timers[WUPDATE_ONLINESTATS].Reset();
+        UpdateOnlineStats();
+    }
+
+
+    if(m_configs[CONFIG_AUTOBROADCAST_INTERVAL])
+    {
+        if(m_timers[WUPDATE_AUTOBROADCAST].Passed())
+        {
+            m_timers[WUPDATE_AUTOBROADCAST].Reset();
+            AutoBroadcast();
+        }
+    }
+
+    /*
+    // FG: anticheat related -- reload AC acc infos
+    if(m_timers[WUPDATE_ANTICHEAT_ACC_INFO].Passed())
+    {
+        m_timers[WUPDATE_ANTICHEAT_ACC_INFO].Reset();
+        objmgr.LoadAnticheatAccInfo();
+    }
+
+    // FG: update virtual players
+    if(m_timers[WUPDATE_VPLAYERS].Passed())
+    {
+        m_timers[WUPDATE_VPLAYERS].Reset();
+        sVPlayerMgr.Update();
+    }
+    */
+
 
     /// </ul>
     ///- Move all creatures with "delayed move" and remove and delete all objects with "delayed remove"
@@ -2592,3 +2690,49 @@ void World::LoadDBVersion()
     else
         m_DBVersion = "unknown world database";
 }
+
+
+void World::AutoBroadcast(void)
+{
+    std::string msg;
+    QueryResult *result = WorldDatabase.Query("SELECT text FROM autobroadcast WHERE enabled<>0 ORDER BY RAND() LIMIT 1");
+    if(!result)
+        return;
+    msg = result->Fetch()[0].GetString();
+    delete result;
+    sWorld.SendWorldText(msg.c_str());
+    sLog.outString("Autobroadcast: '%s'",msg.c_str());
+}
+
+void World::UpdateOnlineStats(void)
+{
+    uint32 ac = GetPlayerCountByTeam(ALLIANCE);
+    uint32 hc = GetPlayerCountByTeam(HORDE);
+    WorldDatabase.PExecute("INSERT INTO `www_onlinestats` (`time`,`realmid`,`a`,`h`) VALUES('%u','%u','%u','%u')",time(NULL),realmID,ac,hc);
+}
+
+uint32 World::GetPlayerCountByTeam(uint32 t)
+{
+    uint32 count = 0;
+    for(SessionMap::iterator itr = m_sessions.begin(); itr != m_sessions.end(); ++itr)
+    {
+        if(Player *player = itr->second->GetPlayer())
+        {
+            uint32 team = player->GetTeam();
+            if(t == team)
+                count++;
+        }
+    }
+    return count;
+}
+
+bool World::IsNonInstanceableMap(uint32 id)
+{
+    for(std::list<uint32>::iterator it = m_nonInstanceMaps.begin(); it != m_nonInstanceMaps.end(); it++)
+    {
+        if(*it == id)
+            return true;
+    }
+    return false;
+}
+

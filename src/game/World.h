@@ -59,7 +59,11 @@ enum WorldTimers
     WUPDATE_UPTIME      = 4,
     WUPDATE_CORPSES     = 5,
     WUPDATE_EVENTS      = 6,
-    WUPDATE_COUNT       = 7
+    WUPDATE_AUTOBROADCAST = 7,
+    WUPDATE_ONLINESTATS = 8,
+    WUPDATE_ANTICHEAT_ACC_INFO = 9,
+    WUPDATE_VPLAYERS    = 10,
+    WUPDATE_COUNT       = 11
 };
 
 /// Configuration elements
@@ -160,6 +164,7 @@ enum WorldConfigs
     CONFIG_LISTEN_RANGE_SAY,
     CONFIG_LISTEN_RANGE_TEXTEMOTE,
     CONFIG_LISTEN_RANGE_YELL,
+    CONFIG_AUTOBROADCAST_INTERVAL,
     CONFIG_VALUE_COUNT
 };
 
@@ -458,14 +463,23 @@ class World
         void SetScriptsVersion(char const* version) { m_ScriptsVersion = version ? version : "unknown scripting library"; }
         char const* GetScriptsVersion() { return m_ScriptsVersion.c_str(); }
 
+
+        // FG
+        bool IsNonInstanceableMap(uint32);
+
     protected:
         void _UpdateGameTime();
         void ScriptsProcess();
         // callback for UpdateRealmCharacters
         void _UpdateRealmCharCount(QueryResult *resultCharCount, uint32 accountId);
-
         void InitDailyQuestResetTime();
         void ResetDailyQuests();
+
+        // FG
+        void AutoBroadcast(void);
+        void UpdateOnlineStats(void);
+        uint32 GetPlayerCountByTeam(uint32);
+
     private:
         time_t m_startTime;
         time_t m_gameTime;
@@ -521,6 +535,9 @@ class World
         //used versions
         std::string m_DBVersion;
         std::string m_ScriptsVersion;
+
+        // FG
+        std::list<uint32> m_nonInstanceMaps;
 };
 
 extern uint32 realmID;

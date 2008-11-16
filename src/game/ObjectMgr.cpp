@@ -42,6 +42,8 @@
 #include "SpellAuras.h"
 #include "Util.h"
 
+#include "AuctionHouseBot.h"
+
 INSTANTIATE_SINGLETON_1(ObjectMgr);
 
 ScriptMapMap sQuestEndScripts;
@@ -416,6 +418,9 @@ void ObjectMgr::SendAuctionSalePendingMail( AuctionEntry * auction )
 //call this method to send mail to auction owner, when auction is successful, it does not clear ram
 void ObjectMgr::SendAuctionSuccessfulMail( AuctionEntry * auction )
 {
+    if (auction->owner == AuctionHouseBotNoMail())
+        return;
+
     uint64 owner_guid = MAKE_NEW_GUID(auction->owner, 0, HIGHGUID_PLAYER);
     Player *owner = GetPlayer(owner_guid);
 
@@ -1013,12 +1018,13 @@ void ObjectMgr::LoadCreatures()
 {
     uint32 count = 0;
     //                                                0              1   2    3
-    QueryResult *result = WorldDatabase.Query("SELECT creature.guid, id, map, modelid,"
+    QueryResult *result = WorldDatabase.PQuery("SELECT creature.guid, id, map, modelid,"
     //   4             5           6           7           8            9              10         11
         "equipment_id, position_x, position_y, position_z, orientation, spawntimesecs, spawndist, currentwaypoint,"
     //   12         13       14          15            16         17
         "curhealth, curmana, DeathState, MovementType, spawnMask, event "
-        "FROM creature LEFT OUTER JOIN game_event_creature ON creature.guid = game_event_creature.guid");
+        "FROM creature LEFT OUTER JOIN game_event_creature ON creature.guid = game_event_creature.guid"
+        " WHERE creature.guid NOT IN(SELECT guid FROM creature_realmbind WHERE realmid<>%u)",realmID);
 
     if(!result)
     {
@@ -1172,10 +1178,11 @@ void ObjectMgr::LoadGameobjects()
     uint32 count = 0;
 
     //                                                0                1   2    3           4           5           6
-    QueryResult *result = WorldDatabase.Query("SELECT gameobject.guid, id, map, position_x, position_y, position_z, orientation,"
+    QueryResult *result = WorldDatabase.PQuery("SELECT gameobject.guid, id, map, position_x, position_y, position_z, orientation,"
     //   7          8          9          10         11             12            13     14         15
         "rotation0, rotation1, rotation2, rotation3, spawntimesecs, animprogress, state, spawnMask, event "
-        "FROM gameobject LEFT OUTER JOIN game_event_gameobject ON gameobject.guid = game_event_gameobject.guid");
+        "FROM gameobject LEFT OUTER JOIN game_event_gameobject ON gameobject.guid = game_event_gameobject.guid"
+        " WHERE gameobject.guid NOT IN(SELECT guid FROM gameobject_realmbind WHERE realmid<>%u)",realmID);
 
     if(!result)
     {
@@ -7333,3 +7340,87 @@ bool LoadMangosStrings(DatabaseType& db, char const* table,int32 start_value, in
     // for scripting localized strings allowed use _only_ negative entries
     return objmgr.LoadMangosStrings(db,table,end_value,start_value);
 }
+
+void ObjectMgr::LoadCreaturesExtended(void)
+{
+    sCreatureExtendedStorage.Load();
+    sLog.outString( ">> Loaded %u creature extended data", sCreatureExtendedStorage.RecordCount );
+    sLog.outString();
+
+    for(uint32 i = 0; i < sCreatureExtendedStorage.MaxEntry; i++)
+    {
+        const CreatureExtendedInfo *exinfo = sCreatureExtendedStorage.LookupEntry<CreatureExtendedInfo>(i);
+        if(exinfo)
+        {
+            if(exinfo->minloot > MAX_NR_LOOT_ITEMS)
+            {
+                sLog.outError("Entry %u has %u items! (max. %u).", i, exinfo->minloot, MAX_NR_LOOT_ITEMS);
+            }
+            if(exinfo->size > 10)
+            {
+                sLog.outError("Entry %u has size %u! (max. 10).", i, exinfo->minloot);
+            }
+            if(exinfo->SpellDmgMulti < 0)
+            {
+                sLog.outDetail("Entry %u spellmulti is 0 (no damage!)",i,exinfo->SpellDmgMulti);
+            }
+            if(exinfo->SpellDmgMulti < 0)
+            {
+                sLog.outError("Entry %u spellmulti is negative (%f) (using positive)",i,exinfo->SpellDmgMulti);
+            }
+            if(exinfo->XPMulti < 0)
+            {
+                sLog.outError("Entry %u XPMulti is negative!");
+            }
+        }
+    }
+}
+
+/*
+void ObjectMgr::LoadAnticheatAccInfo(void)
+{
+    sLog.outString("FG: Loading Anticheat Account Info...");
+    QueryResult *result = loginDatabase.PQuery("SELECT id,mode,warnings FROM anticheat_acc_info");
+    WorldSession *sess;
+    uint32 i = 0;
+    if(result)
+    {
+        barGoLink bar(result->GetRowCount());
+        do
+        {
+            Field *fields = result->Fetch();
+            AnticheatAccInfo *accinfo = new AnticheatAccInfo;
+            accinfo->acc = fields[0].GetUInt32();
+            accinfo->mode = fields[1].GetUInt32();
+            accinfo->warnings = fields[2].GetUInt32();
+            std::map<uint32,AnticheatAccInfo*>::iterator it = mAnticheatAccMap.find(accinfo->acc);
+            if(it != mAnticheatAccMap.end())
+                delete it->second;
+            mAnticheatAccMap[accinfo->acc] = accinfo;
+            sess = sWorld.FindSession(accinfo->acc);
+            if(sess)
+            {
+                sess->anticheat_mode = accinfo->mode;
+                sess->anticheat_warnings = accinfo->warnings + sess->anticheat_new_warnings;
+                DEBUG_LOG("Anticheat: Acc %u: mode=%u warnings=%u",accinfo->acc,accinfo->mode,sess->anticheat_warnings);
+            }
+            bar.step();
+            i++;
+        }
+        while(result->NextRow());
+
+        sLog.outString(">> FG: Loaded %u acc infos",i);
+        delete result;
+    }
+    else
+        sLog.outError("FG: Can't load Anticheat Account Info!");
+}
+
+AnticheatAccInfo *ObjectMgr::GetAnticheatAccInfo(uint32 acc)
+{
+    std::map<uint32,AnticheatAccInfo*>::iterator it = mAnticheatAccMap.find(acc);
+    if(it != mAnticheatAccMap.end())
+        return it->second;
+    return NULL;
+}*/
+

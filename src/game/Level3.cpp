@@ -76,6 +76,10 @@ bool ChatHandler::HandleReloadAllCommand(const char*)
     HandleReloadReservedNameCommand("");
     HandleReloadMangosStringCommand("");
     HandleReloadGameTeleCommand("");
+
+    // FG
+    HandleReloadPECommand("");
+
     return true;
 }
 

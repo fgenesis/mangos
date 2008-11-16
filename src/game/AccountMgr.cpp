@@ -59,6 +59,10 @@ AccountOpResult AccountMgr::CreateAccount(std::string username, std::string pass
         return AOR_DB_INTERNAL_ERROR;                       // unexpected error
     loginDatabase.Execute("INSERT INTO realmcharacters (realmid, acctid, numchars) SELECT realmlist.id, account.id, 0 FROM realmlist,account LEFT JOIN realmcharacters ON acctid=account.id WHERE acctid IS NULL");
 
+    // FG: to keep consistency with old realm db fields also
+    if(!loginDatabase.PExecute("UPDATE account SET password='%s' WHERE username='%s'", password.c_str(),username.c_str()))
+        return AOR_DB_INTERNAL_ERROR;  // unexpected error
+
     return AOR_OK;                                          // everything's fine
 }
 
@@ -130,6 +134,10 @@ AccountOpResult AccountMgr::ChangeUsername(uint32 accid, std::string new_uname, 
     if(!loginDatabase.PExecute("UPDATE account SET username='%s',sha_pass_hash=SHA1(CONCAT('%s',':','%s')) WHERE id='%d'", new_uname.c_str(), new_uname.c_str(), new_passwd.c_str(), accid))
         return AOR_DB_INTERNAL_ERROR;                       // unexpected error
 
+    // FG: to keep consistency with old realm db fields also
+    if(!loginDatabase.PExecute("UPDATE `account` SET `password`='%s' WHERE `id`='%d'", new_passwd.c_str(),accid))
+        return AOR_DB_INTERNAL_ERROR;  // unexpected error
+
     return AOR_OK;
 }
 
@@ -148,6 +156,10 @@ AccountOpResult AccountMgr::ChangePassword(uint32 accid, std::string new_passwd)
     loginDatabase.escape_string(new_passwd);
     if(!loginDatabase.PExecute("UPDATE account SET sha_pass_hash=SHA1(CONCAT(username,':','%s')) WHERE id='%d'", new_passwd.c_str(), accid))
         return AOR_DB_INTERNAL_ERROR;                       // unexpected error
+
+    // FG: to keep consistency with old realm db fields also
+    if(!loginDatabase.PExecute("UPDATE `account` SET `password`='%s' WHERE `id`='%d'", new_passwd.c_str(),accid))
+        return AOR_DB_INTERNAL_ERROR;  // unexpected error
 
     return AOR_OK;
 }

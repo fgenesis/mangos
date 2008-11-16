@@ -22,6 +22,9 @@
 #include "Config/ConfigEnv.h"
 #include "Util.h"
 
+#include "revision_nr.h"
+#include "../realmd/AuthCodes.h"
+
 #include <stdarg.h>
 
 INSTANTIATE_SINGLETON_1( Log );
@@ -180,6 +183,7 @@ void Log::Initialize()
         if((logsDir.at(logsDir.length()-1)!='/') && (logsDir.at(logsDir.length()-1)!='\\'))
             logsDir.append("/");
     }
+    _logsDir = logsDir;
 
     std::string logfn=sConfig.GetStringDefault("LogFile", "");
     if(!logfn.empty())
@@ -635,7 +639,7 @@ void Log::outChar(const char * str, ... )
         fflush(charLogfile);
     }
 }
-
+/*
 void Log::outCharDump( const char * str, uint32 account_id, uint32 guid, const char * name )
 {
     if(charLogfile)
@@ -644,7 +648,7 @@ void Log::outCharDump( const char * str, uint32 account_id, uint32 guid, const c
         fflush(charLogfile);
     }
 }
-
+*/
 void Log::outMenu( const char * str, ... )
 {
     if( !str )
@@ -760,3 +764,56 @@ void error_db_log(const char * str, ...)
 
     MaNGOS::Singleton<Log>::Instance().outErrorDb(buf);
 }
+
+void Log::outCommandForAcc( uint32 acc, const char * str, ... )
+{
+    if( !str ) return;
+    va_list ap;
+
+    std::stringstream fn;
+    fn << _logsDir << "gm_log_acc_" << acc << ".txt";
+    FILE *fh;
+    fh = fopen(fn.str().c_str(),"a");
+    if(fh)
+    {
+        outTimestamp(fh);
+        va_start(ap, str);
+        vfprintf(fh, str, ap);
+        fprintf(fh, "\n" );
+        va_end(ap);
+        fflush(fh);
+        fclose(fh);
+    }
+
+}
+
+void Log::outCharDump( const char * str, uint32 account_id, uint32 guid, const char * name )
+{
+    if(charLogfile)
+    {
+        fprintf(charLogfile, "== START DUMP == (account: %u guid: %u name: %s )\n%s\n== END DUMP ==\n",account_id,guid,name,str );
+        fflush(charLogfile);
+    }
+
+    // FG: dump chars to files also
+    std::string dpath = sConfig.GetStringDefault("CharDumpDir","");
+    if(dpath.length())
+    {
+        if((dpath.at(dpath.length()-1)!='/') && (dpath.at(dpath.length()-1)!='\\'))
+            dpath.append("/");
+
+        FILE *fh;
+        char fn[255];
+        uint32 build[] = EXPECTED_MANGOS_CLIENT_BUILD;
+
+        sprintf(fn,"%s/%s_%u_%u_%s_%u.dump",dpath.c_str(),name,account_id,guid,REVISION_NR,build[0]);
+        fh = fopen(fn,"w");
+        if(!fh)
+            return;
+        fputs(str,fh);
+        fflush(fh);
+        fclose(fh);
+    }
+}
+
+

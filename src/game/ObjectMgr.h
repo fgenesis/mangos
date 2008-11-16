@@ -54,6 +54,11 @@ extern SQLStorage sPageTextStore;
 extern SQLStorage sItemStorage;
 extern SQLStorage sInstanceTemplate;
 
+// FG
+extern SQLStorage sCreatureExtendedStorage;
+
+
+
 class Group;
 class Guild;
 class ArenaTeam;
@@ -271,6 +276,14 @@ extern LanguageDesc lang_description[LANGUAGES_COUNT];
 MANGOS_DLL_SPEC LanguageDesc const* GetLanguageDescByID(uint32 lang);
 
 class PlayerDumpReader;
+
+// FG: anticheat related
+struct AnticheatAccInfo
+{
+    uint32 acc;
+    uint32 mode;
+    uint32 warnings;
+};
 
 class ObjectMgr
 {
@@ -769,6 +782,13 @@ class ObjectMgr
         void LoadAchievementCriteriaList();
         AchievementCriteriaEntryList const& GetAchievementCriteriaByType(AchievementCriteriaTypes type);
         std::set<uint32> allCompletedAchievements;
+
+
+        // FG: custom decls
+        void LoadCreaturesExtended(void);
+        void LoadAnticheatAccInfo(void);
+        AnticheatAccInfo *GetAnticheatAccInfo(uint32);
+        void LoadCustomInstanceResetTimes(void);
 
     protected:
         uint32 m_auctionid;

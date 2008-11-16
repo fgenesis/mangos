@@ -413,6 +413,12 @@ void GameObject::Update(uint32 /*p_time*/)
                 //any return here in case battleground traps
             }
 
+            // FG: fix for proper respawning of charged spellcaster GOs
+            else if(GetGoType() == GAMEOBJECT_TYPE_SPELLCASTER)
+            {
+                m_usetimes = 0;
+            }
+
             if(GetOwnerGUID())
             {
                 m_respawnTime = 0;

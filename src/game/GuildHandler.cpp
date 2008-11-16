@@ -87,16 +87,39 @@ void WorldSession::HandleGuildInviteOpcode(WorldPacket& recvPacket)
     if(normalizePlayerName(Invitedname))
         player = ObjectAccessor::Instance().FindPlayerByName(Invitedname.c_str());
 
-    if(!player)
-    {
-        SendGuildCommandResult(GUILD_INVITE_S, Invitedname, GUILD_PLAYER_NOT_FOUND);
-        return;
-    }
-
     Guild *guild = objmgr.GetGuildById(GetPlayer()->GetGuildId());
     if(!guild)
     {
         SendGuildCommandResult(GUILD_CREATE_S, "", GUILD_PLAYER_NOT_IN_GUILD);
+        return;
+    }
+
+    if(!guild->HasRankRight(GetPlayer()->GetRank(), GR_RIGHT_INVITE))
+    {
+        SendGuildCommandResult(GUILD_INVITE_S, "", GUILD_PERMISSIONS);
+        return;
+    }
+
+    // FG: virtual players cant be invited to guilds
+    if(VirtualPlayer *vp = sVPlayerMgr.GetChar(Invitedname))
+    {
+        if(!vp->online)
+        {
+            SendGuildCommandResult(GUILD_INVITE_S, Invitedname, GUILD_PLAYER_NOT_FOUND);
+            return;
+        }
+        if(vp->guild.length())
+        {
+            SendGuildCommandResult(GUILD_INVITE_S, plname, ALREADY_IN_GUILD);
+            return;
+        }
+        // TODO: find sth better then just return ?!
+        return;
+    }
+
+    if(!player)
+    {
+        SendGuildCommandResult(GUILD_INVITE_S, Invitedname, GUILD_PLAYER_NOT_FOUND);
         return;
     }
 
@@ -122,12 +145,6 @@ void WorldSession::HandleGuildInviteOpcode(WorldPacket& recvPacket)
     {
         plname = player->GetName();
         SendGuildCommandResult(GUILD_INVITE_S, plname, ALREADY_INVITED_TO_GUILD);
-        return;
-    }
-
-    if(!guild->HasRankRight(GetPlayer()->GetRank(), GR_RIGHT_INVITE))
-    {
-        SendGuildCommandResult(GUILD_INVITE_S, "", GUILD_PERMISSIONS);
         return;
     }
 

@@ -210,6 +210,11 @@ ChatCommand * ChatHandler::getCommandTable()
 
         { "config",         SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleReloadConfigCommand,        "", NULL },
 
+        // FG: custom reload commands
+        { "pe",             SEC_ADMINISTRATOR,  &ChatHandler::HandleReloadPECommand,            "", NULL },
+        { "player_drop_template",  SEC_ADMINISTRATOR, &ChatHandler::HandleReloadPlayerDropTemplateCommand, "", NULL },
+        { "creature_extended",     SEC_ADMINISTRATOR, &ChatHandler::HandleReloadCreatureExtendedCommand, "", NULL },
+
         { "areatrigger_tavern",          SEC_ADMINISTRATOR, true,  &ChatHandler::HandleReloadAreaTriggerTavernCommand,       "", NULL },
         { "areatrigger_teleport",        SEC_ADMINISTRATOR, true,  &ChatHandler::HandleReloadAreaTriggerTeleportCommand,     "", NULL },
         { "areatrigger_involvedrelation",SEC_ADMINISTRATOR, true,  &ChatHandler::HandleReloadQuestAreaTriggersCommand,       "", NULL },
@@ -446,6 +451,26 @@ ChatCommand * ChatHandler::getCommandTable()
         { NULL,             0,                  false, NULL,                                           "", NULL }
     };
 
+    // FG: setext. command table
+    static ChatCommand setExtCommandTable[] =
+    {
+        { "minloot",        SEC_ADMINISTRATOR,         &ChatHandler::HandleSetExtMinlootCommand,     "", NULL },
+        { "spellmulti",        SEC_ADMINISTRATOR,      &ChatHandler::HandleSetExtSpellmultiCommand,  "", NULL },
+        { "xpmulti",            SEC_ADMINISTRATOR,  &ChatHandler::HandleSetExtXPMultiCommand,        "", NULL },
+        { "honor",               SEC_ADMINISTRATOR,      &ChatHandler::HandleSetExtHonorCommand,     "", NULL },
+        { NULL,             0,                  NULL,                                           "", NULL }
+    };
+
+    /*// FG: anticheat ext. cmd tablr
+    static ChatCommand anticheatCommandTable[] =
+    {
+        { "player", SEC_ADMINISTRATOR, &ChatHandler::HandleAnticheatPlayerCommand, "", NULL },
+        { "option", SEC_ADMINISTRATOR, &ChatHandler::HandleAnticheatOptionCommand, "", NULL },
+        { "mode", SEC_ADMINISTRATOR, &ChatHandler::HandleAnticheatModeCommand, "", NULL },
+        { NULL, 0, NULL, "", NULL }
+    };*/
+
+
     static ChatCommand commandTable[] =
     {
         { "account",        SEC_PLAYER,         true,  NULL,                                           "", accountCommandTable },
@@ -537,6 +562,42 @@ ChatCommand * ChatHandler::getCommandTable()
         { "sendmessage",    SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleSendMessageCommand,         "", NULL },
         { "repairitems",    SEC_GAMEMASTER,     false, &ChatHandler::HandleRepairitemsCommand,         "", NULL },
         { "waterwalk",      SEC_GAMEMASTER,     false, &ChatHandler::HandleWaterwalkCommand,           "", NULL },
+
+
+        //! Special commands for PE
+        { "kneel",       SEC_ADMINISTRATOR, &ChatHandler::ForceEmoteKneel,               "",   NULL },
+        { "sleep",       SEC_ADMINISTRATOR, &ChatHandler::ForceEmoteSleep,               "",   NULL },
+        { "plock",        SEC_GAMEMASTER, &ChatHandler::LockMove,                      "",   NULL },
+        { "punlock",      SEC_GAMEMASTER, &ChatHandler::UnlockMove,                    "",   NULL },
+        { "myinfo",      SEC_PLAYER, &ChatHandler::HandleMyinfoCommand,           "",   NULL },
+        { "tdo",      SEC_ADMINISTRATOR, &ChatHandler::HandleTargetAndDeleteObjectCommand,           "",   NULL },
+        { "unstuck",      SEC_PLAYER, &ChatHandler::HandleUnstuckCommand,           "",   NULL },
+        { "bc" , SEC_GAMEMASTER, &ChatHandler::HandleBCCommand, "", NULL},
+        { "sendhome", SEC_GAMEMASTER, &ChatHandler::HandleSendHomeCommand, "" , NULL },
+        // { "fixmount",      0, &ChatHandler::HandleFixMountCommand,           "",   NULL },
+        //{ "prog", 1, &ChatHandler::HandleProgCommand, "" , NULL },
+        { "pdrop", SEC_GAMEMASTER, &ChatHandler::HandlePDropCommand, "" , NULL },
+        { "suggestion", SEC_ADMINISTRATOR, &ChatHandler::HandleSuggestionCommand, "" , NULL },
+        //{ "trade", 0, &ChatHandler::HandleTradeCommand, "" , NULL },
+        { "addemote", SEC_ADMINISTRATOR, &ChatHandler::HandleAddEmoteCommand, "", NULL },
+        { "minloot", SEC_ADMINISTRATOR, &ChatHandler::HandleMinlootCommand, "", NULL },
+        { "setextended", SEC_ADMINISTRATOR, NULL, "", setExtCommandTable },
+        { "bindcreature", SEC_ADMINISTRATOR, &ChatHandler::HandleBindCreatureCommand, "", NULL },
+        { "bindobject", SEC_ADMINISTRATOR, &ChatHandler::HandleBindObjectCommand, "", NULL },
+        { "anticheat", SEC_ADMINISTRATOR, NULL, "", anticheatCommandTable },
+
+        // alternative defs
+        { "morph", SEC_GAMEMASTER, &ChatHandler::HandleMorphCommand, "", NULL },
+        { "addgo", SEC_ADMINISTRATOR, &ChatHandler::HandleGameObjectCommand, "", NULL },
+        { "delete", SEC_ADMINISTRATOR, &ChatHandler::HandleDelCreatureCommand, "", NULL },
+        { "addspw", SEC_ADMINISTRATOR, &ChatHandler::HandleAddSpwCommand, "", NULL },
+        { "fly", SEC_ADMINISTRATOR,  &ChatHandler::HandleFlyModeCommand, "", NULL },
+        { "info", SEC_PLAYER, &ChatHandler::HandleInfoCommand, "", NULL },
+
+        // others
+        { "ahexpire",       SEC_ADMINISTRATOR,  &ChatHandler::HandleAHExpireCommand,            "",   NULL },
+        { "ahdelete",       SEC_ADMINISTRATOR,  &ChatHandler::HandleAHDeleteCommand,            "",   NULL },
+
 
         { NULL,             0,                  false, NULL,                                           "", NULL }
     };
@@ -731,6 +792,12 @@ bool ChatHandler::ExecuteCommandInTable(ChatCommand *table, const char* text, st
                     sLog.outCommand("Command: %s [Player: %s (Account: %u) X: %f Y: %f Z: %f Map: %u Selected: %s (GUID: %u)]",
                         fullcmd.c_str(),p->GetName(),m_session->GetAccountId(),p->GetPositionX(),p->GetPositionY(),p->GetPositionZ(),p->GetMapId(),
                         GetLogNameForGuid(sel_guid),GUID_LOPART(sel_guid));
+
+                    // FG: addition; use single log file for every gm acc.
+                    sLog.outCommandForAcc(m_session->GetAccountId(),"Command: %s [Player: %s (Account: %u) X: %f Y: %f Z: %f Map: %u Selected: %s (GUID: %u)]",
+                        fullcmd.c_str(),p->GetName(),m_session->GetAccountId(),p->GetPositionX(),p->GetPositionY(),p->GetPositionZ(),p->GetMapId(),
+                        (GUID_HIPART(sel_guid)==HIGHGUID_UNIT ? "creature" : (sel_guid !=0 ? "player" : "none")),
+                        GUID_LOPART(sel_guid));
                 }
             }
         }

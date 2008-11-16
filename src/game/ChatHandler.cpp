@@ -36,6 +36,8 @@
 #include "Language.h"
 #include "Util.h"
 
+#include "VirtualPlayerMgr.h"
+
 void WorldSession::HandleMessagechatOpcode( WorldPacket & recv_data )
 {
     CHECK_PACKET_SIZE(recv_data,4+4+1);
@@ -136,6 +138,21 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recv_data )
             GetPlayer()->UpdateSpeakTime();
     }
 
+    // FG: universal languages for some chat types
+    if(lang != LANG_ADDON)
+    {
+        switch(type)
+        {
+        case CHAT_MSG_PARTY:
+        case CHAT_MSG_RAID:
+        case CHAT_MSG_RAID_LEADER:
+        case CHAT_MSG_RAID_WARNING:
+            lang = 0;
+        }
+    }
+
+
+
     switch(type)
     {
         case CHAT_MSG_SAY:
@@ -187,6 +204,33 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recv_data )
                 SendPacket(&data);
                 break;
             }
+
+            // FG: virtual players can be whispered to, but wont answer
+            if(VirtualPlayer *vp = sVPlayerMgr.GetChar(to))
+            {
+                uint32 t = Player::TeamForRace(vp->race);
+                if(!vp->online || (!sWorld.getConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_CHAT) && GetPlayer()->GetTeam() != t) )
+                {
+                    WorldPacket data(SMSG_CHAT_PLAYER_NOT_FOUND, (to.size()+1));
+                    data<<to;
+                    SendPacket(&data);
+                    return;
+                }
+
+                // simulate received whisper. (To: <Name>: blah blah   at sender client)
+                WorldPacket rdata(SMSG_MESSAGECHAT, 200);
+                rdata << (uint8)CHAT_MSG_REPLY;
+                rdata << (uint32)lang;
+                rdata << (uint64)vp->guid;
+                rdata << (uint32)lang;
+                rdata << (uint64)vp->guid;
+                rdata << (uint32)(msg.length()+1);
+                rdata << msg;
+                rdata << (uint8)0;
+                SendPacket(&rdata);
+                return;
+            }
+
 
             Player *player = objmgr.GetPlayer(to.c_str());
             uint32 tSecurity = GetSecurity();

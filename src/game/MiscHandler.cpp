@@ -43,6 +43,8 @@
 #include "SocialMgr.h"
 #include "Tools.h"
 
+#include "VirtualPlayerMgr.h"
+
 void WorldSession::HandleRepopRequestOpcode( WorldPacket & /*recv_data*/ )
 {
     sLog.outDebug( "WORLD: Recvd CMSG_REPOP_REQUEST Message" );
@@ -260,6 +262,97 @@ void WorldSession::HandleWhoOpcode( WorldPacket & recv_data )
         if ((++clientcount) == 49)
             break;
     }
+
+    std::set<uint32> vpIDs = sVPlayerMgr.GetOnlineSet();
+    for(std::set<uint32>::iterator it = vpIDs.begin(); it != vpIDs.end() && clientcount < 50; it++)
+    {
+        VirtualPlayer *vp = sVPlayerMgr.GetChar(*it);
+        if(vp)
+        {
+            // check if target's level is in level range
+            if (vp->lvl < level_min || vp->lvl > level_max)
+                continue;
+
+            // check if class matches classmask
+            if (!(classmask & (1 << vp->class_)))
+                continue;
+
+            // check if race matches racemask
+            if (!(racemask & (1 << vp->race)))
+                continue;
+
+            bool z_show = true;
+            for(uint32 i = 0; i < zones_count; i++)
+            {
+                if(zoneids[i] == vp->zone)
+                {
+                    z_show = true;
+                    break;
+                }
+
+                z_show = false;
+            }
+            if (!z_show)
+                continue;
+
+            std::string pname = vp->name;
+            std::wstring wpname;
+            if(!Utf8toWStr(pname,wpname))
+                continue;
+            wstrToLower(wpname);
+
+            if (!(wplayer_name.empty() || wpname.find(wplayer_name) != std::wstring::npos))
+                continue;
+
+            std::string gname = vp->guild;
+            std::wstring wgname;
+            if(!Utf8toWStr(gname,wgname))
+                continue;
+            wstrToLower(wgname);
+
+            if (!(wguild_name.empty() || wgname.find(wguild_name) != std::wstring::npos))
+                continue;
+
+            std::string aname;
+            if(AreaTableEntry const* areaEntry = GetAreaEntryByAreaID(vp->zone))
+                aname = areaEntry->area_name[GetSessionDbcLocale()];
+
+            bool s_show = true;
+            for(uint32 i = 0; i < str_count; i++)
+            {
+                if (!str[i].empty())
+                {
+                    if (wgname.find(str[i]) != std::wstring::npos ||
+                        wpname.find(str[i]) != std::wstring::npos ||
+                        Utf8FitTo(aname, str[i]) )
+                    {
+                        s_show = true;
+                        break;
+                    }
+                    s_show = false;
+                }
+            }
+            if (!s_show)
+                continue;
+
+            uint32 t = Player::TeamForRace(vp->race);
+            if( !(allowTwoSideWhoList || _player->GetTeam() == t))
+                continue;
+
+            data << vp->name;
+            data << vp->guild;
+            data << uint32(vp->lvl);
+            data << uint32(vp->class_);
+            data << uint32(vp->race);
+            data << uint8(0);
+            data << uint32(vp->zone);
+
+            clientcount++;
+            if(clientcount >= 49)
+                break;
+        }
+    }
+
 
     data.put( 0,              clientcount );                //insert right count
     data.put( sizeof(uint32), clientcount );                //insert right count

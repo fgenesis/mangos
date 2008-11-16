@@ -341,13 +341,28 @@ bool LootItem::AllowedForPlayer(Player const * player) const
 // Inserts the item into the loot (called by LootTemplate processors)
 void Loot::AddItem(LootStoreItem const & item)
 {
+    uint32 exist_count = 0;
+
     if (item.needs_quest)                                   // Quest drop
     {
+        // FG: quest items may only be added once
+        for(std::vector<LootItem>::iterator it = quest_items.begin(); it != quest_items.end(); it++)
+            if(it->itemid == item.itemid)
+                exist_count++;
+        if(exist_count)
+            return;
+
         if (quest_items.size() < MAX_NR_QUEST_ITEMS)
             quest_items.push_back(LootItem(item));
     }
     else if (items.size() < MAX_NR_LOOT_ITEMS)              // Non-quest drop
     {
+        for(std::vector<LootItem>::iterator it = items.begin(); it != items.end(); it++)
+            if(it->itemid == item.itemid)
+                exist_count++;
+        if( (exist_count == 1 && roll_chance_i(88)) || exist_count > 1) // if only 1 exists, 12% chance to add 2nd, if 2 items or more, dont add
+            return;
+
         items.push_back(LootItem(item));
 
         // non-conditional one-player only items are counted here,
@@ -363,7 +378,7 @@ void Loot::AddItem(LootStoreItem const & item)
 }
 
 // Calls processor of corresponding LootTemplate (which handles everything including references)
-void Loot::FillLoot(uint32 loot_id, LootStore const& store, Player* loot_owner)
+void Loot::FillLoot(uint32 loot_id, LootStore const& store, Player* loot_owner, uint32 minloot)
 {
     LootTemplate const* tab = store.GetLootFor(loot_id);
 
@@ -376,7 +391,34 @@ void Loot::FillLoot(uint32 loot_id, LootStore const& store, Player* loot_owner)
     items.reserve(MAX_NR_LOOT_ITEMS);
     quest_items.reserve(MAX_NR_QUEST_ITEMS);
 
-    tab->Process(*this, store);                             // Processing is done there, callback via Loot::AddItem()
+    uint32 goodcount = 0;
+    const ItemPrototype *proto;
+    for(uint32 tries = 0; !minloot || (items.size() < MAX_NR_LOOT_ITEMS && goodcount < minloot && tries < 100); tries++)
+    {
+        goodcount = 0;
+        tab->Process(*this, store);                             // Processing is done there, callback via Loot::AddItem()
+        if(!minloot)
+            break;
+        for(std::vector<LootItem>::iterator it = items.begin(); it != items.end(); it++)
+        {
+            LootItem& li = *it;
+            proto = sItemStorage.LookupEntry<ItemPrototype>(li.itemid);
+            if(proto && !li.conditionId && proto->Quality > ITEM_QUALITY_POOR)
+                goodcount++;
+        }
+        sLog.outDebug("-- Processing loot, try %u, %u good, %u total, %u minloot",tries,goodcount,items.size(),minloot);   
+    }
+
+    // FG: some debug
+    for(std::vector<LootItem>::iterator it = items.begin(); it != items.end(); it++)
+    {
+        LootItem& li = *it;
+        proto = sItemStorage.LookupEntry<ItemPrototype>(li.itemid);
+        if(proto)
+        {
+            sLog.outDebug("- has item: %s (%u)",proto->Name1,li.itemid);
+        }
+    }
 
     // Setting access rights fow group-looting case
     if(!loot_owner)

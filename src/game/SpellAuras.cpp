@@ -2050,6 +2050,14 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
             m_target->CastSpell(m_target,47287,true,NULL,this);
             return;
         }
+
+        // FG: vomit after buff "Can't Hold Your Brew" expires
+        if(GetId() == 44315)
+        {
+            caster->CastSpell(caster,41995,true);
+            return;
+        }
+
     }
 
     // AT APPLY & REMOVE
@@ -2161,7 +2169,8 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                             return;
 
                     // final heal
-                    m_target->CastCustomSpell(m_target,33778,&m_modifier.m_amount,NULL,NULL,true,NULL,this,GetCasterGUID());
+                    if(m_target->IsInWorld())
+                        m_target->CastCustomSpell(m_target,33778,&m_modifier.m_amount,NULL,NULL,true,NULL,this,GetCasterGUID());
                 }
                 return;
             }
@@ -5606,6 +5615,17 @@ void Aura::PeriodicTick()
             if (m_target->GetTypeId()==TYPEID_PLAYER)
                 pdamage-=((Player*)m_target)->GetDotDamageReduction(pdamage);
 
+            // FG: spellmulti, periodic
+            if(pCaster->GetTypeId() == TYPEID_UNIT)
+            {
+                const CreatureExtendedInfo *exinfo = sCreatureExtendedStorage.LookupEntry<CreatureExtendedInfo>(pCaster->GetEntry());
+                if(exinfo)
+                {
+                    sLog.outDebug("-- DOT: multi %f applied to dmg %u",exinfo->SpellDmgMulti,pdamage);
+                    pdamage *= exinfo->SpellDmgMulti;
+                }
+            }
+
             pCaster->CalcAbsorbResist(m_target, GetSpellSchoolMask(GetSpellProto()), DOT, pdamage, &absorb, &resist);
 
             sLog.outDetail("PeriodicTick: %u (TypeId: %u) attacked %u (TypeId: %u) for %u dmg inflicted by %u abs is %u",
@@ -5724,6 +5744,17 @@ void Aura::PeriodicTick()
             // Reduce dot damage from resilience for players
             if (m_target->GetTypeId()==TYPEID_PLAYER)
                 pdamage-=((Player*)m_target)->GetDotDamageReduction(pdamage);
+
+            // FG: spellmulti, periodic leech
+            if(pCaster->GetTypeId() == TYPEID_UNIT)
+            {
+                const CreatureExtendedInfo *exinfo = sCreatureExtendedStorage.LookupEntry<CreatureExtendedInfo>(pCaster->GetEntry());
+                if(exinfo)
+                {
+                    sLog.outDebug("-- LEECH: multi %f applied to dmg %u",exinfo->SpellDmgMulti,pdamage);
+                    pdamage *= exinfo->SpellDmgMulti;
+                }
+            }
 
             pCaster->CalcAbsorbResist(m_target, GetSpellSchoolMask(GetSpellProto()), DOT, pdamage, &absorb, &resist);
 

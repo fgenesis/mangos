@@ -1498,6 +1498,32 @@ Creature* WorldObject::SummonCreature(uint32 id, float x, float y, float z, floa
     return pCreature;
 }
 
+// FG: used for mass emitters
+Creature* WorldObject::SummonCreatureCustom(uint32 id, float x, float y, float z, float ang,TempSummonType spwtype,uint32 despwtime)
+{
+    static uint32 extraguid = 0;
+    TemporarySummon* pCreature = new TemporarySummon(GetGUID());
+
+    pCreature->SetInstanceId(GetInstanceId());
+
+    // uh oh evil hack! this should avoid GUID conflicts by not really letting the core know we generated objects with
+    // this guid. the problem is: by using massive emitters, creature guids could reach the overflow limit and crash server!
+    if (!pCreature->Create(0x00FFFBFE + extraguid, GetMap(), id, 0))
+    {
+        delete pCreature;
+        return NULL;
+    }
+
+    pCreature->Relocate(x,y,z,ang);
+    extraguid++;
+    extraguid %= 0x400;
+
+    pCreature->Summon(spwtype, despwtime);
+
+    return pCreature;
+}
+
+
 namespace MaNGOS
 {
     class NearUsedPosDo
@@ -1651,6 +1677,7 @@ void WorldObject::GetNearPoint(WorldObject const* searcher, float &x, float &y, 
     selector.InitializeAngle();
 
     // select in positions after current nodes (selection one by one)
+    uint32 loops = 0;
     while(selector.NextAngle(angle))                        // angle for free pos
     {
         GetNearPoint2D(x,y,distance2d,absAngle+angle);
@@ -1659,7 +1686,15 @@ void WorldObject::GetNearPoint(WorldObject const* searcher, float &x, float &y, 
 
         if(IsWithinLOS(x,y,z))
             return;
+
+        if(loops > 100)
+        {
+            sLog.outError("-- selector.NextAngle() > 100 loops, aborting (type %u guid "I64FMT")", GetTypeId(), GetGUID());
+            break;
+        }
+        loops++;
     }
+    loops = 0;
 
     // BAD NEWS: not free pos (or used or have LOS problems)
     // Attempt find _used_ pos without LOS problem
@@ -1699,6 +1734,13 @@ void WorldObject::GetNearPoint(WorldObject const* searcher, float &x, float &y, 
 
         if(IsWithinLOS(x,y,z))
             return;
+
+        if(loops > 100)
+        {
+            sLog.outError("-- selector.NextUsedAngle() > 100 loops, aborting (type %u guid "I64FMT")", GetTypeId(), GetGUID());
+            break;
+        }
+        loops++;
     }
 
     // BAD BAD NEWS: all found pos (free and used) have LOS problem :(

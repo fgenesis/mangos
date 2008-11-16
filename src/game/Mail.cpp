@@ -29,6 +29,9 @@
 #include "Language.h"
 #include "Database/DBCStores.h"
 
+#include "Chat.h"
+
+
 void MailItem::deleteItem( bool inDB )
 {
     if(item)
@@ -156,6 +159,12 @@ void WorldSession::HandleSendMail(WorldPacket & recv_data )
     //do not allow to have more than 100 mails in mailbox.. mails count is in opcode uint8!!! - so max can be 255..
     if (mails_count > 100)
     {
+        // FG: addition by FG
+        std::string err = receiver + "'s mailbox is full.";
+        WorldPacket data;
+        ChatHandler(this).FillSystemMessageData(&data, err.c_str());
+        pl->GetSession()->SendPacket( &data );
+
         pl->SendMailResult(0, 0, MAIL_ERR_INTERNAL_ERROR);
         return;
     }

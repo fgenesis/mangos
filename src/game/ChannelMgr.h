@@ -38,6 +38,7 @@ class ChannelMgr
         }
         Channel *GetJoinChannel(std::string name, uint32 channel_id)
         {
+            std::transform(name.begin(), name.end(), name.begin(), ::tolower);
             if(channels.count(name) == 0)
             {
                 Channel *nchan = new Channel(name,channel_id);
@@ -47,6 +48,7 @@ class ChannelMgr
         }
         Channel *GetChannel(std::string name, Player *p)
         {
+            std::transform(name.begin(), name.end(), name.begin(), ::tolower);
             ChannelMap::const_iterator i = channels.find(name);
 
             if(i == channels.end())
@@ -61,6 +63,7 @@ class ChannelMgr
         }
         void LeftChannel(std::string name)
         {
+            std::transform(name.begin(), name.end(), name.begin(), ::tolower);
             ChannelMap::const_iterator i = channels.find(name);
 
             if(i == channels.end())
@@ -78,6 +81,7 @@ class ChannelMgr
         ChannelMap channels;
         void MakeNotOnPacket(WorldPacket *data, std::string name)
         {
+            std::transform(name.begin(), name.end(), name.begin(), ::tolower);
             data->Initialize(SMSG_CHANNEL_NOTIFY, (1+10));  // we guess size
             (*data) << (uint8)0x05 << name;
         }

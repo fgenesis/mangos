@@ -31,6 +31,9 @@
 #include "SocialMgr.h"
 #include "Util.h"
 
+#include "VirtualPlayerMgr.h"
+
+
 /* differeces from off:
     -you can uninvite yourself - is is useful
     -you can accept invitation even if leader went offline
@@ -71,6 +74,15 @@ void WorldSession::HandleGroupInviteOpcode( WorldPacket & recv_data )
         SendPartyResult(PARTY_OP_INVITE, membername, PARTY_RESULT_CANT_FIND_TARGET);
         return;
     }
+
+    // FG: virtual players cant be invited
+    if(sVPlayerMgr.IsOnline(membername))
+    {
+        // TODO: we could possibly check if target is unfriendly and cant be invited, but not important for now...
+        SendPartyResult(PARTY_OP_INVITE, membername, PARTY_RESULT_ALREADY_IN_GROUP);
+        return;
+    }
+
 
     Player *player = objmgr.GetPlayer(membername.c_str());
 
