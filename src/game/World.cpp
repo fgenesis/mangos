@@ -67,6 +67,7 @@
 INSTANTIATE_SINGLETON_1( World );
 
 volatile bool World::m_stopEvent = false;
+uint8 World::m_ExitCode = SHUTDOWN_EXIT_CODE;
 volatile uint32 World::m_worldLoopCounter = 0;
 
 float World::m_MaxVisibleDistanceForCreature  = DEFAULT_VISIBILITY_DISTANCE;
@@ -1757,7 +1758,7 @@ void World::ScriptsProcess()
                     break;
                 }
                 ((Unit *)source)->SendMonsterMoveWithSpeed(step.script->x, step.script->y, step.script->z, ((Unit *)source)->GetUnitMovementFlags(), step.script->datalong2 );
-                MapManager::Instance().GetMap(((Unit *)source)->GetMapId(), ((Unit *)source))->CreatureRelocation(((Creature *)source), step.script->x, step.script->y, step.script->z, 0);
+                ((Unit *)source)->GetMap()->CreatureRelocation(((Creature *)source), step.script->x, step.script->y, step.script->z, 0);
                 break;
             case SCRIPT_COMMAND_FLAG_SET:
                 if(!source)
@@ -1883,7 +1884,7 @@ void World::ScriptsProcess()
 
                 TypeContainerVisitor<MaNGOS::GameObjectSearcher<MaNGOS::GameObjectWithDbGUIDCheck>, GridTypeMapContainer > object_checker(checker);
                 CellLock<GridReadGuard> cell_lock(cell, p);
-                cell_lock->Visit(cell_lock, object_checker, *MapManager::Instance().GetMap(summoner->GetMapId(), summoner));
+                cell_lock->Visit(cell_lock, object_checker, *summoner->GetMap());
 
                 if ( !go )
                 {
@@ -1907,7 +1908,7 @@ void World::ScriptsProcess()
                 go->SetLootState(GO_READY);
                 go->SetRespawnTime(time_to_despawn);        //despawn object in ? seconds
 
-                MapManager::Instance().GetMap(go->GetMapId(), go)->Add(go);
+                go->GetMap()->Add(go);
                 break;
             }
             case SCRIPT_COMMAND_OPEN_DOOR:
@@ -1944,7 +1945,7 @@ void World::ScriptsProcess()
 
                 TypeContainerVisitor<MaNGOS::GameObjectSearcher<MaNGOS::GameObjectWithDbGUIDCheck>, GridTypeMapContainer > object_checker(checker);
                 CellLock<GridReadGuard> cell_lock(cell, p);
-                cell_lock->Visit(cell_lock, object_checker, *MapManager::Instance().GetMap(caster->GetMapId(), (Unit*)source));
+                cell_lock->Visit(cell_lock, object_checker, *caster->GetMap());
 
                 if ( !door )
                 {
@@ -2000,7 +2001,7 @@ void World::ScriptsProcess()
 
                 TypeContainerVisitor<MaNGOS::GameObjectSearcher<MaNGOS::GameObjectWithDbGUIDCheck>, GridTypeMapContainer > object_checker(checker);
                 CellLock<GridReadGuard> cell_lock(cell, p);
-                cell_lock->Visit(cell_lock, object_checker, *MapManager::Instance().GetMap(caster->GetMapId(), (Unit*)source));
+                cell_lock->Visit(cell_lock, object_checker, *caster->GetMap());
 
                 if ( !door )
                 {
@@ -2429,13 +2430,13 @@ void World::_UpdateGameTime()
     m_gameTime = thisTime;
 
     ///- if there is a shutdown timer
-    if(m_ShutdownTimer > 0 && elapsed > 0)
+    if(!m_stopEvent && m_ShutdownTimer > 0 && elapsed > 0)
     {
         ///- ... and it is overdue, stop the world (set m_stopEvent)
         if( m_ShutdownTimer <= elapsed )
         {
             if(!(m_ShutdownMask & SHUTDOWN_MASK_IDLE) || GetActiveAndQueuedSessionCount()==0)
-                m_stopEvent = true;
+                m_stopEvent = true;                         // exist code already set
             else
                 m_ShutdownTimer = 1;                        // minimum timer value to wait idle state
         }
@@ -2450,15 +2451,20 @@ void World::_UpdateGameTime()
 }
 
 /// Shutdown the server
-void World::ShutdownServ(uint32 time, uint32 options)
+void World::ShutdownServ(uint32 time, uint32 options, uint8 exitcode)
 {
+    // ignore if server shutdown at next tick
+    if(m_stopEvent)
+        return;
+
     m_ShutdownMask = options;
+    m_ExitCode = exitcode;
 
     ///- If the shutdown time is 0, set m_stopEvent (except if shutdown is 'idle' with remaining sessions)
     if(time==0)
     {
         if(!(options & SHUTDOWN_MASK_IDLE) || GetActiveAndQueuedSessionCount()==0)
-            m_stopEvent = true;
+            m_stopEvent = true;                             // exist code already set
         else
             m_ShutdownTimer = 1;                            //So that the session count is re-evaluated at next world tick
     }
@@ -2503,13 +2509,15 @@ void World::ShutdownMsg(bool show, Player* player)
 /// Cancel a planned server shutdown
 void World::ShutdownCancel()
 {
-    if(!m_ShutdownTimer)
+    // nothing cancel or too later
+    if(!m_ShutdownTimer || m_stopEvent)
         return;
 
     uint32 msgid = (m_ShutdownMask & SHUTDOWN_MASK_RESTART) ? SERVER_MSG_RESTART_CANCELLED : SERVER_MSG_SHUTDOWN_CANCELLED;
 
     m_ShutdownMask = 0;
     m_ShutdownTimer = 0;
+    m_ExitCode = SHUTDOWN_EXIT_CODE;                       // to default value
     SendServerMessage(msgid);
 
     DEBUG_LOG("Server %s cancelled.",(m_ShutdownMask & SHUTDOWN_MASK_RESTART ? "restart" : "shuttingdown"));
