@@ -62,6 +62,7 @@
 #include "AuctionHouseBot.h"
 #include "PlayerDropMgr.h"
 #include "VirtualPlayerMgr.h"
+#include "Language.h"
 
 INSTANTIATE_SINGLETON_1( World );
 
@@ -1268,7 +1269,7 @@ void World::SetInitialWorldSettings()
 
     // FG: TODO: use conf timer interval here!!
     m_timers[WUPDATE_ANTICHEAT_ACC_INFO].SetInterval(1000 * 300);
-    objmgr.LoadAnticheatAccInfo();
+    //objmgr.LoadAnticheatAccInfo();
 
     // FG: load virtual players and related
     m_timers[WUPDATE_VPLAYERS].SetInterval(1000); // 1 sec update interval
@@ -2707,7 +2708,7 @@ void World::AutoBroadcast(void)
         return;
     msg = result->Fetch()[0].GetString();
     delete result;
-    sWorld.SendWorldText(msg.c_str());
+    sWorld.SendWorldText(LANG_AUTOBROADCAST,msg.c_str());
     sLog.outString("Autobroadcast: '%s'",msg.c_str());
 }
 

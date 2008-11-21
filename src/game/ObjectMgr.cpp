@@ -569,7 +569,6 @@ void ObjectMgr::LoadCreatureLocales()
     sLog.outString();
     sLog.outString( ">> Loaded %u creature locale strings", mCreatureLocaleMap.size() );
 }
-<<<<<<< HEAD:src/game/ObjectMgr.cpp
 
 void ObjectMgr::LoadCompletedAchievements()
 {
@@ -587,9 +586,6 @@ void ObjectMgr::LoadCompletedAchievements()
     delete result;
 }
 
-=======
-   
->>>>>>> 93519a34be107b1bd36f2d2fe8af3c03f42bf1f9:src/game/ObjectMgr.cpp
 void ObjectMgr::LoadNpcOptionLocales()
 {
     mNpcOptionLocaleMap.clear();                              // need for reload case

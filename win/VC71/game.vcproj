@@ -137,11 +137,9 @@
 			</File>
 			<File
 				RelativePath="..\..\src\game\AchievementMgr.cpp">
-
 			</File>
 			<File
 				RelativePath="..\..\src\game\AchievementMgr.h">
-
 			</File>
 			<File
 				RelativePath="..\..\src\game\AddonHandler.cpp">
@@ -895,8 +893,7 @@
 			<File
 				RelativePath="..\..\src\game\Level_pe.cpp">
 				<FileConfiguration
-					Name="Debug|Win32"
-					ExcludedFromBuild="TRUE">
+					Name="Debug|Win32">
 					<Tool
 						Name="VCCLCompilerTool"/>
 				</FileConfiguration>

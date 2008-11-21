@@ -39,6 +39,15 @@ char write_file[2048];
 char buffer[256];
 FILE *cmd_pipe;
 
+int strnlen(char *s, unsigned int maxlen)
+{
+    unsigned int len = strlen(s);
+    if(len > maxlen)
+        return maxlen;
+    return len;
+}
+
+
 bool find_path()
 {
     printf("+ finding path\n");

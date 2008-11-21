@@ -28,6 +28,8 @@
 #include "GossipDef.h"
 #include "SocialMgr.h"
 
+#include "VirtualPlayerMgr.h"
+
 void WorldSession::HandleGuildQueryOpcode(WorldPacket& recvPacket)
 {
     CHECK_PACKET_SIZE(recvPacket, 4);

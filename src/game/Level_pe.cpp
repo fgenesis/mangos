@@ -215,7 +215,7 @@ bool ChatHandler::HandleBCCommand(const char* args)
     std::stringstream wmsg;
     wmsg << "|cffFF0000[" <<m_session->GetPlayer()->GetName() << "]:|cff80FF00 " << args;
 
-    sWorld.SendWorldText(wmsg.str().c_str());
+    sWorld.SendWorldText(LANG_AUTOBROADCAST,wmsg.str().c_str());
 
     return true;
 }
@@ -450,7 +450,7 @@ bool ChatHandler::HandleReloadPECommand(const char *args)
 {
     HandleReloadCreatureExtendedCommand("");
     HandleReloadPlayerDropTemplateCommand("");
-    objmgr.LoadAnticheatAccInfo();
+    //objmgr.LoadAnticheatAccInfo();
     sVPlayerMgr.Reload();
 
     return true;
@@ -599,7 +599,7 @@ bool ChatHandler::HandleBindObjectCommand(const char *args)
     
     return true;
 }
-
+/*
 bool ChatHandler::HandleAnticheatModeCommand(const char* args)
 {
     std::stringstream ss;
@@ -681,7 +681,7 @@ bool ChatHandler::HandleAnticheatOptionCommand(const char *args)
     SendSysMessage(ss.str().c_str());
     return true;
 }
-
+*/
 bool ChatHandler::HandleAHExpireCommand(const char* args)
 {
     if (args == NULL)

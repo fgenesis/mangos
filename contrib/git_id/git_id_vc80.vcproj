@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8.00"
+	Version="7.10"
 	Name="git_id"
 	ProjectGUID="{AD81BF86-050B-4605-8AF2-03C01967D784}"
 	RootNamespace="git_id"

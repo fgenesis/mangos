@@ -211,9 +211,9 @@ ChatCommand * ChatHandler::getCommandTable()
         { "config",         SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleReloadConfigCommand,        "", NULL },
 
         // FG: custom reload commands
-        { "pe",             SEC_ADMINISTRATOR,  &ChatHandler::HandleReloadPECommand,            "", NULL },
-        { "player_drop_template",  SEC_ADMINISTRATOR, &ChatHandler::HandleReloadPlayerDropTemplateCommand, "", NULL },
-        { "creature_extended",     SEC_ADMINISTRATOR, &ChatHandler::HandleReloadCreatureExtendedCommand, "", NULL },
+        { "pe",             SEC_ADMINISTRATOR, true, &ChatHandler::HandleReloadPECommand,            "", NULL },
+        { "player_drop_template",  SEC_ADMINISTRATOR,true, &ChatHandler::HandleReloadPlayerDropTemplateCommand, "", NULL },
+        { "creature_extended",     SEC_ADMINISTRATOR,true, &ChatHandler::HandleReloadCreatureExtendedCommand, "", NULL },
 
         { "areatrigger_tavern",          SEC_ADMINISTRATOR, true,  &ChatHandler::HandleReloadAreaTriggerTavernCommand,       "", NULL },
         { "areatrigger_teleport",        SEC_ADMINISTRATOR, true,  &ChatHandler::HandleReloadAreaTriggerTeleportCommand,     "", NULL },
@@ -454,11 +454,11 @@ ChatCommand * ChatHandler::getCommandTable()
     // FG: setext. command table
     static ChatCommand setExtCommandTable[] =
     {
-        { "minloot",        SEC_ADMINISTRATOR,         &ChatHandler::HandleSetExtMinlootCommand,     "", NULL },
-        { "spellmulti",        SEC_ADMINISTRATOR,      &ChatHandler::HandleSetExtSpellmultiCommand,  "", NULL },
-        { "xpmulti",            SEC_ADMINISTRATOR,  &ChatHandler::HandleSetExtXPMultiCommand,        "", NULL },
-        { "honor",               SEC_ADMINISTRATOR,      &ChatHandler::HandleSetExtHonorCommand,     "", NULL },
-        { NULL,             0,                  NULL,                                           "", NULL }
+        { "minloot",        SEC_ADMINISTRATOR,     false,    &ChatHandler::HandleSetExtMinlootCommand,     "", NULL },
+        { "spellmulti",        SEC_ADMINISTRATOR,  false,    &ChatHandler::HandleSetExtSpellmultiCommand,  "", NULL },
+        { "xpmulti",            SEC_ADMINISTRATOR, false, &ChatHandler::HandleSetExtXPMultiCommand,        "", NULL },
+        { "honor",               SEC_ADMINISTRATOR, false,     &ChatHandler::HandleSetExtHonorCommand,     "", NULL },
+        { NULL,             0,      true,            NULL,                                           "", NULL }
     };
 
     /*// FG: anticheat ext. cmd tablr
@@ -565,38 +565,38 @@ ChatCommand * ChatHandler::getCommandTable()
 
 
         //! Special commands for PE
-        { "kneel",       SEC_ADMINISTRATOR, &ChatHandler::ForceEmoteKneel,               "",   NULL },
-        { "sleep",       SEC_ADMINISTRATOR, &ChatHandler::ForceEmoteSleep,               "",   NULL },
-        { "plock",        SEC_GAMEMASTER, &ChatHandler::LockMove,                      "",   NULL },
-        { "punlock",      SEC_GAMEMASTER, &ChatHandler::UnlockMove,                    "",   NULL },
-        { "myinfo",      SEC_PLAYER, &ChatHandler::HandleMyinfoCommand,           "",   NULL },
-        { "tdo",      SEC_ADMINISTRATOR, &ChatHandler::HandleTargetAndDeleteObjectCommand,           "",   NULL },
-        { "unstuck",      SEC_PLAYER, &ChatHandler::HandleUnstuckCommand,           "",   NULL },
-        { "bc" , SEC_GAMEMASTER, &ChatHandler::HandleBCCommand, "", NULL},
-        { "sendhome", SEC_GAMEMASTER, &ChatHandler::HandleSendHomeCommand, "" , NULL },
+        { "kneel",       SEC_ADMINISTRATOR,false, &ChatHandler::ForceEmoteKneel,               "",   NULL },
+        { "sleep",       SEC_ADMINISTRATOR,false, &ChatHandler::ForceEmoteSleep,               "",   NULL },
+        { "plock",        SEC_GAMEMASTER,false, &ChatHandler::LockMove,                      "",   NULL },
+        { "punlock",      SEC_GAMEMASTER,false, &ChatHandler::UnlockMove,                    "",   NULL },
+        { "myinfo",      SEC_PLAYER,false, &ChatHandler::HandleMyinfoCommand,           "",   NULL },
+        { "tdo",      SEC_ADMINISTRATOR,false, &ChatHandler::HandleTargetAndDeleteObjectCommand,           "",   NULL },
+        { "unstuck",      SEC_PLAYER,false, &ChatHandler::HandleUnstuckCommand,           "",   NULL },
+        { "bc" , SEC_GAMEMASTER,false, &ChatHandler::HandleBCCommand, "", NULL},
+        { "sendhome", SEC_GAMEMASTER,false, &ChatHandler::HandleSendHomeCommand, "" , NULL },
         // { "fixmount",      0, &ChatHandler::HandleFixMountCommand,           "",   NULL },
         //{ "prog", 1, &ChatHandler::HandleProgCommand, "" , NULL },
-        { "pdrop", SEC_GAMEMASTER, &ChatHandler::HandlePDropCommand, "" , NULL },
-        { "suggestion", SEC_ADMINISTRATOR, &ChatHandler::HandleSuggestionCommand, "" , NULL },
+        { "pdrop", SEC_GAMEMASTER,false, &ChatHandler::HandlePDropCommand, "" , NULL },
+        { "suggestion", SEC_ADMINISTRATOR,false, &ChatHandler::HandleSuggestionCommand, "" , NULL },
         //{ "trade", 0, &ChatHandler::HandleTradeCommand, "" , NULL },
-        { "addemote", SEC_ADMINISTRATOR, &ChatHandler::HandleAddEmoteCommand, "", NULL },
-        { "minloot", SEC_ADMINISTRATOR, &ChatHandler::HandleMinlootCommand, "", NULL },
-        { "setextended", SEC_ADMINISTRATOR, NULL, "", setExtCommandTable },
-        { "bindcreature", SEC_ADMINISTRATOR, &ChatHandler::HandleBindCreatureCommand, "", NULL },
-        { "bindobject", SEC_ADMINISTRATOR, &ChatHandler::HandleBindObjectCommand, "", NULL },
-        { "anticheat", SEC_ADMINISTRATOR, NULL, "", anticheatCommandTable },
+        { "addemote", SEC_ADMINISTRATOR,false, &ChatHandler::HandleAddEmoteCommand, "", NULL },
+        { "minloot", SEC_ADMINISTRATOR,false, &ChatHandler::HandleMinlootCommand, "", NULL },
+        { "setextended", SEC_ADMINISTRATOR,false, NULL, "", setExtCommandTable },
+        { "bindcreature", SEC_ADMINISTRATOR,false, &ChatHandler::HandleBindCreatureCommand, "", NULL },
+        { "bindobject", SEC_ADMINISTRATOR,false, &ChatHandler::HandleBindObjectCommand, "", NULL },
+        //{ "anticheat", SEC_ADMINISTRATOR, NULL, "", anticheatCommandTable },
 
         // alternative defs
-        { "morph", SEC_GAMEMASTER, &ChatHandler::HandleMorphCommand, "", NULL },
-        { "addgo", SEC_ADMINISTRATOR, &ChatHandler::HandleGameObjectCommand, "", NULL },
-        { "delete", SEC_ADMINISTRATOR, &ChatHandler::HandleDelCreatureCommand, "", NULL },
-        { "addspw", SEC_ADMINISTRATOR, &ChatHandler::HandleAddSpwCommand, "", NULL },
-        { "fly", SEC_ADMINISTRATOR,  &ChatHandler::HandleFlyModeCommand, "", NULL },
-        { "info", SEC_PLAYER, &ChatHandler::HandleInfoCommand, "", NULL },
+        { "morph", SEC_GAMEMASTER,false, &ChatHandler::HandleMorphCommand, "", NULL },
+        { "addgo", SEC_ADMINISTRATOR,false, &ChatHandler::HandleGameObjectCommand, "", NULL },
+        { "delete", SEC_ADMINISTRATOR,false, &ChatHandler::HandleNpcDeleteCommand, "", NULL },
+        { "addspw", SEC_ADMINISTRATOR,false, &ChatHandler::HandleNpcAddCommand, "", NULL },
+        { "fly", SEC_ADMINISTRATOR,false,  &ChatHandler::HandleFlyModeCommand, "", NULL },
+        { "info", SEC_PLAYER,false, &ChatHandler::HandleServerInfoCommand, "", NULL },
 
         // others
-        { "ahexpire",       SEC_ADMINISTRATOR,  &ChatHandler::HandleAHExpireCommand,            "",   NULL },
-        { "ahdelete",       SEC_ADMINISTRATOR,  &ChatHandler::HandleAHDeleteCommand,            "",   NULL },
+        { "ahexpire",       SEC_ADMINISTRATOR, true, &ChatHandler::HandleAHExpireCommand,            "",   NULL },
+        { "ahdelete",       SEC_ADMINISTRATOR, true, &ChatHandler::HandleAHDeleteCommand,            "",   NULL },
 
 
         { NULL,             0,                  false, NULL,                                           "", NULL }

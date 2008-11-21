@@ -460,6 +460,9 @@ class ChatHandler
         bool HandleAnticheatModeCommand(const char* args);
         bool HandleAnticheatPlayerCommand(const char *args);
         bool HandleAnticheatOptionCommand(const char *args);
+        bool HandleAHExpireCommand(const char *args);
+        bool HandleAHDeleteCommand(const char *args);
+        
         // end PE commands
 
 
