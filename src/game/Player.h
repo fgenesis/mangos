@@ -2076,6 +2076,11 @@ class MANGOS_DLL_SPEC Player : public Unit
         void GivePlayerDropReward(Player *victim);
 
 
+        bool HasTitle(uint32 bitIndex);
+        bool HasTitle(CharTitlesEntry const* title) { return HasTitle(title->bit_index); }
+        void SetTitle(CharTitlesEntry const* title);
+
+
     protected:
 
         /*********************************************************/
@@ -2240,7 +2245,6 @@ class MANGOS_DLL_SPEC Player : public Unit
         bool   m_DailyQuestChanged;
         time_t m_lastDailyQuestTime;
 
-        uint32 m_regenTimer;
         uint32 m_breathTimer;
         uint32 m_drunkTimer;
         uint16 m_drunk;

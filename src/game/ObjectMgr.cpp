@@ -5305,21 +5305,19 @@ uint32 ObjectMgr::GenerateLowGuid(HighGuid guidhigh)
             }
             return m_hiCreatureGuid++;
         case HIGHGUID_PET:
-            ++m_hiPetGuid;
             if(m_hiPetGuid>=0x00FFFFFE)
             {
                 sLog.outError("Pet guid overflow!! Can't continue, shutting down server. ");
                 World::StopNow(ERROR_EXIT_CODE);
             }
-            return m_hiPetGuid;
+            return m_hiPetGuid++;
         case HIGHGUID_VEHICLE:
-            ++m_hiVehicleGuid;
             if(m_hiVehicleGuid>=0x00FFFFFF)
             {
                 sLog.outError("Vehicle guid overflow!! Can't continue, shutting down server. ");
                 World::StopNow(ERROR_EXIT_CODE);
             }
-            return m_hiVehicleGuid;
+            return m_hiVehicleGuid++;
         case HIGHGUID_PLAYER:
             if(m_hiCharGuid>=0xFFFFFFFE)
             {

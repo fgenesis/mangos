@@ -1126,7 +1126,6 @@ uint8 Map::GetTerrainType(float x, float y ) const
         return GridMaps[gx][gy]->terrain_type[(int)(lx)][(int)(ly)];
     else
         return 0;
-
 }
 
 float Map::GetWaterLevel(float x, float y ) const

@@ -7985,6 +7985,10 @@ uint8 Player::FindEquipSlot( ItemPrototype const* proto, uint32 slot, bool swap 
                     if (pClass == CLASS_WARLOCK)
                         slots[0] = EQUIPMENT_SLOT_RANGED;
                     break;
+                case ITEM_SUBCLASS_ARMOR_SIGIL:
+                    if (pClass == CLASS_DEATH_KNIGHT)
+                        slots[0] = EQUIPMENT_SLOT_RANGED;
+                    break;
             }
             break;
         }
@@ -12399,7 +12403,7 @@ void Player::RewardQuest( Quest const *pQuest, uint32 reward, Object* questGiver
     if(pQuest->GetCharTitleId())
     {
         if(CharTitlesEntry const* titleEntry = sCharTitlesStore.LookupEntry(pQuest->GetCharTitleId()))
-            SetFlag64(PLAYER__FIELD_KNOWN_TITLES, (uint64(1) << titleEntry->bit_index));
+            SetTitle(titleEntry);
     }
 
     // Send reward mail
@@ -14020,7 +14024,7 @@ bool Player::LoadFromDB( uint32 guid, SqlQueryHolder *holder )
     // note: PLAYER__FIELD_KNOWN_TITLES updated at quest status loaded
     if(uint32 curTitle = GetUInt32Value(PLAYER_CHOSEN_TITLE))
     {
-        if(!HasFlag64(PLAYER__FIELD_KNOWN_TITLES,uint64(1) << curTitle))
+        if(!HasTitle(curTitle))
             SetUInt32Value(PLAYER_CHOSEN_TITLE,0);
     }
 
@@ -14632,7 +14636,7 @@ void Player::_LoadQuestStatus(QueryResult *result)
                     if(pQuest->GetCharTitleId())
                     {
                         if(CharTitlesEntry const* titleEntry = sCharTitlesStore.LookupEntry(pQuest->GetCharTitleId()))
-                            SetFlag64(PLAYER__FIELD_KNOWN_TITLES, (uint64(1) << titleEntry->bit_index));
+                            SetTitle(titleEntry);
                     }
                 }
 
@@ -17945,15 +17949,15 @@ uint32 Player::GetMinLevelForBattleGroundQueueId(uint32 queue_id)
     if(queue_id < 1)
         return 0;
 
-    if(queue_id >=6)
-        queue_id = 6;
+    if(queue_id >=7)
+        queue_id = 7;
 
     return 10*(queue_id+1);
 }
 
 uint32 Player::GetMaxLevelForBattleGroundQueueId(uint32 queue_id)
 {
-    if(queue_id >=6)
+    if(queue_id >=7)
         return 255;                                         // hardcoded max level
 
     return 10*(queue_id+2)-1;
@@ -17964,8 +17968,8 @@ uint32 Player::GetBattleGroundQueueIdFromLevel() const
     uint32 level = getLevel();
     if(level <= 19)
         return 0;
-    else if (level > 69)
-        return 6;
+    else if (level > 79)
+        return 7;
     else
         return level/10 - 1;                                // 20..29 -> 1, 30-39 -> 2, ...
 }
@@ -18828,4 +18832,20 @@ void Player::GivePlayerDropReward(Player *victim)
     }
 }
 
+bool Player::HasTitle(uint32 bitIndex)
+{
+    if (bitIndex > 128)
+        return false;
+
+    uint32 fieldIndexOffset = bitIndex/32;
+    uint32 flag = 1 << (bitIndex%32);
+    return HasFlag(PLAYER__FIELD_KNOWN_TITLES+fieldIndexOffset, flag);
+}
+
+void Player::SetTitle(CharTitlesEntry const* title)
+{
+    uint32 fieldIndexOffset = title->bit_index/32;
+    uint32 flag = 1 << (title->bit_index%32);
+    SetFlag(PLAYER__FIELD_KNOWN_TITLES+fieldIndexOffset, flag);
+}
 

@@ -216,7 +216,7 @@ struct CreatureInfo
 
     bool isTameable() const
     {
-        return type == CREATURE_TYPE_BEAST && family != 0 && (type_flags & CREATURE_TYPEFLAGS_TAMEBLE);
+        return type == CREATURE_TYPE_BEAST && family != 0 && (type_flags & CREATURE_TYPEFLAGS_TAMEABLE);
     }
 };
 
@@ -637,7 +637,6 @@ class MANGOS_DLL_SPEC Creature : public Unit
         bool m_isTotem;                                     // set only in Totem::Totem
         void RegenerateMana();
         void RegenerateHealth();
-        uint32 m_regenTimer;
         MovementGeneratorType m_defaultMovementType;
         Cell m_currentCell;                                 // store current cell where creature listed
         uint32 m_DBTableGuid;                               ///< For new or temporary creatures is 0 for saved it is lowguid

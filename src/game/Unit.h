@@ -163,14 +163,14 @@ enum SheathState
 // byte (1 from 0..3) of UNIT_FIELD_BYTES_2
 enum UnitBytes2_Flags
 {
-    UNIT_BYTE2_FLAG_PVP     = 0x01,
-    UNIT_BYTE2_FLAG_UNK1    = 0x02,
-    UNIT_BYTE2_FLAG_FFA_PVP = 0x04,
-    UNIT_BYTE2_FLAG_UNK3    = 0x08,
-    UNIT_BYTE2_FLAG_AURAS   = 0x10,                         // show possitive auras as positive, and allow its dispel
-    UNIT_BYTE2_FLAG_UNK5    = 0x20,
-    UNIT_BYTE2_FLAG_UNK6    = 0x40,
-    UNIT_BYTE2_FLAG_UNK7    = 0x80
+    UNIT_BYTE2_FLAG_PVP         = 0x01,
+    UNIT_BYTE2_FLAG_UNK1        = 0x02,
+    UNIT_BYTE2_FLAG_FFA_PVP     = 0x04,
+    UNIT_BYTE2_FLAG_SANCTUARY   = 0x08,
+    UNIT_BYTE2_FLAG_AURAS       = 0x10,                     // show positive auras as positive, and allow its dispel
+    UNIT_BYTE2_FLAG_UNK5        = 0x20,
+    UNIT_BYTE2_FLAG_UNK6        = 0x40,
+    UNIT_BYTE2_FLAG_UNK7        = 0x80
 };
 
 // byte (2 from 0..3) of UNIT_FIELD_BYTES_2
@@ -493,7 +493,7 @@ enum UnitFlags2
     UNIT_FLAG2_FEIGN_DEATH      = 0x00000001,
     UNIT_FLAG2_COMPREHEND_LANG  = 0x00000008,
     UNIT_FLAG2_FORCE_MOVE       = 0x00000040,
-    UNIT_FLAG2_UNKNOWN1         = 0x00000800
+    UNIT_FLAG2_REGENERATE_POWER = 0x00000800
 };
 
 /// Non Player Character flags
@@ -1373,6 +1373,7 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         uint32 m_unit_movement_flags;
 
         uint32 m_reactiveTimer[MAX_REACTIVE];
+        uint32 m_regenTimer;
 
     private:
         void SendAttackStop(Unit* victim);                  // only from AttackStop(Unit*)
