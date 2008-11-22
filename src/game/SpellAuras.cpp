@@ -2000,7 +2000,7 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
             ( GetSpellProto()->EffectApplyAuraName[0]==1 || GetSpellProto()->EffectApplyAuraName[0]==128 ) ) )
         {
             // spells with SpellEffect=72 and aura=4: 6196, 6197, 21171, 21425
-            m_target->SetUInt64Value(PLAYER_FARSIGHT, 0);
+            ((Player*)m_target)->SetFarSight(NULL);
             WorldPacket data(SMSG_CLEAR_FAR_SIGHT_IMMEDIATE, 0);
             ((Player*)m_target)->GetSession()->SendPacket(&data);
             return;
@@ -2878,7 +2878,7 @@ void Aura::HandleBindSight(bool apply, bool Real)
     if(!caster || caster->GetTypeId() != TYPEID_PLAYER)
         return;
 
-    caster->SetUInt64Value(PLAYER_FARSIGHT,apply ? m_target->GetGUID() : 0);
+    ((Player*)caster)->SetFarSight(apply ? m_target->GetGUID() : NULL);
 }
 
 void Aura::HandleFarSight(bool apply, bool Real)
@@ -2887,7 +2887,7 @@ void Aura::HandleFarSight(bool apply, bool Real)
     if(!caster || caster->GetTypeId() != TYPEID_PLAYER)
         return;
 
-    caster->SetUInt64Value(PLAYER_FARSIGHT,apply ? m_modifier.m_miscvalue : 0);
+    ((Player*)caster)->SetFarSight(apply ? m_target->GetGUID() : NULL);
 }
 
 void Aura::HandleAuraTrackCreatures(bool apply, bool Real)
@@ -2994,7 +2994,7 @@ void Aura::HandleModPossess(bool apply, bool Real)
         }
     }
     if(caster->GetTypeId() == TYPEID_PLAYER)
-        caster->SetUInt64Value(PLAYER_FARSIGHT,apply ? m_target->GetGUID() : 0);
+        ((Player*)caster)->SetFarSight(apply ? m_target->GetGUID() : NULL);
 }
 
 void Aura::HandleModPossessPet(bool apply, bool Real)
@@ -3003,20 +3003,30 @@ void Aura::HandleModPossessPet(bool apply, bool Real)
         return;
 
     Unit* caster = GetCaster();
-    if(!caster || caster->GetTypeId() != TYPEID_PLAYER)
-        return;
-    if(caster->GetPet() != m_target)
+    Pet *pet = caster->GetPet();
+    if(!pet || (pet != m_target) || !caster || (caster->GetTypeId() != TYPEID_PLAYER))
         return;
 
     if(apply)
+        pet->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_UNKNOWN5);
+    else
+        pet->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_UNKNOWN5);
+
+    ((Player*)caster)->SetFarSight(apply ? pet->GetGUID() : NULL);
+    ((Player*)caster)->SetCharm(apply ? pet : NULL);
+    ((Player*)caster)->SetClientControl(pet, apply ? 1 : 0);
+
+    if(apply)
     {
-        caster->SetUInt64Value(PLAYER_FARSIGHT, m_target->GetGUID());
-        m_target->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_UNKNOWN5);
+        pet->StopMoving();
+        pet->GetMotionMaster()->Clear();
+        pet->GetMotionMaster()->MoveIdle();
     }
     else
     {
-        caster->SetUInt64Value(PLAYER_FARSIGHT, 0);
-        m_target->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_UNKNOWN5);
+        pet->AttackStop();
+        pet->GetMotionMaster()->MoveFollow(caster, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
+        pet->SetUnitMovementFlags(MOVEMENTFLAG_WALK_MODE);
     }
 }
 

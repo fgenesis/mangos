@@ -731,7 +731,7 @@ enum InstanceResetWarningType
 struct MovementInfo
 {
     // common
-    //uint32  flags;
+    uint32  flags;
     uint16  unk1;
     uint32  time;
     float   x, y, z, o;
@@ -751,17 +751,17 @@ struct MovementInfo
 
     MovementInfo()
     {
-        //flags =
+        flags = 0;
         time = t_time = fallTime = 0;
         unk1 = 0;
         x = y = z = o = t_x = t_y = t_z = t_o = s_pitch = j_unk = j_sinAngle = j_cosAngle = j_xyspeed = u_unk1 = 0.0f;
         t_guid = 0;
     }
 
-    /*void SetMovementFlags(uint32 _flags)
+    void SetMovementFlags(uint32 _flags)
     {
         flags = _flags;
-    }*/
+    }
 };
 
 // flags that use in movement check for example at spell casting
@@ -1716,6 +1716,7 @@ class MANGOS_DLL_SPEC Player : public Unit
 
         FactionStateList m_factions;
         ForcedReactions m_forcedReactions;
+        FactionStateList const& GetFactionStateList() { return m_factions; }
         uint32 GetDefaultReputationFlags(const FactionEntry *factionEntry) const;
         int32 GetBaseReputation(const FactionEntry *factionEntry) const;
         int32 GetReputation(uint32 faction_id) const;
@@ -1943,6 +1944,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         /*********************************************************/
         MovementInfo m_movementInfo;
         MovementInfo m_fallMovementInfo;
+        Unit *m_mover;
         bool isMoving() const { return HasUnitMovementFlag(movementFlagsMask); }
         bool isMovingOrTurning() const { return HasUnitMovementFlag(movementOrTurningFlagsMask); }
 
@@ -1955,6 +1957,9 @@ class MANGOS_DLL_SPEC Player : public Unit
 
         void EnterVehicle(Vehicle *vehicle);
         void ExitVehicle(Vehicle *vehicle);
+
+        uint64 GetFarSight() const { return GetUInt64Value(PLAYER_FARSIGHT); }
+        void SetFarSight(uint64 guid) { SetUInt64Value(PLAYER_FARSIGHT, guid); }
 
         // Transports
         Transport * GetTransport() const { return m_transport; }

@@ -29,6 +29,7 @@ class MailItemsInfo;
 struct ItemPrototype;
 struct AuctionEntry;
 struct DeclinedName;
+struct MovementInfo;
 
 class Creature;
 class Item;
@@ -87,6 +88,8 @@ class MANGOS_DLL_SPEC WorldSession
         bool PlayerLogout() const { return m_playerLogout; }
 
         void SizeError(WorldPacket const& packet, uint32 size) const;
+
+        void ReadMovementInfo(WorldPacket &data, MovementInfo *mi);
 
         void SendPacket(WorldPacket const* packet);
         void SendNotification(const char *format,...) ATTR_PRINTF(2,3);
@@ -552,7 +555,6 @@ class MANGOS_DLL_SPEC WorldSession
         void HandlePetSpellAutocastOpcode( WorldPacket& recvPacket );
         void HandlePetCastSpellOpcode( WorldPacket& recvPacket );
         void HandlePetLearnTalent( WorldPacket& recvPacket );
-        void HandleDismissControlledVehicle( WorldPacket& recvPacket );
 
         void HandleSetActionBar(WorldPacket& recv_data);
 
@@ -588,7 +590,6 @@ class MANGOS_DLL_SPEC WorldSession
         void HandleLfmSetNoneOpcode(WorldPacket& recv_data);
         void HandleLfmSetOpcode(WorldPacket& recv_data);
         void HandleLfgSetCommentOpcode(WorldPacket& recv_data);
-        void HandleNewUnknownOpcode(WorldPacket& recv_data);
         void HandleChooseTitleOpcode(WorldPacket& recv_data);
         void HandleRealmStateRequestOpcode(WorldPacket& recv_data);
         void HandleAllowMoveAckOpcode(WorldPacket& recv_data);

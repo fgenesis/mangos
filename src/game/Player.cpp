@@ -428,6 +428,8 @@ Player::Player (WorldSession *session): Unit(), m_achievementMgr(this)
     //Default movement to run mode
     m_unit_movement_flags = 0;
 
+    m_mover = NULL;
+
     m_miniPet = 0;
     m_bgAfkReportedTimer = 0;
     m_contestedPvPTimer = 0;
@@ -1225,7 +1227,7 @@ void Player::Update( uint32 p_time )
     SendUpdateToOutOfRangeGroupMembers();
 
     Pet* pet = GetPet();
-    if(pet && !IsWithinDistInMap(pet, OWNER_MAX_DISTANCE))
+    if(pet && !IsWithinDistInMap(pet, OWNER_MAX_DISTANCE) && (GetCharmGUID() && (pet->GetGUID() != GetCharmGUID())))
     {
         RemovePet(pet, PET_SAVE_NOT_IN_SLOT, true);
         return;
@@ -2785,7 +2787,10 @@ bool Player::addSpell(uint32 spell_id, bool active, bool learning, bool loading,
     }
 
     if(!loading)
+    {
         GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_LEARN_SPELL);
+        GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_LEARN_SKILLLINE_SPELLS);
+    }
 
     // return true (for send learn packet) only if spell active (in case ranked spells) and not replace old spell
     return active && !disabled && !superceded_old;
@@ -5691,7 +5696,8 @@ bool Player::ModifyOneFactionReputation(FactionEntry const* factionEntry, int32 
                 }
             }
         }
-
+        GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_GAIN_REPUTATION);
+        GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_GAIN_EXALTED_REPUTATION);
         SendFactionState(&(itr->second));
 
         return true;
@@ -5757,6 +5763,8 @@ bool Player::SetOneFactionReputation(FactionEntry const* factionEntry, int32 sta
             SetFactionAtWar(&itr->second,true);
 
         SendFactionState(&(itr->second));
+        GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_GAIN_REPUTATION);
+        GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_GAIN_EXALTED_REPUTATION);
         return true;
     }
     return false;
@@ -13919,14 +13927,14 @@ bool Player::LoadFromDB( uint32 guid, SqlQueryHolder *holder )
     SetUInt32Value(UNIT_CHANNEL_SPELL,0);
 
     // clear charm/summon related fields
-    SetUInt64Value(UNIT_FIELD_CHARM,0);
-    SetUInt64Value(UNIT_FIELD_SUMMON,0);
-    SetUInt64Value(UNIT_FIELD_CHARMEDBY,0);
-    SetUInt64Value(UNIT_FIELD_SUMMONEDBY,0);
-    SetUInt64Value(UNIT_FIELD_CREATEDBY,0);
+    SetCharm(NULL);
+    SetPet(NULL);
+    SetCharmerGUID(NULL);
+    SetOwnerGUID(NULL);
+    SetCreatorGUID(NULL);
 
     // reset some aura modifiers before aura apply
-    SetUInt64Value(PLAYER_FARSIGHT, 0);
+    SetFarSight(NULL);
     SetUInt32Value(PLAYER_TRACK_CREATURES, 0 );
     SetUInt32Value(PLAYER_TRACK_RESOURCES, 0 );
 
@@ -15913,8 +15921,8 @@ void Player::RemovePet(Pet* pet, PetSaveMode mode, bool returnreagent)
             m_guardianPets.erase(pet->GetGUID());
             break;
         default:
-            if(GetPetGUID()==pet->GetGUID())
-                SetPet(0);
+            if(GetPetGUID() == pet->GetGUID())
+                SetPet(NULL);
             break;
     }
 
@@ -17545,13 +17553,23 @@ void Player::SendInitialPacketsBeforeAddToMap()
     data << (float)0.01666667f;                             // game speed
     GetSession()->SendPacket( &data );
 
+    data.Initialize(SMSG_TIME_SYNC_REQ, 4);                 // new 2.0.x, enable movement
+    data << uint32(0x00000000);                             // on blizz it increments periodically
+    GetSession()->SendPacket(&data);
+
     // set fly flag if in fly form or taxi flight to prevent visually drop at ground in showup moment
     if(HasAuraType(SPELL_AURA_MOD_INCREASE_FLIGHT_SPEED) || isInFlight())
         AddUnitMovementFlag(MOVEMENTFLAG_FLYING2);
+
+    m_mover = this;
 }
 
 void Player::SendInitialPacketsAfterAddToMap()
 {
+    WorldPacket data(SMSG_TIME_SYNC_REQ, 4);                // new 2.0.x, enable movement
+    data << uint32(0x00000000);                             // on blizz it increments periodically
+    GetSession()->SendPacket(&data);
+
     CastSpell(this, 836, true);                             // LOGINEFFECT
 
     // set some aura effects that send packet to player client after add player to map
@@ -18393,8 +18411,8 @@ void Player::SetClientControl(Unit* target, uint8 allowMove)
 void Player::UpdateZoneDependentAuras( uint32 newZone )
 {
     // remove new continent flight forms
-    if( !isGameMaster() &&
-        GetVirtualMapForMapAndZone(GetMapId(),newZone) != 530)
+    uint32 v_map = GetVirtualMapForMapAndZone(GetMapId(), newZone);
+    if( !isGameMaster() && v_map != 530 && v_map != 571)
     {
         RemoveSpellsCausingAura(SPELL_AURA_MOD_INCREASE_FLIGHT_SPEED);
         RemoveSpellsCausingAura(SPELL_AURA_FLY);
@@ -18670,12 +18688,12 @@ void Player::EnterVehicle(Vehicle *vehicle)
     //vehicle->SetUInt32Value(UNIT_DYNAMIC_FLAGS, 0);
     //vehicle->SetUInt32Value(UNIT_FIELD_BYTES_1, 0x02000000);
 
-    SetCharm(vehicle);
-    SetUInt64Value(PLAYER_FARSIGHT, vehicle->GetGUID());
+    SetCharm(vehicle);                                      // charm
+    SetFarSight(vehicle->GetGUID());                        // set view
 
-    SetClientControl(vehicle, 1);
+    SetClientControl(vehicle, 1);                           // redirect controls to vehicle
 
-    WorldPacket data(SMSG_UNKNOWN_1181, 0);
+    WorldPacket data(SMSG_UNKNOWN_1181, 0);                 // shows vehicle UI?
     GetSession()->SendPacket(&data);
 
     data.Initialize(MSG_MOVE_TELEPORT_ACK, 30);
@@ -18689,10 +18707,10 @@ void Player::EnterVehicle(Vehicle *vehicle)
     data << vehicle->GetPositionZ();                        // z
     data << vehicle->GetOrientation();                      // o
     // transport part
-    data << vehicle->GetGUID();                             // transport guid
+    data << uint64(vehicle->GetGUID());                     // transport guid
     data << float(0);                                       // transport offsetX
     data << float(0);                                       // transport offsetY
-    data << float(1);                                       // transport offsetZ
+    data << float(2);                                       // transport offsetZ
     data << float(0);                                       // transport orientation
     data << uint32(getMSTime());                            // transport time
     data << uint8(0);                                       // seat
@@ -18724,7 +18742,7 @@ void Player::ExitVehicle(Vehicle *vehicle)
     //vehicle->SetUInt32Value(UNIT_DYNAMIC_FLAGS, 0);
 
     SetCharm(NULL);
-    SetUInt64Value(PLAYER_FARSIGHT, 0);
+    SetFarSight(NULL);
 
     SetClientControl(vehicle, 0);
 

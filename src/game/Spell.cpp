@@ -270,6 +270,7 @@ Spell::Spell( Unit* Caster, SpellEntry const *info, bool triggered, uint64 origi
     m_triggeringContainer = triggeringContainer;
     m_referencedFromCurrentSpell = false;
     m_executedCurrently = false;
+    m_delayStart = 0;
     m_delayAtDamageCount = 0;
 
     m_applyMultiplierMask = 0;
@@ -336,6 +337,7 @@ Spell::Spell( Unit* Caster, SpellEntry const *info, bool triggered, uint64 origi
     gameObjTarget = NULL;
     focusObject = NULL;
     m_cast_count = 0;
+    m_glyphIndex = 0;
     m_triggeredByAuraSpell  = NULL;
 
     //Auto Shot & Shoot
@@ -3004,16 +3006,19 @@ void Spell::SendChannelStart(uint32 duration)
 
 void Spell::SendResurrectRequest(Player* target)
 {
-    WorldPacket data(SMSG_RESURRECT_REQUEST, (8+4+2+4));
+    // Both players and NPCs can resurrect using spells - have a look at creature 28487 for example
+    // However, the packet structure differs slightly
+
+    const char* sentName = m_caster->GetTypeId()==TYPEID_PLAYER ?"":m_caster->GetNameForLocaleIdx(target->GetSession()->GetSessionDbLocaleIndex());
+
+    WorldPacket data(SMSG_RESURRECT_REQUEST, (8+4+strlen(sentName)+1+1+1));
     data << uint64(m_caster->GetGUID());
-    uint32 count = 1;
-    data << uint32(count);                                  // amount of bytes to read
+    data << uint32(strlen(sentName)+1);
 
-    for(uint32 i = 0; i < count; ++i)
-        data << uint8(0);
+    data << sentName;
+    data << uint8(0);
 
-    data << uint8(0);
-    data << uint8(0);
+    data << uint8(m_caster->GetTypeId()==TYPEID_PLAYER ?0:1);
     target->GetSession()->SendPacket(&data);
 }
 
@@ -4013,7 +4018,9 @@ uint8 Spell::CanCast(bool strict)
 
                 if(int32(m_targets.getUnitTarget()->getLevel()) > CalculateDamage(i,m_targets.getUnitTarget()))
                     return SPELL_FAILED_HIGHLEVEL;
-            };break;
+
+                break;
+            }
             case SPELL_AURA_MOUNTED:
             {
                 if (m_caster->IsInWater())
@@ -4046,18 +4053,22 @@ uint8 Spell::CanCast(bool strict)
                 // can be casted at non-friendly unit or own pet/charm
                 if(m_caster->IsFriendlyTo(m_targets.getUnitTarget()))
                     return SPELL_FAILED_TARGET_FRIENDLY;
-            };break;
+
+                break;
+            }
             case SPELL_AURA_MOD_INCREASE_FLIGHT_SPEED:
             case SPELL_AURA_FLY:
             {
                 // not allow cast fly spells at old maps by players (all spells is self target)
                 if(m_caster->GetTypeId()==TYPEID_PLAYER)
                 {
-                    if( !((Player*)m_caster)->isGameMaster() &&
-                        GetVirtualMapForMapAndZone(m_caster->GetMapId(),m_caster->GetZoneId()) != 530)
+                    uint32 v_map = GetVirtualMapForMapAndZone(m_caster->GetMapId(), m_caster->GetZoneId());
+                    if( !((Player*)m_caster)->isGameMaster() && v_map != 530 && !(v_map == 571 && ((Player*)m_caster)->HasSpell(54197)))
                         return SPELL_FAILED_NOT_HERE;
                 }
-            };break;
+
+                break;
+            }
             case SPELL_AURA_PERIODIC_MANA_LEECH:
             {
                 if (!m_targets.getUnitTarget())
@@ -4068,9 +4079,11 @@ uint8 Spell::CanCast(bool strict)
 
                 if(m_targets.getUnitTarget()->getPowerType()!=POWER_MANA)
                     return SPELL_FAILED_BAD_TARGETS;
+
                 break;
             }
-            default:break;
+            default:
+                break;
         }
     }
 
