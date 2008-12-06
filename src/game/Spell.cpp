@@ -2505,13 +2505,13 @@ void Spell::finish(bool ok)
 
     m_spellState = SPELL_STATE_FINISHED;
 
-    //remove spell mods
-    if (m_caster->GetTypeId() == TYPEID_PLAYER)
-        ((Player*)m_caster)->RemoveSpellMods(this);
-
     // other code related only to successfully finished spells
     if(!ok)
         return;
+
+    //remove spell mods
+    if (m_caster->GetTypeId() == TYPEID_PLAYER)
+        ((Player*)m_caster)->RemoveSpellMods(this);
 
     //handle SPELL_AURA_ADD_TARGET_TRIGGER auras
     Unit::AuraList const& targetTriggers = m_caster->GetAurasByType(SPELL_AURA_ADD_TARGET_TRIGGER);
@@ -2551,10 +2551,11 @@ void Spell::finish(bool ok)
     // Clear combo at finish state
     if(m_caster->GetTypeId() == TYPEID_PLAYER && NeedsComboPoints(m_spellInfo))
     {
-        // Not drop combopoints if any miss exist
+        // Not drop combopoints if negative spell and if any miss on enemy exist
         bool needDrop = true;
+        if (!IsPositiveSpell(m_spellInfo->Id))
         for(std::list<TargetInfo>::iterator ihit= m_UniqueTargetInfo.begin();ihit != m_UniqueTargetInfo.end();++ihit)
-            if (ihit->missCondition != SPELL_MISS_NONE)
+            if (ihit->missCondition != SPELL_MISS_NONE && ihit->targetGUID!=m_caster->GetGUID())
             {
                 needDrop = false;
                 break;
@@ -2593,13 +2594,23 @@ void Spell::SendCastResult(uint8 result)
                 break;
             case SPELL_FAILED_REQUIRES_AREA:
                 // hardcode areas limitation case
-                if( m_spellInfo->Id==41618 || m_spellInfo->Id==41620 )
-                    data << uint32(3842);
-                else if( m_spellInfo->Id==41617 || m_spellInfo->Id==41619 )
-                    data << uint32(3905);
-                // normal case
-                else
-                    data << uint32(m_spellInfo->AreaId);
+                switch(m_spellInfo->Id)
+                {
+                    case 41617:                             // Cenarion Mana Salve
+                    case 41619:                             // Cenarion Healing Salve
+                        data << uint32(3905);
+                        break;
+                    case 41618:                             // Bottled Nethergon Energy
+                    case 41620:                             // Bottled Nethergon Vapor
+                        data << uint32(3842);
+                        break;
+                    case 45373:                             // Bloodberry Elixir
+                        data << uint32(4075);
+                        break;
+                    default:                                // default case
+                        data << uint32(m_spellInfo->AreaId);
+                        break;
+                }
                 break;
             case SPELL_FAILED_TOTEMS:
                 if(m_spellInfo->Totem[0])
