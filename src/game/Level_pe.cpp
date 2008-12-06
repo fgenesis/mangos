@@ -215,7 +215,7 @@ bool ChatHandler::HandleBCCommand(const char* args)
     std::stringstream wmsg;
     wmsg << "|cffFF0000[" <<m_session->GetPlayer()->GetName() << "]:|cff80FF00 " << args;
 
-    sWorld.SendWorldText(LANG_AUTOBROADCAST,wmsg.str().c_str());
+    sWorld.SendWorldText(LANG_BROADCAST_MSG,wmsg.str().c_str());
 
     return true;
 }

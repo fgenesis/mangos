@@ -1510,6 +1510,7 @@ void World::Update(time_t diff)
         m_timers[WUPDATE_ANTICHEAT_ACC_INFO].Reset();
         objmgr.LoadAnticheatAccInfo();
     }
+    */
 
     // FG: update virtual players
     if(m_timers[WUPDATE_VPLAYERS].Passed())
@@ -1517,7 +1518,6 @@ void World::Update(time_t diff)
         m_timers[WUPDATE_VPLAYERS].Reset();
         sVPlayerMgr.Update();
     }
-    */
 
 
     /// </ul>
