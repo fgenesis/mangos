@@ -219,7 +219,7 @@ void SpellCastTargets::write ( WorldPacket * data )
 {
     *data << uint32(m_targetMask);
 
-    if( m_targetMask & ( TARGET_FLAG_UNIT | TARGET_FLAG_PVP_CORPSE | TARGET_FLAG_OBJECT | TARGET_FLAG_CORPSE | TARGET_FLAG_UNK2 ) )
+    if( m_targetMask & ( TARGET_FLAG_UNIT | TARGET_FLAG_PVP_CORPSE | TARGET_FLAG_OBJECT | TARGET_FLAG_OBJECT_UNK | TARGET_FLAG_CORPSE | TARGET_FLAG_UNK2 ) )
     {
         if(m_targetMask & TARGET_FLAG_UNIT)
         {
@@ -346,6 +346,7 @@ Spell::Spell( Unit* Caster, SpellEntry const *info, bool triggered, uint64 origi
     else
         m_autoRepeat = false;
 
+    m_runesState = 0;
     m_powerCost = 0;                                        // setup to correct value in Spell::prepare, don't must be used before.
     m_casttime = 0;                                         // setup to correct value in Spell::prepare, don't must be used before.
     m_timer = 0;                                            // will set to castime in prepare
@@ -593,6 +594,7 @@ void Spell::FillTargetMap()
                 case SPELL_EFFECT_DISENCHANT:
                 case SPELL_EFFECT_FEED_PET:
                 case SPELL_EFFECT_PROSPECTING:
+                case SPELL_EFFECT_MILLING:
                     if(m_targets.getItemTarget())
                         AddItemTarget(m_targets.getItemTarget(), i);
                     break;
@@ -2632,13 +2634,6 @@ void Spell::SendCastResult(uint8 result)
         }
         ((Player*)m_caster)->GetSession()->SendPacket(&data);
     }
-    /*else
-    {
-        WorldPacket data(SMSG_CLEAR_EXTRA_AURA_INFO_OBSOLETE, (8+4));
-        data.append(m_caster->GetPackGUID());
-        data << uint32(m_spellInfo->Id);
-        ((Player*)m_caster)->GetSession()->SendPacket(&data);
-    }*/
 }
 
 void Spell::SendSpellStart()
@@ -2652,11 +2647,10 @@ void Spell::SendSpellStart()
     if(IsRangedSpell())
         castFlags |= CAST_FLAG_AMMO;
 
-    Unit *target;
-    if(!m_targets.getUnitTarget())
-        target = m_caster;
-    else
-        target = m_targets.getUnitTarget();
+    if(m_spellInfo->runeCostID)
+        castFlags |= CAST_FLAG_UNKNOWN10;
+
+    Unit *target = m_targets.getUnitTarget() ? m_targets.getUnitTarget() : m_caster;
 
     WorldPacket data(SMSG_SPELL_START, (8+8+4+4+2));
     if(m_CastItem)
@@ -2666,25 +2660,28 @@ void Spell::SendSpellStart()
 
     data.append(m_caster->GetPackGUID());
     data << uint8(m_cast_count);                            // pending spell cast?
-    data << uint32(m_spellInfo->Id);
-    data << uint32(castFlags);
-    data << uint32(m_timer);
+    data << uint32(m_spellInfo->Id);                        // spellId
+    data << uint32(castFlags);                              // cast flags
+    data << uint32(m_timer);                                // delay?
 
     m_targets.write(&data);
 
-    if ( castFlags & CAST_FLAG_UNKNOWN6 )
+    if ( castFlags & CAST_FLAG_UNKNOWN6 )                   // predicted power?
         data << uint32(0);
 
-    if ( castFlags & CAST_FLAG_UNKNOWN7 )
+    if ( castFlags & CAST_FLAG_UNKNOWN7 )                   // rune cooldowns list
     {
-        uint8 v1 = 0;
-        uint8 v2 = 0;
-        data << v1; // v1
-        data << v2; // v2
-        for(uint8 i = 0; i < 6; ++i)
-            if((1 << i) & v1)
-                if(!(1 << i) & v2)
-                    data << uint8(0);
+        uint8 v1 = 0;//m_runesState;
+        uint8 v2 = 0;//((Player*)m_caster)->GetRunesState();
+        data << uint8(v1);                                  // runes state before
+        data << uint8(v2);                                  // runes state after
+        for(uint8 i = 0; i < MAX_RUNES; ++i)
+        {
+            uint8 m = (1 << i);
+            if(m & v1)                                      // usable before...
+                if(!(m & v2))                               // ...but on cooldown now...
+                    data << uint8(0);                       // some unknown byte (time?)
+        }
     }
 
     if ( castFlags & CAST_FLAG_AMMO )
@@ -2699,17 +2696,20 @@ void Spell::SendSpellGo()
     if(!IsNeedSendToClient())
         return;
 
-    sLog.outDebug("Sending SMSG_SPELL_GO id=%u",m_spellInfo->Id);
+    sLog.outDebug("Sending SMSG_SPELL_GO id=%u", m_spellInfo->Id);
 
-    Unit * target;
-    if(!m_targets.getUnitTarget())
-        target = m_caster;
-    else
-        target = m_targets.getUnitTarget();
+    Unit *target = m_targets.getUnitTarget() ? m_targets.getUnitTarget() : m_caster;
 
     uint32 castFlags = CAST_FLAG_UNKNOWN3;
     if(IsRangedSpell())
-        castFlags |= CAST_FLAG_AMMO;
+        castFlags |= CAST_FLAG_AMMO;                        // arrows/bullets visual
+
+    if((m_caster->GetTypeId() == TYPEID_PLAYER) && (m_caster->getClass() == CLASS_DEATH_KNIGHT) && m_spellInfo->runeCostID)
+    {
+        castFlags |= CAST_FLAG_UNKNOWN10;                   // same as in SMSG_SPELL_START
+        castFlags |= CAST_FLAG_UNKNOWN6;                    // makes cooldowns visible
+        castFlags |= CAST_FLAG_UNKNOWN7;                    // rune cooldowns list
+    }
 
     WorldPacket data(SMSG_SPELL_GO, 50);                    // guess size
     if(m_CastItem)
@@ -2719,27 +2719,30 @@ void Spell::SendSpellGo()
 
     data.append(m_caster->GetPackGUID());
     data << uint8(m_cast_count);                            // pending spell cast?
-    data << uint32(m_spellInfo->Id);
-    data << uint32(castFlags);
+    data << uint32(m_spellInfo->Id);                        // spellId
+    data << uint32(castFlags);                              // cast flags
     data << uint32(getMSTime());                            // timestamp
 
     WriteSpellGoTargets(&data);
 
     m_targets.write(&data);
 
-    if ( castFlags & CAST_FLAG_UNKNOWN6 )                   // unknown wotlk
+    if ( castFlags & CAST_FLAG_UNKNOWN6 )                   // unknown wotlk, predicted power?
         data << uint32(0);
 
-    if ( castFlags & CAST_FLAG_UNKNOWN7 )
+    if ( castFlags & CAST_FLAG_UNKNOWN7 )                   // rune cooldowns list
     {
-        uint8 v1 = 0;
-        uint8 v2 = 0;
-        data << v1; // v1
-        data << v2; // v2
-        for(uint8 i = 0; i < 6; ++i)
-            if((1 << i) & v1)
-                if(!(1 << i) & v2)
-                    data << uint8(0);
+        uint8 v1 = m_runesState;
+        uint8 v2 = ((Player*)m_caster)->GetRunesState();
+        data << uint8(v1);                                  // runes state before
+        data << uint8(v2);                                  // runes state after
+        for(uint8 i = 0; i < MAX_RUNES; ++i)
+        {
+            uint8 m = (1 << i);
+            if(m & v1)                                      // usable before...
+                if(!(m & v2))                               // ...but on cooldown now...
+                    data << uint8(0);                       // some unknown byte (time?)
+        }
     }
 
     if ( castFlags & CAST_FLAG_UNKNOWN4 )                   // unknown wotlk
@@ -3126,11 +3129,127 @@ void Spell::TakePower()
 
     Powers powerType = Powers(m_spellInfo->powerType);
 
+    if(powerType == POWER_RUNE)
+    {
+        TakeRunePower();
+        return;
+    }
+
     m_caster->ModifyPower(powerType, -(int32)m_powerCost);
 
     // Set the five second timer
     if (powerType == POWER_MANA && m_powerCost > 0)
         m_caster->SetLastManaUse(getMSTime());
+}
+
+uint8 Spell::CheckRuneCost(uint32 runeCostID)
+{
+    if(m_caster->GetTypeId() != TYPEID_PLAYER)
+        return 0;
+
+    Player *plr = (Player*)m_caster;
+
+    if(plr->getClass() != CLASS_DEATH_KNIGHT)
+        return 0;
+
+    SpellRuneCostEntry const *src = sSpellRuneCostStore.LookupEntry(runeCostID);
+
+    if(!src)
+        return 0;
+
+    if(src->NoRuneCost())
+        return 0;
+
+    int32 runeCost[NUM_RUNE_TYPES];                         // blood, frost, unholy, death
+
+    for(uint32 i = 0; i < RUNE_DEATH; ++i)
+    {
+        runeCost[i] = src->RuneCost[i];
+    }
+
+    runeCost[RUNE_DEATH] = 0;                               // calculated later
+
+    for(uint32 i = 0; i < MAX_RUNES; ++i)
+    {
+        uint8 rune = plr->GetCurrentRune(i);
+        if((plr->GetRuneCooldown(i) == 0) && (runeCost[rune] > 0))
+        {
+            runeCost[rune]--;
+        }
+    }
+
+    for(uint32 i = 0; i < RUNE_DEATH; ++i)
+    {
+        if(runeCost[i] > 0)
+        {
+            runeCost[RUNE_DEATH] += runeCost[i];
+        }
+    }
+
+    if(runeCost[RUNE_DEATH] > 0)
+        return SPELL_FAILED_NO_POWER;                       // not sure if result code is correct
+
+    return 0;
+}
+
+void Spell::TakeRunePower()
+{
+    if(m_caster->GetTypeId() != TYPEID_PLAYER)
+        return;
+
+    Player *plr = (Player*)m_caster;
+
+    if(plr->getClass() != CLASS_DEATH_KNIGHT)
+        return;
+
+    SpellRuneCostEntry const *src = sSpellRuneCostStore.LookupEntry(m_spellInfo->runeCostID);
+
+    if(!src || (src->NoRuneCost() && src->NoRunicPowerGain()))
+        return;
+
+    m_runesState = plr->GetRunesState();                    // store previous state
+
+    int32 runeCost[NUM_RUNE_TYPES];                         // blood, frost, unholy, death
+
+    for(uint32 i = 0; i < RUNE_DEATH; ++i)
+    {
+        runeCost[i] = src->RuneCost[i];
+    }
+
+    runeCost[RUNE_DEATH] = 0;                               // calculated later
+
+    for(uint32 i = 0; i < MAX_RUNES; ++i)
+    {
+        uint8 rune = plr->GetCurrentRune(i);
+        if((plr->GetRuneCooldown(i) == 0) && (runeCost[rune] > 0))
+        {
+            plr->SetRuneCooldown(i, RUNE_COOLDOWN);         // 5*2=10 sec
+            runeCost[rune]--;
+        }
+    }
+
+    runeCost[RUNE_DEATH] = runeCost[RUNE_BLOOD] + runeCost[RUNE_UNHOLY] + runeCost[RUNE_FROST];
+
+    if(runeCost[RUNE_DEATH] > 0)
+    {
+        for(uint32 i = 0; i < MAX_RUNES; ++i)
+        {
+            uint8 rune = plr->GetCurrentRune(i);
+            if((plr->GetRuneCooldown(i) == 0) && (rune == RUNE_DEATH))
+            {
+                plr->SetRuneCooldown(i, RUNE_COOLDOWN);     // 5*2=10 sec
+                runeCost[rune]--;
+                plr->ConvertRune(i, plr->GetBaseRune(i));
+                if(runeCost[RUNE_DEATH] == 0)
+                    break;
+            }
+        }
+    }
+
+    // you can gain some runic power when use runes
+    float rp = src->runePowerGain;;
+    rp *= sWorld.getRate(RATE_POWER_RUNICPOWER_INCOME);
+    plr->ModifyPower(POWER_RUNIC_POWER, (int32)rp);
 }
 
 void Spell::TakeReagents()
@@ -4051,7 +4170,7 @@ uint8 Spell::CanCast(bool strict)
                 if( form == FORM_CAT          || form == FORM_TREE      || form == FORM_TRAVEL   ||
                     form == FORM_AQUA         || form == FORM_BEAR      || form == FORM_DIREBEAR ||
                     form == FORM_CREATUREBEAR || form == FORM_GHOSTWOLF || form == FORM_FLIGHT   ||
-                    form == FORM_FLIGHT_EPIC  || form == FORM_MOONKIN )
+                    form == FORM_FLIGHT_EPIC  || form == FORM_MOONKIN   || form == FORM_METAMORPHOSIS )
                     return SPELL_FAILED_NOT_SHAPESHIFT;
 
                 break;
@@ -4442,6 +4561,11 @@ uint8 Spell::CheckPower()
         sLog.outError("Spell::CheckMana: Unknown power type '%d'", m_spellInfo->powerType);
         return SPELL_FAILED_UNKNOWN;
     }
+
+    uint8 failReason = CheckRuneCost(m_spellInfo->runeCostID);
+    if(failReason)
+        return failReason;
+
     // Check power amount
     Powers powerType = Powers(m_spellInfo->powerType);
     if(m_caster->GetPower(powerType) < m_powerCost)
@@ -4718,6 +4842,29 @@ uint8 Spell::CheckItems()
 
                 if(!LootTemplates_Prospecting.HaveLootFor(m_targets.getItemTargetEntry()))
                     return SPELL_FAILED_CANT_BE_PROSPECTED;
+
+                break;
+            }
+            case SPELL_EFFECT_MILLING:
+            {
+                if(!m_targets.getItemTarget())
+                    return SPELL_FAILED_CANT_BE_MILLED;
+                //ensure item is a millable herb
+                if(!(m_targets.getItemTarget()->GetProto()->BagFamily & BAG_FAMILY_MASK_HERBS) || m_targets.getItemTarget()->GetProto()->Class != ITEM_CLASS_TRADE_GOODS)
+                    return SPELL_FAILED_CANT_BE_MILLED;
+                //prevent milling in trade slot
+                if( m_targets.getItemTarget()->GetOwnerGUID() != m_caster->GetGUID() )
+                    return SPELL_FAILED_CANT_BE_MILLED;
+                //Check for enough skill in inscription
+                uint32 item_millingskilllevel = m_targets.getItemTarget()->GetProto()->RequiredSkillRank;
+                if(item_millingskilllevel >p_caster->GetSkillValue(SKILL_INSCRIPTION))
+                    return SPELL_FAILED_LOW_CASTLEVEL;
+                //make sure the player has the required herbs in inventory
+                if(m_targets.getItemTarget()->GetCount() < 5)
+                    return SPELL_FAILED_NEED_MORE_ITEMS;
+
+                if(!LootTemplates_Milling.HaveLootFor(m_targets.getItemTargetEntry()))
+                    return SPELL_FAILED_CANT_BE_MILLED;
 
                 break;
             }

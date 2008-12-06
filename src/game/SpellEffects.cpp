@@ -203,7 +203,7 @@ pEffect SpellEffects[TOTAL_SPELL_EFFECTS]=
     &Spell::EffectApplyAreaAura,                            //143 SPELL_EFFECT_APPLY_AREA_AURA_OWNER
     &Spell::EffectNULL,                                     //144 SPELL_EFFECT_144                      Spectral Blast
     &Spell::EffectNULL,                                     //145 SPELL_EFFECT_145                      Black Hole Effect
-    &Spell::EffectUnused,                                   //146 SPELL_EFFECT_146                      unused
+    &Spell::EffectActivateRune,                             //146 SPELL_EFFECT_ACTIVATE_RUNE
     &Spell::EffectQuestFail,                                //147 SPELL_EFFECT_QUEST_FAIL               quest fail
     &Spell::EffectUnused,                                   //148 SPELL_EFFECT_148                      unused
     &Spell::EffectNULL,                                     //149 SPELL_EFFECT_149                      swoop
@@ -215,7 +215,7 @@ pEffect SpellEffects[TOTAL_SPELL_EFFECTS]=
     &Spell::EffectNULL,                                     //155 Allows you to equip two-handed axes, maces and swords in one hand, but you attack $49152s1% slower than normal.
     &Spell::EffectNULL,                                     //156 Add Socket
     &Spell::EffectNULL,                                     //157 create/learn random item/spell for profession
-    &Spell::EffectNULL,                                     //158 milling
+    &Spell::EffectMilling,                                  //158 milling
     &Spell::EffectNULL                                      //159 allow rename pet once again
 };
 
@@ -902,7 +902,7 @@ void Spell::EffectDummy(uint32 i)
                     if (!m_caster->HasAuraType(SPELL_AURA_MOUNTED))
                         return;
 
-                    float flyspeed = m_caster->GetSpeedRate(MOVE_FLY);
+                    float flyspeed = m_caster->GetSpeedRate(MOVE_FLIGHT);
                     float speed = m_caster->GetSpeedRate(MOVE_RUN);
 
                     m_caster->RemoveSpellsCausingAura(SPELL_AURA_MOUNTED);
@@ -6184,6 +6184,28 @@ void Spell::EffectProspecting(uint32 /*i*/)
     ((Player*)m_caster)->SendLoot(itemTarget->GetGUID(), LOOT_PROSPECTING);
 }
 
+void Spell::EffectMilling(uint32 /*i*/)
+{
+    if(m_caster->GetTypeId() != TYPEID_PLAYER)
+        return;
+
+    Player* p_caster = (Player*)m_caster;
+    if(!itemTarget || !(itemTarget->GetProto()->BagFamily & BAG_FAMILY_MASK_HERBS))
+        return;
+
+    if(itemTarget->GetCount() < 5)
+        return;
+
+    if( sWorld.getConfig(CONFIG_SKILL_MILLING))
+    {
+        uint32 SkillValue = p_caster->GetPureSkillValue(SKILL_INSCRIPTION);
+        uint32 reqSkillValue = itemTarget->GetProto()->RequiredSkillRank;
+        p_caster->UpdateGatherSkill(SKILL_INSCRIPTION, SkillValue, reqSkillValue);
+    }
+
+    ((Player*)m_caster)->SendLoot(itemTarget->GetGUID(), LOOT_MILLING);
+}
+
 void Spell::EffectSkill(uint32 /*i*/)
 {
     sLog.outDebug("WORLD: SkillEFFECT");
@@ -6329,4 +6351,23 @@ void Spell::EffectQuestFail(uint32 i)
         return;
 
     ((Player*)unitTarget)->FailQuest(m_spellInfo->EffectMiscValue[i]);
+}
+
+void Spell::EffectActivateRune(uint32 i)
+{
+    if(m_caster->GetTypeId() != TYPEID_PLAYER)
+        return;
+
+    Player *plr = (Player*)m_caster;
+
+    if(plr->getClass() != CLASS_DEATH_KNIGHT)
+        return;
+
+    for(uint32 j = 0; j < MAX_RUNES; ++j)
+    {
+        if(plr->GetRuneCooldown(j) && plr->GetCurrentRune(j) == m_spellInfo->EffectMiscValue[i])
+        {
+            plr->SetRuneCooldown(j, 0);
+        }
+    }
 }

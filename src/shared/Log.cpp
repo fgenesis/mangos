@@ -190,7 +190,6 @@ void Log::Initialize()
         if((m_logsDir.at(m_logsDir.length()-1)!='/') && (m_logsDir.at(m_logsDir.length()-1)!='\\'))
             m_logsDir.append("/");
     }
-    _logsDir = logsDir;
 
     m_logsTimestamp = "_" + GetTimestampStr();
 
@@ -797,28 +796,6 @@ void error_db_log(const char * str, ...)
     va_end(ap);
 
     MaNGOS::Singleton<Log>::Instance().outErrorDb(buf);
-}
-
-void Log::outCommandForAcc( uint32 acc, const char * str, ... )
-{
-    if( !str ) return;
-    va_list ap;
-
-    std::stringstream fn;
-    fn << _logsDir << "gm_log_acc_" << acc << ".txt";
-    FILE *fh;
-    fh = fopen(fn.str().c_str(),"a");
-    if(fh)
-    {
-        outTimestamp(fh);
-        va_start(ap, str);
-        vfprintf(fh, str, ap);
-        fprintf(fh, "\n" );
-        va_end(ap);
-        fflush(fh);
-        fclose(fh);
-    }
-
 }
 
 void Log::outCharDump( const char * str, uint32 account_id, uint32 guid, const char * name )

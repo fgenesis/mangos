@@ -144,6 +144,7 @@ enum ShapeshiftForm
     FORM_BERSERKERSTANCE    = 0x13,
     FORM_TEST               = 0x14,
     FORM_ZOMBIE             = 0x15,
+    FORM_METAMORPHOSIS      = 0x16,
     FORM_FLIGHT_EPIC        = 0x1B,
     FORM_SHADOW             = 0x1C,
     FORM_FLIGHT             = 0x1D,
@@ -167,7 +168,7 @@ enum UnitBytes2_Flags
     UNIT_BYTE2_FLAG_UNK1        = 0x02,
     UNIT_BYTE2_FLAG_FFA_PVP     = 0x04,
     UNIT_BYTE2_FLAG_SANCTUARY   = 0x08,
-    UNIT_BYTE2_FLAG_AURAS       = 0x10,                     // show positive auras as positive, and allow its dispel
+    UNIT_BYTE2_FLAG_UNK4        = 0x10,
     UNIT_BYTE2_FLAG_UNK5        = 0x20,
     UNIT_BYTE2_FLAG_UNK6        = 0x40,
     UNIT_BYTE2_FLAG_UNK7        = 0x80
@@ -300,11 +301,13 @@ enum UnitMods
     UNIT_MOD_STAT_INTELLECT,
     UNIT_MOD_STAT_SPIRIT,
     UNIT_MOD_HEALTH,
-    UNIT_MOD_MANA,                                          // UNIT_MOD_MANA..UNIT_MOD_HAPPINESS must be in existed order, it's accessed by index values of Powers enum.
+    UNIT_MOD_MANA,                                          // UNIT_MOD_MANA..UNIT_MOD_RUNIC_POWER must be in existed order, it's accessed by index values of Powers enum.
     UNIT_MOD_RAGE,
     UNIT_MOD_FOCUS,
     UNIT_MOD_ENERGY,
     UNIT_MOD_HAPPINESS,
+    UNIT_MOD_RUNE,
+    UNIT_MOD_RUNIC_POWER,
     UNIT_MOD_ARMOR,                                         // UNIT_MOD_ARMOR..UNIT_MOD_RESISTANCE_ARCANE must be in existed order, it's accessed by index values of SpellSchools enum.
     UNIT_MOD_RESISTANCE_HOLY,
     UNIT_MOD_RESISTANCE_FIRE,
@@ -324,7 +327,7 @@ enum UnitMods
     UNIT_MOD_RESISTANCE_START = UNIT_MOD_ARMOR,
     UNIT_MOD_RESISTANCE_END = UNIT_MOD_RESISTANCE_ARCANE + 1,
     UNIT_MOD_POWER_START = UNIT_MOD_MANA,
-    UNIT_MOD_POWER_END = UNIT_MOD_HAPPINESS + 1
+    UNIT_MOD_POWER_END = UNIT_MOD_RUNIC_POWER + 1
 };
 
 enum BaseModGroup
@@ -376,18 +379,18 @@ enum UnitState
 
 enum UnitMoveType
 {
-    MOVE_WALK       = 0,
-    MOVE_RUN        = 1,
-    MOVE_WALKBACK   = 2,
-    MOVE_SWIM       = 3,
-    MOVE_SWIMBACK   = 4,
-    MOVE_TURN       = 5,
-    MOVE_FLY        = 6,
-    MOVE_FLYBACK    = 7,
-    MOVE_PITCH      = 8
+    MOVE_WALK           = 0,
+    MOVE_RUN            = 1,
+    MOVE_RUN_BACK       = 2,
+    MOVE_SWIM           = 3,
+    MOVE_SWIM_BACK      = 4,
+    MOVE_TURN_RATE      = 5,
+    MOVE_FLIGHT         = 6,
+    MOVE_FLIGHT_BACK    = 7,
+    MOVE_PITCH_RATE     = 8
 };
 
-#define MAX_MOVE_TYPE 9
+#define MAX_MOVE_TYPE     9
 
 extern float baseMoveSpeed[MAX_MOVE_TYPE];
 
@@ -1149,7 +1152,7 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         AuraList const& GetSingleCastAuras() const { return m_scAuras; }
         SpellImmuneList m_spellImmune[MAX_SPELL_IMMUNITY];
 
-        // Threat related methodes
+        // Threat related methods
         bool CanHaveThreatList() const;
         void AddThreat(Unit* pVictim, float threat, SpellSchoolMask schoolMask = SPELL_SCHOOL_MASK_NORMAL, SpellEntry const *threatSpell = NULL);
         float ApplyTotalThreatModifier(float threat, SpellSchoolMask schoolMask = SPELL_SCHOOL_MASK_NORMAL);

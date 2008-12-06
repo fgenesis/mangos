@@ -224,6 +224,39 @@ struct Areas
     float y2;
 };
 
+#define MAX_RUNES       6
+#define RUNE_COOLDOWN   5                                   // 5*2=10 sec
+
+enum RuneType
+{
+    RUNE_BLOOD      = 0,
+    RUNE_UNHOLY     = 1,
+    RUNE_FROST      = 2,
+    RUNE_DEATH      = 3,
+    NUM_RUNE_TYPES  = 4
+};
+
+struct RuneInfo
+{
+    uint8 BaseRune;
+    uint8 CurrentRune;
+    uint8 Cooldown;
+};
+
+struct Runes
+{
+    RuneInfo runes[MAX_RUNES];
+    uint8 runeState;                                        // mask of available runes
+
+    void SetRuneState(uint8 index, bool set = true)
+    {
+        if(set)
+            runeState |= (1 << index);                      // usable
+        else
+            runeState &= ~(1 << index);                     // on cooldown
+    }
+};
+
 enum FactionFlags
 {
     FACTION_FLAG_VISIBLE            = 0x01,                 // makes visible in client (set or can be set at interaction with target of this faction)
@@ -481,7 +514,8 @@ enum LootType
     LOOT_DISENCHANTING          = 5,                        // unsupported by client, sending LOOT_SKINNING instead
     LOOT_PROSPECTING            = 6,                        // unsupported by client, sending LOOT_SKINNING instead
     LOOT_INSIGNIA               = 7,                        // unsupported by client, sending LOOT_SKINNING instead
-    LOOT_FISHINGHOLE            = 8                         // unsupported by client, sending LOOT_FISHING instead
+    LOOT_FISHINGHOLE            = 8,                        // unsupported by client, sending LOOT_FISHING instead
+    LOOT_MILLING                = 9                         // unsupported by client, sending LOOT_SKINNING instead
 };
 
 enum MirrorTimerType
@@ -520,10 +554,10 @@ typedef std::map<uint32, QuestStatusData> QuestStatusMap;
 
 enum QuestSlotOffsets
 {
-    QUEST_ID_OFFSET = 0,
-    QUEST_STATE_OFFSET = 1,
+    QUEST_ID_OFFSET     = 0,
+    QUEST_STATE_OFFSET  = 1,
     QUEST_COUNTS_OFFSET = 2,
-    QUEST_TIME_OFFSET = 3
+    QUEST_TIME_OFFSET   = 3
 };
 
 #define MAX_QUEST_OFFSET 4
@@ -2069,7 +2103,17 @@ class MANGOS_DLL_SPEC Player : public Unit
         WorldLocation& GetTeleportDest() { return m_teleport_dest; }
 
         DeclinedName const* GetDeclinedNames() const { return m_declinedname; }
-
+        uint8 GetRunesState() const { return m_runes->runeState; }
+        uint8 GetBaseRune(uint8 index) const { return m_runes->runes[index].BaseRune; }
+        uint8 GetCurrentRune(uint8 index) const { return m_runes->runes[index].CurrentRune; }
+        uint8 GetRuneCooldown(uint8 index) const { return m_runes->runes[index].Cooldown; }
+        void SetBaseRune(uint8 index, uint8 baseRune) { m_runes->runes[index].BaseRune = baseRune; }
+        void SetCurrentRune(uint8 index, uint8 currentRune) { m_runes->runes[index].CurrentRune = currentRune; }
+        void SetRuneCooldown(uint8 index, uint8 cooldown) { m_runes->runes[index].Cooldown = cooldown; m_runes->SetRuneState(index, (cooldown == 0) ? true : false); }
+        void ConvertRune(uint8 index, uint8 newType);
+        void ResyncRunes(uint8 count);
+        void AddRunePower(uint8 index);
+        void InitRunes();
         AchievementMgr& GetAchievementMgr() { return m_achievementMgr; }
 
 
@@ -2311,6 +2355,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         WorldLocation m_teleport_dest;
 
         DeclinedName *m_declinedname;
+        Runes *m_runes;
         AchievementMgr m_achievementMgr;
     private:
         // internal common parts for CanStore/StoreItem functions

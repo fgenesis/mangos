@@ -652,7 +652,7 @@ enum SpellEffects
     SPELL_EFFECT_APPLY_AREA_AURA_OWNER     = 143,
     SPELL_EFFECT_144                       = 144,
     SPELL_EFFECT_145                       = 145,
-    SPELL_EFFECT_146                       = 146,
+    SPELL_EFFECT_ACTIVATE_RUNE             = 146,
     SPELL_EFFECT_QUEST_FAIL                = 147,
     SPELL_EFFECT_148                       = 148,
     SPELL_EFFECT_149                       = 149,
@@ -664,7 +664,7 @@ enum SpellEffects
     SPELL_EFFECT_155                       = 155,
     SPELL_EFFECT_156                       = 156,
     SPELL_EFFECT_157                       = 157,
-    SPELL_EFFECT_158                       = 158,
+    SPELL_EFFECT_MILLING                   = 158,
     SPELL_EFFECT_159                       = 159,
     TOTAL_SPELL_EFFECTS                    = 160
 };
@@ -1817,6 +1817,7 @@ inline uint32 SkillByQuestSort(int32 QuestSort)
         case QUEST_SORT_COOKING:        return SKILL_COOKING;
         case QUEST_SORT_FIRST_AID:      return SKILL_FIRST_AID;
         case QUEST_SORT_JEWELCRAFTING:  return SKILL_JEWELCRAFTING;
+        case QUEST_SORT_INSCRIPTION:    return SKILL_INSCRIPTION;
     }
     return 0;
 }

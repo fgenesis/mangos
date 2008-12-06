@@ -299,7 +299,7 @@ pAuraHandler AuraHandler[TOTAL_AURAS]=
     &Aura::HandleUnused,                                    //246 unused
     &Aura::HandleUnused,                                    //247 unused
     &Aura::HandleNoImmediateEffect,                         //248 SPELL_AURA_MOD_COMBAT_RESULT_CHANCE         implemented in Unit::RollMeleeOutcomeAgainst
-    &Aura::HandleNULL,                                      //249
+    &Aura::HandleAuraConvertRune,                           //249 SPELL_AURA_CONVERT_RUNE
     &Aura::HandleAuraModIncreaseHealth,                     //250 SPELL_AURA_MOD_INCREASE_HEALTH_2
     &Aura::HandleNULL,                                      //251 SPELL_AURA_MOD_ENEMY_DODGE
     &Aura::HandleNULL,                                      //252
@@ -332,7 +332,7 @@ pAuraHandler AuraHandler[TOTAL_AURAS]=
     &Aura::HandleNULL,                                      //279
     &Aura::HandleNULL,                                      //280 ignore armor?
     &Aura::HandleNULL,                                      //281 increase honor gain?
-    &Aura::HandleNULL,                                      //282
+    &Aura::HandleAuraIncreaseBaseHealthPercent,             //282 SPELL_AURA_INCREASE_BASE_HEALTH_PERCENT
     &Aura::HandleNULL                                       //283 SPD/heal from AP?
 };
 
@@ -423,7 +423,7 @@ m_periodicTimer(0), m_PeriodicEventId(0), m_AuraDRGroup(DIMINISHING_NONE)
             modOwner->ApplySpellMod(GetId(), SPELLMOD_CHARGES, m_procCharges);
     }
     else
-        m_procCharges = 0;
+        m_procCharges = -1;
 
     m_isRemovedOnShapeLost = (m_caster_guid==m_target->GetGUID() && m_spellProto->Stances &&
                             !(m_spellProto->AttributesEx2 & 0x80000) && !(m_spellProto->Attributes & 0x10000));
@@ -1124,7 +1124,7 @@ void Aura::SendAuraUpdate(bool remove)
     uint8 auraFlags = GetAuraFlags();
     data << uint8(auraFlags);
     data << uint8(GetAuraLevel());
-    data << uint8(GetAuraCharges());
+    data << uint8(m_procCharges >= 0 ? m_procCharges : 0);
 
     if(!(auraFlags & AFLAG_NOT_CASTER))
     {
@@ -3707,7 +3707,7 @@ void Aura::HandleAuraModIncreaseFlightSpeed(bool apply, bool Real)
             m_target->SetUInt32Value(UNIT_FIELD_MOUNTDISPLAYID,16314);
     }
 
-    m_target->UpdateSpeed(MOVE_FLY, true);
+    m_target->UpdateSpeed(MOVE_FLIGHT, true);
 }
 
 void Aura::HandleAuraModIncreaseSwimSpeed(bool /*apply*/, bool Real)
@@ -3727,7 +3727,7 @@ void Aura::HandleAuraModDecreaseSpeed(bool /*apply*/, bool Real)
 
     m_target->UpdateSpeed(MOVE_RUN, true);
     m_target->UpdateSpeed(MOVE_SWIM, true);
-    m_target->UpdateSpeed(MOVE_FLY, true);
+    m_target->UpdateSpeed(MOVE_FLIGHT, true);
 }
 
 void Aura::HandleAuraModUseNormalSpeed(bool /*apply*/, bool Real)
@@ -3738,7 +3738,7 @@ void Aura::HandleAuraModUseNormalSpeed(bool /*apply*/, bool Real)
 
     m_target->UpdateSpeed(MOVE_RUN,  true);
     m_target->UpdateSpeed(MOVE_SWIM, true);
-    m_target->UpdateSpeed(MOVE_FLY,  true);
+    m_target->UpdateSpeed(MOVE_FLIGHT,  true);
 }
 
 /*********************************************************/
@@ -4727,22 +4727,30 @@ void Aura::HandleAuraModIncreaseEnergy(bool apply, bool Real)
     if(int32(powerType) != m_modifier.m_miscvalue)
         return;
 
-    m_target->HandleStatModifier(UnitMods(UNIT_MOD_POWER_START + powerType), TOTAL_VALUE, float(m_modifier.m_amount), apply);
+    UnitMods unitMod = UnitMods(UNIT_MOD_POWER_START + powerType);
+
+    m_target->HandleStatModifier(unitMod, TOTAL_VALUE, float(m_modifier.m_amount), apply);
 }
 
-void Aura::HandleAuraModIncreaseEnergyPercent(bool apply, bool Real)
+void Aura::HandleAuraModIncreaseEnergyPercent(bool apply, bool /*Real*/)
 {
     Powers powerType = m_target->getPowerType();
     if(int32(powerType) != m_modifier.m_miscvalue)
         return;
 
-    m_target->HandleStatModifier(UnitMods(UNIT_MOD_POWER_START + powerType), TOTAL_PCT, float(m_modifier.m_amount), apply);
+    UnitMods unitMod = UnitMods(UNIT_MOD_POWER_START + powerType);
+
+    m_target->HandleStatModifier(unitMod, TOTAL_PCT, float(m_modifier.m_amount), apply);
 }
 
-void Aura::HandleAuraModIncreaseHealthPercent(bool apply, bool Real)
+void Aura::HandleAuraModIncreaseHealthPercent(bool apply, bool /*Real*/)
 {
-    //m_target->ApplyMaxHealthPercentMod(m_modifier.m_amount,apply);
     m_target->HandleStatModifier(UNIT_MOD_HEALTH, TOTAL_PCT, float(m_modifier.m_amount), apply);
+}
+
+void Aura::HandleAuraIncreaseBaseHealthPercent(bool apply, bool /*Real*/)
+{
+    m_target->HandleStatModifier(UNIT_MOD_HEALTH, BASE_PCT, float(m_modifier.m_amount), apply);
 }
 
 /********************************/
@@ -6393,6 +6401,41 @@ void Aura::HandleAuraControlVehicle(bool apply, bool Real)
     if(Pet *pet = m_target->GetPet())
         pet->Remove(PET_SAVE_AS_CURRENT);
 
-    WorldPacket data(SMSG_UNKNOWN_1181, 0);
+    WorldPacket data(SMSG_SHOW_VEHICLE_UI, 0);
     ((Player*)m_target)->GetSession()->SendPacket(&data);
+}
+
+void Aura::HandleAuraConvertRune(bool apply, bool Real)
+{
+    if(!Real)
+        return;
+
+    if(m_target->GetTypeId() != TYPEID_PLAYER)
+        return;
+
+    Player *plr = (Player*)m_target;
+
+    if(plr->getClass() != CLASS_DEATH_KNIGHT)
+        return;
+
+    // how to determine what rune need to be converted?
+    for(uint32 i = 0; i < MAX_RUNES; ++i)
+    {
+        if(apply)
+        {
+            if(!plr->GetRuneCooldown(i))
+            {
+                plr->ConvertRune(i, GetSpellProto()->EffectMiscValueB[m_effIndex]);
+                break;
+            }
+        }
+        else
+        {
+            if(plr->GetCurrentRune(i) == GetSpellProto()->EffectMiscValueB[m_effIndex])
+            {
+                plr->ConvertRune(i, plr->GetBaseRune(i));
+                break;
+            }
+        }
+    }
 }
