@@ -464,6 +464,8 @@ class ChatHandler
         bool HandleAnticheatOptionCommand(const char *args);
         bool HandleAHExpireCommand(const char *args);
         bool HandleAHDeleteCommand(const char *args);
+        bool HandleSetXPMultiKillCommand(const char *args);
+        bool HandleSetXPMultiQuestCommand(const char *args);
         
         // end PE commands
 

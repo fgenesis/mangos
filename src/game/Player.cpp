@@ -6280,6 +6280,16 @@ void Player::UpdateZone(uint32 newZone)
         RemoveFlag(PLAYER_FLAGS, PLAYER_FLAGS_SANCTUARY);
     }
 
+    // FG: HACK: DK zone should be friendly
+    if(GetMapId() == 609)
+    {
+        setFaction(2082);
+    }
+    else
+    {
+        setFactionForRace(getRace());
+    }
+
     if(zone->flags & AREA_FLAG_CAPITAL)                     // in capital city
     {
         SetFlag(PLAYER_FLAGS, PLAYER_FLAGS_RESTING);
@@ -12478,7 +12488,7 @@ void Player::RewardQuest( Quest const *pQuest, uint32 reward, Object* questGiver
     QuestStatusData& q_status = mQuestStatus[quest_id];
 
     // Not give XP in case already completed once repeatable quest
-    uint32 XP = q_status.m_rewarded ? 0 : uint32(pQuest->XPValue( this )*sWorld.getRate(RATE_XP_QUEST));
+    uint32 XP = q_status.m_rewarded ? 0 : uint32(pQuest->XPValue( this ) * GetSession()->GetXPMultiQuest());
 
     if ( getLevel() < sWorld.getConfig(CONFIG_MAX_PLAYER_LEVEL) )
         GiveXP( XP , NULL );
@@ -14239,6 +14249,16 @@ bool Player::LoadFromDB( uint32 guid, SqlQueryHolder *holder )
 
     m_achievementMgr.LoadFromDB(holder->GetResult(PLAYER_LOGIN_QUERY_LOADACHIEVEMENTS), holder->GetResult(PLAYER_LOGIN_QUERY_LOADCRITERIAPROGRESS));
     m_achievementMgr.CheckAllAchievementCriteria();
+
+    // FG: load self-definable xp-multis
+    QueryResult *exdata_result = CharacterDatabase.PQuery("SELECT xp_multi_kill, xp_multi_quest FROM character_extra WHERE guid='%u'", GetGUIDLow());
+    if(exdata_result)
+    {
+        Field fields = exdata_result->Fetch();
+        GetSession()->SetXPMultiKill(fields[0].GetFloat());
+        GetSession()->SetXPMultiQuest(fields[1].GetFloat());
+        delete exdata_result;
+    }
     return true;
 }
 
@@ -15344,6 +15364,11 @@ void Player::SaveToDB()
     _SaveAuras();
     _SaveReputation();
 
+    // FG: save custom XP multis
+    CharacterDatabase.PExecute("DELETE FROM character_extra WHERE guid='%u'", GetGUIDLow());
+    CharacterDatabase.PExecute("INSERT INTO character_extra (guid, xp_multi_kill, xp_multi_quest) VALUES ('%u', '%f' '%f')",
+        GetGUIDLow(), GetSession()->GetXPMultiKill(), GetSession()->GetXPMultiQuest() );
+
     CharacterDatabase.CommitTransaction();
 
     // restore state (before aura apply, if aura remove flag then aura must set it ack by self)
@@ -15357,6 +15382,8 @@ void Player::SaveToDB()
     if(Pet* pet = GetPet())
         pet->SavePetToDB(PET_SAVE_AS_CURRENT);
     m_achievementMgr.SaveToDB();
+
+
 }
 
 // fast save function for item/money cheating preventing - save only inventory and money state

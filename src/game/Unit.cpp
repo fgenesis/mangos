@@ -365,7 +365,7 @@ void Unit::SendMonsterMove(float NewPosX, float NewPosY, float NewPosZ, uint8 ty
     }
 
     //Movement Flags (0x0 = walk, 0x100 = run, 0x200 = fly/swim)
-    data << uint32(MovementFlags);
+    data << uint32(GetTypeId() == TYPEID_PLAYER ? MOVEMENTFLAG_WALK_MODE : MovementFlags); // FG: workaround for slow walk, by thenecromancer
 
     data << Time;                                           // Time in between points
     data << uint32(1);                                      // 1 single waypoint
@@ -7980,6 +7980,12 @@ int32 Unit::SpellBaseHealingBonus(SpellSchoolMask schoolMask)
 
     AuraList const& mHealingDone = GetAurasByType(SPELL_AURA_MOD_HEALING_DONE);
     for(AuraList::const_iterator i = mHealingDone.begin();i != mHealingDone.end(); ++i)
+        if(((*i)->GetModifier()->m_miscvalue & schoolMask) != 0)
+            AdvertisedBenefit += (*i)->GetModifier()->m_amount;
+
+    // FG: use also dmg value for heal bonus to get near pre-3.0.x value
+    AuraList const& mDamageDone = GetAurasByType(SPELL_AURA_MOD_DAMAGE_DONE);
+    for(AuraList::const_iterator i = mDamageDone.begin();i != mDamageDone.end(); ++i)
         if(((*i)->GetModifier()->m_miscvalue & schoolMask) != 0)
             AdvertisedBenefit += (*i)->GetModifier()->m_amount;
 

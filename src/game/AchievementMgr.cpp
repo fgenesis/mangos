@@ -281,7 +281,7 @@ void AchievementMgr::LoadFromDB(QueryResult *achievementResult, QueryResult *cri
 
 void AchievementMgr::SendAchievementEarned(AchievementEntry const* achievement)
 {
-    sLog.outString("AchievementMgr::SendAchievementEarned(%u)", achievement->ID);
+    DEBUG_LOG("AchievementMgr::SendAchievementEarned(%u)", achievement->ID);
 
     const char *msg = "|Hplayer:$N|h[$N]|h has earned the achievement $a!";
     if(Guild* guild = objmgr.GetGuildById(GetPlayer()->GetGuildId()))
@@ -363,7 +363,7 @@ void AchievementMgr::CheckAllAchievementCriteria()
  */
 void AchievementMgr::UpdateAchievementCriteria(AchievementCriteriaTypes type, uint32 miscvalue1, uint32 miscvalue2, Unit *unit, uint32 time)
 {
-    sLog.outString("AchievementMgr::UpdateAchievementCriteria(%u, %u, %u, %u)", type, miscvalue1, miscvalue2, time);
+    DEBUG_LOG("AchievementMgr::UpdateAchievementCriteria(%u, %u, %u, %u)", type, miscvalue1, miscvalue2, time);
     AchievementCriteriaEntryList const& achievementCriteriaList = objmgr.GetAchievementCriteriaByType(type);
     for(AchievementCriteriaEntryList::const_iterator i = achievementCriteriaList.begin(); i!=achievementCriteriaList.end(); ++i)
     {
@@ -802,7 +802,7 @@ void AchievementMgr::SetCriteriaProgress(AchievementCriteriaEntry const* entry, 
 
 void AchievementMgr::CompletedAchievement(AchievementEntry const* achievement)
 {
-    sLog.outString("AchievementMgr::CompletedAchievement(%u)", achievement->ID);
+    DEBUG_LOG("AchievementMgr::CompletedAchievement(%u)", achievement->ID);
     if(achievement->flags & ACHIEVEMENT_FLAG_COUNTER || m_completedAchievements.find(achievement->ID)!=m_completedAchievements.end())
         return;
 

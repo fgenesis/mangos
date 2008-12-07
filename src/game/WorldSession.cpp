@@ -47,6 +47,9 @@ _player(NULL), m_Socket(sock),_security(sec), _accountId(id), m_expansion(expans
 m_sessionDbcLocale(sWorld.GetAvailableDbcLocale(locale)), m_sessionDbLocaleIndex(objmgr.GetIndexForLocale(locale)),
 _logoutTime(0), m_inQueue(false), m_playerLoading(false), m_playerLogout(false), m_playerRecentlyLogout(false), m_latency(0)
 {
+    m_XPMultiKill  = sWorld.getRate(RATE_XP_KILL);
+    m_XPMultiQuest = sWorld.getRate(RATE_XP_QUEST);
+
     if (sock)
     {
         m_Address = sock->GetRemoteAddress ();
@@ -604,3 +607,21 @@ void WorldSession::ReadMovementInfo(WorldPacket &data, MovementInfo *mi)
         data >> mi->u_unk1;
     }
 }
+
+void WorldSession::SetXPMultiKill(float m)
+{
+    if(m < 1.0f)
+        m = 1.0f;
+    if(m > sWorld.getRate(RATE_XP_KILL))
+        m = sWorld.getRate(RATE_XP_KILL);
+    m_XPMultiKill = m;
+}
+void WorldSession::SetXPMultiQuest(float m)
+{
+    if(m < 1.0f)
+        m = 1.0f;
+    if(m > sWorld.getRate(RATE_XP_QUEST))
+        m = sWorld.getRate(RATE_XP_QUEST);
+    m_XPMultiQuest = m;
+}
+

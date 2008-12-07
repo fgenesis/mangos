@@ -529,6 +529,12 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder * holder)
         return;
     }
 
+    // FG: load myinfo
+    QueryResult *resultmyinfo = CharacterDatabase.PQuery("SELECT `msg` FROM `character_myinfo` WHERE `guid`='%u'",GUID_LOPART(playerGuid));
+    std::string myinf = (resultmyinfo) ? resultmyinfo->Fetch()[0].GetString() : "";
+    if(resultmyinfo)
+        delete resultmyinfo;
+
     SetPlayer(pCurrChar);
 
     pCurrChar->SendDungeonDifficulty(false);
@@ -794,14 +800,10 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder * holder)
     if(pCurrChar->isGameMaster())
         SendNotification(LANG_GM_ON);
 
-    // FG: .myinfo start
-    QueryResult *resultmyinfo = CharacterDatabase.PQuery("SELECT `msg` FROM `character_myinfo` WHERE `guid`='%u'",GUID_LOPART(playerGuid));
-    std::string myinf = (resultmyinfo) ? resultmyinfo->Fetch()[0].GetString() : "";
+    // FG: .myinfo msg start
     std::string inf = (myinf.empty()) ? "You have no personal information set. Use \".myinfo <msg>\" to set." : "Your current personal info message is: \""+myinf+"\"";
     ChatHandler(this).FillSystemMessageData(&data, inf.c_str());
     SendPacket( &data );
-    if(resultmyinfo)
-        delete resultmyinfo;
     // FG: end
 
     // FG: show uptime on login

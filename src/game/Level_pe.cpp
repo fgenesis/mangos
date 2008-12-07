@@ -768,4 +768,29 @@ bool ChatHandler::HandleAHDeleteCommand(const char* args)
     return true;
 }
 
+bool ChatHandler::HandleSetXPMultiKillCommand(const char *args)
+{
+    if(!args || !strlen(args))
+        return false;
+    float m = atof(args);
+    m_session->SetXPMultiKill(m);
+    char buf[50];
+    sprintf(buf, "Your kill XP multiplier has been set to: %.2f", m_session->GetXPMultiKill());
+    SendSysMessage(buf);
+    return true;
+}
+
+bool ChatHandler::HandleSetXPMultiQuestCommand(const char *args)
+{
+    if(!args || !strlen(args))
+        return false;
+    float m = atof(args);
+    m_session->SetXPMultiQuest(m);
+    char buf[50];
+    sprintf(buf, "Your quest XP multiplier has been set to: %.2f", m_session->GetXPMultiQuest());
+    SendSysMessage(buf);
+    return true;
+}
+
+
 

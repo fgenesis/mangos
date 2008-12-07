@@ -499,6 +499,14 @@ ChatCommand * ChatHandler::getCommandTable()
         { NULL, 0, NULL, "", NULL }
     };*/
 
+    static ChatCommand xpmultiCommandTable[] =
+    {
+        { "kill", SEC_PLAYER, false, &ChatHandler::HandleSetXPMultiKillCommand, "", NULL },
+        { "quest", SEC_PLAYER, false, &ChatHandler::HandleSetXPMultiQuestCommand, "", NULL },
+        { NULL, 0, false, NULL, "", NULL }
+
+    };
+
 
     static ChatCommand commandTable[] =
     {
@@ -614,6 +622,7 @@ ChatCommand * ChatHandler::getCommandTable()
         { "bindcreature", SEC_ADMINISTRATOR,false, &ChatHandler::HandleBindCreatureCommand, "", NULL },
         { "bindobject", SEC_ADMINISTRATOR,false, &ChatHandler::HandleBindObjectCommand, "", NULL },
         //{ "anticheat", SEC_ADMINISTRATOR, NULL, "", anticheatCommandTable },
+        { "xpmulti", SEC_ADMINISTRATOR,false, NULL, "", xpmultiCommandTable },
 
         // alternative defs
         { "morph", SEC_GAMEMASTER,false, &ChatHandler::HandleMorphCommand, "", NULL },
@@ -821,12 +830,6 @@ bool ChatHandler::ExecuteCommandInTable(ChatCommand *table, const char* text, st
                     sLog.outCommand(m_session->GetAccountId(),"Command: %s [Player: %s (Account: %u) X: %f Y: %f Z: %f Map: %u Selected: %s (GUID: %u)]",
                         fullcmd.c_str(),p->GetName(),m_session->GetAccountId(),p->GetPositionX(),p->GetPositionY(),p->GetPositionZ(),p->GetMapId(),
                         GetLogNameForGuid(sel_guid),GUID_LOPART(sel_guid));
-
-                    // FG: addition; use single log file for every gm acc.
-                    sLog.outCommandForAcc(m_session->GetAccountId(),"Command: %s [Player: %s (Account: %u) X: %f Y: %f Z: %f Map: %u Selected: %s (GUID: %u)]",
-                        fullcmd.c_str(),p->GetName(),m_session->GetAccountId(),p->GetPositionX(),p->GetPositionY(),p->GetPositionZ(),p->GetMapId(),
-                        (GUID_HIPART(sel_guid)==HIGHGUID_UNIT ? "creature" : (sel_guid !=0 ? "player" : "none")),
-                        GUID_LOPART(sel_guid));
                 }
             }
         }

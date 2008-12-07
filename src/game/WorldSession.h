@@ -665,6 +665,15 @@ class MANGOS_DLL_SPEC WorldSession
         void HandleAlterAppearance(WorldPacket& recv_data);
         void HandleRemoveGlyph(WorldPacket& recv_data);
         void HandleInspectAchievements(WorldPacket& recv_data);
+
+
+        // FG: some decls
+        inline float GetXPMultiKill(void) { return m_XPMultiKill; }
+        inline float GetXPMultiQuest(void) { return m_XPMultiQuest; }
+        void SetXPMultiKill(float m);
+        void SetXPMultiQuest(float m);
+
+
     private:
         // private trade methods
         void moveItems(Item* myItems[], Item* hisItems[]);
@@ -691,6 +700,10 @@ class MANGOS_DLL_SPEC WorldSession
         AccountData m_accountData[NUM_ACCOUNT_DATA_TYPES];
 
         ZThread::LockedQueue<WorldPacket*,ZThread::FastMutex> _recvQueue;
+
+        // FG: extra stuff
+        float m_XPMultiKill;
+        float m_XPMultiQuest;
 };
 #endif
 /// @}
