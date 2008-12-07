@@ -2388,6 +2388,10 @@ void Spell::EffectHeal( uint32 /*i*/ )
         if (!caster)
             return;
 
+        // FG: HACK: dont heal hostile targets
+        if(caster->IsHostileTo(unitTarget))
+            return;
+
         int32 addhealth = damage;
 
         // Vessel of the Naaru (Vial of the Sunwell trinket)

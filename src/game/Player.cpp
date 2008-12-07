@@ -14254,7 +14254,7 @@ bool Player::LoadFromDB( uint32 guid, SqlQueryHolder *holder )
     QueryResult *exdata_result = CharacterDatabase.PQuery("SELECT xp_multi_kill, xp_multi_quest FROM character_extra WHERE guid='%u'", GetGUIDLow());
     if(exdata_result)
     {
-        Field fields = exdata_result->Fetch();
+        Field *fields = exdata_result->Fetch();
         GetSession()->SetXPMultiKill(fields[0].GetFloat());
         GetSession()->SetXPMultiQuest(fields[1].GetFloat());
         delete exdata_result;
@@ -15366,7 +15366,7 @@ void Player::SaveToDB()
 
     // FG: save custom XP multis
     CharacterDatabase.PExecute("DELETE FROM character_extra WHERE guid='%u'", GetGUIDLow());
-    CharacterDatabase.PExecute("INSERT INTO character_extra (guid, xp_multi_kill, xp_multi_quest) VALUES ('%u', '%f' '%f')",
+    CharacterDatabase.PExecute("INSERT INTO character_extra (guid, xp_multi_kill, xp_multi_quest) VALUES ('%u', '%f', '%f')",
         GetGUIDLow(), GetSession()->GetXPMultiKill(), GetSession()->GetXPMultiQuest() );
 
     CharacterDatabase.CommitTransaction();
