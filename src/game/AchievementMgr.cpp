@@ -764,7 +764,7 @@ AchievementCompletionState AchievementMgr::GetAchievementCompletionState(Achieve
 
 void AchievementMgr::SetCriteriaProgress(AchievementCriteriaEntry const* entry, uint32 newValue, bool relative)
 {
-    sLog.outString("AchievementMgr::SetCriteriaProgress(%u, %u)", entry->ID, newValue);
+    DEBUG_LOG("AchievementMgr::SetCriteriaProgress(%u, %u)", entry->ID, newValue);
     CriteriaProgress *progress = NULL;
 
     CriteriaProgressMap::iterator iter = m_criteriaProgress.find(entry->ID);
@@ -831,7 +831,7 @@ void AchievementMgr::CompletedAchievement(AchievementEntry const* achievement)
 
     if (reward)
     {
-        sLog.outString("achiev %u, title= %u, %u", reward->achievementId, reward->titleId[0], reward->titleId[1]);
+        sLog.outDebug("achiev %u, title= %u, %u", reward->achievementId, reward->titleId[0], reward->titleId[1]);
         uint32 titleId = reward->titleId[GetPlayer()->GetTeam() == HORDE?0:1];
         if(CharTitlesEntry const* titleEntry = sCharTitlesStore.LookupEntry(titleId))
             GetPlayer()->SetTitle(titleEntry);

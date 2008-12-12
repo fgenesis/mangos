@@ -754,7 +754,7 @@ bool ChatHandler::HandleAHDeleteCommand(const char* args)
         }
         else
         {
-            sLog.outString("ahdelete: "
+            sLog.outDebug("ahdelete: "
                 "clearing auction for non-existant item_guidlow (%d)",
                 tmp->second->item_guidlow);
         }

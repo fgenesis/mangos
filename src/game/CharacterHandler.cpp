@@ -812,6 +812,16 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder * holder)
     ChatHandler(this).FillSystemMessageData(&data, suptime_.c_str());
     SendPacket( &data );
 
+    // FG: notify about current XP multiplier
+    char xpms[100];
+    sprintf(xpms,"|cff00FF00* Your XP multiplicators are: - Kill: %.2f - Quest: %.2f", GetXPMultiKill(), GetXPMultiQuest());
+    ChatHandler(this).FillSystemMessageData(&data, xpms);
+    SendPacket( &data );
+    sprintf(xpms,"|cff00FF00* Type |cff08D6CE.xpmulti kill|cff00FF00 or|cff08D6CE .xpmulti quest|cff00FF00 and a number to set your XP multi.");
+    ChatHandler(this).FillSystemMessageData(&data, xpms);
+    SendPacket( &data );
+
+
     std::string IP_str = GetRemoteAddress();
     sLog.outChar("Account: %d (IP: %s) Login Character:[%s] (guid:%u)",
         GetAccountId(),IP_str.c_str(),pCurrChar->GetName() ,pCurrChar->GetGUIDLow());
