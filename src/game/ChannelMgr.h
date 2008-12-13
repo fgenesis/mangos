@@ -36,35 +36,38 @@ class ChannelMgr
                 delete itr->second;
             channels.clear();
         }
-        Channel *GetJoinChannel(std::string name, uint32 channel_id)
+        Channel *GetJoinChannel(const std::string& name, uint32 channel_id)
         {
-            std::transform(name.begin(), name.end(), name.begin(), ::tolower);
-            if(channels.count(name) == 0)
+            std::string n = name;
+            std::transform(n.begin(), n.end(), n.begin(), ::tolower);
+            if(channels.count(n) == 0)
             {
-                Channel *nchan = new Channel(name,channel_id);
-                channels[name] = nchan;
+                Channel *nchan = new Channel(n,channel_id);
+                channels[n] = nchan;
             }
-            return channels[name];
+            return channels[n];
         }
-        Channel *GetChannel(std::string name, Player *p)
+        Channel *GetChannel(const std::string& name, Player *p)
         {
-            std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+            std::string n = name;
+            std::transform(n.begin(), n.end(), n.begin(), ::tolower);
             ChannelMap::const_iterator i = channels.find(name);
 
             if(i == channels.end())
             {
                 WorldPacket data;
-                MakeNotOnPacket(&data,name);
+                MakeNotOnPacket(&data,n);
                 p->GetSession()->SendPacket(&data);
                 return NULL;
             }
             else
                 return i->second;
         }
-        void LeftChannel(std::string name)
+        void LeftChannel(const std::string& name)
         {
-            std::transform(name.begin(), name.end(), name.begin(), ::tolower);
-            ChannelMap::const_iterator i = channels.find(name);
+            std::string n = name;
+            std::transform(n.begin(), n.end(), n.begin(), ::tolower);
+            ChannelMap::const_iterator i = channels.find(n);
 
             if(i == channels.end())
                 return;
@@ -73,17 +76,18 @@ class ChannelMgr
 
             if(channel->GetNumPlayers() == 0 && !channel->IsConstant())
             {
-                channels.erase(name);
+                channels.erase(n);
                 delete channel;
             }
         }
     private:
         ChannelMap channels;
-        void MakeNotOnPacket(WorldPacket *data, std::string name)
+        void MakeNotOnPacket(WorldPacket *data, const std::string& name)
         {
-            std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+            std::string n = name;
+            std::transform(n.begin(), n.end(), n.begin(), ::tolower);
             data->Initialize(SMSG_CHANNEL_NOTIFY, (1+10));  // we guess size
-            (*data) << (uint8)0x05 << name;
+            (*data) << (uint8)0x05 << n;
         }
 };
 

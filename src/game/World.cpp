@@ -130,6 +130,9 @@ World::~World()
 
     m_weathers.clear();
 
+    while (!cliCmdQueue.empty())
+        delete cliCmdQueue.next();
+
     VMAP::VMapFactory::clear();
 
     if(m_resultQueue) delete m_resultQueue;
@@ -2400,7 +2403,7 @@ void World::KickAllLess(AccountTypes sec)
 }
 
 /// Kick (and save) the designated player
-bool World::KickPlayer(std::string playerName)
+bool World::KickPlayer(const std::string& playerName)
 {
     SessionMap::iterator itr;
 

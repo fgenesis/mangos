@@ -195,7 +195,7 @@ void PlayerTaxi::AppendTaximaskTo( ByteBuffer& data, bool all )
     }
 }
 
-bool PlayerTaxi::LoadTaxiDestinationsFromString( std::string values )
+bool PlayerTaxi::LoadTaxiDestinationsFromString( const std::string& values )
 {
     ClearTaxiDestinations();
 
@@ -493,7 +493,7 @@ void Player::CleanupsBeforeDelete()
     Unit::CleanupsBeforeDelete();
 }
 
-bool Player::Create( uint32 guidlow, std::string name, uint8 race, uint8 class_, uint8 gender, uint8 skin, uint8 face, uint8 hairStyle, uint8 hairColor, uint8 facialHair, uint8 outfitId )
+bool Player::Create( uint32 guidlow, const std::string& name, uint8 race, uint8 class_, uint8 gender, uint8 skin, uint8 face, uint8 hairStyle, uint8 hairColor, uint8 facialHair, uint8 outfitId )
 {
     //FIXME: outfitId not used in player creating
 
@@ -1579,6 +1579,7 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
         else
             // this will be used instead of the current location in SaveToDB
             m_teleport_dest = WorldLocation(mapid, x, y, z, orientation);
+        SetFallInformation(0, z);
 
         //BuildHeartBeatMsg(&data);
         //SendMessageToSet(&data, true);
@@ -1726,6 +1727,7 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
             }
 
             m_teleport_dest = WorldLocation(mapid, final_x, final_y, final_z, final_o);
+            SetFallInformation(0, final_z);
             // if the player is saved before worldportack (at logout for example)
             // this will be used instead of the current location in SaveToDB
 
@@ -2063,23 +2065,23 @@ bool Player::IsInSameGroupWith(Player const* p) const
 /// \todo Shouldn't we also check if there is no other invitees before disbanding the group?
 void Player::UninviteFromGroup()
 {
-    if(GetGroupInvite())                                    // uninvited invitee
+    Group* group = GetGroupInvite();
+    if(!group)
+        return;
+
+    group->RemoveInvite(this);
+
+    if(group->GetMembersCount() <= 1)                   // group has just 1 member => disband
     {
-        Group* group = GetGroupInvite();
-        group->RemoveInvite(this);
-
-        if(group->GetMembersCount() <= 1)                   // group has just 1 member => disband
+        if(group->IsCreated())
         {
-            if(group->IsCreated())
-            {
-                group->Disband(true);
-                objmgr.RemoveGroup(group);
-            }
-            else
-                group->RemoveAllInvites();
-
-            delete group;
+            group->Disband(true);
+            objmgr.RemoveGroup(group);
         }
+        else
+            group->RemoveAllInvites();
+
+        delete group;
     }
 }
 
@@ -2427,7 +2429,7 @@ void Player::SendInitialSpells()
 
     uint16 spellCooldowns = m_spellCooldowns.size();
     data << uint16(spellCooldowns);
-    for(SpellCooldowns::const_iterator itr=m_spellCooldowns.begin(); itr!=m_spellCooldowns.end(); itr++)
+    for(SpellCooldowns::const_iterator itr=m_spellCooldowns.begin(); itr!=m_spellCooldowns.end(); ++itr)
     {
         SpellEntry const *sEntry = sSpellStore.LookupEntry(itr->first);
         if(!sEntry)
@@ -3251,7 +3253,7 @@ bool Player::_removeSpell(uint16 spell_id)
 
 Mail* Player::GetMail(uint32 id)
 {
-    for(PlayerMails::iterator itr = m_mail.begin(); itr != m_mail.end(); itr++)
+    for(PlayerMails::iterator itr = m_mail.begin(); itr != m_mail.end(); ++itr)
     {
         if ((*itr)->messageID == id)
         {
@@ -5451,7 +5453,7 @@ void Player::SendInitialReputations()
 
     RepListID a = 0;
 
-    for (FactionStateList::const_iterator itr = m_factions.begin(); itr != m_factions.end(); itr++)
+    for (FactionStateList::const_iterator itr = m_factions.begin(); itr != m_factions.end(); ++itr)
     {
         // fill in absent fields
         for (; a != itr->first; a++)
@@ -6422,7 +6424,7 @@ void Player::DuelComplete(DuelCompleteType type)
     /* remove auras */
     std::vector<uint32> auras2remove;
     AuraMap const& vAuras = duel->opponent->GetAuras();
-    for (AuraMap::const_iterator i = vAuras.begin(); i != vAuras.end(); i++)
+    for (AuraMap::const_iterator i = vAuras.begin(); i != vAuras.end(); ++i)
     {
         if (!i->second->IsPositive() && i->second->GetCasterGUID() == GetGUID() && i->second->GetAuraApplyTime() >= duel->startTime)
             auras2remove.push_back(i->second->GetId());
@@ -6433,7 +6435,7 @@ void Player::DuelComplete(DuelCompleteType type)
 
     auras2remove.clear();
     AuraMap const& auras = GetAuras();
-    for (AuraMap::const_iterator i = auras.begin(); i != auras.end(); i++)
+    for (AuraMap::const_iterator i = auras.begin(); i != auras.end(); ++i)
     {
         if (!i->second->IsPositive() && i->second->GetCasterGUID() == duel->opponent->GetGUID() && i->second->GetAuraApplyTime() >= duel->startTime)
             auras2remove.push_back(i->second->GetId());
@@ -13863,6 +13865,7 @@ bool Player::LoadFromDB( uint32 guid, SqlQueryHolder *holder )
 
     uint32 transGUID = fields[24].GetUInt32();
     Relocate(fields[6].GetFloat(),fields[7].GetFloat(),fields[8].GetFloat(),fields[10].GetFloat());
+    SetFallInformation(0, fields[8].GetFloat());
     SetMapId(fields[9].GetUInt32());
     SetDifficulty(fields[32].GetUInt32());                  // may be changed in _LoadGroup
 
@@ -15042,13 +15045,13 @@ void Player::SendRaidInfo()
 
     uint32 counter = 0, i;
     for(i = 0; i < TOTAL_DIFFICULTIES; i++)
-        for (BoundInstancesMap::iterator itr = m_boundInstances[i].begin(); itr != m_boundInstances[i].end(); itr++)
+        for (BoundInstancesMap::iterator itr = m_boundInstances[i].begin(); itr != m_boundInstances[i].end(); ++itr)
             if(itr->second.perm) counter++;
 
     data << counter;
     for(i = 0; i < TOTAL_DIFFICULTIES; i++)
     {
-        for (BoundInstancesMap::iterator itr = m_boundInstances[i].begin(); itr != m_boundInstances[i].end(); itr++)
+        for (BoundInstancesMap::iterator itr = m_boundInstances[i].begin(); itr != m_boundInstances[i].end(); ++itr)
         {
             if(itr->second.perm)
             {
@@ -15562,7 +15565,7 @@ void Player::_SaveMail()
     if (!m_mailsLoaded)
         return;
 
-    for (PlayerMails::iterator itr = m_mail.begin(); itr != m_mail.end(); itr++)
+    for (PlayerMails::iterator itr = m_mail.begin(); itr != m_mail.end(); ++itr)
     {
         Mail *m = (*itr);
         if (m->state == MAIL_STATE_CHANGED)
@@ -16159,7 +16162,7 @@ void Player::Uncharm()
     charm->RemoveSpellsCausingAura(SPELL_AURA_MOD_POSSESS);
 }
 
-void Player::BuildPlayerChat(WorldPacket *data, uint8 msgtype, std::string text, uint32 language) const
+void Player::BuildPlayerChat(WorldPacket *data, uint8 msgtype, const std::string& text, uint32 language) const
 {
     *data << (uint8)msgtype;
     *data << (uint32)language;
@@ -16171,28 +16174,28 @@ void Player::BuildPlayerChat(WorldPacket *data, uint8 msgtype, std::string text,
     *data << (uint8)chatTag();
 }
 
-void Player::Say(const std::string text, const uint32 language)
+void Player::Say(const std::string& text, const uint32 language)
 {
     WorldPacket data(SMSG_MESSAGECHAT, 200);
     BuildPlayerChat(&data, CHAT_MSG_SAY, text, language);
     SendMessageToSetInRange(&data,sWorld.getConfig(CONFIG_LISTEN_RANGE_SAY),true);
 }
 
-void Player::Yell(const std::string text, const uint32 language)
+void Player::Yell(const std::string& text, const uint32 language)
 {
     WorldPacket data(SMSG_MESSAGECHAT, 200);
     BuildPlayerChat(&data, CHAT_MSG_YELL, text, language);
     SendMessageToSetInRange(&data,sWorld.getConfig(CONFIG_LISTEN_RANGE_YELL),true);
 }
 
-void Player::TextEmote(const std::string text)
+void Player::TextEmote(const std::string& text)
 {
     WorldPacket data(SMSG_MESSAGECHAT, 200);
     BuildPlayerChat(&data, CHAT_MSG_EMOTE, text, LANG_UNIVERSAL);
     SendMessageToSetInRange(&data,sWorld.getConfig(CONFIG_LISTEN_RANGE_TEXTEMOTE),true, !sWorld.getConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_CHAT) );
 }
 
-void Player::Whisper(std::string text, uint32 language,uint64 receiver)
+void Player::Whisper(const std::string& text, uint32 language,uint64 receiver)
 {
     if (language != LANG_ADDON)                             // if not addon data
         language = LANG_UNIVERSAL;                          // whispers should always be readable
@@ -18716,6 +18719,21 @@ Player* Player::GetNextRandomRaidMember(float radius)
 
     uint32 randTarget = urand(0,nearMembers.size()-1);
     return nearMembers[randTarget];
+}
+
+PartyResult Player::CanUninviteFromGroup() const
+{
+    const Group* grp = GetGroup();
+    if(!grp)
+        return PARTY_RESULT_YOU_NOT_IN_GROUP;
+
+    if(!grp->IsLeader(GetGUID()) && !grp->IsAssistant(GetGUID()))
+        return PARTY_RESULT_YOU_NOT_LEADER;
+
+    if(InBattleGround())
+        return PARTY_RESULT_INVITE_RESTRICTED;
+
+    return PARTY_RESULT_OK;
 }
 
 void Player::UpdateUnderwaterState( Map* m, float x, float y, float z )
