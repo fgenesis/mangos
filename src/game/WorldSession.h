@@ -658,11 +658,12 @@ class MANGOS_DLL_SPEC WorldSession
         void HandleCalendarEventStatus(WorldPacket& recv_data);
         void HandleCalendarEventModeratorStatus(WorldPacket& recv_data);
         void HandleCalendarComplain(WorldPacket& recv_data);
-        void HandleCalendarPendingInvites(WorldPacket& recv_data);
+        void HandleCalendarGetNumPending(WorldPacket& recv_data);
 
         void HandleSpellClick(WorldPacket& recv_data);
         void HandleAlterAppearance(WorldPacket& recv_data);
         void HandleRemoveGlyph(WorldPacket& recv_data);
+        void HandleCharCustomize(WorldPacket& recv_data);
         void HandleInspectAchievements(WorldPacket& recv_data);
 
 

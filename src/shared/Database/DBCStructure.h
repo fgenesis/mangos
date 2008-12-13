@@ -40,7 +40,8 @@ struct AchievementEntry
     uint32    ID;                                           // 0
     uint32    factionFlag;                                  // 1 -1=all, 0=horde, 1=alliance
     uint32    mapID;                                        // 2 -1=none
-    //char *name[16];                                       // 3-19
+    //uint32 parentAchievement;                             // 3 its Achievement parent (can`t start while parent uncomplete, use its Criteria if don`t have own, use its progress on begin)
+    //char *name[16];                                       // 4-19
     //uint32 name_flags;                                    // 20
     //char *description[16];                                // 21-36
     //uint32 desc_flags;                                    // 37
@@ -48,11 +49,11 @@ struct AchievementEntry
     uint32    points;                                       // 39 reward points
     //uint32 OrderInCategory;                               // 40
     uint32    flags;                                        // 41
-    //uint32    flags;                                      // 42 not flags, some unknown value...
-    //char *unk1[16];                                       // 43-58
-    //uint32 unk_flags;                                     // 59
-    //uint32 count;                                         // 60
-    uint32 refAchievement;                                  // 61
+    //uint32    icon;                                       // 42 icon (from SpellIcon.dbc)
+    //char *titleReward[16];                                // 43-58
+    //uint32 titleReward_flags;                             // 59
+    //uint32 count;                                         // 60 - need this count Criteria for complete
+    uint32 refAchievement;                                  // 61 - related achievement?
 };
 
 struct AchievementCategoryEntry
@@ -61,7 +62,7 @@ struct AchievementCategoryEntry
     uint32    parentCategory;                               // 1 -1 for main category
     //char *name[16];                                       // 2-17
     //uint32 name_flags;                                    // 18
-    uint32    sortOrder;                                    // 19
+    //uint32    sortOrder;                                  // 19
 };
 
 struct AchievementCriteriaEntry
@@ -165,6 +166,12 @@ struct AchievementCriteriaEntry
             uint32  unused;                                 // 3
             uint32  fallHeight;                             // 4
         } fall_without_dying;
+
+        // ACHIEVEMENT_CRITERIA_TYPE_DEATHS_FROM = 26
+        struct
+        {
+            uint32 type; // 0 - fatigue, 1 - drowning, 2 - falling, 3 - ??, 5 - fire and lava
+        } deaths;
 
         // ACHIEVEMENT_CRITERIA_TYPE_COMPLETE_QUEST = 27
         struct
@@ -339,8 +346,9 @@ struct AchievementCriteriaEntry
         {
             uint32  emoteID;                                // 3
         } do_emote;
-
+        // ACHIEVEMENT_CRITERIA_TYPE_DAMAGE_DONE = 13
         // ACHIEVEMENT_CRITERIA_TYPE_HEALING_DONE = 55
+        // ACHIEVEMENT_CRITERIA_TYPE_GET_KILLING_BLOWS = 56
         struct
         {
             uint32  unused;                                 // 3
@@ -458,8 +466,9 @@ struct AchievementCriteriaEntry
     //uint32 name_flags;                                    // 25
     uint32  completionFlag;                                 // 26
     uint32  groupFlag;                                      // 27
+    //uint32 unk1;                                          // 28
     uint32  timeLimit;                                      // 29 time limit in seconds
-    //uint32 unk1;                                          // 30
+    //uint32 showOrder;                                     // 30 show order
 };
 
 struct AreaTableEntry
@@ -722,7 +731,7 @@ struct GlyphPropertiesEntry
     uint32  Id;
     uint32  SpellId;
     uint32  TypeFlags;
-    uint32  Unk1;
+    uint32  Unk1;                                           // GlyphIconId (SpellIcon.dbc)
 };
 
 struct GlyphSlotEntry
@@ -1110,9 +1119,9 @@ struct SpellEntry
     int32     EffectMiscValueB[3];                          // 116-118  m_effectMiscValueB
     uint32    EffectTriggerSpell[3];                        // 119-121  m_effectTriggerSpell
     float     EffectPointsPerComboPoint[3];                 // 122-124  m_effectPointsPerCombo
-    //uint32    EffectSpellClassMaskA[3];                   // 125-127  m_effectSpellClassMaskA not used
-    //uint32    EffectSpellClassMaskB[3];                   // 128-130  m_effectSpellClassMaskB not used
-    //uint32    EffectSpellClassMaskC[3];                   // 131-133  m_effectSpellClassMaskC not used
+    uint32    EffectSpellClassMaskA[3];                     // 125-127  m_effectSpellClassMaskA
+    uint32    EffectSpellClassMaskB[3];                     // 128-130  m_effectSpellClassMaskB
+    uint32    EffectSpellClassMaskC[3];                     // 131-133  m_effectSpellClassMaskC
     uint32    SpellVisual[2];                               // 134-135  m_spellVisualID
     uint32    SpellIconID;                                  // 136      m_spellIconID
     uint32    activeIconID;                                 // 137      m_activeIconID

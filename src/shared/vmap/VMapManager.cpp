@@ -304,7 +304,6 @@ namespace VMAP
                             result = true;
                         fclose(df2);
                     }
-                    //delete[] filenameBuffer2;
                 }
             }
             fclose(df);

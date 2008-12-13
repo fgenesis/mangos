@@ -159,7 +159,7 @@ pAuraHandler AuraHandler[TOTAL_AURAS]=
     &Aura::HandleAuraHover,                                 //106 SPELL_AURA_HOVER
     &Aura::HandleAddModifier,                               //107 SPELL_AURA_ADD_FLAT_MODIFIER
     &Aura::HandleAddModifier,                               //108 SPELL_AURA_ADD_PCT_MODIFIER
-    &Aura::HandleNoImmediateEffect,                         //109 SPELL_AURA_ADD_TARGET_TRIGGER
+    &Aura::HandleAddTargetTrigger,                          //109 SPELL_AURA_ADD_TARGET_TRIGGER
     &Aura::HandleModPowerRegenPCT,                          //110 SPELL_AURA_MOD_POWER_REGEN_PERCENT
     &Aura::HandleNULL,                                      //111 SPELL_AURA_ADD_CASTER_HIT_TRIGGER
     &Aura::HandleNoImmediateEffect,                         //112 SPELL_AURA_OVERRIDE_CLASS_SCRIPTS
@@ -1180,10 +1180,6 @@ void Aura::HandleAddModifier(bool apply, bool Real)
     if(m_target->GetTypeId() != TYPEID_PLAYER || !Real)
         return;
 
-    SpellEntry const *spellInfo = GetSpellProto();
-    if(!spellInfo)
-        return;
-
     if(m_modifier.m_miscvalue >= MAX_SPELLMOD)
         return;
 
@@ -1204,15 +1200,25 @@ void Aura::HandleAddModifier(bool apply, bool Real)
         mod->value = m_modifier.m_amount;
         mod->type = SpellModType(m_modifier.m_auraname);    // SpellModType value == spell aura types
         mod->spellId = GetId();
-        mod->effectId = m_effIndex;
-        mod->lastAffected = NULL;
 
-        uint64 spellAffectMask = spellmgr.GetSpellAffectMask(GetId(), m_effIndex);
-
-        if (spellAffectMask)
-            mod->mask = spellAffectMask;
+        uint32 const *ptr;
+        SpellAffectEntry const *spellAffect = spellmgr.GetSpellAffect(GetId(), m_effIndex);
+        if (spellAffect)
+            ptr = &spellAffect->SpellClassMask[0];
         else
-            mod->mask = spellInfo->EffectItemType[m_effIndex];
+        {
+            switch (m_effIndex)
+            {
+                case 0: ptr = &m_spellProto->EffectSpellClassMaskA[0]; break;
+                case 1: ptr = &m_spellProto->EffectSpellClassMaskB[0]; break;
+                case 2: ptr = &m_spellProto->EffectSpellClassMaskC[0]; break;
+                default:
+                    return;
+            }
+        }
+
+        mod->mask = (uint64)ptr[0] | (uint64)ptr[1]<<32;
+        mod->mask2= (uint64)ptr[2];
 
         if (m_procCharges > 0)
             mod->charges = m_procCharges;
@@ -1227,7 +1233,7 @@ void Aura::HandleAddModifier(bool apply, bool Real)
     ((Player*)m_target)->AddSpellMod(m_spellmod, apply);
 
     // reapply some passive spells after add/remove related spellmods
-    if(spellInfo->SpellFamilyName==SPELLFAMILY_WARRIOR && (spellFamilyMask & 0x0000100000000000LL))
+    if(m_spellProto->SpellFamilyName==SPELLFAMILY_WARRIOR && (spellFamilyMask & 0x0000100000000000LL))
     {
         m_target->RemoveAurasDueToSpell(45471);
 
@@ -1235,7 +1241,42 @@ void Aura::HandleAddModifier(bool apply, bool Real)
             m_target->CastSpell(m_target,45471,true);
     }
 }
+void Aura::HandleAddTargetTrigger(bool apply, bool Real)
+{
+    // Use SpellModifier structure for check
+    // used only fields:
+    //  spellId, mask, mask2
+    if (apply)
+    {
+        SpellModifier *mod = new SpellModifier;
+        mod->spellId = GetId();
 
+        uint32 const *ptr;
+        SpellAffectEntry const *spellAffect = spellmgr.GetSpellAffect(GetId(), m_effIndex);
+        if (spellAffect)
+            ptr = &spellAffect->SpellClassMask[0];
+        else
+        {
+            switch (m_effIndex)
+            {
+                case 0: ptr = &m_spellProto->EffectSpellClassMaskA[0]; break;
+                case 1: ptr = &m_spellProto->EffectSpellClassMaskB[0]; break;
+                case 2: ptr = &m_spellProto->EffectSpellClassMaskC[0]; break;
+                default:
+                    return;
+            }
+        }
+
+        mod->mask = (uint64)ptr[0] | (uint64)ptr[1]<<32;
+        mod->mask2= (uint64)ptr[2];
+        m_spellmod = mod;
+    }
+    else
+    {
+        delete m_spellmod;
+        m_spellmod = NULL;
+    }
+}
 void Aura::TriggerSpell()
 {
     Unit* caster = GetCaster();
@@ -2202,10 +2243,8 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                     mod->value = m_modifier.m_amount/7;
                     mod->type = SPELLMOD_FLAT;
                     mod->spellId = GetId();
-                    mod->effectId = m_effIndex;
-                    mod->lastAffected = NULL;
                     mod->mask = 0x001000000000LL;
-                    mod->charges = 0;
+                    mod->mask2= 0LL;
 
                     m_spellmod = mod;
                 }
@@ -2228,10 +2267,8 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                     mod->value = m_modifier.m_amount;
                     mod->type = SPELLMOD_FLAT;
                     mod->spellId = GetId();
-                    mod->effectId = m_effIndex;
-                    mod->lastAffected = NULL;
                     mod->mask = 0x4000000000000LL;
-                    mod->charges = 0;
+                    mod->mask2= 0LL;
 
                     m_spellmod = mod;
                 }
@@ -2253,18 +2290,17 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                     mod->value = m_modifier.m_amount;
                     mod->type = SPELLMOD_PCT;
                     mod->spellId = GetId();
-                    mod->effectId = m_effIndex;
-                    mod->lastAffected = NULL;
                     switch (m_effIndex)
                     {
                         case 0:
                             mod->mask = 0x00200000000LL;    // Windfury Totem
+                            mod->mask2= 0LL;
                             break;
                         case 1:
                             mod->mask = 0x00400000000LL;    // Flametongue Totem
+                            mod->mask2= 0LL;
                             break;
                     }
-                    mod->charges = 0;
 
                     m_spellmod = mod;
                 }
@@ -3003,8 +3039,11 @@ void Aura::HandleModPossessPet(bool apply, bool Real)
         return;
 
     Unit* caster = GetCaster();
+    if(!caster || caster->GetTypeId() != TYPEID_PLAYER)
+        return;
+
     Pet *pet = caster->GetPet();
-    if(!pet || (pet != m_target) || !caster || (caster->GetTypeId() != TYPEID_PLAYER))
+    if(!pet || pet != m_target)
         return;
 
     if(apply)
@@ -6401,7 +6440,7 @@ void Aura::HandleAuraControlVehicle(bool apply, bool Real)
     if(Pet *pet = m_target->GetPet())
         pet->Remove(PET_SAVE_AS_CURRENT);
 
-    WorldPacket data(SMSG_SHOW_VEHICLE_UI, 0);
+    WorldPacket data(SMSG_ON_CANCEL_EXPECTED_RIDE_VEHICLE_AURA, 0);
     ((Player*)m_target)->GetSession()->SendPacket(&data);
 }
 

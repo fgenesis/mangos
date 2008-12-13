@@ -80,15 +80,17 @@ struct PlayerSpell
 
 #define SPELL_WITHOUT_SLOT_ID uint16(-1)
 
+// Spell modifier (used for modify other spells)
 struct SpellModifier
 {
+    SpellModifier() : charges(0), lastAffected(NULL) {}
     SpellModOp   op   : 8;
     SpellModType type : 8;
     int16 charges     : 16;
     int32 value;
     uint64 mask;
+    uint64 mask2;
     uint32 spellId;
-    uint32 effectId;
     Spell const* lastAffected;
 };
 
@@ -547,6 +549,7 @@ enum AtLoginFlags
     AT_LOGIN_RENAME        = 1,
     AT_LOGIN_RESET_SPELLS  = 2,
     AT_LOGIN_RESET_TALENTS = 4,
+    AT_LOGIN_CUSTOMIZE     = 8,
     AT_LOGIN_LOW_HP = 8192 // FG: required for almost-dead state when logging out in combat and logging in back
 };
 
@@ -1332,6 +1335,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         static void SetFloatValueInArray(Tokens& data,uint16 index, float value);
         static void SetUInt32ValueInDB(uint16 index, uint32 value, uint64 guid);
         static void SetFloatValueInDB(uint16 index, float value, uint64 guid);
+        static void Customize(uint64 guid, uint8 gender, uint8 skin, uint8 face, uint8 hairStyle, uint8 hairColor, uint8 facialHair);
         static void SavePositionInDB(uint32 mapid, float x,float y,float z,float o,uint32 zone,uint64 guid);
 
         bool m_mailsLoaded;
@@ -1484,8 +1488,6 @@ class MANGOS_DLL_SPEC Player : public Unit
         PlayerSpellMap      & GetSpellMap()       { return m_spells; }
 
         void AddSpellMod(SpellModifier* mod, bool apply);
-        int32 GetTotalFlatMods(uint32 spellId, SpellModOp op);
-        int32 GetTotalPctMods(uint32 spellId, SpellModOp op);
         bool IsAffectedBySpellmod(SpellEntry const *spellInfo, SpellModifier *mod, Spell const* spell = NULL);
         template <class T> T ApplySpellMod(uint32 spellId, SpellModOp op, T &basevalue, Spell const* spell = NULL);
         void RemoveSpellMods(Spell const* spell);
@@ -2122,15 +2124,13 @@ class MANGOS_DLL_SPEC Player : public Unit
         void AddRunePower(uint8 index);
         void InitRunes();
         AchievementMgr& GetAchievementMgr() { return m_achievementMgr; }
+        bool HasTitle(uint32 bitIndex);
+        bool HasTitle(CharTitlesEntry const* title) { return HasTitle(title->bit_index); }
+        void SetTitle(CharTitlesEntry const* title);
 
 
         // FG: more custom stuff
         void GivePlayerDropReward(Player *victim);
-
-
-        bool HasTitle(uint32 bitIndex);
-        bool HasTitle(CharTitlesEntry const* title) { return HasTitle(title->bit_index); }
-        void SetTitle(CharTitlesEntry const* title);
 
 
     protected:
