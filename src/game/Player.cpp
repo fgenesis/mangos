@@ -928,8 +928,8 @@ void Player::HandleLava()
             uint32 damage = urand(600, 700);                // TODO: Get more detailed information about lava damage
 
             // if not gamemaster then deal damage
-            if ( !isGameMaster() )
-                EnvironmentalDamage(guid, DAMAGE_LAVA, damage);
+            //if ( !isGameMaster() )
+            //    EnvironmentalDamage(guid, DAMAGE_LAVA, damage); // FG: TEMP: HACK: disabled lava damage
 
             m_breathTimer = 1000;
         }
@@ -1288,8 +1288,14 @@ void Player::setDeathState(DeathState s)
 
     bool cur = isAlive();
 
-    if(s == JUST_DIED && cur)
+    if(s == JUST_DIED)
     {
+        if(!cur)
+        {
+            sLog.outError("setDeathState: attempt to kill a dead player %s(%d)", GetName(), GetGUIDLow());
+            return;
+        }
+
         // drunken state is cleared on death
         SetDrunkValue(0);
         // lost combo points at any target (targeted combo points clear in Unit::setDeathState)
@@ -6257,7 +6263,7 @@ void Player::UpdateZone(uint32 newZone)
         RemoveFlag(PLAYER_FLAGS, PLAYER_FLAGS_SANCTUARY);
     }
 
-    // FG: HACK: DK zone should be friendly
+    // FG: HACK: DK zone should be friendly + remove zone specific spells
     if(GetMapId() == 609)
     {
         setFaction(2082);
@@ -6265,6 +6271,8 @@ void Player::UpdateZone(uint32 newZone)
     else
     {
         setFactionForRace(getRace());
+        RemoveAurasDueToSpell(51721);
+        RemoveAurasDueToSpell(54055);
     }
 
     if(zone->flags & AREA_FLAG_CAPITAL)                     // in capital city

@@ -2139,6 +2139,10 @@ void Spell::EffectApplyAura(uint32 i)
     if(!unitTarget)
         return;
 
+    // FG: shadow of death (DK talent) hackfix -- kill effect #1
+    if(m_spellInfo->Id == 49157 && i == 0)
+        return;
+
     SpellImmuneList const& list = unitTarget->m_spellImmune[IMMUNITY_STATE];
     for(SpellImmuneList::const_iterator itr = list.begin(); itr != list.end(); ++itr)
         if(itr->type == m_spellInfo->EffectApplyAuraName[i])

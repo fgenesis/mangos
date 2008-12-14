@@ -1011,6 +1011,10 @@ float Map::GetHeight(float x, float y, float z, bool pUseVmaps) const
         int lx_int = (int)lx;
         int ly_int = (int)ly;
 
+        // FG: crashfix by fredi: In some very rare case this will happen. Need find a better way.
+        if (lx_int == MAP_RESOLUTION) --lx_int;
+        if (ly_int == MAP_RESOLUTION) --ly_int;
+
         float zi[4];
         // Probe 4 nearest points (except border cases)
         zi[0] = gmap->Z[lx_int][ly_int];
