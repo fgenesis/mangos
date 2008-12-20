@@ -30,6 +30,7 @@
 #include "GossipDef.h"
 #include "Language.h"
 #include "MapManager.h"
+#include "BattleGroundMgr.h"
 #include <fstream>
 #include "ObjectMgr.h"
 
@@ -520,6 +521,12 @@ bool ChatHandler::HandleGetItemState(const char* args)
     return true;
 }
 
+bool ChatHandler::HandleDebugArenaCommand(const char * /*args*/)
+{
+    sBattleGroundMgr.ToggleArenaTesting();
+    return true;
+}
+
 bool ChatHandler::HandleSpawnVehicle(const char* args)
 {
     if(!args)
@@ -566,6 +573,5 @@ bool ChatHandler::HandleSpawnVehicle(const char* args)
     }
 
     map->Add((Creature*)v);
-
     return true;
 }
