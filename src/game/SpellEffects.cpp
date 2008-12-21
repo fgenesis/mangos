@@ -144,10 +144,10 @@ pEffect SpellEffects[TOTAL_SPELL_EFFECTS]=
     &Spell::EffectStuck,                                    // 84 SPELL_EFFECT_STUCK
     &Spell::EffectSummonPlayer,                             // 85 SPELL_EFFECT_SUMMON_PLAYER
     &Spell::EffectActivateObject,                           // 86 SPELL_EFFECT_ACTIVATE_OBJECT
-    &Spell::EffectSummonTotem,                              // 87 SPELL_EFFECT_SUMMON_TOTEM_SLOT1
-    &Spell::EffectSummonTotem,                              // 88 SPELL_EFFECT_SUMMON_TOTEM_SLOT2
-    &Spell::EffectSummonTotem,                              // 89 SPELL_EFFECT_SUMMON_TOTEM_SLOT3
-    &Spell::EffectSummonTotem,                              // 90 SPELL_EFFECT_SUMMON_TOTEM_SLOT4
+    &Spell::EffectUnused,                                   // 87 SPELL_EFFECT_WMO_DAMAGE
+    &Spell::EffectUnused,                                   // 88 SPELL_EFFECT_WMO_REPAIR 
+    &Spell::EffectUnused,                                   // 89 SPELL_EFFECT_WMO_CHANGE
+    &Spell::EffectUnused,                                   // 90 SPELL_EFFECT_KILL_CREDIT
     &Spell::EffectUnused,                                   // 91 SPELL_EFFECT_THREAT_ALL               one spell: zzOLDBrainwash
     &Spell::EffectEnchantHeldItem,                          // 92 SPELL_EFFECT_ENCHANT_HELD_ITEM
     &Spell::EffectUnused,                                   // 93 SPELL_EFFECT_SUMMON_PHANTASM
@@ -212,7 +212,7 @@ pEffect SpellEffects[TOTAL_SPELL_EFFECTS]=
     &Spell::EffectNULL,                                     //152 SPELL_EFFECT_152                      summon Refer-a-Friend
     &Spell::EffectNULL,                                     //153 SPELL_EFFECT_CREATE_PET               misc value is creature entry
     &Spell::EffectNULL,                                     //154 unused
-    &Spell::EffectNULL,                                     //155 Allows you to equip two-handed axes, maces and swords in one hand, but you attack $49152s1% slower than normal.
+    &Spell::EffectTitanGrip,                                //155 SPELL_EFFECT_TITAN_GRIP Allows you to equip two-handed axes, maces and swords in one hand, but you attack $49152s1% slower than normal.
     &Spell::EffectNULL,                                     //156 Add Socket
     &Spell::EffectNULL,                                     //157 create/learn random item/spell for profession
     &Spell::EffectMilling,                                  //158 milling
@@ -304,6 +304,13 @@ void Spell::EffectSchoolDMG(uint32 effect_idx)
 {
     if( unitTarget && unitTarget->isAlive())
     {
+        bool d1,d2,d3,d4;
+        d1 = m_caster->IsFriendlyTo(unitTarget);
+        d2 = m_caster->IsHostileTo(unitTarget);
+        d3 = m_caster->IsHostileToPlayers();
+        d4 = unitTarget->IsHostileToPlayers();
+        DEBUG_LOG("##> friendly:%u hostile:%u chtp:%u thtp:%u",d1,d2,d3,d4);
+
         switch(m_spellInfo->SpellFamilyName)
         {
             case SPELLFAMILY_GENERIC:
@@ -342,6 +349,13 @@ void Spell::EffectSchoolDMG(uint32 effect_idx)
                             damage = 200;
                         break;
                     }
+                    // Intercept (warrior spell trigger)
+                    case 20253:
+                    case 61491:
+                    {
+                        damage+= uint32(m_caster->GetTotalAttackPowerValue(BASE_ATTACK) * 0.12f);
+                        break;
+                    }
                 }
                 break;
             }
@@ -371,6 +385,12 @@ void Spell::EffectSchoolDMG(uint32 effect_idx)
                     damage = uint32(damage * m_caster->GetTotalAttackPowerValue(BASE_ATTACK) / 100);
                     m_caster->ModifyAuraState(AURA_STATE_WARRIOR_VICTORY_RUSH, false);
                 }
+                // Revenge ${$m1+$AP*0.207} to ${$M1+$AP*0.207}
+                else if(m_spellInfo->SpellFamilyFlags & 0x0000000000000400LL)
+                    damage+= uint32(m_caster->GetTotalAttackPowerValue(BASE_ATTACK) * 0.207f);
+                // Heroic Throw ${$m1+$AP*.50}
+                else if(m_spellInfo->SpellFamilyFlags & 0x0000000100000000LL)
+                    damage+= uint32(m_caster->GetTotalAttackPowerValue(BASE_ATTACK) * 0.5f);
                 break;
             }
             case SPELLFAMILY_WARLOCK:
@@ -380,18 +400,20 @@ void Spell::EffectSchoolDMG(uint32 effect_idx)
                 {
                     // Incinerate does more dmg (dmg*0.25) if the target is Immolated.
                     if(unitTarget->HasAuraState(AURA_STATE_IMMOLATE))
-                        damage += int32(damage*0.25);
+                        damage += int32(damage*0.25f);
                 }
                 break;
             }
             case SPELLFAMILY_DRUID:
             {
                 // Ferocious Bite
-                if((m_spellInfo->SpellFamilyFlags & 0x000800000) && m_spellInfo->SpellVisual[0]==6587)
+                if(m_caster->GetTypeId()==TYPEID_PLAYER && (m_spellInfo->SpellFamilyFlags & 0x000800000) && m_spellInfo->SpellVisual[0]==6587)
                 {
-                    // converts each extra point of energy into ($f1+$AP/630) additional damage
-                    float multiple = m_caster->GetTotalAttackPowerValue(BASE_ATTACK) / 630 + m_spellInfo->DmgMultiplier[effect_idx];
+                    // converts each extra point of energy into ($f1+$AP/410) additional damage
+                    float ap = m_caster->GetTotalAttackPowerValue(BASE_ATTACK);
+                    float multiple = ap / 410 + m_spellInfo->DmgMultiplier[effect_idx];
                     damage += int32(m_caster->GetPower(POWER_ENERGY) * multiple);
+                    damage += int32(((Player*)m_caster)->GetComboPoints() * ap * 7 / 100);
                     m_caster->SetPower(POWER_ENERGY,0);
                 }
                 // Rake
@@ -493,12 +515,28 @@ void Spell::EffectSchoolDMG(uint32 effect_idx)
                 {
                     if(uint32 combo = ((Player*)m_caster)->GetComboPoints())
                     {
-                        damage += int32(m_caster->GetTotalAttackPowerValue(BASE_ATTACK) * combo * 0.03f);
+                        float ap = m_caster->GetTotalAttackPowerValue(BASE_ATTACK);
+                        damage += irand(int32(ap * combo * 0.03f), int32(ap * combo * 0.07f));
 
                         // Eviscerate and Envenom Bonus Damage (item set effect)
                         if(m_caster->GetDummyAura(37169))
                             damage += combo*40;
                     }
+                }
+                // Gouge
+                else if(m_spellInfo->SpellFamilyFlags & 0x0000000000000008LL)
+                {
+                    damage += int32(m_caster->GetTotalAttackPowerValue(BASE_ATTACK)*0.02f);
+                }
+                // Instant Poison
+                else if(m_spellInfo->SpellFamilyFlags & 0x0000000000002000LL)
+                {
+                    damage += int32(m_caster->GetTotalAttackPowerValue(BASE_ATTACK)*0.10f);
+                }
+                // Wound Poison
+                else if(m_spellInfo->SpellFamilyFlags & 0x0000000010000000LL)
+                {
+                    damage += int32(m_caster->GetTotalAttackPowerValue(BASE_ATTACK)*0.04f);
                 }
                 break;
             }
@@ -507,12 +545,17 @@ void Spell::EffectSchoolDMG(uint32 effect_idx)
                 // Mongoose Bite
                 if((m_spellInfo->SpellFamilyFlags & 0x000000002) && m_spellInfo->SpellVisual[0]==342)
                 {
-                    damage += int32(m_caster->GetTotalAttackPowerValue(BASE_ATTACK)*0.2);
+                    damage += int32(m_caster->GetTotalAttackPowerValue(BASE_ATTACK)*0.2f);
+                }
+                // Counterattack
+                else if(m_spellInfo->SpellFamilyFlags & 0x0008000000000000LL)
+                {
+                    damage += int32(m_caster->GetTotalAttackPowerValue(BASE_ATTACK)*0.2f);
                 }
                 // Arcane Shot
                 else if((m_spellInfo->SpellFamilyFlags & 0x00000800) && m_spellInfo->maxLevel > 0)
                 {
-                    damage += int32(m_caster->GetTotalAttackPowerValue(RANGED_ATTACK)*0.15);
+                    damage += int32(m_caster->GetTotalAttackPowerValue(RANGED_ATTACK)*0.15f);
                 }
                 // Steady Shot
                 else if(m_spellInfo->SpellFamilyFlags & 0x100000000LL)
@@ -520,16 +563,16 @@ void Spell::EffectSchoolDMG(uint32 effect_idx)
                     int32 base = irand((int32)m_caster->GetWeaponDamageRange(RANGED_ATTACK, MINDAMAGE),(int32)m_caster->GetWeaponDamageRange(RANGED_ATTACK, MAXDAMAGE));
                     damage += int32(float(base)/m_caster->GetAttackTime(RANGED_ATTACK)*2800 + m_caster->GetTotalAttackPowerValue(RANGED_ATTACK)*0.2f);
                 }
-                //Explosive Trap Effect
+                // Explosive Trap Effect
                 else if(m_spellInfo->SpellFamilyFlags & 0x00000004)
                 {
-                    damage += int32(m_caster->GetTotalAttackPowerValue(RANGED_ATTACK)*0.1);
+                    damage += int32(m_caster->GetTotalAttackPowerValue(RANGED_ATTACK)*0.1f);
                 }
                 break;
             }
             case SPELLFAMILY_PALADIN:
             {
-                //Judgement of Vengeance
+                // Judgement of Vengeance
                 if((m_spellInfo->SpellFamilyFlags & 0x800000000LL) && m_spellInfo->SpellIconID==2292)
                 {
                     uint32 stacks = 0;
@@ -542,6 +585,38 @@ void Spell::EffectSchoolDMG(uint32 effect_idx)
                         damage = -1;
                     else
                         damage *= stacks;
+                }
+                // Avenger's Shield ($m1+0.07*$SPH+0.07*$AP)
+                else if(m_spellInfo->SpellFamilyFlags & 0x0000000000004000LL)
+                {
+                    float ap = m_caster->GetTotalAttackPowerValue(BASE_ATTACK);
+                    int32 holy = m_caster->SpellBaseDamageBonus(GetSpellSchoolMask(m_spellInfo)) +
+                                 m_caster->SpellBaseDamageBonusForVictim(GetSpellSchoolMask(m_spellInfo), unitTarget);
+                    damage += int32(ap * 0.07f) + int32(holy * 7 / 100);
+                }
+                // Exorcism ($m1+0.15*$SPH+0.15*$AP)
+                else if(m_spellInfo->SpellFamilyFlags & 0x0000000200000000LL)
+                {
+                    float ap = m_caster->GetTotalAttackPowerValue(BASE_ATTACK);
+                    int32 holy = m_caster->SpellBaseDamageBonus(GetSpellSchoolMask(m_spellInfo)) +
+                                 m_caster->SpellBaseDamageBonusForVictim(GetSpellSchoolMask(m_spellInfo), unitTarget);
+                    damage += int32(ap * 0.15f) + int32(holy * 15 / 100);
+                }
+                // Hammer of Wrath ($m1+0.15*$SPH+0.15*$AP)
+                else if(m_spellInfo->SpellFamilyFlags & 0x0000008000000000LL)
+                {
+                    float ap = m_caster->GetTotalAttackPowerValue(BASE_ATTACK);
+                    int32 holy = m_caster->SpellBaseDamageBonus(GetSpellSchoolMask(m_spellInfo)) +
+                                 m_caster->SpellBaseDamageBonusForVictim(GetSpellSchoolMask(m_spellInfo), unitTarget);
+                    damage += int32(ap * 0.15f) + int32(holy * 15 / 100);
+                }
+                // Holy Wrath ($m1+0.07*$SPH+0.07*$AP)
+                else if(m_spellInfo->SpellFamilyFlags & 0x0020000000000000LL)
+                {
+                    float ap = m_caster->GetTotalAttackPowerValue(BASE_ATTACK);
+                    int32 holy = m_caster->SpellBaseDamageBonus(GetSpellSchoolMask(m_spellInfo)) +
+                                 m_caster->SpellBaseDamageBonusForVictim(GetSpellSchoolMask(m_spellInfo), unitTarget);
+                    damage += int32(ap * 0.15f) + int32(holy * 15 / 100);
                 }
                 break;
             }
@@ -1178,6 +1253,12 @@ void Spell::EffectDummy(uint32 i)
                     m_caster->CastSpell(m_caster, 30452, true, NULL);
                     return;
                 }
+                case 53341:
+                case 53343:
+                {
+                    m_caster->CastSpell(m_caster,54586,true);
+                    return;
+                 }
             }
 
             //All IconID Check in there
@@ -2390,9 +2471,17 @@ void Spell::EffectHeal( uint32 /*i*/ )
         if (!caster)
             return;
 
-        // FG: HACK: dont heal hostile targets
+        // FG: HACK: dont heal hostile targets + if radius spell, heal only group/raid
         if(caster->IsHostileTo(unitTarget))
             return;
+        if(m_spellInfo->EffectRadiusIndex && unitTarget->GetTypeId() == TYPEID_PLAYER && caster->GetTypeId() == TYPEID_PLAYER)
+        {
+            // if not in same group/raid, dont heal
+            if( !(((Player*)caster)->IsInSameGroupWith((Player*)unitTarget) || ((Player*)caster)->IsInSameRaidWith((Player*)unitTarget)) )
+            {
+                return;
+            }
+        }
 
         int32 addhealth = damage;
 
@@ -3460,7 +3549,7 @@ void Spell::EffectDispel(uint32 i)
 
 void Spell::EffectDualWield(uint32 /*i*/)
 {
-    if (unitTarget->GetTypeId() == TYPEID_PLAYER)
+    if (unitTarget && unitTarget->GetTypeId() == TYPEID_PLAYER)
         ((Player*)unitTarget)->SetCanDualWield(true);
 }
 
@@ -4956,9 +5045,69 @@ void Spell::EffectScriptEffect(uint32 effIndex)
 
             break;
         }
-    }
+        case 51770:
+        {
+            if(!unitTarget)
+                return;
 
-    if( m_spellInfo->SpellFamilyName == SPELLFAMILY_PALADIN )
+            unitTarget->CastSpell(unitTarget,51771,false);
+            break;
+        }
+    }
+    if( m_spellInfo->SpellFamilyName == SPELLFAMILY_HUNTER )
+    {
+        switch(m_spellInfo->Id)
+        {
+            // Chimera Shot
+            case 53209:
+            {
+                uint32 spellId = 0;
+                int32 basePoint = 0;
+                Unit::AuraMap& Auras = unitTarget->GetAuras();
+                for(Unit::AuraMap::iterator i = Auras.begin(); i != Auras.end(); ++i)
+                {
+                    Aura *aura = (*i).second;
+                    if (aura->GetCasterGUID() != m_caster->GetGUID())
+                        continue;
+                    // Search only Serpent Sting, Viper Sting, Scorpid Sting auras
+                    uint64 familyFlag = aura->GetSpellProto()->SpellFamilyFlags;
+                    if (!(familyFlag & 0x000000800000C000LL))
+                        continue;
+                    // Refresh aura duration
+                    aura->SetAuraDuration(aura->GetAuraMaxDuration());
+                    aura->SendAuraUpdate(false);
+
+                    // Serpent Sting - Instantly deals 40% of the damage done by your Serpent Sting.
+                    if (familyFlag & 0x0000000000004000LL && aura->GetEffIndex() == 0)
+                    {
+                        spellId = 53353; // 53353 Chimera Shot - Serpent
+                        basePoint = aura->GetModifier()->m_amount * 5 * 40 / 100;
+                    }
+                    // Viper Sting - Instantly restores mana to you equal to 60% of the total amount drained by your Viper Sting.
+                    if (familyFlag & 0x0000008000000000LL && aura->GetEffIndex() == 0)
+                    {
+                        spellId = 53358; // 53358 Chimera Shot - Viper
+                        basePoint = aura->GetModifier()->m_amount * 4 * 60 / 100;
+                    }
+                    // Scorpid Sting - Attempts to Disarm the target for 10 sec. This effect cannot occur more than once per 1 minute.
+                    if (familyFlag & 0x0000000000008000LL)
+                        spellId = 53359; // 53359 Chimera Shot - Scorpid
+                    // ?? nothing say in spell desc (possibly need addition check)
+                    //if (familyFlag & 0x0000010000000000LL || // dot
+                    //    familyFlag & 0x0000100000000000LL)   // stun
+                    //{
+                    //    spellId = 53366; // 53366 Chimera Shot - Wyvern
+                    //}
+                }
+                if (spellId)
+                    m_caster->CastCustomSpell(unitTarget, spellId, &basePoint, 0, 0, false);
+                return;
+            }
+            default:
+                break;
+        }
+    }
+    else if( m_spellInfo->SpellFamilyName == SPELLFAMILY_PALADIN )
     {
         switch(m_spellInfo->SpellFamilyFlags)
         {
@@ -5569,18 +5718,14 @@ void Spell::EffectAddExtraAttacks(uint32 /*i*/)
 
 void Spell::EffectParry(uint32 /*i*/)
 {
-    if (unitTarget->GetTypeId() == TYPEID_PLAYER)
-    {
+    if (unitTarget && unitTarget->GetTypeId() == TYPEID_PLAYER)
         ((Player*)unitTarget)->SetCanParry(true);
-    }
 }
 
 void Spell::EffectBlock(uint32 /*i*/)
 {
-    if (unitTarget->GetTypeId() != TYPEID_PLAYER)
-        return;
-
-    ((Player*)unitTarget)->SetCanBlock(true);
+    if (unitTarget && unitTarget->GetTypeId() == TYPEID_PLAYER)
+        ((Player*)unitTarget)->SetCanBlock(true);
 }
 
 void Spell::EffectMomentMove(uint32 i)
@@ -6376,4 +6521,10 @@ void Spell::EffectActivateRune(uint32 i)
             plr->SetRuneCooldown(j, 0);
         }
     }
+}
+
+void Spell::EffectTitanGrip(uint32 i)
+{
+    if (unitTarget && unitTarget->GetTypeId() == TYPEID_PLAYER)
+        ((Player*)unitTarget)->SetCanTitanGrip(true);
 }

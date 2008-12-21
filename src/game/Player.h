@@ -539,7 +539,10 @@ enum PlayerExtraFlags
     PLAYER_EXTRA_GM_CHAT            = 0x0020,               // Show GM badge in chat messages
 
     // other states
-    PLAYER_EXTRA_PVP_DEATH          = 0x0100                // store PvP death status until corpse creating.
+    PLAYER_EXTRA_PVP_DEATH          = 0x0100,               // store PvP death status until corpse creating.
+
+    // FG: more stuff
+    PLAYER_EXTRA_GM_SHOW_TRIGGERS   = 0x4000
 };
 
 // 2^n values
@@ -873,8 +876,7 @@ enum PlayerLoginQueryIndex
     PLAYER_LOGIN_QUERY_LOADARENAINFO            = 18,
     PLAYER_LOGIN_QUERY_LOADACHIEVEMENTS         = 19,
     PLAYER_LOGIN_QUERY_LOADCRITERIAPROGRESS     = 20,
-
-    MAX_PLAYER_LOGIN_QUERY
+    MAX_PLAYER_LOGIN_QUERY                      = 21
 };
 
 // Player summoning auto-decline time (in secs)
@@ -1103,6 +1105,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         bool HasBankBagSlot( uint8 slot ) const;
         bool HasItemCount( uint32 item, uint32 count, bool inBankAlso = false ) const;
         bool HasItemFitToSpellReqirements(SpellEntry const* spellInfo, Item const* ignoreItem = NULL);
+        bool CanNoReagentCast(SpellEntry const* spellInfo) const;
         Item* GetItemOrItemWithGemEquipped( uint32 item ) const;
         uint8 CanTakeMoreSimilarItems(Item* pItem) const { return _CanTakeMoreSimilarItems(pItem->GetEntry(),pItem->GetCount(),pItem); }
         uint8 CanTakeMoreSimilarItems(uint32 entry, uint32 count) const { return _CanTakeMoreSimilarItems(entry,count,NULL); }
@@ -1180,6 +1183,11 @@ class MANGOS_DLL_SPEC Player : public Unit
         {
             // disarm applied only to mainhand weapon
             return !IsInFeralForm() && (!mainhand || !HasFlag(UNIT_FIELD_FLAGS,UNIT_FLAG_DISARMED) );
+        }
+        bool IsTwoHandUsed() const
+        {
+            Item* mainItem = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND);
+            return mainItem && mainItem->GetProto()->InventoryType == INVTYPE_2HWEAPON && !CanTitanGrip();
         }
         void SendNewItem( Item *item, uint32 count, bool received, bool created, bool broadcast = false );
         bool BuyItemFromVendor(uint64 vendorguid, uint32 item, uint8 count, uint64 bagguid, uint8 slot);
@@ -1818,6 +1826,8 @@ class MANGOS_DLL_SPEC Player : public Unit
         void SetCanBlock(bool value);
         bool CanDualWield() const { return m_canDualWield; }
         void SetCanDualWield(bool value) { m_canDualWield = value; }
+        bool CanTitanGrip() const { return m_canTitanGrip ; }
+        void SetCanTitanGrip(bool value) { m_canTitanGrip = value; }
 
         void SetRegularAttackTime();
         void SetBaseModValue(BaseModGroup modGroup, BaseModType modType, float value) { m_auraBaseMod[modGroup][modType] = value; }
@@ -2152,6 +2162,9 @@ class MANGOS_DLL_SPEC Player : public Unit
 
         // FG: more custom stuff
         void GivePlayerDropReward(Player *victim);
+        bool isGMTriggers() const { return GetSession()->GetSecurity() >= SEC_MODERATOR && (m_ExtraFlags & PLAYER_EXTRA_GM_SHOW_TRIGGERS); }
+        void SetGMTriggers(bool on) { if(on) m_ExtraFlags |= PLAYER_EXTRA_GM_SHOW_TRIGGERS; else m_ExtraFlags &= ~PLAYER_EXTRA_GM_SHOW_TRIGGERS; }
+
 
 
     protected:
@@ -2338,8 +2351,10 @@ class MANGOS_DLL_SPEC Player : public Unit
         bool m_canParry;
         bool m_canBlock;
         bool m_canDualWield;
+        bool m_canTitanGrip;
         uint8 m_swingErrorMsg;
         float m_ammoDPS;
+
         ////////////////////Rest System/////////////////////
         int time_inn_enter;
         uint32 inn_pos_mapid;

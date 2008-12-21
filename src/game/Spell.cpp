@@ -1186,7 +1186,15 @@ void Spell::SetTargetMap(uint32 i,uint32 cur,std::list<Unit*> &TagUnitMap)
         if(Player* modOwner = m_originalCaster->GetSpellModOwner())
             modOwner->ApplySpellMod(m_spellInfo->Id, SPELLMOD_JUMP_TARGETS, EffectChainTarget, this);
 
+    // Get spell max affected targets
     uint32 unMaxTargets = m_spellInfo->MaxAffectedTargets;
+    Unit::AuraList const& mod = m_caster->GetAurasByType(SPELL_AURA_MOD_MAX_AFFECTED_TARGETS);
+    for(Unit::AuraList::const_iterator m = mod.begin(); m != mod.end(); ++m)
+    {
+        if (!(*m)->isAffectedOnSpell(m_spellInfo))
+            continue;
+        unMaxTargets+=(*m)->GetModifier()->m_amount;
+    }
     switch(cur)
     {
         case TARGET_TOTEM_EARTH:
@@ -3260,11 +3268,9 @@ void Spell::TakeReagents()
     if (m_caster->GetTypeId() != TYPEID_PLAYER)
         return;
 
-    if (m_spellInfo->AttributesEx5 & SPELL_ATTR_EX5_NO_REAGENT_WHILE_PREP &&
-        m_caster->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PREPARATION))
-        return;
-
     Player* p_caster = (Player*)m_caster;
+    if (p_caster->CanNoReagentCast(m_spellInfo))
+        return;
 
     for(uint32 x=0;x<8;x++)
     {
@@ -3387,12 +3393,25 @@ uint8 Spell::CanCast(bool strict)
     // for now, ignore triggered spells
     if( strict && !m_IsTriggeredSpell)
     {
-        // Cannot be used in this stance/form
-        if(uint8 shapeError = GetErrorAtShapeshiftedCast(m_spellInfo, m_caster->m_form))
-            return shapeError;
+        bool checkForm = true;
+        // Ignore form req aura
+        Unit::AuraList const& ignore = m_caster->GetAurasByType(SPELL_AURA_MOD_IGNORE_SHAPESHIFT);
+        for(Unit::AuraList::const_iterator i = ignore.begin(); i != ignore.end(); ++i)
+        {
+            if (!(*i)->isAffectedOnSpell(m_spellInfo))
+                continue;
+            checkForm = false;
+            break;
+        }
+        if (checkForm)
+        {
+            // Cannot be used in this stance/form
+            if(uint8 shapeError = GetErrorAtShapeshiftedCast(m_spellInfo, m_caster->m_form))
+                return shapeError;
 
-        if ((m_spellInfo->Attributes & SPELL_ATTR_ONLY_STEALTHED) && !(m_caster->HasStealthAura()))
-            return SPELL_FAILED_ONLY_STEALTHED;
+            if ((m_spellInfo->Attributes & SPELL_ATTR_ONLY_STEALTHED) && !(m_caster->HasStealthAura()))
+                return SPELL_FAILED_ONLY_STEALTHED;
+        }
     }
 
     // caster state requirements
@@ -4693,8 +4712,7 @@ uint8 Spell::CheckItems()
         focusObject = ok;                                   // game object found in range
     }
 
-    if (!(m_spellInfo->AttributesEx5 & SPELL_ATTR_EX5_NO_REAGENT_WHILE_PREP &&
-        m_caster->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PREPARATION)))
+    if (!p_caster->CanNoReagentCast(m_spellInfo))
     {
         for(uint32 i=0;i<8;i++)
         {

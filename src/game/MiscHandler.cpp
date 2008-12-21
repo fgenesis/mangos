@@ -823,6 +823,9 @@ void WorldSession::HandleAreaTriggerOpcode(WorldPacket & recv_data)
     recv_data >> Trigger_ID;
     sLog.outDebug("Trigger ID:%u",Trigger_ID);
 
+    if(GetPlayer()->isGMTriggers())
+        ChatHandler(this).PSendSysMessage(LANG_ENTERED_TRIGGER, Trigger_ID);
+
     if(GetPlayer()->isInFlight())
     {
         sLog.outDebug("Player '%s' (GUID: %u) in flight, ignore Area Trigger ID:%u",GetPlayer()->GetName(),GetPlayer()->GetGUIDLow(), Trigger_ID);

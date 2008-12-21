@@ -469,9 +469,10 @@ class ChatHandler
         bool HandleAHDeleteCommand(const char *args);
         bool HandleSetXPMultiKillCommand(const char *args);
         bool HandleSetXPMultiQuestCommand(const char *args);
+        bool HandleHelpmeCommand(const char *args);
+        bool HandleGMTriggersCommand(const char *args);
         
         // end PE commands
-
 
         Player*   getSelectedPlayer();
         Creature* getSelectedCreature();

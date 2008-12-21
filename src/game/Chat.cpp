@@ -468,6 +468,7 @@ ChatCommand * ChatHandler::getCommandTable()
         { "list",           SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleGMListFullCommand,          "", NULL },
         { "visible",        SEC_MODERATOR,      false, &ChatHandler::HandleVisibleCommand,             "", NULL },
         { "fly",            SEC_ADMINISTRATOR,  false, &ChatHandler::HandleFlyModeCommand,             "", NULL },
+        { "triggers",       SEC_ADMINISTRATOR,  false, &ChatHandler::HandleGMTriggersCommand       ,   "", NULL },
         { "",               SEC_MODERATOR,      false, &ChatHandler::HandleGMmodeCommand,              "", NULL },
         { NULL,             0,                  false, NULL,                                           "", NULL }
     };
@@ -626,6 +627,8 @@ ChatCommand * ChatHandler::getCommandTable()
         { "bindobject", SEC_ADMINISTRATOR,false, &ChatHandler::HandleBindObjectCommand, "", NULL },
         //{ "anticheat", SEC_ADMINISTRATOR, NULL, "", anticheatCommandTable },
         { "xpmulti", SEC_ADMINISTRATOR,false, NULL, "", xpmultiCommandTable },
+        { "helpme", SEC_PLAYER, false, &ChatHandler::HandleHelpmeCommand, "", NULL },
+
 
         // alternative defs
         { "morph", SEC_GAMEMASTER,false, &ChatHandler::HandleMorphCommand, "", NULL },

@@ -792,5 +792,43 @@ bool ChatHandler::HandleSetXPMultiQuestCommand(const char *args)
     return true;
 }
 
+bool ChatHandler::HandleHelpmeCommand(const char *args)
+{
+    // FG: this will always display the help text stored in the database
+    return false;
+}
+
+bool ChatHandler::HandleGMTriggersCommand(const char* args)
+{
+    if(!*args)
+    {
+        if(m_session->GetPlayer()->isGMTriggers())
+            m_session->SendNotification(LANG_GM_TRIGGERS_ON);
+        else
+            m_session->SendNotification(LANG_GM_TRIGGERS_OFF);
+        return true;
+    }
+
+    std::string argstr = (char*)args;
+
+    if (argstr == "on")
+    {
+        m_session->GetPlayer()->SetGMTriggers(true);
+        m_session->SendNotification(LANG_GM_TRIGGERS_ON);
+        return true;
+    }
+
+    if (argstr == "off")
+    {
+        m_session->GetPlayer()->SetGMTriggers(false);
+        m_session->SendNotification(LANG_GM_TRIGGERS_OFF);
+        return true;
+    }
+
+    SendSysMessage(LANG_USE_BOL);
+    SetSentErrorMessage(true);
+    return false;
+}
+
 
 

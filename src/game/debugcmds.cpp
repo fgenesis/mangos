@@ -573,5 +573,6 @@ bool ChatHandler::HandleSpawnVehicle(const char* args)
     }
 
     map->Add((Creature*)v);
+
     return true;
 }
