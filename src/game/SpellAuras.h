@@ -183,10 +183,12 @@ class MANGOS_DLL_SPEC Aura
         void HandleAuraGhost(bool Apply, bool Real);
         void HandleAuraAllowFlight(bool Apply, bool Real);
         void HandleModRating(bool apply, bool Real);
+        void HandleModRatingFromStat(bool apply, bool Real);
         void HandleModTargetResistance(bool apply, bool Real);
         void HandleAuraModAttackPowerPercent(bool apply, bool Real);
         void HandleAuraModRangedAttackPowerPercent(bool apply, bool Real);
         void HandleAuraModRangedAttackPowerOfStatPercent(bool apply, bool Real);
+        void HandleAuraModAttackPowerOfStatPercent(bool apply, bool Real);
         void HandleSpiritOfRedemption(bool apply, bool Real);
         void HandleModManaRegen(bool apply, bool Real);
         void HandleComprehendLanguage(bool apply, bool Real);

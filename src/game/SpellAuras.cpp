@@ -224,7 +224,7 @@ pAuraHandler AuraHandler[TOTAL_AURAS]=
     &Aura::HandleAuraModIncreaseSpeed,                      //171 SPELL_AURA_MOD_SPEED_NOT_STACK
     &Aura::HandleAuraModIncreaseMountedSpeed,               //172 SPELL_AURA_MOD_MOUNTED_SPEED_NOT_STACK
     &Aura::HandleUnused,                                    //173 SPELL_AURA_ALLOW_CHAMPION_SPELLS  only for Proclaim Champion spell
-    &Aura::HandleModSpellDamagePercentFromStat,             //174 SPELL_AURA_MOD_SPELL_DAMAGE_OF_STAT_PERCENT  implemented in Unit::SpellBaseDamageBonus (by default intellect, dependent from SPELL_AURA_MOD_SPELL_HEALING_OF_STAT_PERCENT)
+    &Aura::HandleModSpellDamagePercentFromStat,             //174 SPELL_AURA_MOD_SPELL_DAMAGE_OF_STAT_PERCENT  implemented in Unit::SpellBaseDamageBonus
     &Aura::HandleModSpellHealingPercentFromStat,            //175 SPELL_AURA_MOD_SPELL_HEALING_OF_STAT_PERCENT implemented in Unit::SpellBaseHealingBonus
     &Aura::HandleSpiritOfRedemption,                        //176 SPELL_AURA_SPIRIT_OF_REDEMPTION   only for Spirit of Redemption spell, die at aura end
     &Aura::HandleNULL,                                      //177 SPELL_AURA_AOE_CHARM
@@ -244,7 +244,7 @@ pAuraHandler AuraHandler[TOTAL_AURAS]=
     &Aura::HandleAuraModUseNormalSpeed,                     //191 SPELL_AURA_USE_NORMAL_MOVEMENT_SPEED
     &Aura::HandleModMeleeRangedSpeedPct,                    //192 SPELL_AURA_HASTE_MELEE
     &Aura::HandleModCombatSpeedPct,                         //193 SPELL_AURA_MELEE_SLOW (in fact combat (any type attack) speed pct)
-    &Aura::HandleUnused,                                    //194 SPELL_AURA_MOD_DEPRICATED_1 not used now (old SPELL_AURA_MOD_SPELL_DAMAGE_OF_INTELLECT)
+    &Aura::HandleUnused,                                    //194 SPELL_AURA_MOD_IGNORE_ABSORB_SCHOOL
     &Aura::HandleUnused,                                    //195 SPELL_AURA_MOD_DEPRICATED_2 not used now (old SPELL_AURA_MOD_SPELL_HEALING_OF_INTELLECT)
     &Aura::HandleNULL,                                      //196 SPELL_AURA_MOD_COOLDOWN
     &Aura::HandleNoImmediateEffect,                         //197 SPELL_AURA_MOD_ATTACKER_SPELL_AND_WEAPON_CRIT_CHANCE implemented in Unit::SpellCriticalBonus Unit::GetUnitCriticalChance
@@ -270,7 +270,7 @@ pAuraHandler AuraHandler[TOTAL_AURAS]=
     &Aura::HandleUnused,                                    //217                                   unused
     &Aura::HandleAuraModRangedHaste,                        //218 SPELL_AURA_HASTE_RANGED
     &Aura::HandleModManaRegen,                              //219 SPELL_AURA_MOD_MANA_REGEN_FROM_STAT
-    &Aura::HandleNULL,                                      //220 SPELL_AURA_MOD_RATING_FROM_STAT
+    &Aura::HandleModRatingFromStat,                         //220 SPELL_AURA_MOD_RATING_FROM_STAT
     &Aura::HandleNULL,                                      //221 ignored
     &Aura::HandleUnused,                                    //222 unused
     &Aura::HandleNULL,                                      //223 Cold Stare
@@ -318,7 +318,7 @@ pAuraHandler AuraHandler[TOTAL_AURAS]=
     &Aura::HandleNULL,                                      //265 unused
     &Aura::HandleNULL,                                      //266 unused
     &Aura::HandleNULL,                                      //267 some immunity?
-    &Aura::HandleNULL,                                      //268 SPELL_AURA_MOD_ATTACK_POWER_OF_STAT_PERCENT
+    &Aura::HandleAuraModAttackPowerOfStatPercent,           //268 SPELL_AURA_MOD_ATTACK_POWER_OF_STAT_PERCENT
     &Aura::HandleNULL,                                      //269 ignore DR effects?
     &Aura::HandleNULL,                                      //270
     &Aura::HandleNULL,                                      //271 increase damage done?
@@ -2114,6 +2114,42 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
         if(GetId()==46308)                                  // casted only at creatures at spawn
         {
             m_target->CastSpell(m_target,47287,true,NULL,this);
+            return;
+        }
+
+        // Seed of Corruption
+        if(GetId()==27243 || GetId()==47835 || GetId()==47836)
+        {
+            if (m_removeMode!=AURA_REMOVE_BY_DEATH)
+            {
+                uint32 finalSpelId = 0;
+                switch(GetId())
+                {
+                    case 27243: finalSpelId = 27285; break;
+                    case 47835: finalSpelId = 47833; break;
+                    case 47836: finalSpelId = 47834; break;
+                }
+                if(finalSpelId)
+                    caster->CastSpell(m_target,finalSpelId,true,NULL,this);
+            }
+            return;
+        }
+
+        // Living Bomb
+        if(GetId()==44457 || GetId()==55359 || GetId()==55360)
+        {
+            if (m_removeMode!=AURA_REMOVE_BY_DEATH)
+            {
+                uint32 finalSpelId = 0;
+                switch(GetId())
+                {
+                    case 44457: finalSpelId = 44461; break;
+                    case 55359: finalSpelId = 55361; break;
+                    case 55360: finalSpelId = 55362; break;
+                }
+                if(finalSpelId)
+                    caster->CastSpell(m_target,finalSpelId,true,NULL,this);
+            }
             return;
         }
 
@@ -4891,13 +4927,28 @@ void Aura::HandleAuraModCritPercent(bool apply, bool Real)
 
 void Aura::HandleModHitChance(bool apply, bool Real)
 {
-    m_target->m_modMeleeHitChance += apply ? m_modifier.m_amount : (-m_modifier.m_amount);
-    m_target->m_modRangedHitChance += apply ? m_modifier.m_amount : (-m_modifier.m_amount);
+    if(m_target->GetTypeId() == TYPEID_PLAYER)
+    {
+        ((Player*)m_target)->UpdateMeleeHitChances();
+        ((Player*)m_target)->UpdateRangedHitChances();
+    }
+    else
+    {
+        m_target->m_modMeleeHitChance += apply ? m_modifier.m_amount : (-m_modifier.m_amount);
+        m_target->m_modRangedHitChance += apply ? m_modifier.m_amount : (-m_modifier.m_amount);
+    }
 }
 
 void Aura::HandleModSpellHitChance(bool apply, bool Real)
 {
-    m_target->m_modSpellHitChance += apply ? m_modifier.m_amount: (-m_modifier.m_amount);
+    if(m_target->GetTypeId() == TYPEID_PLAYER)
+    {
+        ((Player*)m_target)->UpdateSpellHitChances();
+    }
+    else
+    {
+        m_target->m_modSpellHitChance += apply ? m_modifier.m_amount: (-m_modifier.m_amount);
+    }
 }
 
 void Aura::HandleModSpellCritChance(bool apply, bool Real)
@@ -5022,15 +5073,21 @@ void Aura::HandleAuraModRangedAttackPowerOfStatPercent(bool apply, bool Real)
     if(m_target->GetTypeId() == TYPEID_PLAYER && (m_target->getClassMask() & CLASSMASK_WAND_USERS)!=0)
         return;
 
-    if(m_modifier.m_miscvalue != STAT_INTELLECT)
-    {
-        // support required adding UpdateAttackPowerAndDamage calls at stat update
-        sLog.outError("Aura SPELL_AURA_MOD_RANGED_ATTACK_POWER_OF_STAT_PERCENT (212) need support non-intelect stats!");
-        return;
-    }
-
     // Recalculate bonus
     ((Player*)m_target)->UpdateAttackPowerAndDamage(true);
+}
+
+void Aura::HandleAuraModAttackPowerOfStatPercent(bool apply, bool Real)
+{
+    // spells required only Real aura add/remove
+    if(!Real)
+        return;
+
+    if(m_target->GetTypeId() == TYPEID_PLAYER && (m_target->getClassMask() & CLASSMASK_WAND_USERS)!=0)
+        return;
+
+    // Recalculate bonus
+    ((Player*)m_target)->UpdateAttackPowerAndDamage(false);
 }
 
 /********************************/
@@ -5455,6 +5512,20 @@ void Aura::HandleModRating(bool apply, bool Real)
     for (uint32 rating = 0; rating < MAX_COMBAT_RATING; ++rating)
         if (m_modifier.m_miscvalue & (1 << rating))
             ((Player*)m_target)->ApplyRatingMod(CombatRating(rating), m_modifier.m_amount, apply);
+}
+
+void Aura::HandleModRatingFromStat(bool apply, bool Real)
+{
+    // spells required only Real aura add/remove
+    if(!Real)
+        return;
+
+    if(m_target->GetTypeId() != TYPEID_PLAYER)
+        return;
+    // Just recalculate ratings
+    for (uint32 rating = 0; rating < MAX_COMBAT_RATING; ++rating)
+        if (m_modifier.m_miscvalue & (1 << rating))
+            ((Player*)m_target)->ApplyRatingMod(CombatRating(rating), 0, apply);
 }
 
 void Aura::HandleForceMoveForward(bool apply, bool Real)

@@ -7644,14 +7644,8 @@ int32 Unit::SpellBaseDamageBonus(SpellSchoolMask schoolMask)
         {
             if((*i)->GetModifier()->m_miscvalue & schoolMask)
             {
-                SpellEntry const* iSpellProto = (*i)->GetSpellProto();
-                uint8 eff = (*i)->GetEffIndex();
-
-                // stat used dependent from next effect aura SPELL_AURA_MOD_SPELL_HEALING presence and misc value (stat index)
-                Stats usedStat = STAT_INTELLECT;
-                if(eff < 2 && iSpellProto->EffectApplyAuraName[eff+1]==SPELL_AURA_MOD_SPELL_HEALING_OF_STAT_PERCENT)
-                    usedStat = Stats(iSpellProto->EffectMiscValue[eff+1]);
-
+                // stat used stored in miscValueB for this aura
+                Stats usedStat = Stats((*i)->GetMiscBValue());
                 DoneAdvertisedBenefit += int32(GetStat(usedStat) * (*i)->GetModifier()->m_amount / 100.0f);
             }
         }
@@ -9117,8 +9111,16 @@ bool Unit::CanHaveThreatList() const
     if( !isAlive() )
         return false;
 
-    // pets and totems can not have threat list
-    if( ((Creature*)this)->isPet() || ((Creature*)this)->isTotem() || ((Creature*)this)->isVehicle() )
+    // totems can not have threat list
+    if( ((Creature*)this)->isTotem() )
+        return false;
+
+    // vehicles can not have threat list
+    if( ((Creature*)this)->isVehicle() )
+        return false;
+
+    // pets can not have a threat list, unless they are controlled by a creature
+    if( ((Creature*)this)->isPet() && IS_PLAYER_GUID(((Pet*)this)->GetOwnerGUID()) )
         return false;
 
     return true;
@@ -10210,7 +10212,7 @@ void Unit::ProcDamageAndSpellFor( bool isVictim, Unit * pTarget, uint32 procFlag
                 }
                 case SPELL_AURA_OVERRIDE_CLASS_SCRIPTS:
                 {
-                    sLog.outDebug("ProcDamageAndSpell: casting spell id %u (triggered by %s class script aura of spell %u)",
+                    sLog.outDebug("ProcDamageAndSpell: casting spell (triggered by %s class script aura of spell %u)",
                         (isVictim?"a victim's":"an attacker's"),triggeredByAura->GetId());
                     casted = HandleOverrideClassScriptAuraProc(pTarget, triggeredByAura, procSpell,i->cooldown);
                     break;

@@ -1653,6 +1653,10 @@ class MANGOS_DLL_SPEC Player : public Unit
         void UpdateAllCritPercentages();
         void UpdateParryPercentage();
         void UpdateDodgePercentage();
+        void UpdateMeleeHitChances();
+        void UpdateRangedHitChances();
+        void UpdateSpellHitChances();
+
         void UpdateAllSpellCritChances();
         void UpdateSpellCritChance(uint32 school);
         void UpdateExpertise(WeaponAttackType attType);
@@ -2299,6 +2303,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         ActionButtonList m_actionButtons;
 
         float m_auraBaseMod[BASEMOD_END][MOD_END];
+        int16 m_baseRatingValue[MAX_COMBAT_RATING];
 
         SpellModList m_spellMods[MAX_SPELLMOD];
         int32 m_SpellModRemoveCount;
