@@ -1719,6 +1719,10 @@ bool ChatHandler::HandleLearnAllMySpellsCommand(const char* /*args*/)
         if(!spellInfo)
             continue;
 
+        // skip server-side/triggered spells
+        if(spellInfo->spellLevel==0)
+            continue;
+
         // skip wrong class/race skills
         if(!m_session->GetPlayer()->IsSpellFitByClassAndRace(spellInfo->Id))
             continue;
@@ -1726,8 +1730,6 @@ bool ChatHandler::HandleLearnAllMySpellsCommand(const char* /*args*/)
         // skip other spell families
         if( spellInfo->SpellFamilyName != family)
             continue;
-
-        //TODO: skip triggered spells
 
         // skip spells with first rank learned as talent (and all talents then also)
         uint32 first_rank = spellmgr.GetFirstSpellInChain(spellInfo->Id);

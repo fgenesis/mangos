@@ -4338,6 +4338,17 @@ void Spell::EffectWeaponDmg(uint32 i)
     {
         case SPELLFAMILY_WARRIOR:
         {
+            bool is_devastate = false;
+            switch(m_spellInfo->Id)
+            {
+            case 20243:
+            case 30016:
+            case 30022:
+            case 47497:
+            case 47498:
+                is_devastate = true;
+            }
+
             // Whirlwind, single only spell with 2 weapon white damage apply if have
             if(m_caster->GetTypeId()==TYPEID_PLAYER && (m_spellInfo->SpellFamilyFlags & 0x00000400000000LL))
             {
@@ -4345,10 +4356,10 @@ void Spell::EffectWeaponDmg(uint32 i)
                     spell_bonus += m_caster->CalculateDamage (OFF_ATTACK, normalized);
             }
             // Devastate bonus and sunder armor refresh
-            else if(m_spellInfo->SpellVisual[0] == 671 && m_spellInfo->SpellIconID == 1508)
+            else if(is_devastate)
             {
                 // FG: --start--
-                uint32 ranks[] = { 25225,11597,11596,8380,7405,7386,0 };
+                uint32 ranks[] = { 25225,11597,11596,8380,7405,7386,25225,47467,0 };
                 uint32 sunder = 0;
                 for(uint32 j = 0; ranks[j]; j++)
                 {
@@ -5996,16 +6007,19 @@ void Spell::EffectSendTaxi(uint32 i)
     uint32 mountid = 0;
     switch(m_spellInfo->Id)
     {
-        case 31606:       //Stormcrow Amulet
+        case 31606:                                         //Stormcrow Amulet
             mountid = 17447;
             break;
-        case 45071:      //Quest - Sunwell Daily - Dead Scar Bombing Run
-        case 45113:      //Quest - Sunwell Daily - Ship Bombing Run
-        case 45353:      //Quest - Sunwell Daily - Ship Bombing Run Return
+        case 45071:                                         //Quest - Sunwell Daily - Dead Scar Bombing Run
+        case 45113:                                         //Quest - Sunwell Daily - Ship Bombing Run
+        case 45353:                                         //Quest - Sunwell Daily - Ship Bombing Run Return
             mountid = 22840;
             break;
-        case 34905:      //Stealth Flight
+        case 34905:                                         //Stealth Flight
             mountid = 6851;
+            break;
+        case 53335:                                         //Stormwind Harbor Flight - Peaceful
+            mountid = 6852;
             break;
     }
 
