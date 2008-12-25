@@ -6308,12 +6308,14 @@ void Player::UpdateZone(uint32 newZone)
     if(zone->flags & AREA_FLAG_SANCTUARY)                   // in sanctuary
     {
         SetFlag(PLAYER_FLAGS, PLAYER_FLAGS_SANCTUARY);
+        SetByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_SANCTUARY );
         if(sWorld.IsFFAPvPRealm())
             RemoveFlag(PLAYER_FLAGS,PLAYER_FLAGS_FFA_PVP);
     }
     else
     {
         RemoveFlag(PLAYER_FLAGS, PLAYER_FLAGS_SANCTUARY);
+        RemoveByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_SANCTUARY );
     }
 
     // FG: HACK: DK zone should be friendly + remove zone specific spells
