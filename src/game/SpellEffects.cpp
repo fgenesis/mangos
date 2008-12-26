@@ -2238,6 +2238,14 @@ void Spell::EffectApplyAura(uint32 i)
     if(!caster)
         return;
 
+    // FG: hackfix: do not apply dominion over archerus outside of archerus
+    if(m_spellInfo->Id == 51721 || m_spellInfo->Id == 54055)
+    {
+        if(caster->GetTypeId() == TYPEID_PLAYER && caster->GetMapId() != 609)
+            return;
+    }
+
+
     sLog.outDebug("Spell: Aura is: %u", m_spellInfo->EffectApplyAuraName[i]);
 
     Aura* Aur = CreateAura(m_spellInfo, i, &m_currentBasePoints[i], unitTarget, caster, m_CastItem);
