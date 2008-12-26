@@ -4216,7 +4216,10 @@ void Spell::EffectSummonPet(uint32 i)
     // this enables pet details window (Shift+P)
 
     // this enables popup window (pet dismiss, cancel), hunter pet additional flags set later
-    NewSummon->SetUInt32Value(UNIT_FIELD_FLAGS,UNIT_FLAG_PVP_ATTACKABLE);
+    if(m_caster->GetTypeId() == TYPEID_PLAYER)
+    {
+        NewSummon->SetUInt32Value(UNIT_FIELD_FLAGS,UNIT_FLAG_PVP_ATTACKABLE);
+    }
 
     NewSummon->InitStatsForLevel(petlevel);
     NewSummon->InitPetCreateSpells();
