@@ -625,6 +625,32 @@ void Object::_BuildValuesUpdate(uint8 updatetype, ByteBuffer * data, UpdateMask 
                     else
                         *data << (m_uint32Values[ index ] & ~UNIT_DYNFLAG_OTHER_TAGGER);
                 }
+                // FG: pretend that OTHER players in own group are friendly ("blue")
+                else if(index == UNIT_FIELD_BYTES_2 || index == UNIT_FIELD_FACTIONTEMPLATE)
+                {
+                    bool ch = false;
+                    if(target->GetTypeId() == TYPEID_PLAYER && GetTypeId() == TYPEID_PLAYER && target != this)
+                    {
+                        if(target->IsInSameGroupWith((Player*)this) || target->IsInSameRaidWith((Player*)this))
+                        {
+                            if(index == UNIT_FIELD_BYTES_2)
+                            {
+                                DEBUG_LOG("-- VALUES_UPDATE: Sending '%s' the blue-group-fix from '%s' (flag)", target->GetName(), ((Player*)this)->GetName());
+                                *data << ( m_uint32Values[ index ] & (UNIT_BYTE2_FLAG_SANCTUARY << 8) ); // this flag is at uint8 offset 1 !!
+                                ch = true;
+                            }
+                            else if(index == UNIT_FIELD_FACTIONTEMPLATE)
+                            {
+                                DEBUG_LOG("-- VALUES_UPDATE: Sending '%s' the blue-group-fix from '%s' (faction)", target->GetName(), ((Player*)this)->GetName());
+                                *data << uint32(35);
+                                ch = true;
+                            }
+                        }
+                    }
+                    if(!ch)
+                        *data << m_uint32Values[ index ];
+
+                }
                 else
                 {
                     // send in current format (float as float, uint32 as uint32)
@@ -1525,6 +1551,19 @@ Creature* WorldObject::SummonCreatureCustom(uint32 id, float x, float y, float z
     pCreature->Summon(spwtype, despwtime);
 
     return pCreature;
+}
+
+void Object::ForceValuesUpdateAtIndex(uint32 i)
+{
+    m_uint32Values_mirror[i] = GetUInt32Value(i) + 1; // makes server think the field changed
+    if(m_inWorld)
+    {
+        if(!m_objectUpdated)
+        {
+            ObjectAccessor::Instance().AddUpdateObject(this);
+            m_objectUpdated = true;
+        }
+    }
 }
 
 
