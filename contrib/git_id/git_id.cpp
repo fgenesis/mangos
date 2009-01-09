@@ -572,7 +572,7 @@ bool generate_sql_makefile()
             if(new_sql_updates.find(buffer) != new_sql_updates.end())
             {
                 if(!get_sql_update_info(buffer, info)) return false;
-                snprintf(newname, MAX_PATH, "%d_%0*d_%s%s%s", rev, 2, info.nr, info.db, info.has_table ? "_" : "", info.table);
+                snprintf(newname, MAX_PATH, "%d_%0*d_%s%s%s.sql", rev, 2, info.nr, info.db, info.has_table ? "_" : "", info.table);
                 file_list.insert(newname);
             }
             else
@@ -619,8 +619,11 @@ bool generate_sql_makefile()
         sql_update_dir, sql_update_dir
     );
 
-    for(std::set<std::string>::iterator itr = file_list.begin(); itr != file_list.end(); ++itr)
-        fprintf(fout, "\t%s \\\n", itr->c_str());
+    for(std::set<std::string>::iterator itr = file_list.begin(), next; itr != file_list.end(); ++itr)
+    {
+        next = itr; ++next;
+        fprintf(fout, "\t%s %s\n", itr->c_str(), next == file_list.end() ? "" : "\\");
+    }
 
     fprintf(fout,
         "\n## Additional files to include when running 'make dist'\n"
@@ -628,8 +631,11 @@ bool generate_sql_makefile()
         "EXTRA_DIST = \\\n"
     );
 
-    for(std::set<std::string>::iterator itr = file_list.begin(); itr != file_list.end(); ++itr)
-        fprintf(fout, "\t%s \\\n", itr->c_str());
+    for(std::set<std::string>::iterator itr = file_list.begin(), next; itr != file_list.end(); ++itr)
+    {
+        next = itr; ++next;
+        fprintf(fout, "\t%s %s\n", itr->c_str(), next == file_list.end() ? "" : "\\");
+    }
 
     fclose(fout);
 
