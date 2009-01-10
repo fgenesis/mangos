@@ -1,4 +1,4 @@
-# Copyright (C) 2005-2008 MaNGOS <http://getmangos.com/>
+# Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -108,6 +108,26 @@ pkgdata_DATA = \
 	6976_01_realmd_realmd_db_version.sql \
 	6976_02_characters_character_db_version.sql \
 	7002_01_mangos_spell_chain.sql \
+	7015_01_mangos_item_template.sql \
+	7024_01_mangos_spell_chain.sql \
+	7026_01_mangos_battleground_template.sql \
+	7031_01_mangos_spell_proc_event.sql \
+	7033_01_mangos_spell_proc_event.sql \
+	7034_01_mangos_spell_proc_event.sql \
+	7040_01_mangos_achievement_reward.sql \
+	7044_01_mangos_spell_proc_event.sql \
+	7047_01_characters_character_spell.sql \
+	7047_02_mangos_playercreateinfo_action.sql \
+	7047_03_mangos_playercreateinfo_spell.sql \
+	7050_01_mangos_spell_proc_event.sql \
+	7051_01_mangos_spell_proc_event.sql \
+	7052_01_mangos_spell_proc_event.sql \
+	7053_01_mangos_spell_proc_event.sql \
+	7056_01_mangos_spell_proc_event.sql \
+	7059_01_characters_character_spell.sql \
+	7059_02_characters_pet_spell.sql \
+	7060_01_mangos_spell_proc_event.sql \
+	7061_01_mangos_spell_proc_event.sql \
 	README
 
 ## Additional files to include when running 'make dist'
@@ -196,4 +216,24 @@ EXTRA_DIST = \
 	6976_01_realmd_realmd_db_version.sql \
 	6976_02_characters_character_db_version.sql \
 	7002_01_mangos_spell_chain.sql \
+	7015_01_mangos_item_template.sql \
+	7024_01_mangos_spell_chain.sql \
+	7026_01_mangos_battleground_template.sql \
+	7031_01_mangos_spell_proc_event.sql \
+	7033_01_mangos_spell_proc_event.sql \
+	7034_01_mangos_spell_proc_event.sql \
+	7040_01_mangos_achievement_reward.sql \
+	7044_01_mangos_spell_proc_event.sql \
+	7047_01_characters_character_spell.sql \
+	7047_02_mangos_playercreateinfo_action.sql \
+	7047_03_mangos_playercreateinfo_spell.sql \
+	7050_01_mangos_spell_proc_event.sql \
+	7051_01_mangos_spell_proc_event.sql \
+	7052_01_mangos_spell_proc_event.sql \
+	7053_01_mangos_spell_proc_event.sql \
+	7056_01_mangos_spell_proc_event.sql \
+	7059_01_characters_character_spell.sql \
+	7059_02_characters_pet_spell.sql \
+	7060_01_mangos_spell_proc_event.sql \
+	7061_01_mangos_spell_proc_event.sql \
 	README

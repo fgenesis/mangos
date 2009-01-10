@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2008 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -641,8 +641,33 @@ void Object::_BuildValuesUpdate(uint8 updatetype, ByteBuffer * data, UpdateMask 
                             }
                             else if(index == UNIT_FIELD_FACTIONTEMPLATE)
                             {
-                                DEBUG_LOG("-- VALUES_UPDATE: Sending '%s' the blue-group-fix from '%s' (faction)", target->GetName(), ((Player*)this)->GetName());
-                                *data << uint32(35);
+                                uint32 faction = 35;
+                                if(const Group *grp = ((Player*)this)->GetGroup())
+                                {
+                                    Player *pldr = objmgr.GetPlayer(grp->GetLeaderGUID());
+                                    if(pldr && pldr->IsInWorld())
+                                    {
+                                        if(pldr->IsInWorld())
+                                        {
+                                            faction = pldr->getFaction();
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Group::MemberSlotList const &msl = grp->GetMemberSlots();
+                                        for(Group::MemberSlotList::const_iterator it = msl.begin(); it != msl.end(); it++)
+                                        {
+                                            Player *pgrp = objmgr.GetPlayer(it->guid);
+                                            if(pgrp && pgrp->IsInWorld())
+                                            {
+                                                faction = pgrp->getFaction();
+                                            }
+                                        }
+                                    }
+                                }
+
+                                DEBUG_LOG("-- VALUES_UPDATE: Sending '%s' the blue-group-fix from '%s' (faction %u)", target->GetName(), ((Player*)this)->GetName(), faction);
+                                *data << uint32(faction);
                                 ch = true;
                             }
                         }

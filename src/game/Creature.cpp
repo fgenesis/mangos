@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2008 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1544,7 +1544,7 @@ void Creature::Respawn()
     }
 }
 
-bool Creature::IsImmunedToSpell(SpellEntry const* spellInfo, bool useCharges)
+bool Creature::IsImmunedToSpell(SpellEntry const* spellInfo)
 {
     if (!spellInfo)
         return false;
@@ -1552,7 +1552,7 @@ bool Creature::IsImmunedToSpell(SpellEntry const* spellInfo, bool useCharges)
     if (GetCreatureInfo()->MechanicImmuneMask & (1 << (spellInfo->Mechanic - 1)))
         return true;
 
-    return Unit::IsImmunedToSpell(spellInfo, useCharges);
+    return Unit::IsImmunedToSpell(spellInfo);
 }
 
 bool Creature::IsImmunedToSpellEffect(uint32 effect, uint32 mechanic) const
@@ -1604,7 +1604,9 @@ SpellEntry const *Creature::reachWithSpellAttack(Unit *pVictim)
         //    continue;
         if( dist > range || dist < minrange )
             continue;
-        if(HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_SILENCED))
+        if(spellInfo->PreventionType == SPELL_PREVENTION_TYPE_SILENCE && HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_SILENCED))
+            continue;
+        if(spellInfo->PreventionType == SPELL_PREVENTION_TYPE_PACIFY && HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PACIFIED))
             continue;
         return spellInfo;
     }
@@ -1648,7 +1650,9 @@ SpellEntry const *Creature::reachWithSpellCure(Unit *pVictim)
         //    continue;
         if( dist > range || dist < minrange )
             continue;
-        if(HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_SILENCED))
+        if(spellInfo->PreventionType == SPELL_PREVENTION_TYPE_SILENCE && HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_SILENCED))
+            continue;
+        if(spellInfo->PreventionType == SPELL_PREVENTION_TYPE_PACIFY && HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PACIFIED))
             continue;
         return spellInfo;
     }

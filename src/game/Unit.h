@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2008 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -743,14 +743,12 @@ struct CharmInfo
 
 enum ReactiveType
 {
-    REACTIVE_DEFENSE      = 1,
-    REACTIVE_HUNTER_PARRY = 2,
-    REACTIVE_CRIT         = 3,
-    REACTIVE_HUNTER_CRIT  = 4,
-    REACTIVE_OVERPOWER    = 5
+    REACTIVE_DEFENSE      = 0,
+    REACTIVE_HUNTER_PARRY = 1,
+    REACTIVE_OVERPOWER    = 2
 };
 
-#define MAX_REACTIVE 6
+#define MAX_REACTIVE 3
 #define MAX_TOTEM 4
 
 // delay time next attack to prevent client attack animation problems
@@ -987,7 +985,10 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
 
         bool HasAuraType(AuraType auraType) const;
         bool HasAura(uint32 spellId, uint32 effIndex) const
-            { return m_Auras.find(spellEffectPair(spellId, effIndex)) != m_Auras.end(); }
+        {
+            return m_Auras.find(spellEffectPair(spellId, effIndex)) != m_Auras.end();
+        }
+        bool HasAura(uint32 spellId) const;
 
         bool virtual HasSpell(uint32 /*spellID*/) const { return false; }
 
@@ -1086,6 +1087,7 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
 
         void RemoveAura(AuraMap::iterator &i, AuraRemoveMode mode = AURA_REMOVE_BY_DEFAULT);
         void RemoveAura(uint32 spellId, uint32 effindex, Aura* except = NULL);
+        void RemoveSingleSpellAurasFromStack(uint32 spellId);
         void RemoveSingleAuraFromStack(uint32 spellId, uint32 effindex);
         void RemoveAurasDueToSpell(uint32 spellId, Aura* except = NULL);
         void RemoveAurasDueToItemSpell(Item* castItem,uint32 spellId);
@@ -1312,9 +1314,9 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
 
         void ApplySpellImmune(uint32 spellId, uint32 op, uint32 type, bool apply);
         void ApplySpellDispelImmunity(const SpellEntry * spellProto, DispelType type, bool apply);
-        virtual bool IsImmunedToSpell(SpellEntry const* spellInfo, bool useCharges = false);
+        virtual bool IsImmunedToSpell(SpellEntry const* spellInfo);
                                                             // redefined in Creature
-        bool IsImmunedToDamage(SpellSchoolMask meleeSchoolMask, bool useCharges = false);
+        bool IsImmunedToDamage(SpellSchoolMask meleeSchoolMask);
         virtual bool IsImmunedToSpellEffect(uint32 effect, uint32 mechanic) const;
                                                             // redefined in Creature
 
@@ -1446,7 +1448,7 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         bool HandleDummyAuraProc(   Unit *pVictim, uint32 damage, Aura* triggredByAura, SpellEntry const *procSpell, uint32 procFlag, uint32 procEx, uint32 cooldown);
         bool HandleHasteAuraProc(   Unit *pVictim, uint32 damage, Aura* triggredByAura, SpellEntry const *procSpell, uint32 procFlag, uint32 procEx, uint32 cooldown);
         bool HandleProcTriggerSpell(Unit *pVictim, uint32 damage, Aura* triggredByAura, SpellEntry const *procSpell, uint32 procFlag, uint32 procEx, uint32 cooldown);
-        bool HandleOverrideClassScriptAuraProc(Unit *pVictim, Aura* triggredByAura, SpellEntry const *procSpell, uint32 cooldown);
+        bool HandleOverrideClassScriptAuraProc(Unit *pVictim, uint32 damage, Aura* triggredByAura, SpellEntry const *procSpell, uint32 cooldown);
         bool HandleMeandingAuraProc(Aura* triggeredByAura);
 
         uint32 m_state;                                     // Even derived shouldn't modify

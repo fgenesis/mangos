@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2008 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -583,22 +583,6 @@ void ObjectMgr::LoadCreatureLocales()
 
     sLog.outString();
     sLog.outString( ">> Loaded %u creature locale strings", mCreatureLocaleMap.size() );
-}
-
-void ObjectMgr::LoadCompletedAchievements()
-{
-    QueryResult *result = CharacterDatabase.Query("SELECT achievement FROM character_achievement GROUP BY achievement");
-
-    if(!result)
-        return;
-
-    do
-    {
-        Field *fields = result->Fetch();
-        allCompletedAchievements.insert(fields[0].GetUInt32());
-    } while(result->NextRow());
-
-    delete result;
 }
 
 void ObjectMgr::LoadNpcOptionLocales()
@@ -1679,14 +1663,30 @@ void ObjectMgr::LoadItemPrototypes()
             const_cast<ItemPrototype*>(proto)->RequiredSkill = 0;
         }
 
-        if(!(proto->AllowableClass & CLASSMASK_ALL_PLAYABLE))
         {
-            sLog.outErrorDb("Item (Entry: %u) not have in `AllowableClass` any playable classes (%u) and can't be equipped.",i,proto->AllowableClass);
-        }
 
-        if(!(proto->AllowableRace & RACEMASK_ALL_PLAYABLE))
-        {
-            sLog.outErrorDb("Item (Entry: %u) not have in `AllowableRace` any playable races (%u) and can't be equipped.",i,proto->AllowableRace);
+            // can be used in equip slot, as page read use in inventory, or spell casting at use
+            bool req = proto->InventoryType!=INVTYPE_NON_EQUIP || proto->PageText;
+            if(!req)
+            {
+                for (int j = 0; j < 5; ++j)
+                {
+                    if(proto->Spells[j].SpellId)
+                    {
+                        req = true;
+                        break;
+                    }
+                }
+            }
+
+            if(req)
+            {
+                if(!(proto->AllowableClass & CLASSMASK_ALL_PLAYABLE))
+                    sLog.outErrorDb("Item (Entry: %u) not have in `AllowableClass` any playable classes (%u) and can't be equipped or use.",i,proto->AllowableClass);
+
+                if(!(proto->AllowableRace & RACEMASK_ALL_PLAYABLE))
+                    sLog.outErrorDb("Item (Entry: %u) not have in `AllowableRace` any playable races (%u) and can't be equipped or use.",i,proto->AllowableRace);
+            }
         }
 
         if(proto->RequiredSpell && !sSpellStore.LookupEntry(proto->RequiredSpell))
@@ -1712,10 +1712,21 @@ void ObjectMgr::LoadItemPrototypes()
         else if(proto->RequiredReputationRank > MIN_REPUTATION_RANK)
             sLog.outErrorDb("Item (Entry: %u) has RequiredReputationFaction ==0 but RequiredReputationRank > 0, rank setting is useless.",i);
 
+        if(proto->MaxCount < -1)
+        {
+            sLog.outErrorDb("Item (Entry: %u) has too large negative in maxcount (%i), replace by value (-1) no storing limits.",i,proto->MaxCount);
+            const_cast<ItemPrototype*>(proto)->MaxCount = -1;
+        }
+
         if(proto->Stackable==0)
         {
-            sLog.outErrorDb("Item (Entry: %u) has wrong value in stackable (%u), replace by default 1.",i,proto->Stackable);
+            sLog.outErrorDb("Item (Entry: %u) has wrong value in stackable (%i), replace by default 1.",i,proto->Stackable);
             const_cast<ItemPrototype*>(proto)->Stackable = 1;
+        }
+        else if(proto->Stackable < -1)
+        {
+            sLog.outErrorDb("Item (Entry: %u) has too large negative in stackable (%i), replace by value (-1) no stacking limits.",i,proto->Stackable);
+            const_cast<ItemPrototype*>(proto)->Stackable = -1;
         }
         else if(proto->Stackable > 255)
         {
@@ -5134,6 +5145,9 @@ void ObjectMgr::LoadAreaTriggerTeleports()
     sLog.outString( ">> Loaded %u area trigger teleport definitions", count );
 }
 
+/*
+ * Searches for the areatrigger which teleports players out of the given map
+ */
 AreaTrigger const* ObjectMgr::GetGoBackTrigger(uint32 Map) const
 {
     const MapEntry *mapEntry = sMapStore.LookupEntry(Map);
@@ -5144,6 +5158,23 @@ AreaTrigger const* ObjectMgr::GetGoBackTrigger(uint32 Map) const
         {
             AreaTriggerEntry const* atEntry = sAreaTriggerStore.LookupEntry(itr->first);
             if(atEntry && atEntry->mapid == Map)
+                return &itr->second;
+        }
+    }
+    return NULL;
+}
+
+/**
+ * Searches for the areatrigger which teleports players to the given map
+ */
+AreaTrigger const* ObjectMgr::GetMapEntranceTrigger(uint32 Map) const
+{
+    for (AreaTriggerMap::const_iterator itr = mAreaTriggers.begin(); itr != mAreaTriggers.end(); ++itr)
+    {
+        if(itr->second.target_mapId == Map)
+        {
+            AreaTriggerEntry const* atEntry = sAreaTriggerStore.LookupEntry(itr->first);
+            if(atEntry)
                 return &itr->second;
         }
     }
@@ -6290,23 +6321,6 @@ int ObjectMgr::GetOrNewIndexForLocale( LocaleConstant loc )
 
     m_LocalForIndex.push_back(loc);
     return m_LocalForIndex.size()-1;
-}
-
-AchievementCriteriaEntryList const& ObjectMgr::GetAchievementCriteriaByType(AchievementCriteriaTypes type)
-{
-    return m_AchievementCriteriasByType[type];
-}
-
-void ObjectMgr::LoadAchievementCriteriaList()
-{
-    for (uint32 entryId = 0; entryId<sAchievementCriteriaStore.GetNumRows(); entryId++)
-    {
-        AchievementCriteriaEntry const* criteria = sAchievementCriteriaStore.LookupEntry(entryId);
-        if(!criteria)
-            continue;
-
-        m_AchievementCriteriasByType[criteria->requiredType].push_back(criteria);
-    }
 }
 
 void ObjectMgr::LoadBattleMastersEntry()

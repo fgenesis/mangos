@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2008 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -72,13 +72,10 @@ enum PlayerSpellState
 
 struct PlayerSpell
 {
-    uint16 slotId          : 16;
     PlayerSpellState state : 8;
     bool active            : 1;
     bool disabled          : 1;
 };
-
-#define SPELL_WITHOUT_SLOT_ID uint16(-1)
 
 // Spell modifier (used for modify other spells)
 struct SpellModifier
@@ -735,10 +732,10 @@ enum QuestBagSlots
 
 struct ItemPosCount
 {
-    ItemPosCount(uint16 _pos, uint8 _count) : pos(_pos), count(_count) {}
+    ItemPosCount(uint16 _pos, uint32 _count) : pos(_pos), count(_count) {}
     bool isContainedIn(std::vector<ItemPosCount> const& vec) const;
     uint16 pos;
-    uint8 count;
+    uint32 count;
 };
 typedef std::vector<ItemPosCount> ItemPosCountVec;
 
@@ -903,9 +900,7 @@ class MANGOS_DLL_SPEC PlayerTaxi
         // Nodes
         void InitTaxiNodesForLevel(uint32 race, uint32 chrClass, uint32 level);
         void LoadTaxiMask(const char* data);
-        void SaveTaxiMask(const char* data);
 
-        uint32 GetTaximask( uint8 index ) const { return m_taximask[index]; }
         bool IsTaximaskNodeKnown(uint32 nodeidx) const
         {
             uint8  field   = uint8((nodeidx - 1) / 32);
@@ -941,10 +936,14 @@ class MANGOS_DLL_SPEC PlayerTaxi
             return GetTaxiDestination();
         }
         bool empty() const { return m_TaxiDestinations.empty(); }
+
+        friend std::ostringstream& operator<< (std::ostringstream& ss, PlayerTaxi const& taxi);
     private:
         TaxiMask m_taximask;
         std::deque<uint32> m_TaxiDestinations;
 };
+
+std::ostringstream& operator<< (std::ostringstream& ss, PlayerTaxi const& taxi);
 
 class MANGOS_DLL_SPEC Player : public Unit
 {
@@ -1471,7 +1470,7 @@ class MANGOS_DLL_SPEC Player : public Unit
 
         void SendProficiency(uint8 pr1, uint32 pr2);
         void SendInitialSpells();
-        bool addSpell(uint32 spell_id, bool active, bool learning = true, bool loading = false, uint16 slot_id=SPELL_WITHOUT_SLOT_ID, bool disabled = false);
+        bool addSpell(uint32 spell_id, bool active, bool learning = true, bool loading = false, bool disabled = false);
         void learnSpell(uint32 spell_id);
         void removeSpell(uint32 spell_id, bool disabled = false);
         void resetSpells();
@@ -1740,7 +1739,7 @@ class MANGOS_DLL_SPEC Player : public Unit
 
         void UpdateDefense();
         void UpdateWeaponSkill (WeaponAttackType attType);
-        void UpdateCombatSkills(Unit *pVictim, WeaponAttackType attType, MeleeHitOutcome outcome, bool defence);
+        void UpdateCombatSkills(Unit *pVictim, WeaponAttackType attType, bool defence);
 
         void SetSkill(uint32 id, uint16 currVal, uint16 maxVal);
         uint16 GetMaxSkillValue(uint32 skill) const;        // max + perm. bonus
