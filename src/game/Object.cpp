@@ -641,31 +641,7 @@ void Object::_BuildValuesUpdate(uint8 updatetype, ByteBuffer * data, UpdateMask 
                             }
                             else if(index == UNIT_FIELD_FACTIONTEMPLATE)
                             {
-                                uint32 faction = 35;
-                                if(const Group *grp = ((Player*)this)->GetGroup())
-                                {
-                                    Player *pldr = objmgr.GetPlayer(grp->GetLeaderGUID());
-                                    if(pldr && pldr->IsInWorld())
-                                    {
-                                        if(pldr->IsInWorld())
-                                        {
-                                            faction = pldr->getFaction();
-                                        }
-                                    }
-                                    else
-                                    {
-                                        Group::MemberSlotList const &msl = grp->GetMemberSlots();
-                                        for(Group::MemberSlotList::const_iterator it = msl.begin(); it != msl.end(); it++)
-                                        {
-                                            Player *pgrp = objmgr.GetPlayer(it->guid);
-                                            if(pgrp && pgrp->IsInWorld())
-                                            {
-                                                faction = pgrp->getFaction();
-                                            }
-                                        }
-                                    }
-                                }
-
+                                uint32 faction = ((Player*)this)->getFaction(); // pretend that all others have own faction, to allow trade+follow
                                 DEBUG_LOG("-- VALUES_UPDATE: Sending '%s' the blue-group-fix from '%s' (faction %u)", target->GetName(), ((Player*)this)->GetName(), faction);
                                 *data << uint32(faction);
                                 ch = true;
