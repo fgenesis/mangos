@@ -641,10 +641,16 @@ void Object::_BuildValuesUpdate(uint8 updatetype, ByteBuffer * data, UpdateMask 
                             }
                             else if(index == UNIT_FIELD_FACTIONTEMPLATE)
                             {
-                                uint32 faction = ((Player*)this)->getFaction(); // pretend that all others have own faction, to allow trade+follow
-                                DEBUG_LOG("-- VALUES_UPDATE: Sending '%s' the blue-group-fix from '%s' (faction %u)", target->GetName(), ((Player*)this)->GetName(), faction);
-                                *data << uint32(faction);
-                                ch = true;
+                                FactionTemplateEntry const *ft1, *ft2;
+                                ft1 = ((Player*)this)->getFactionTemplateEntry();
+                                ft2 = ((Player*)target)->getFactionTemplateEntry();
+                                if(ft1 && ft2 && !ft1->IsFriendlyTo(*ft2))
+                                {
+                                    uint32 faction = ((Player*)target)->getFaction(); // pretend that all other HOSTILE players have own faction, to allow follow, heal, rezz (trade wont work)
+                                    DEBUG_LOG("-- VALUES_UPDATE: Sending '%s' the blue-group-fix from '%s' (faction %u)", target->GetName(), ((Player*)this)->GetName(), faction);
+                                    *data << uint32(faction);
+                                    ch = true;
+                                }
                             }
                         }
                     }
