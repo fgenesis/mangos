@@ -288,7 +288,7 @@ Spell::Spell( Unit* Caster, SpellEntry const *info, bool triggered, uint64 origi
             break;
         default:
                                                             // Wands
-            if (m_spellInfo->AttributesEx3 & SPELL_ATTR_EX3_REQ_WAND)
+            if (m_spellInfo->AttributesEx2 & SPELL_ATTR_EX2_AUTOREPEAT_FLAG)
                 m_attackType = RANGED_ATTACK;
             else
                 m_attackType = BASE_ATTACK;
@@ -672,15 +672,19 @@ void Spell::prepareDataForTriggerSystem()
     // Ñan spell trigger another or not ( m_canTrigger )
     // Create base triggers flags for Attacker and Victim ( m_procAttacker and  m_procVictim)
     //==========================================================================================
-
     // Fill flag can spell trigger or not
-    if (!m_IsTriggeredSpell)
+    // TODO: possible exist spell attribute for this
+    m_canTrigger = false;
+
+    if (m_CastItem)
+        m_canTrigger = false;         // Do not trigger from item cast spell
+    else if (!m_IsTriggeredSpell)
         m_canTrigger = true;          // Normal cast - can trigger
     else if (!m_triggeredByAuraSpell)
         m_canTrigger = true;          // Triggered from SPELL_EFFECT_TRIGGER_SPELL - can trigger
-    else                              // Exceptions (some periodic triggers)
+
+    if (!m_canTrigger)                // Exceptions (some periodic triggers)
     {
-        m_canTrigger = false;         // Triggered spells can`t trigger another
         switch (m_spellInfo->SpellFamilyName)
         {
             case SPELLFAMILY_MAGE:    // Arcane Missles triggers need do it
@@ -692,17 +696,17 @@ void Spell::prepareDataForTriggerSystem()
             case SPELLFAMILY_PRIEST:  // For Penance heal/damage triggers need do it
                 if (m_spellInfo->SpellFamilyFlags & 0x0001800000000000LL) m_canTrigger = true;
             break;
-            case SPELLFAMILY_HUNTER:  // Hunter Explosive Trap Effect/Immolation Trap Effect/Frost Trap Aura/Snake Trap Effect
-                if (m_spellInfo->SpellFamilyFlags & 0x0000200000000014LL) m_canTrigger = true;
+            case SPELLFAMILY_ROGUE:   // For poisons need do it
+                if (m_spellInfo->SpellFamilyFlags & 0x000000101001E000LL) m_canTrigger = true;
+            break;
+            case SPELLFAMILY_HUNTER:  // Hunter Rapid Killing/Explosive Trap Effect/Immolation Trap Effect/Frost Trap Aura/Snake Trap Effect
+                if (m_spellInfo->SpellFamilyFlags & 0x0100200000000014LL) m_canTrigger = true;
             break;
             case SPELLFAMILY_PALADIN: // For Holy Shock triggers need do it
                 if (m_spellInfo->SpellFamilyFlags & 0x0001000000200000LL) m_canTrigger = true;
             break;
         }
     }
-    // Do not trigger from item cast spell
-    if (m_CastItem)
-       m_canTrigger = false;
 
     // Get data for type of attack and fill base info for trigger
     switch (m_spellInfo->DmgClass)
@@ -1091,30 +1095,24 @@ void Spell::DoSpellHitOnUnit(Unit *unit, const uint32 effectMask)
                 return;
             }
 
-            // exclude Arcane Missiles Dummy Aura aura for now (attack on hit)
-            // TODO: find way to not need this?
-            if(!(m_spellInfo->SpellFamilyName == SPELLFAMILY_MAGE &&
-                m_spellInfo->SpellFamilyFlags & 0x800LL))
+            unit->RemoveSpellsCausingAura(SPELL_AURA_MOD_STEALTH);
+
+            if( !(m_spellInfo->AttributesEx & SPELL_ATTR_EX_NO_INITIAL_AGGRO) )
             {
-                unit->RemoveSpellsCausingAura(SPELL_AURA_MOD_STEALTH);
+                if(!unit->IsStandState() && !unit->hasUnitState(UNIT_STAT_STUNNED))
+                    unit->SetStandState(PLAYER_STATE_NONE);
 
-                if( !(m_spellInfo->AttributesEx3 & SPELL_ATTR_EX3_NO_INITIAL_AGGRO) )
+                if(!unit->isInCombat() && unit->GetTypeId() != TYPEID_PLAYER && ((Creature*)unit)->AI())
+                    ((Creature*)unit)->AI()->AttackStart(m_caster);
+
+                unit->SetInCombatWith(m_caster);
+                m_caster->SetInCombatWith(unit);
+
+                if(Player *attackedPlayer = unit->GetCharmerOrOwnerPlayerOrPlayerItself())
                 {
-                    if(!unit->IsStandState() && !unit->hasUnitState(UNIT_STAT_STUNNED))
-                        unit->SetStandState(PLAYER_STATE_NONE);
-
-                    if(!unit->isInCombat() && unit->GetTypeId() != TYPEID_PLAYER && ((Creature*)unit)->AI())
-                        ((Creature*)unit)->AI()->AttackStart(m_caster);
-
-                    unit->SetInCombatWith(m_caster);
-                    m_caster->SetInCombatWith(unit);
-
-                    if(Player *attackedPlayer = unit->GetCharmerOrOwnerPlayerOrPlayerItself())
-                    {
-                        m_caster->SetContestedPvP(attackedPlayer);
-                    }
-                    unit->AddThreat(m_caster, 0.0f);
+                    m_caster->SetContestedPvP(attackedPlayer);
                 }
+                unit->AddThreat(m_caster, 0.0f);
             }
         }
         else
@@ -1129,7 +1127,7 @@ void Spell::DoSpellHitOnUnit(Unit *unit, const uint32 effectMask)
             // assisting case, healing and resurrection
             if(unit->hasUnitState(UNIT_STAT_ATTACK_PLAYER))
                 m_caster->SetContestedPvP();
-            if( unit->isInCombat() && !(m_spellInfo->AttributesEx3 & SPELL_ATTR_EX3_NO_INITIAL_AGGRO) )
+            if( unit->isInCombat() && !(m_spellInfo->AttributesEx & SPELL_ATTR_EX_NO_INITIAL_AGGRO) )
             {
                 m_caster->SetInCombatState(unit->GetCombatTimer() > 0);
                 unit->getHostilRefManager().threatAssist(m_caster, 0.0f);
@@ -2036,7 +2034,7 @@ void Spell::SetTargetMap(uint32 i,uint32 cur,std::list<Unit*> &TagUnitMap)
     }
 }
 
-void Spell::prepare(SpellCastTargets * targets, Aura* triggeredByAura)
+void Spell::prepare(SpellCastTargets const* targets, Aura* triggeredByAura)
 {
     m_targets = *targets;
 
@@ -3643,6 +3641,20 @@ uint8 Spell::CanCast(bool strict)
                         if(target->getLevel() + 10 < m_spellInfo->spellLevel)
                             return SPELL_FAILED_LOWLEVEL;
                 }
+            }
+        }
+        else if (m_caster->GetTypeId()==TYPEID_PLAYER) // Target - is player caster
+        {
+            // Additional check for some spells
+            // If 0 spell effect empty - client not send target data (need use selection)
+            // TODO: check it on next client version
+            if (m_targets.m_targetMask == TARGET_FLAG_SELF &&
+                m_spellInfo->Effect[0] == 0 && m_spellInfo->EffectImplicitTargetA[1] != TARGET_SELF)
+            {
+                if (target = m_caster->GetUnit(*m_caster, ((Player *)m_caster)->GetSelection()))
+                    m_targets.setUnitTarget(target);
+                else
+                    return SPELL_FAILED_BAD_TARGETS;
             }
         }
 

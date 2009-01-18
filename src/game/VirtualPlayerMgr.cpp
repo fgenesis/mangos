@@ -608,7 +608,7 @@ void VirtualPlayer::_Export(void)
 void VirtualPlayer::Init(void)
 {
     uint32 curtime = time(NULL);
-    lvlup_xp = MaNGOS::XP::xp_to_level(lvl);
+    lvlup_xp = objmgr.GetXPForLevel(lvl);
     next_savetime = urand(0, sWorld.getConfig(CONFIG_INTERVAL_SAVE) / 1000);
     next_questtime = urand(traits.questtime_min, traits.questtime_max);
     if(lvl < 23)
@@ -724,7 +724,7 @@ void VirtualPlayer::AddXP(uint32 addxp)
         if(lvl > sVPlayerMgr.GetMaxLevel())
             lvl = sVPlayerMgr.GetMaxLevel();
         newxp -= lvlup_xp;
-        lvlup_xp = MaNGOS::XP::xp_to_level(lvl);
+        lvlup_xp = objmgr.GetXPForLevel(lvl);
         DEBUG_LOG("VP: %s: Leveled to %u",name.c_str(),lvl);
     }
     xp = newxp;
