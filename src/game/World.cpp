@@ -1024,6 +1024,7 @@ void World::LoadConfigSettings(bool reload)
 
     // FG: custom stuffs
     m_configs[CONFIG_AUTOBROADCAST_INTERVAL] = sConfig.GetIntDefault("AutoBroadcastInterval",0);
+    m_configs[CONFIG_ALLOW_CITY_DUELING] = sConfig.GetIntDefault("AllowCityDueling",0);
     std::string nonInstMaps = sConfig.GetStringDefault("NonInstanceMaps","");
     Tokens tok = StrSplit(nonInstMaps,",");
     for(uint32 ti = 0; ti < tok.size(); ti++)

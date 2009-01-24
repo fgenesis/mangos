@@ -5133,18 +5133,22 @@ void Spell::EffectDuel(uint32 i)
         return;
     }
 
-    AreaTableEntry const* casterAreaEntry = GetAreaEntryByAreaID(caster->GetZoneId());
-    if(casterAreaEntry && (casterAreaEntry->flags & AREA_FLAG_CAPITAL) )
+    // FG: allow dueling in major cities if needed. just skip the check in this case.
+    if(!sWorld.getConfig(CONFIG_ALLOW_CITY_DUELING))
     {
-        SendCastResult(SPELL_FAILED_NO_DUELING);            // Dueling isn't allowed here
-        return;
-    }
+        AreaTableEntry const* casterAreaEntry = GetAreaEntryByAreaID(caster->GetZoneId());
+        if(casterAreaEntry && (casterAreaEntry->flags & AREA_FLAG_CAPITAL) )
+        {
+            SendCastResult(SPELL_FAILED_NO_DUELING);            // Dueling isn't allowed here
+            return;
+        }
 
-    AreaTableEntry const* targetAreaEntry = GetAreaEntryByAreaID(target->GetZoneId());
-    if(targetAreaEntry && (targetAreaEntry->flags & AREA_FLAG_CAPITAL) )
-    {
-        SendCastResult(SPELL_FAILED_NO_DUELING);            // Dueling isn't allowed here
-        return;
+        AreaTableEntry const* targetAreaEntry = GetAreaEntryByAreaID(target->GetZoneId());
+        if(targetAreaEntry && (targetAreaEntry->flags & AREA_FLAG_CAPITAL) )
+        {
+            SendCastResult(SPELL_FAILED_NO_DUELING);            // Dueling isn't allowed here
+            return;
+        }
     }
 
     //CREATE DUEL FLAG OBJECT
