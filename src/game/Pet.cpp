@@ -39,25 +39,14 @@ char const* petTypeSuffix[MAX_PET_TYPE] =
     "'s Companion"                                          // MINI_PET
 };
 
-Pet::Pet(PetType type) : Creature()
+Pet::Pet(PetType type) :
+Creature(), m_petType(type), m_removed(false), m_happinessTimer(7500), m_duration(0), m_bonusdamage(0),
+m_resetTalentsCost(0), m_resetTalentsTime(0), m_usedTalentCount(0), m_auraUpdateMask(0), m_loading(false),
+m_declinedname(NULL)
 {
     m_isPet = true;
     m_name = "Pet";
-    m_petType = type;
-
-    m_removed = false;
     m_regenTimer = 4000;
-    m_happinessTimer = 7500;
-    m_duration = 0;
-    m_bonusdamage = 0;
-
-    m_resetTalentsCost = 0;
-    m_resetTalentsTime = 0;
-    m_usedTalentCount = 0;
-
-    m_auraUpdateMask = 0;
-
-    m_loading = false;
 
     // pets always have a charminfo, even if they are not actually charmed
     CharmInfo* charmInfo = InitCharmInfo(this);
@@ -66,13 +55,6 @@ Pet::Pet(PetType type) : Creature()
         charmInfo->SetReactState(REACT_PASSIVE);
     else if(type == GUARDIAN_PET)                           // always aggressive
         charmInfo->SetReactState(REACT_AGGRESSIVE);
-
-    m_spells.clear();
-    m_Auras.clear();
-    m_CreatureSpellCooldowns.clear();
-    m_CreatureCategoryCooldowns.clear();
-    m_autospells.clear();
-    m_declinedname = NULL;
 }
 
 Pet::~Pet()
@@ -1087,7 +1069,7 @@ void Pet::_LoadSpells()
         {
             Field *fields = result->Fetch();
 
-            addSpell(fields[0].GetUInt16(), fields[1].GetUInt16(), PETSPELL_UNCHANGED);
+            addSpell(fields[0].GetUInt32(), fields[1].GetUInt16(), PETSPELL_UNCHANGED);
         }
         while( result->NextRow() );
 
@@ -1240,7 +1222,7 @@ void Pet::_SaveAuras()
     }
 }
 
-bool Pet::addSpell(uint16 spell_id, uint16 active, PetSpellState state, PetSpellType type)
+bool Pet::addSpell(uint32 spell_id, uint16 active, PetSpellState state, PetSpellType type)
 {
     SpellEntry const *spellInfo = sSpellStore.LookupEntry(spell_id);
     if (!spellInfo)
@@ -1353,7 +1335,7 @@ bool Pet::addSpell(uint16 spell_id, uint16 active, PetSpellState state, PetSpell
     return true;
 }
 
-bool Pet::learnSpell(uint16 spell_id)
+bool Pet::learnSpell(uint32 spell_id)
 {
     // prevent duplicated entires in spell book
     if (!addSpell(spell_id))
@@ -1390,7 +1372,7 @@ void Pet::learnLevelupSpells()
     }
 }
 
-bool Pet::unlearnSpell(uint16 spell_id)
+bool Pet::unlearnSpell(uint32 spell_id)
 {
     if(removeSpell(spell_id))
     {
@@ -1408,7 +1390,7 @@ bool Pet::unlearnSpell(uint16 spell_id)
     return false;
 }
 
-bool Pet::removeSpell(uint16 spell_id)
+bool Pet::removeSpell(uint32 spell_id)
 {
     PetSpellMap::iterator itr = m_spells.find(spell_id);
     if (itr == m_spells.end())
@@ -1442,7 +1424,7 @@ bool Pet::removeSpell(uint16 spell_id)
     return true;
 }
 
-bool Pet::_removeSpell(uint16 spell_id)
+bool Pet::_removeSpell(uint32 spell_id)
 {
     PetSpellMap::iterator itr = m_spells.find(spell_id);
     if (itr != m_spells.end())
@@ -1459,7 +1441,7 @@ void Pet::InitPetCreateSpells()
     m_charmInfo->InitPetActionBar();
 
     m_spells.clear();
-    int32 petspellid;
+    uint32 petspellid;
     PetCreateSpellEntry const* CreateSpells = objmgr.GetPetCreateSpellEntry(GetEntry());
     if(CreateSpells)
     {
@@ -1654,7 +1636,7 @@ void Pet::ToggleAutocast(uint32 spellid, bool apply)
     if(IsPassiveSpell(spellid))
         return;
 
-    PetSpellMap::const_iterator itr = m_spells.find((uint16)spellid);
+    PetSpellMap::const_iterator itr = m_spells.find(spellid);
 
     int i;
 
@@ -1708,7 +1690,7 @@ bool Pet::Create(uint32 guidlow, Map *map, uint32 Entry, uint32 pet_number)
 
 bool Pet::HasSpell(uint32 spell) const
 {
-    PetSpellMap::const_iterator itr = m_spells.find((uint16)spell);
+    PetSpellMap::const_iterator itr = m_spells.find(spell);
     return (itr != m_spells.end() && itr->second->state != PETSPELL_REMOVED );
 }
 

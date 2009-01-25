@@ -892,7 +892,7 @@ bool SpellMgr::IsSpellProcEventCanTriggeredBy(SpellProcEventEntry const * spellP
         return false;
 
     // Always trigger for this
-    if (EventProcFlag & (PROC_FLAG_KILLED | PROC_FLAG_KILL))
+    if (EventProcFlag & (PROC_FLAG_KILLED | PROC_FLAG_KILL | PROC_FLAG_ON_TRAP_ACTIVATION))
         return true;
 
     if (spellProcEvent)     // Exist event data
@@ -2383,6 +2383,8 @@ uint8 GetSpellAllowedInLocationError(SpellEntry const *spellInfo,uint32 map_id,u
         case 51721:                                         // Dominion Over Acherus
         case 54055:                                         // Dominion Over Acherus
             return area_id == 4281 || area_id == 4342 ? 0 : SPELL_FAILED_INCORRECT_AREA;
+        case 54119:                                         // Mist of the Kvaldir
+            return area_id == 4028 || area_id == 4029 || area_id == 4106 || area_id == 4031 ? 0 : SPELL_FAILED_INCORRECT_AREA;
     }
 
     return 0;

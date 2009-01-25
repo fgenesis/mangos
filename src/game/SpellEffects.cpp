@@ -1304,6 +1304,12 @@ void Spell::EffectDummy(uint32 i)
                     m_caster->CastCustomSpell(m_caster, 12976, &healthModSpellBasePoints0, NULL, NULL, true, NULL);
                     return;
                 }
+                // Bloodthirst
+                case 23881:
+                {
+                    m_caster->CastCustomSpell(unitTarget, 23885, &damage, NULL, NULL, true, NULL);
+                    return;
+                }
             }
             break;
         case SPELLFAMILY_WARLOCK:
@@ -1414,16 +1420,6 @@ void Spell::EffectDummy(uint32 i)
             }
             break;
         case SPELLFAMILY_DRUID:
-            switch(m_spellInfo->Id )
-            {
-                case 5420:                                  // Tree of Life passive
-                {
-                    // Tree of Life area effect
-                    int32 health_mod = int32(m_caster->GetStat(STAT_SPIRIT)/4);
-                    m_caster->CastCustomSpell(m_caster,34123,&health_mod,NULL,NULL,true,NULL);
-                    return;
-                }
-            }
             break;
         case SPELLFAMILY_ROGUE:
             switch(m_spellInfo->Id )
@@ -4978,6 +4974,34 @@ void Spell::EffectScriptEffect(uint32 effIndex)
                     DoCreateItem( effIndex, itemtype );
                     return;
                 }
+            }
+            break;
+        }
+        case SPELLFAMILY_PRIEST:
+        {
+            switch(m_spellInfo->Id)
+            {
+                // Pain and Suffering
+                case 47948:
+                {
+                    if (!unitTarget)
+                        return;
+                    // Refresh Shadow Word: Pain on target
+                    Unit::AuraList const &mPeriodic = unitTarget->GetAurasByType(SPELL_AURA_PERIODIC_DAMAGE);
+                    for(Unit::AuraList::const_iterator i = mPeriodic.begin(); i != mPeriodic.end(); ++i)
+                    {
+                        if( (*i)->GetSpellProto()->SpellFamilyName == SPELLFAMILY_PRIEST &&
+                            (*i)->GetSpellProto()->SpellFamilyFlags & 0x0000000000008000LL &&
+                            (*i)->GetCasterGUID()==m_caster->GetGUID() )
+                        {
+                            (*i)->RefreshAura();
+                            return;
+                        }
+                    }
+                    return;
+                }
+                default:
+                    break;
             }
             break;
         }

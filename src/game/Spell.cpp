@@ -347,6 +347,7 @@ Spell::Spell( Unit* Caster, SpellEntry const *info, bool triggered, uint64 origi
     focusObject = NULL;
     m_cast_count = 0;
     m_glyphIndex = 0;
+    m_preCastSpell = 0;
     m_triggeredByAuraSpell  = NULL;
 
     //Auto Shot & Shoot (wand)
@@ -632,8 +633,6 @@ void Spell::FillTargetMap()
                     break;
             }
         }
-        if(IsChanneledSpell(m_spellInfo) && !tmpUnitMap.empty())
-            m_needAliveTargetMask  |= (1<<i);
 
         if(m_caster->GetTypeId() == TYPEID_PLAYER)
         {
@@ -751,7 +750,7 @@ void Spell::prepareDataForTriggerSystem()
     }
     // Hunter traps spells (for Entrapment trigger)
     // Gives your Immolation Trap, Frost Trap, Explosive Trap, and Snake Trap ....
-    if (m_spellInfo->SpellFamilyName == SPELLFAMILY_HUNTER && m_spellInfo->SpellFamilyFlags & 0x0000200000000014LL)
+    if (m_spellInfo->SpellFamilyName == SPELLFAMILY_HUNTER && m_spellInfo->SpellFamilyFlags & 0x000020000000001CLL)
         m_procAttacker |= PROC_FLAG_ON_TRAP_ACTIVATION;
 }
 
@@ -1003,25 +1002,6 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
             int32 damagePoint  = damageInfo.damage * 33 / 100;
             m_caster->CastCustomSpell(m_caster, 32220, &damagePoint, NULL, NULL, true);
         }
-        // Bloodthirst
-        else if (m_spellInfo->SpellFamilyName == SPELLFAMILY_WARRIOR && m_spellInfo->SpellFamilyFlags & 0x40000000000LL)
-        {
-            uint32 BTAura = 0;
-            switch(m_spellInfo->Id)
-            {
-                case 23881: BTAura = 23885; break;
-                case 23892: BTAura = 23886; break;
-                case 23893: BTAura = 23887; break;
-                case 23894: BTAura = 23888; break;
-                case 25251: BTAura = 25252; break;
-                case 30335: BTAura = 30339; break;
-                default:
-                    sLog.outError("Spell::EffectSchoolDMG: Spell %u not handled in BTAura",m_spellInfo->Id);
-                    break;
-            }
-            if (BTAura)
-                m_caster->CastSpell(m_caster,BTAura,true);
-        }
     }
     // Passive spell hits/misses or active spells only misses (only triggers)
     else
@@ -1138,6 +1118,10 @@ void Spell::DoSpellHitOnUnit(Unit *unit, const uint32 effectMask)
     // Increase Diminishing on unit, current informations for actually casts will use values above
     if((GetDiminishingReturnsGroupType(m_diminishGroup) == DRTYPE_PLAYER && unit->GetTypeId() == TYPEID_PLAYER) || GetDiminishingReturnsGroupType(m_diminishGroup) == DRTYPE_ALL)
         unit->IncrDiminishing(m_diminishGroup);
+
+    // Apply additional spell effects to target
+    if (m_preCastSpell)
+        m_caster->CastSpell(unit,m_preCastSpell, true, m_CastItem);
 
     for(uint32 effectNumber=0;effectNumber<3;effectNumber++)
     {
@@ -1572,7 +1556,14 @@ void Spell::SetTargetMap(uint32 i,uint32 cur,std::list<Unit*> &TagUnitMap)
         }break;
         case TARGET_CASTER_COORDINATES:
         {
-            m_targets.setDestination(m_targets.m_srcX, m_targets.m_srcY, m_targets.m_srcZ);
+            // Check original caster is GO - set its coordinates as dst cast
+            WorldObject *caster = NULL;
+            if (m_originalCasterGUID)
+                caster = ObjectAccessor::GetGameObject(*m_caster, m_originalCasterGUID);
+            if (!caster)
+                caster = m_caster;
+            // Set dest for targets
+            m_targets.setDestination(caster->GetPositionX(), caster->GetPositionY(), caster->GetPositionZ());
         }break;
         case TARGET_ALL_FRIENDLY_UNITS_AROUND_CASTER:
         {
@@ -2044,18 +2035,6 @@ void Spell::prepare(SpellCastTargets const* targets, Aura* triggeredByAura)
 
     m_spellState = SPELL_STATE_PREPARING;
 
-    if (!(m_targets.m_targetMask & TARGET_FLAG_SOURCE_LOCATION))
-    {
-        // Check original caster is GO - set its coordinates as src cast
-        WorldObject *caster = NULL;
-        if (m_originalCasterGUID)
-            caster = ObjectAccessor::GetGameObject(*m_caster, m_originalCasterGUID);
-        if (!caster)
-            caster = m_caster;
-        // Set cast source for targets
-        m_targets.setSource(caster->GetPositionX(), caster->GetPositionY(), caster->GetPositionZ());
-    }
-
     m_castPositionX = m_caster->GetPositionX();
     m_castPositionY = m_caster->GetPositionY();
     m_castPositionZ = m_caster->GetPositionZ();
@@ -2202,6 +2181,47 @@ void Spell::cast(bool skipCheck)
             SetExecutedCurrently(false);
             return;
         }
+    }
+
+    switch(m_spellInfo->SpellFamilyName)
+    {
+        case SPELLFAMILY_GENERIC:
+        {
+            if (m_spellInfo->Mechanic == MECHANIC_BANDAGE)             // Bandages
+                m_preCastSpell = 11196;                                // Recently Bandaged
+            else if(m_spellInfo->SpellIconID == 1662 && m_spellInfo->AttributesEx & 0x20) // Blood Fury (Racial)
+                m_preCastSpell = 23230;                                // Blood Fury - Healing Reduction
+            break;
+        }
+        case SPELLFAMILY_MAGE:
+        {
+            if (m_spellInfo->SpellFamilyFlags&0x0000008000000000LL)    // Ice Block
+                m_preCastSpell = 41425;                                // Hypothermia
+            break;
+        }
+        case SPELLFAMILY_PRIEST:
+        {
+            if (m_spellInfo->Mechanic == MECHANIC_SHIELD &&
+                m_spellInfo->SpellIconID == 566)                       // Power Word: Shield
+                m_preCastSpell = 6788;                                 // Weakened Soul
+            break;
+        }
+        case SPELLFAMILY_PALADIN:
+        {
+            if (m_spellInfo->SpellFamilyFlags&0x0000000000400080LL)    // Divine Shield, Divine Protection or Hand of Protection
+                m_preCastSpell = 25771;                                // Forbearance
+            break;
+        }
+        case SPELLFAMILY_SHAMAN:
+        {
+            if (m_spellInfo->Id == 2825)                               // Bloodlust
+                m_preCastSpell = 57724;                                // Sated
+            else if (m_spellInfo->Id == 32182)                         // Heroism
+                m_preCastSpell = 57723;                                // Exhaustion
+            break;
+        }
+        default:
+            break;
     }
 
     // Conflagrate - consumes immolate
@@ -2699,68 +2719,6 @@ void Spell::finish(bool ok)
             ((Player*)m_caster)->ClearComboPoints();
     }
 
-    // Post effects apply on spell targets in some spells
-    if(!m_UniqueTargetInfo.empty())
-    {
-        uint32 spellId = 0;
-        switch(m_spellInfo->SpellFamilyName)
-        {
-            case SPELLFAMILY_GENERIC:
-            {
-                if (m_spellInfo->Mechanic == MECHANIC_BANDAGE)             // Bandages
-                    spellId = 11196;                                       // Recently Bandaged
-                else if(m_spellInfo->SpellIconID == 1662 && m_spellInfo->AttributesEx & 0x20) // Blood Fury (Racial)
-                    spellId = 23230;                                       // Blood Fury - Healing Reduction
-                break;
-            }
-            case SPELLFAMILY_MAGE:
-            {
-                if (m_spellInfo->SpellFamilyFlags&0x0000008000000000LL)    // Ice Block
-                    spellId = 41425;                                       // Hypothermia
-                break;
-            }
-            case SPELLFAMILY_PRIEST:
-            {
-                if (m_spellInfo->Mechanic == MECHANIC_SHIELD &&
-                    m_spellInfo->SpellIconID == 566)                       // Power Word: Shield
-                    spellId = 6788;                                        // Weakened Soul
-                break;
-            }
-            case SPELLFAMILY_PALADIN:
-            {
-                if (m_spellInfo->SpellFamilyFlags&0x0000000000400080LL)    // Divine Shield, Divine Protection or Hand of Protection
-                    spellId = 25771;                                       // Forbearance
-                break;
-            }
-            case SPELLFAMILY_SHAMAN:
-            {
-                if (m_spellInfo->Id == 2825)                               // Bloodlust
-                    spellId = 57724;                                       // Sated
-                else if (m_spellInfo->Id == 32182)                         // Heroism
-                    spellId = 57723;                                       // Exhaustion
-                break;
-            }
-            default:
-                break;
-        }
-        if (spellId)
-        {
-            for(std::list<TargetInfo>::iterator ihit= m_UniqueTargetInfo.begin();ihit != m_UniqueTargetInfo.end();++ihit)
-            {
-                Unit* unit = m_caster->GetGUID()==ihit->targetGUID ? m_caster : ObjectAccessor::GetUnit(*m_caster, ihit->targetGUID);
-                if (unit)
-                {
-//                  TODO: fix me use cast spell (now post spell can immune by this spell)
-//                  m_caster->CastSpell(unit, spellId, true, m_CastItem);
-                    SpellEntry const *AdditionalSpellInfo = sSpellStore.LookupEntry(spellId);
-                    if (!AdditionalSpellInfo)
-                        continue;
-                    Aura* AdditionalAura = CreateAura(AdditionalSpellInfo, 0, &m_currentBasePoints[0], unit, m_caster, m_CastItem);
-                    unit->AddAura(AdditionalAura);
-                }
-            }
-        }
-    }
     // call triggered spell only at successful cast (after clear combo points -> for add some if need)
     if(!m_TriggerSpells.empty())
         TriggerSpell();
@@ -3005,6 +2963,8 @@ void Spell::WriteAmmoToPacket( WorldPacket * data )
 
 void Spell::WriteSpellGoTargets( WorldPacket * data )
 {
+    // This function also fill data for channeled spells:
+    // m_needAliveTargetMask req for stop channelig if one target die
     uint32 hit  = m_UniqueGOTargetInfo.size(); // Always hits on GO
     uint32 miss = 0;
     for(std::list<TargetInfo>::iterator ihit= m_UniqueTargetInfo.begin();ihit != m_UniqueTargetInfo.end();++ihit)
@@ -3024,7 +2984,10 @@ void Spell::WriteSpellGoTargets( WorldPacket * data )
     *data << (uint8)hit;
     for(std::list<TargetInfo>::iterator ihit= m_UniqueTargetInfo.begin();ihit != m_UniqueTargetInfo.end();++ihit)
         if ((*ihit).missCondition == SPELL_MISS_NONE)       // Add only hits
+        {
             *data << uint64(ihit->targetGUID);
+            m_needAliveTargetMask |=ihit->effectMask;
+        }
 
     for(std::list<GOTargetInfo>::iterator ighit= m_UniqueGOTargetInfo.begin();ighit != m_UniqueGOTargetInfo.end();++ighit)
         *data << uint64(ighit->targetGUID);                 // Always hits
@@ -3040,6 +3003,9 @@ void Spell::WriteSpellGoTargets( WorldPacket * data )
                 *data << uint8(ihit->reflectResult);
         }
     }
+    // Reset m_needAliveTargetMask for non channeled spell
+    if(!IsChanneledSpell(m_spellInfo))
+        m_needAliveTargetMask = 0;
 }
 
 void Spell::SendLogExecute()

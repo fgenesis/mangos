@@ -104,7 +104,7 @@ struct SpellModifier
     Spell const* lastAffected;
 };
 
-typedef UNORDERED_MAP<uint16, PlayerSpell*> PlayerSpellMap;
+typedef UNORDERED_MAP<uint32, PlayerSpell*> PlayerSpellMap;
 typedef std::list<SpellModifier*> SpellModList;
 
 struct SpellCooldown
@@ -1346,6 +1346,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         /*********************************************************/
 
         bool LoadFromDB(uint32 guid, SqlQueryHolder *holder);
+
         bool MinimalLoadFromDB(QueryResult *result, uint32 guid);
         static bool   LoadValuesArrayFromDB(Tokens& data,uint64 guid);
         static uint32 GetUInt32ValueFromArray(Tokens const& data, uint16 index);
@@ -1479,6 +1480,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         void CharmSpellInitialize();
         void PossessSpellInitialize();
         bool HasSpell(uint32 spell) const;
+        bool HasActiveSpell(uint32 spell) const;            // show in spellbook
         TrainerSpellState GetTrainerSpellState(TrainerSpell const* trainer_spell) const;
         bool IsSpellFitByClassAndRace( uint32 spell_id ) const;
         bool IsNeedCastPassiveSpellAtLearn(SpellEntry const* spellInfo) const;
@@ -1487,11 +1489,12 @@ class MANGOS_DLL_SPEC Player : public Unit
         void SendInitialSpells();
         bool addSpell(uint32 spell_id, bool active, bool learning, bool dependent, bool disabled);
         void learnSpell(uint32 spell_id, bool dependent);
-        void removeSpell(uint32 spell_id, bool disabled = false);
+        void removeSpell(uint32 spell_id, bool disabled = false, bool update_action_bar_for_low_rank = false);
         void resetSpells();
         void learnDefaultSpells();
         void learnQuestRewardedSpells();
         void learnQuestRewardedSpells(Quest const* quest);
+        void learnSpellHighRank(uint32 spellid);
 
         uint32 GetFreeTalentPoints() const { return GetUInt32Value(PLAYER_CHARACTER_POINTS1); }
         void SetFreeTalentPoints(uint32 points) { SetUInt32Value(PLAYER_CHARACTER_POINTS1,points); }
@@ -1774,7 +1777,6 @@ class MANGOS_DLL_SPEC Player : public Unit
         int16 GetSkillTempBonusValue(uint32 skill) const;
         bool HasSkill(uint32 skill) const;
         void learnSkillRewardedSpells(uint32 id, uint32 value);
-        void learnSkillRewardedSpells();
 
         void SetDontMove(bool dontMove);
         bool GetDontMove() const { return m_dontMove; }
@@ -2255,6 +2257,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         void _LoadDailyQuestStatus(QueryResult *result);
         void _LoadGroup(QueryResult *result);
         void _LoadReputation(QueryResult *result);
+        void _LoadSkills();
         void _LoadSpells(QueryResult *result);
         void _LoadTutorials(QueryResult *result);
         void _LoadFriendList(QueryResult *result);

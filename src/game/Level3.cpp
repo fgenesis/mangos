@@ -880,7 +880,7 @@ bool ChatHandler::HandleSetSkillCommand(const char* args)
 {
     // number or [name] Shift-click form |color|Hskill:skill_id|h[name]|h|r
     char* skill_p = extractKeyFromLink((char*)args,"Hskill");
-    if(!skill_p)
+    if(!skill_p) 
         return false;
 
     char *level_p = strtok (NULL, " ");
@@ -891,7 +891,6 @@ bool ChatHandler::HandleSetSkillCommand(const char* args)
     char *max_p   = strtok (NULL, " ");
 
     int32 skill = atoi(skill_p);
-
     if (skill <= 0)
     {
         PSendSysMessage(LANG_INVALID_SKILL_ID, skill);
@@ -941,27 +940,12 @@ bool ChatHandler::HandleUnLearnCommand(const char* args)
         return false;
 
     // number or [name] Shift-click form |color|Hspell:spell_id|h[name]|h|r
-    uint32 min_id = extractSpellIdFromLink((char*)args);
-    if(!min_id)
+    uint32 spell_id = extractSpellIdFromLink((char*)args);
+    if(!spell_id)
         return false;
 
-    // number or [name] Shift-click form |color|Hspell:spell_id|h[name]|h|r
-    char* tail = strtok(NULL,"");
-
-    uint32 max_id = extractSpellIdFromLink(tail);
-
-    if (!max_id)
-    {
-        // number or [name] Shift-click form |color|Hspell:spell_id|h[name]|h|r
-        max_id =  min_id+1;
-    }
-    else
-    {
-        if (max_id < min_id)
-            std::swap(min_id,max_id);
-
-        max_id=max_id+1;
-    }
+    char const* allStr = strtok(NULL," ");
+    bool allRanks = allStr ? (strncmp(allStr, "all", strlen(allStr)) == 0) : false;
 
     Player* target = getSelectedPlayer();
     if(!target)
@@ -971,13 +955,13 @@ bool ChatHandler::HandleUnLearnCommand(const char* args)
         return false;
     }
 
-    for(uint32 spell=min_id;spell<max_id;spell++)
-    {
-        if (target->HasSpell(spell))
-            target->removeSpell(spell);
-        else
-            SendSysMessage(LANG_FORGET_SPELL);
-    }
+    if(allRanks)
+        spell_id = spellmgr.GetFirstSpellInChain (spell_id);
+
+    if (target->HasSpell(spell_id))
+        target->removeSpell(spell_id,false,!allRanks);
+    else
+        SendSysMessage(LANG_FORGET_SPELL);
 
     return true;
 }
@@ -1737,16 +1721,6 @@ bool ChatHandler::HandleLearnAllMySpellsCommand(const char* /*args*/)
     return true;
 }
 
-static void learnAllHighRanks(Player* player, uint32 spellid)
-{
-    SpellChainMapNext const& nextMap = spellmgr.GetSpellChainNext();
-    for(SpellChainMapNext::const_iterator itr = nextMap.lower_bound(spellid); itr != nextMap.upper_bound(spellid); ++itr)
-    {
-        player->learnSpell(itr->second,false);
-        learnAllHighRanks(player,itr->second);
-    }
-}
-
 bool ChatHandler::HandleLearnAllMyTalentsCommand(const char* /*args*/)
 {
     Player* player = m_session->GetPlayer();
@@ -1784,11 +1758,8 @@ bool ChatHandler::HandleLearnAllMyTalentsCommand(const char* /*args*/)
         if(!spellInfo || !SpellMgr::IsSpellValid(spellInfo,m_session->GetPlayer(),false))
             continue;
 
-        // learn highest rank of talent
-        player->learnSpell(spellid,false);
-
-        // and learn all non-talent spell ranks (recursive by tree)
-        learnAllHighRanks(player,spellid);
+        // learn highest rank of talent and learn all non-talent spell ranks (recursive by tree)
+        player->learnSpellHighRank(spellid);
     }
 
     SendSysMessage(LANG_COMMAND_LEARN_CLASS_TALENTS);
@@ -1855,15 +1826,8 @@ bool ChatHandler::HandleLearnCommand(const char* args)
     if(!spell || !sSpellStore.LookupEntry(spell))
         return false;
 
-    if (targetPlayer->HasSpell(spell))
-    {
-        if(targetPlayer == m_session->GetPlayer())
-            SendSysMessage(LANG_YOU_KNOWN_SPELL);
-        else
-            PSendSysMessage(LANG_TARGET_KNOWN_SPELL,targetPlayer->GetName());
-        SetSentErrorMessage(true);
-        return false;
-    }
+    char const* allStr = strtok(NULL," ");
+    bool allRanks = allStr ? (strncmp(allStr, "all", strlen(allStr)) == 0) : false;
 
     SpellEntry const* spellInfo = sSpellStore.LookupEntry(spell);
     if(!spellInfo || !SpellMgr::IsSpellValid(spellInfo,m_session->GetPlayer()))
@@ -1873,7 +1837,20 @@ bool ChatHandler::HandleLearnCommand(const char* args)
         return false;
     }
 
-    targetPlayer->learnSpell(spell,false);
+    if (!allRanks && targetPlayer->HasSpell(spell))
+    {
+        if(targetPlayer == m_session->GetPlayer())
+            SendSysMessage(LANG_YOU_KNOWN_SPELL);
+        else
+            PSendSysMessage(LANG_TARGET_KNOWN_SPELL,targetPlayer->GetName());
+        SetSentErrorMessage(true);
+        return false;
+    }
+
+    if(allRanks)
+        targetPlayer->learnSpellHighRank(spell);
+    else
+        targetPlayer->learnSpell(spell,false);
 
     return true;
 }
@@ -4248,11 +4225,28 @@ bool ChatHandler::HandleListAurasCommand (const char * /*args*/)
     for (Unit::AuraMap::const_iterator itr = uAuras.begin(); itr != uAuras.end(); ++itr)
     {
         bool talent = GetTalentSpellCost(itr->second->GetId()) > 0;
-        PSendSysMessage(LANG_COMMAND_TARGET_AURADETAIL, itr->second->GetId(), itr->second->GetEffIndex(),
-            itr->second->GetModifier()->m_auraname, itr->second->GetAuraDuration(), itr->second->GetAuraMaxDuration(),
-            itr->second->GetSpellProto()->SpellName[m_session->GetSessionDbcLocale()],
-            (itr->second->IsPassive() ? passiveStr : ""),(talent ? talentStr : ""),
-            IS_PLAYER_GUID(itr->second->GetCasterGUID()) ? "player" : "creature",GUID_LOPART(itr->second->GetCasterGUID()));
+
+        char const* name = itr->second->GetSpellProto()->SpellName[m_session->GetSessionDbcLocale()];
+
+        if (m_session)
+        {
+            std::ostringstream ss_name;
+            ss_name << "|cffffffff|Hspell:" << itr->second->GetId() << "|h[" << name << "]|h|r";
+
+            PSendSysMessage(LANG_COMMAND_TARGET_AURADETAIL, itr->second->GetId(), itr->second->GetEffIndex(),
+                itr->second->GetModifier()->m_auraname, itr->second->GetAuraDuration(), itr->second->GetAuraMaxDuration(),
+                ss_name.str().c_str(),
+                (itr->second->IsPassive() ? passiveStr : ""),(talent ? talentStr : ""),
+                IS_PLAYER_GUID(itr->second->GetCasterGUID()) ? "player" : "creature",GUID_LOPART(itr->second->GetCasterGUID()));
+        }
+        else
+        {
+            PSendSysMessage(LANG_COMMAND_TARGET_AURADETAIL, itr->second->GetId(), itr->second->GetEffIndex(),
+                itr->second->GetModifier()->m_auraname, itr->second->GetAuraDuration(), itr->second->GetAuraMaxDuration(),
+                name,
+                (itr->second->IsPassive() ? passiveStr : ""),(talent ? talentStr : ""),
+                IS_PLAYER_GUID(itr->second->GetCasterGUID()) ? "player" : "creature",GUID_LOPART(itr->second->GetCasterGUID()));
+        }
     }
     for (int i = 0; i < TOTAL_AURAS; i++)
     {
@@ -4262,9 +4256,24 @@ bool ChatHandler::HandleListAurasCommand (const char * /*args*/)
         for (Unit::AuraList::const_iterator itr = uAuraList.begin(); itr != uAuraList.end(); ++itr)
         {
             bool talent = GetTalentSpellCost((*itr)->GetId()) > 0;
-            PSendSysMessage(LANG_COMMAND_TARGET_AURASIMPLE, (*itr)->GetId(), (*itr)->GetEffIndex(),
-                (*itr)->GetSpellProto()->SpellName[m_session->GetSessionDbcLocale()],((*itr)->IsPassive() ? passiveStr : ""),(talent ? talentStr : ""),
-                IS_PLAYER_GUID((*itr)->GetCasterGUID()) ? "player" : "creature",GUID_LOPART((*itr)->GetCasterGUID()));
+
+            char const* name = (*itr)->GetSpellProto()->SpellName[m_session->GetSessionDbcLocale()];
+
+            if (m_session)
+            {
+                std::ostringstream ss_name;
+                ss_name << "|cffffffff|Hspell:" << (*itr)->GetId() << "|h[" << name << "]|h|r";
+
+                PSendSysMessage(LANG_COMMAND_TARGET_AURASIMPLE, (*itr)->GetId(), (*itr)->GetEffIndex(),
+                    ss_name.str().c_str(),((*itr)->IsPassive() ? passiveStr : ""),(talent ? talentStr : ""),
+                    IS_PLAYER_GUID((*itr)->GetCasterGUID()) ? "player" : "creature",GUID_LOPART((*itr)->GetCasterGUID()));
+            }
+            else
+            {
+                PSendSysMessage(LANG_COMMAND_TARGET_AURASIMPLE, (*itr)->GetId(), (*itr)->GetEffIndex(),
+                    name,((*itr)->IsPassive() ? passiveStr : ""),(talent ? talentStr : ""),
+                    IS_PLAYER_GUID((*itr)->GetCasterGUID()) ? "player" : "creature",GUID_LOPART((*itr)->GetCasterGUID()));
+            }
         }
     }
     return true;
