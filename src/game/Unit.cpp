@@ -1954,6 +1954,13 @@ void Unit::CalcAbsorbResist(Unit *pVictim,SpellSchoolMask schoolMask, DamageEffe
 
 void Unit::AttackerStateUpdate (Unit *pVictim, WeaponAttackType attType, bool extra )
 {
+    // FG: crashfix
+    if(!pVictim)
+    {
+        sLog.outError("-- AttackerStateUpdate crashfix: entry=%u typeid=%u name='%s'",GetEntry(),GetTypeId(),GetName());
+        return;
+    }
+
     if(hasUnitState(UNIT_STAT_CONFUSED | UNIT_STAT_STUNNED | UNIT_STAT_FLEEING) || HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PACIFIED) )
         return;
 

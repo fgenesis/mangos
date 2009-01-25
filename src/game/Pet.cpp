@@ -1636,6 +1636,21 @@ void Pet::ToggleAutocast(uint32 spellid, bool apply)
     if(IsPassiveSpell(spellid))
         return;
 
+    // FG: HACKFIX: Sacrifice is not autocastable (- by DasBlub)
+    switch(spellid)
+    {
+        case 7812: // Sacrifice Rank 1
+        case 19438: // Sacrifice Rank 2
+        case 19440: // Sacrifice Rank 3
+        case 19441: // Sacrifice Rank 4
+        case 19442: // Sacrifice Rank 5
+        case 19443: // Sacrifice Rank 6
+        case 27273: // Sacrifice Rank 7
+        case 47985: // Sacrifice Rank 8
+        case 47986: // Sacrifice Rank 9
+        return;
+    }
+
     PetSpellMap::const_iterator itr = m_spells.find(spellid);
 
     int i;
