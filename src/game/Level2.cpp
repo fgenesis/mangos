@@ -854,8 +854,8 @@ bool ChatHandler::HandleNpcAddCommand(const char* args)
 {
     if(!*args)
         return false;
-    char* charID = strtok((char*)args, " ");
-    if (!charID)
+    char* charID = extractKeyFromLink((char*)args,"Hcreature_entry");
+    if(!charID)
         return false;
 
     char* team = strtok(NULL, " ");
@@ -3895,7 +3895,7 @@ bool ChatHandler::HandleLearnAllCraftsCommand(const char* /*args*/)
                 if(!spellInfo || !SpellMgr::IsSpellValid(spellInfo,m_session->GetPlayer(),false))
                     continue;
 
-                m_session->GetPlayer()->learnSpell(skillLine->spellId);
+                m_session->GetPlayer()->learnSpell(skillLine->spellId,false);
             }
         }
     }
@@ -3966,7 +3966,7 @@ bool ChatHandler::HandleLearnAllRecipesCommand(const char* args)
                     continue;
 
                 if( !target->HasSpell(spellInfo->Id) )
-                    m_session->GetPlayer()->learnSpell(skillLine->spellId);
+                    m_session->GetPlayer()->learnSpell(skillLine->spellId,false);
             }
 
             uint16 maxLevel = target->GetPureMaxSkillValue(skillInfo->id);

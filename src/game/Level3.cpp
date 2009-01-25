@@ -343,6 +343,15 @@ bool ChatHandler::HandleReloadLootTemplatesSkinningCommand(const char*)
     return true;
 }
 
+bool ChatHandler::HandleReloadLootTemplatesSpellCommand(const char*)
+{
+    sLog.outString( "Re-Loading Loot Tables... (`spell_loot_template`)" );
+    LoadLootTemplates_Spell();
+    LootTemplates_Spell.CheckLootRefs();
+    SendGlobalSysMessage("DB table `spell_loot_template` reloaded.");
+    return true;
+}
+
 bool ChatHandler::HandleReloadMangosStringCommand(const char*)
 {
     sLog.outString( "Re-Loading mangos_string Table!" );
@@ -1633,7 +1642,7 @@ bool ChatHandler::HandleLearnAllCommand(const char* /*args*/)
             continue;
         }
 
-        m_session->GetPlayer()->learnSpell(spell);
+        m_session->GetPlayer()->learnSpell(spell,false);
     }
 
     SendSysMessage(LANG_COMMAND_LEARN_MANY_SPELLS);
@@ -1673,7 +1682,7 @@ bool ChatHandler::HandleLearnAllGMCommand(const char* /*args*/)
             continue;
         }
 
-        m_session->GetPlayer()->learnSpell(spell);
+        m_session->GetPlayer()->learnSpell(spell,false);
     }
 
     SendSysMessage(LANG_LEARNING_GM_SKILLS);
@@ -1721,7 +1730,7 @@ bool ChatHandler::HandleLearnAllMySpellsCommand(const char* /*args*/)
         if(!SpellMgr::IsSpellValid(spellInfo,m_session->GetPlayer(),false))
             continue;
 
-        m_session->GetPlayer()->learnSpell(i);
+        m_session->GetPlayer()->learnSpell(i,false);
     }
 
     SendSysMessage(LANG_COMMAND_LEARN_CLASS_SPELLS);
@@ -1733,7 +1742,7 @@ static void learnAllHighRanks(Player* player, uint32 spellid)
     SpellChainMapNext const& nextMap = spellmgr.GetSpellChainNext();
     for(SpellChainMapNext::const_iterator itr = nextMap.lower_bound(spellid); itr != nextMap.upper_bound(spellid); ++itr)
     {
-        player->learnSpell(itr->second);
+        player->learnSpell(itr->second,false);
         learnAllHighRanks(player,itr->second);
     }
 }
@@ -1776,7 +1785,7 @@ bool ChatHandler::HandleLearnAllMyTalentsCommand(const char* /*args*/)
             continue;
 
         // learn highest rank of talent
-        player->learnSpell(spellid);
+        player->learnSpell(spellid,false);
 
         // and learn all non-talent spell ranks (recursive by tree)
         learnAllHighRanks(player,spellid);
@@ -1790,7 +1799,7 @@ bool ChatHandler::HandleLearnAllLangCommand(const char* /*args*/)
 {
     // skipping UNIVERSAL language (0)
     for(int i = 1; i < LANGUAGES_COUNT; ++i)
-        m_session->GetPlayer()->learnSpell(lang_description[i].spell_id);
+        m_session->GetPlayer()->learnSpell(lang_description[i].spell_id,false);
 
     SendSysMessage(LANG_COMMAND_LEARN_ALL_LANG);
     return true;
@@ -1864,7 +1873,7 @@ bool ChatHandler::HandleLearnCommand(const char* args)
         return false;
     }
 
-    targetPlayer->learnSpell(spell);
+    targetPlayer->learnSpell(spell,false);
 
     return true;
 }
@@ -2636,15 +2645,25 @@ bool ChatHandler::HandleLookupSkillCommand(const char* args)
 
             if(loc < MAX_LOCALE)
             {
+                char valStr[50] = "";
                 char const* knownStr = "";
                 if(target && target->HasSkill(id))
+                {
                     knownStr = GetMangosString(LANG_KNOWN);
+                    uint32 curValue = target->GetPureSkillValue(id);
+                    uint32 maxValue  = target->GetPureMaxSkillValue(id);
+                    uint32 permValue = target->GetSkillPermBonusValue(id);
+                    uint32 tempValue = target->GetSkillTempBonusValue(id);
+
+                    char const* valFormat = GetMangosString(LANG_SKILL_VALUES);
+                    snprintf(valStr,50,valFormat,curValue,maxValue,permValue,tempValue);
+                }
 
                 // send skill in "id - [namedlink locale]" format
                 if (m_session)
-                    PSendSysMessage(LANG_SKILL_LIST_CHAT,id,id,name.c_str(),localeNames[loc],knownStr);
+                    PSendSysMessage(LANG_SKILL_LIST_CHAT,id,id,name.c_str(),localeNames[loc],knownStr,valStr);
                 else
-                    PSendSysMessage(LANG_SKILL_LIST_CONSOLE,id,name.c_str(),localeNames[loc],knownStr);
+                    PSendSysMessage(LANG_SKILL_LIST_CONSOLE,id,name.c_str(),localeNames[loc],knownStr,valStr);
 
                 ++counter;
             }
@@ -4396,8 +4415,10 @@ bool ChatHandler::HandleResetLevelCommand(const char * args)
     // reset level to summoned pet
     Pet* pet = player->GetPet();
     if(pet && pet->getPetType()==SUMMON_PET)
+    {
         pet->InitStatsForLevel(1);
-
+        pet->InitTalentForLevel();
+    }
     return true;
 }
 
@@ -4509,13 +4530,6 @@ bool ChatHandler::HandleResetTalentsCommand(const char * args)
     else
         player = getSelectedPlayer();
 
-    if(!player && !playerGUID)
-    {
-        SendSysMessage(LANG_NO_CHAR_SELECTED);
-        SetSentErrorMessage(true);
-        return false;
-    }
-
     if(player)
     {
         player->resetTalents(true);
@@ -4524,14 +4538,33 @@ bool ChatHandler::HandleResetTalentsCommand(const char * args)
 
         if(m_session->GetPlayer()!=player)
             PSendSysMessage(LANG_RESET_TALENTS_ONLINE,player->GetName());
+        return true;
     }
-    else
+    else if (playerGUID)
     {
         CharacterDatabase.PExecute("UPDATE characters SET at_login = at_login | '%u' WHERE guid = '%u'",uint32(AT_LOGIN_RESET_TALENTS), GUID_LOPART(playerGUID) );
         PSendSysMessage(LANG_RESET_TALENTS_OFFLINE,pName);
+        return true;
+    }
+    // Try reset talenents as Hunter Pet
+    Creature* creature = getSelectedCreature();
+    if (creature && creature->isPet() && ((Pet *)creature)->getPetType() == HUNTER_PET)
+    {
+        ((Pet *)creature)->resetTalents(true);
+        Unit *owner = creature->GetOwner();
+        if (owner && owner->GetTypeId() == TYPEID_PLAYER)
+        {
+            player = (Player *)owner;
+            ChatHandler(player).SendSysMessage(LANG_RESET_TALENTS);
+            if(m_session->GetPlayer()!=player)
+                PSendSysMessage(LANG_RESET_TALENTS_ONLINE,player->GetName());
+        }
+        return true;
     }
 
-    return true;
+    SendSysMessage(LANG_NO_CHAR_SELECTED);
+    SetSentErrorMessage(true);
+    return false;
 }
 
 bool ChatHandler::HandleResetAllCommand(const char * args)

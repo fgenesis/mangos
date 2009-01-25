@@ -312,6 +312,11 @@ inline bool IsElementalShield(SpellEntry const *spellInfo)
     return (spellInfo->SpellFamilyFlags & 0x42000000400LL) || spellInfo->Id == 23552;
 }
 
+inline bool IsExplicitDiscoverySpell(SpellEntry const *spellInfo)
+{
+    return spellInfo->Effect[0]==SPELL_EFFECT_CREATE_ITEM_2 && spellInfo->Effect[1]==SPELL_EFFECT_SCRIPT_EFFECT;
+}
+
 int32 CompareAuraRanks(uint32 spellId_1, uint32 effIndex_1, uint32 spellId_2, uint32 effIndex_2);
 bool IsSingleFromSpellSpecificPerCaster(uint32 spellSpec1,uint32 spellSpec2);
 bool IsPassiveSpell(uint32 spellId);
@@ -362,7 +367,6 @@ inline bool IsAreaEffectTarget( Targets target )
         case TARGET_ALL_ENEMY_IN_AREA:
         case TARGET_ALL_ENEMY_IN_AREA_INSTANT:
         case TARGET_ALL_PARTY_AROUND_CASTER:
-        case TARGET_ALL_AROUND_CASTER:
         case TARGET_IN_FRONT_OF_CASTER:
         case TARGET_ALL_ENEMY_IN_AREA_CHANNELED:
         case TARGET_ALL_FRIENDLY_UNITS_AROUND_CASTER:
@@ -892,6 +896,9 @@ class SpellMgr
         static bool IsProfessionSpell(uint32 spellId);
         static bool IsPrimaryProfessionSpell(uint32 spellId);
         bool IsPrimaryProfessionFirstRankSpell(uint32 spellId) const;
+
+        bool IsSkillBonusSpell(uint32 spellId) const;
+
 
         // Spell script targets
         SpellScriptTarget::const_iterator GetBeginSpellScriptTarget(uint32 spell_id) const
