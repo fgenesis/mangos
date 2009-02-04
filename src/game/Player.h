@@ -373,52 +373,6 @@ enum DrunkenState
     DRUNKEN_SMASHED = 3
 };
 
-enum PlayerStateType
-{
-    /*
-        PLAYER_STATE_DANCE
-        PLAYER_STATE_SLEEP
-        PLAYER_STATE_SIT
-        PLAYER_STATE_STAND
-        PLAYER_STATE_READYUNARMED
-        PLAYER_STATE_WORK
-        PLAYER_STATE_POINT(DNR)
-        PLAYER_STATE_NONE // not used or just no state, just standing there?
-        PLAYER_STATE_STUN
-        PLAYER_STATE_DEAD
-        PLAYER_STATE_KNEEL
-        PLAYER_STATE_USESTANDING
-        PLAYER_STATE_STUN_NOSHEATHE
-        PLAYER_STATE_USESTANDING_NOSHEATHE
-        PLAYER_STATE_WORK_NOSHEATHE
-        PLAYER_STATE_SPELLPRECAST
-        PLAYER_STATE_READYRIFLE
-        PLAYER_STATE_WORK_NOSHEATHE_MINING
-        PLAYER_STATE_WORK_NOSHEATHE_CHOPWOOD
-        PLAYER_STATE_AT_EASE
-        PLAYER_STATE_READY1H
-        PLAYER_STATE_SPELLKNEELSTART
-        PLAYER_STATE_SUBMERGED
-    */
-
-    PLAYER_STATE_NONE              = 0,
-    PLAYER_STATE_SIT               = 1,
-    PLAYER_STATE_SIT_CHAIR         = 2,
-    PLAYER_STATE_SLEEP             = 3,
-    PLAYER_STATE_SIT_LOW_CHAIR     = 4,
-    PLAYER_STATE_SIT_MEDIUM_CHAIR  = 5,
-    PLAYER_STATE_SIT_HIGH_CHAIR    = 6,
-    PLAYER_STATE_DEAD              = 7,
-    PLAYER_STATE_KNEEL             = 8,
-
-    PLAYER_STATE_FORM_ALL          = 0x00FF0000,
-
-    PLAYER_STATE_FLAG_ALWAYS_STAND = 0x01,                  // byte 4
-    PLAYER_STATE_FLAG_CREEP        = 0x02000000,
-    PLAYER_STATE_FLAG_UNTRACKABLE  = 0x04000000,
-    PLAYER_STATE_FLAG_ALL          = 0xFF000000,
-};
-
 enum PlayerFlags
 {
     PLAYER_FLAGS_GROUP_LEADER   = 0x00000001,
@@ -734,8 +688,8 @@ enum KeyRingSlots
 
 enum VanityPetSlots
 {
-    VANITYPET_SLOT_START        = 118,
-    VANITYPET_SLOT_END          = 136
+    VANITYPET_SLOT_START        = 118,                      // not use, vanity pets stored as spells
+    VANITYPET_SLOT_END          = 136                       // not alloed any content in.
 };
 
 enum CurrencyTokenSlots
@@ -1092,6 +1046,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         void AddGuardian(Pet* pet) { m_guardianPets.insert(pet->GetGUID()); }
         GuardianPetList const& GetGuardians() const { return m_guardianPets; }
         void Uncharm();
+        uint32 GetPhaseMaskForSpawn() const;                // used for proper set phase for DB at GM-mode creature/GO spawn
 
         void Say(const std::string& text, const uint32 language);
         void Yell(const std::string& text, const uint32 language);
@@ -1309,7 +1264,6 @@ class MANGOS_DLL_SPEC Player : public Unit
             }
         }
         uint32 GetReqKillOrCastCurrentCount(uint32 quest_id, int32 entry);
-        void AdjustQuestReqItemCount( Quest const* pQuest );
         void AreaExploredOrEventHappens( uint32 questId );
         void GroupEventHappens( uint32 questId, WorldObject const* pEventObject );
         void ItemAddedQuestCheck( uint32 entry, uint32 count );
@@ -2449,6 +2403,8 @@ class MANGOS_DLL_SPEC Player : public Unit
         uint8 _CanStoreItem_InBag( uint8 bag, ItemPosCountVec& dest, ItemPrototype const *pProto, uint32& count, bool merge, bool non_specialized, Item *pSrcItem, uint8 skip_bag, uint8 skip_slot ) const;
         uint8 _CanStoreItem_InInventorySlots( uint8 slot_begin, uint8 slot_end, ItemPosCountVec& dest, ItemPrototype const *pProto, uint32& count, bool merge, Item *pSrcItem, uint8 skip_bag, uint8 skip_slot ) const;
         Item* _StoreItem( uint16 pos, Item *pItem, uint32 count, bool clone, bool update );
+
+        void AdjustQuestReqItemCount( Quest const* pQuest, QuestStatusData& questStatusData );
 
         GridReference<Player> m_gridRef;
         MapReference m_mapRef;

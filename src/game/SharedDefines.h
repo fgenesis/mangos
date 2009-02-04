@@ -277,7 +277,7 @@ enum ItemQualities
 
 #define SPELL_ATTR_EX2_UNK0                       0x00000001            // 0
 #define SPELL_ATTR_EX2_UNK1                       0x00000002            // 1
-#define SPELL_ATTR_EX2_UNK2                       0x00000004            // 2
+#define SPELL_ATTR_EX2_CANT_REFLECTED             0x00000004            // 2 ? used for detect can or not spell reflected
 #define SPELL_ATTR_EX2_UNK3                       0x00000008            // 3
 #define SPELL_ATTR_EX2_UNK4                       0x00000010            // 4
 #define SPELL_ATTR_EX2_AUTOREPEAT_FLAG            0x00000020            // 5
@@ -674,7 +674,7 @@ enum SpellEffects
     SPELL_EFFECT_153                       = 153,
     SPELL_EFFECT_154                       = 154,
     SPELL_EFFECT_TITAN_GRIP                = 155,
-    SPELL_EFFECT_ADD_SOCKET                = 156,
+    SPELL_EFFECT_ENCHANT_ITEM_PRISMATIC    = 156,
     SPELL_EFFECT_CREATE_ITEM_2             = 157,
     SPELL_EFFECT_MILLING                   = 158,
     SPELL_EFFECT_ALLOW_RENAME_PET          = 159,
@@ -703,7 +703,7 @@ enum AuraState
     AURA_STATE_IMMOLATE                     = 14,           //   T |
     AURA_STATE_SWIFTMEND                    = 15,           //   T |
     AURA_STATE_DEADLY_POISON                = 16,           //   T |
-    //AURA_STATE_UNKNOWN17                  = 17,           // C   |
+    AURA_STATE_ENRAGE                       = 17,           // C   |
     //AURA_STATE_UNKNOWN18                  = 18,           // C  t|
     //AURA_STATE_UNKNOWN19                  = 19,           //     | not used
     //AURA_STATE_UNKNOWN20                  = 20,           //  c  | only (45317 Suicide)
@@ -797,6 +797,7 @@ enum Targets
 {
     TARGET_SELF                        = 1,
     TARGET_RANDOM_ENEMY_CHAIN_IN_AREA  = 2,                 // only one spell has that, but regardless, it's a target type after all
+    TARGET_RANDOM_FRIEND_CHAIN_IN_AREA = 3,
     TARGET_PET                         = 5,
     TARGET_CHAIN_DAMAGE                = 6,
     TARGET_AREAEFFECT_CUSTOM           = 8,
@@ -1907,13 +1908,14 @@ enum CorpseDynFlags
 };
 
 // Passive Spell codes explicit used in code
-#define SPELL_ID_GENERIC_LEARN                   483
-#define SPELL_ID_GENERIC_LEARN_PET               55884      // used for learning mounts and companions
-#define SPELL_ID_PASSIVE_BATTLE_STANCE           2457
-#define SPELL_ID_PASSIVE_RESURRECTION_SICKNESS   15007
-#define SPELL_ID_WEAPON_SWITCH_COOLDOWN_1_5s     6119
-#define SPELL_ID_WEAPON_SWITCH_COOLDOWN_1_0s     6123
-#define SPELL_ID_AUTOSHOT                        75         // used for checks in other spells interruption
+#define SPELL_ID_GENERIC_LEARN                  483
+#define SPELL_ID_GENERIC_LEARN_PET              55884       // used for learning mounts and companions
+#define SPELL_ID_PASSIVE_BATTLE_STANCE          2457
+#define SPELL_ID_PASSIVE_RESURRECTION_SICKNESS  15007
+#define SPELL_ID_WEAPON_SWITCH_COOLDOWN_1_5s    6119
+#define SPELL_ID_WEAPON_SWITCH_COOLDOWN_1_0s    6123
+#define SPELL_ID_AUTOSHOT                       75          // used for checks in other spells interruption
+#define SPELL_ID_SHADOWMELD                     58984       // used for check ignore stealth stance state
 
 enum WeatherType
 {

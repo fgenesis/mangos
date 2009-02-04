@@ -30,24 +30,6 @@
 #include "VirtualPlayerMgr.h"
 
 
-bool ChatHandler::ForceEmoteSleep(const char* args)
-{
-    Player *player = getSelectedPlayer();
-    if (!player)
-        player = m_session->GetPlayer();
-    player->SetFlag(UNIT_FIELD_BYTES_1,PLAYER_STATE_SLEEP);
-    return true;
-}
-
-bool ChatHandler::ForceEmoteKneel(const char* args)
-{
-    Player *player = getSelectedPlayer();
-    if (!player)
-        player = m_session->GetPlayer();
-    player->SetFlag(UNIT_FIELD_BYTES_1,PLAYER_STATE_KNEEL);
-    return true;
-}
-
 bool ChatHandler::UnlockMove(const char* args)
 {
     Player *player = getSelectedPlayer();

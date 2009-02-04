@@ -171,7 +171,7 @@ bool ChatHandler::HandleGMListIngameCommand(const char* /*args*/)
                 first = false;
             }
 
-            SendSysMessage(itr->second->GetName());
+            SendSysMessage(GetNameLink(itr->second).c_str());
         }
     }
 

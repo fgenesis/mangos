@@ -44,38 +44,6 @@
 INSTANTIATE_SINGLETON_2(ObjectAccessor, CLASS_LOCK);
 INSTANTIATE_CLASS_MUTEX(ObjectAccessor, ZThread::FastMutex);
 
-namespace MaNGOS
-{
-    struct MANGOS_DLL_DECL BuildUpdateForPlayer
-    {
-        Player &i_player;
-        UpdateDataMapType &i_updatePlayers;
-
-        BuildUpdateForPlayer(Player &player, UpdateDataMapType &data_map) : i_player(player), i_updatePlayers(data_map) {}
-
-        void Visit(PlayerMapType &m)
-        {
-            for(PlayerMapType::iterator iter=m.begin(); iter != m.end(); ++iter)
-            {
-                if( iter->getSource() == &i_player )
-                    continue;
-
-                UpdateDataMapType::iterator iter2 = i_updatePlayers.find(iter->getSource());
-                if( iter2 == i_updatePlayers.end() )
-                {
-                    std::pair<UpdateDataMapType::iterator, bool> p = i_updatePlayers.insert( ObjectAccessor::UpdateDataValueType(iter->getSource(), UpdateData()) );
-                    assert(p.second);
-                    iter2 = p.first;
-                }
-
-                i_player.BuildValuesUpdateBlockForPlayer(&iter2->second, iter2->first);
-            }
-        }
-
-        template<class SKIP> void Visit(GridRefManager<SKIP> &) {}
-    };
-}
-
 ObjectAccessor::ObjectAccessor() {}
 ObjectAccessor::~ObjectAccessor() {}
 
@@ -174,7 +142,7 @@ ObjectAccessor::GetCorpse(WorldObject const &u, uint64 guid)
     if(!ret)
         return NULL;
     if(ret->GetMapId() != u.GetMapId())
-        ret = NULL;
+        return NULL;
     if(ret->GetInstanceId() != u.GetInstanceId())
         return NULL;
     return ret;
@@ -224,7 +192,7 @@ ObjectAccessor::GetGameObject(WorldObject const &u, uint64 guid)
     if(!ret)
         return NULL;
     if(ret->GetMapId() != u.GetMapId())
-        ret = NULL;
+        return NULL;
     if(ret->GetInstanceId() != u.GetInstanceId())
         return NULL;
     return ret;
@@ -237,7 +205,7 @@ ObjectAccessor::GetDynamicObject(WorldObject const &u, uint64 guid)
     if(!ret)
         return NULL;
     if(ret->GetMapId() != u.GetMapId())
-        ret = NULL;
+        return NULL;
     if(ret->GetInstanceId() != u.GetInstanceId())
         return NULL;
     return ret;
@@ -475,6 +443,7 @@ ObjectAccessor::ConvertCorpseForPlayer(uint64 player_guid, bool insignia)
         bones->Relocate(corpse->GetPositionX(), corpse->GetPositionY(), corpse->GetPositionZ(), corpse->GetOrientation());
         bones->SetMapId(corpse->GetMapId());
         bones->SetInstanceId(corpse->GetInstanceId());
+        bones->SetPhaseMask(corpse->GetPhaseMask(),false);
 
         bones->SetUInt32Value(CORPSE_FIELD_FLAGS, CORPSE_FLAG_UNK2 | CORPSE_FLAG_BONES);
         bones->SetUInt64Value(CORPSE_FIELD_OWNER, 0);
