@@ -19574,9 +19574,13 @@ void Player::AutoStoreLootItem(uint8 bag, uint8 slot, uint32 loot_id, LootStore 
     if( msg != EQUIP_ERR_OK && bag != NULL_BAG)
         msg = CanStoreNewItem( NULL_BAG, NULL_SLOT,dest,lootItem->itemid,lootItem->count);
     if(msg != EQUIP_ERR_OK)
+    {
+        SendEquipError( msg, NULL, NULL );
         return;
+    }
 
-    StoreNewItem (dest,lootItem->itemid,true,lootItem->randomPropertyId);
+    Item* pItem = StoreNewItem (dest,lootItem->itemid,true,lootItem->randomPropertyId);
+    SendNewItem(pItem, lootItem->count, true, false);
 }
 
 uint32 Player::CalculateTalentsPoints() const
@@ -19678,9 +19682,7 @@ uint32 Player::GetPhaseMaskForSpawn() const
     else
     {
         AuraList const& phases = GetAurasByType(SPELL_AURA_PHASE);
-        if(phases.empty())
-            phase = GetPhaseMask();
-        else
+        if(!phases.empty())
             phase = phases.front()->GetMiscValue();
     }
 
