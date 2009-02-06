@@ -2153,7 +2153,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         void GivePlayerDropReward(Player *victim);
         bool isGMTriggers() const { return GetSession()->GetSecurity() >= SEC_MODERATOR && (m_ExtraFlags & PLAYER_EXTRA_GM_SHOW_TRIGGERS); }
         void SetGMTriggers(bool on) { if(on) m_ExtraFlags |= PLAYER_EXTRA_GM_SHOW_TRIGGERS; else m_ExtraFlags &= ~PLAYER_EXTRA_GM_SHOW_TRIGGERS; }
-
+        void UpdateDiplomacyDistance(void);
 
 
     protected:

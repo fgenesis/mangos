@@ -18066,7 +18066,29 @@ void Player::ClearComboPoints()
 
 void Player::SetGroup(Group *group, int8 subgroup)
 {
-    if(group == NULL) m_group.unlink();
+    if(group == NULL)
+    {
+        m_group.unlink();
+
+        if(sWorld.getConfig(CONFIG_DIPLOMACY_GROUP_MODE_ENABLE))
+        {
+            // FG: if faction was changed, restore original faction
+            // i hope this wont conflict with any faction-changing buffs... if there are any...
+            setFactionForRace(getRace());
+
+            // FG: TODO: move to some func called 20 secs after no pvp-traitor action
+            // some code copied from UpdateArea() 
+            /*AreaTableEntry const* area = GetAreaEntryByAreaID(GetAreaId());
+            if(area && !(area->flags & AREA_FLAG_ARENA))
+            {
+                // remove ffa flag only if not ffapvp realm
+                // removal in sanctuaries and capitals is handled in zone update
+                if(HasByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_FFA_PVP) && !sWorld.IsFFAPvPRealm())
+                    RemoveByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_FFA_PVP);
+            }*/
+        }
+
+    }
     else
     {
         // never use SetGroup without a subgroup unless you specify NULL for group
@@ -19668,3 +19690,18 @@ uint32 Player::GetPhaseMaskForSpawn() const
 
     return PHASEMASK_NORMAL;
 }
+
+void Player::UpdateDiplomacyDistance(void)
+{
+    if(sWorld.getConfig(CONFIG_DIPLOMACY_GROUP_MODE_ENABLE))
+    {
+        if(Group *g = GetGroup())
+        {
+            if(g && g->IsDiplomatic())
+            {
+                g->UpdateDiplomacyDistance(this);
+            }
+        }
+    }
+}
+

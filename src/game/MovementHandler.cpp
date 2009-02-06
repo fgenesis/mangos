@@ -320,6 +320,13 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
             ((Player*)mover)->SetPosition(movementInfo.x, movementInfo.y, movementInfo.z, movementInfo.o);
             ((Player*)mover)->m_movementInfo = movementInfo;
             ((Player*)mover)->SetUnitMovementFlags(movementInfo.flags);
+
+            // FG: diplomacy related stuff (group distance calculation, etc...)
+            // - we dont do anything in Player::SetPosition because we want to listen to 1 opcode only - performance reasons
+            if(opcode == MSG_MOVE_HEARTBEAT)
+            {
+                ((Player*)mover)->UpdateDiplomacyDistance();
+            }
         }
     }
 

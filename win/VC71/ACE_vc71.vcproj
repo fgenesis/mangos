@@ -152,6 +152,76 @@
 			<Tool
 				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
 		</Configuration>
+		<Configuration
+			Name="Debug - SD2|Win32"
+			OutputDirectory="$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)"
+			ConfigurationType="2"
+			UseOfMFC="0"
+			ATLMinimizesCRunTimeLibraryUsage="FALSE"
+			CharacterSet="0">
+			<Tool
+				Name="VCCLCompilerTool"
+				AdditionalOptions="/wd 4748"
+				Optimization="0"
+				AdditionalIncludeDirectories="..\..\dep\ACE_wrappers"
+				PreprocessorDefinitions="ACE_BUILD_DLL;_DEBUG;WIN32;_WINDOWS"
+				MinimalRebuild="FALSE"
+				ExceptionHandling="TRUE"
+				BasicRuntimeChecks="3"
+				RuntimeLibrary="3"
+				BufferSecurityCheck="TRUE"
+				EnableFunctionLevelLinking="TRUE"
+				TreatWChar_tAsBuiltInType="TRUE"
+				ForceConformanceInForLoopScope="TRUE"
+				RuntimeTypeInfo="TRUE"
+				ProgramDataBaseFileName="Debug\ACE_vc71\I386/"
+				WarningLevel="3"
+				SuppressStartupBanner="TRUE"
+				Detect64BitPortabilityProblems="FALSE"
+				DebugInformationFormat="3"/>
+			<Tool
+				Name="VCCustomBuildTool"/>
+			<Tool
+				Name="VCLinkerTool"
+				AdditionalDependencies=""
+				OutputFile="$(OutDir)\ACEd.dll"
+				LinkIncremental="2"
+				SuppressStartupBanner="TRUE"
+				AdditionalLibraryDirectories=""
+				GenerateDebugInformation="TRUE"
+				ProgramDatabaseFile="$(OutDir)\ACEd.pdb"
+				SubSystem="1"
+				ImportLibrary="$(OutDir)\ACEd.lib"
+				TargetMachine="1"/>
+			<Tool
+				Name="VCMIDLTool"
+				TypeLibraryName="$(InputName).tlb"
+				HeaderFileName="$(InputName).h"
+				InterfaceIdentifierFileName="$(InputName)_i.c"
+				ProxyFileName="$(InputName)_p.c"/>
+			<Tool
+				Name="VCPostBuildEventTool"/>
+			<Tool
+				Name="VCPreBuildEventTool"/>
+			<Tool
+				Name="VCPreLinkEventTool"/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				PreprocessorDefinitions="_DEBUG"
+				Culture="1033"
+				AdditionalIncludeDirectories=".."/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"/>
+			<Tool
+				Name="VCWebDeploymentTool"/>
+			<Tool
+				Name="VCManagedWrapperGeneratorTool"/>
+			<Tool
+				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
+		</Configuration>
 	</Configurations>
 	<References>
 	</References>
@@ -2012,10 +2082,10 @@
 				RelativePath="..\..\dep\ACE_wrappers\ace\os_include\os_dlfcn.h">
 			</File>
 			<File
-				RelativePath="..\..\dep\ACE_wrappers\ace\OS_Errno.h">
+				RelativePath="..\..\dep\ACE_wrappers\ace\os_include\os_errno.h">
 			</File>
 			<File
-				RelativePath="..\..\dep\ACE_wrappers\ace\os_include\os_errno.h">
+				RelativePath="..\..\dep\ACE_wrappers\ace\OS_Errno.h">
 			</File>
 			<File
 				RelativePath="..\..\dep\ACE_wrappers\ace\os_include\os_fcntl.h">
@@ -2300,10 +2370,10 @@
 				RelativePath="..\..\dep\ACE_wrappers\ace\os_include\os_stdlib.h">
 			</File>
 			<File
-				RelativePath="..\..\dep\ACE_wrappers\ace\OS_String.h">
+				RelativePath="..\..\dep\ACE_wrappers\ace\os_include\os_string.h">
 			</File>
 			<File
-				RelativePath="..\..\dep\ACE_wrappers\ace\os_include\os_string.h">
+				RelativePath="..\..\dep\ACE_wrappers\ace\OS_String.h">
 			</File>
 			<File
 				RelativePath="..\..\dep\ACE_wrappers\ace\os_include\os_strings.h">
@@ -2336,10 +2406,10 @@
 				RelativePath="..\..\dep\ACE_wrappers\ace\OS_Thread_Adapter.h">
 			</File>
 			<File
-				RelativePath="..\..\dep\ACE_wrappers\ace\os_include\sys\os_time.h">
+				RelativePath="..\..\dep\ACE_wrappers\ace\os_include\os_time.h">
 			</File>
 			<File
-				RelativePath="..\..\dep\ACE_wrappers\ace\os_include\os_time.h">
+				RelativePath="..\..\dep\ACE_wrappers\ace\os_include\sys\os_time.h">
 			</File>
 			<File
 				RelativePath="..\..\dep\ACE_wrappers\ace\os_include\sys\os_timeb.h">
@@ -3770,6 +3840,12 @@
 					<Tool
 						Name="VCCustomBuildTool"/>
 				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug - SD2|Win32"
+					ExcludedFromBuild="TRUE">
+					<Tool
+						Name="VCCustomBuildTool"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\..\dep\ACE_wrappers\VERSION">
@@ -3781,6 +3857,12 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32"
+					ExcludedFromBuild="TRUE">
+					<Tool
+						Name="VCCustomBuildTool"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug - SD2|Win32"
 					ExcludedFromBuild="TRUE">
 					<Tool
 						Name="VCCustomBuildTool"/>
