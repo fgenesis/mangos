@@ -675,7 +675,7 @@ bool ChatHandler::HandleAHExpireCommand(const char* args)
     if ((ahMapIdStr == NULL) || (playerGuidStr == NULL))
         return false;
 
-    uint32 ahMapID = (uint32) strtoul(ahMapIdStr, NULL, 0);
+    AuctionLocation ahMapID = (AuctionLocation) strtoul(ahMapIdStr, NULL, 0);
     uint32 playerGUID = (uint32) strtoul(playerGuidStr, NULL, 0);
 
     AuctionHouseObject* auctionHouse = objmgr.GetAuctionsMap(ahMapID);
@@ -708,7 +708,7 @@ bool ChatHandler::HandleAHDeleteCommand(const char* args)
     if ((ahMapIdStr == NULL) || (playerGuidStr == NULL))
         return false;
 
-    uint32 ahMapID = (uint32) strtoul(ahMapIdStr, NULL, 0);
+    AuctionLocation ahMapID = (AuctionLocation) strtoul(ahMapIdStr, NULL, 0);
     uint32 playerGUID = (uint32) strtoul(playerGuidStr, NULL, 0);
 
     AuctionHouseObject* auctionHouse = objmgr.GetAuctionsMap(ahMapID);

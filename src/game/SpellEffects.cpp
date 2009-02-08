@@ -45,6 +45,7 @@
 #include "Creature.h"
 #include "Totem.h"
 #include "CreatureAI.h"
+#include "BattleGroundMgr.h"
 #include "BattleGround.h"
 #include "BattleGroundEY.h"
 #include "BattleGroundWS.h"
@@ -2730,7 +2731,7 @@ void Spell::EffectCreateItem2(uint32 i)
             return;
 
         // create some random items
-        ((Player*)m_caster)->AutoStoreLootItem(m_spellInfo->Id,LootTemplates_Spell);
+        ((Player*)m_caster)->AutoStoreLoot(m_spellInfo->Id,LootTemplates_Spell);
         return;
     }
     DoCreateItem(i,m_spellInfo->EffectItemType[i]);
@@ -4962,7 +4963,7 @@ void Spell::EffectScriptEffect(uint32 effIndex)
                     player->DestroyItemCount (reagent_id,count,true);
 
                     // create some random items
-                    player->AutoStoreLootItem(m_spellInfo->Id,LootTemplates_Spell);
+                    player->AutoStoreLoot(m_spellInfo->Id,LootTemplates_Spell);
 
                     // learn random explicit discovery recipe (if any)
                     if(uint32 discoveredSpell = GetExplicitDiscoverySpell(m_spellInfo->Id, player))

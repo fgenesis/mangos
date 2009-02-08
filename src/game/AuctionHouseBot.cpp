@@ -79,7 +79,7 @@ static inline uint32 minValue(uint32 a, uint32 b)
 ///////////////////////////////////////////////////////////////////////////////
 //
 ///////////////////////////////////////////////////////////////////////////////
-static void deleteOldAuctions(uint32 ahMapID)
+static void deleteOldAuctions(AuctionLocation ahMapID)
 {
    AuctionHouseObject* auctionHouse = objmgr.GetAuctionsMap(ahMapID);
 
@@ -127,7 +127,7 @@ static void deleteOldAuctions(uint32 ahMapID)
 ///////////////////////////////////////////////////////////////////////////////
 //
 ///////////////////////////////////////////////////////////////////////////////
-static void addNewAuctions(uint32 ahMapID, uint32 maxAuctions, uint32 minAuctions, Player *AHBplayer)
+static void addNewAuctions(AuctionLocation ahMapID, uint32 maxAuctions, uint32 minAuctions, Player *AHBplayer)
 {
    AuctionHouseObject* auctionHouse = objmgr.GetAuctionsMap(ahMapID);
 
@@ -310,13 +310,13 @@ void AuctionHouseBot()
    _AHBplayer.MinimalLoadFromDB(NULL, AHBplayerGUID);
    ObjectAccessor::Instance().AddObject(&_AHBplayer);
 
-   deleteOldAuctions(2);
-   deleteOldAuctions(6);
-   deleteOldAuctions(7);
+   deleteOldAuctions(AUCTION_ALLIANCE);
+   deleteOldAuctions(AUCTION_HORDE);
+   deleteOldAuctions(AUCTION_NEUTRAL);
 
-   addNewAuctions(2, numAllianceItems, numMinAllianceItems, &_AHBplayer);
-   addNewAuctions(6, numHordeItems, numMinHordeItems, &_AHBplayer);
-   addNewAuctions(7, numNeutralItems, numMinNeutralItems, &_AHBplayer);
+   addNewAuctions(AUCTION_ALLIANCE, numAllianceItems, numMinAllianceItems, &_AHBplayer);
+   addNewAuctions(AUCTION_HORDE, numHordeItems, numMinHordeItems, &_AHBplayer);
+   addNewAuctions(AUCTION_NEUTRAL, numNeutralItems, numMinNeutralItems, &_AHBplayer);
    
    ObjectAccessor::Instance().RemoveObject(&_AHBplayer);
 }
