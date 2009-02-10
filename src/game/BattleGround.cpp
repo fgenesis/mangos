@@ -161,8 +161,6 @@ void BattleGround::Update(uint32 diff)
         m_RemovedPlayers.clear();
     }
 
-    // this code isn't efficient and its idea isn't implemented yet
-    /* offline players are removed from battleground in worldsession::LogoutPlayer()
     // remove offline players from bg after ~5 minutes
     if(GetPlayersSize())
     {
@@ -177,7 +175,7 @@ void BattleGround::Update(uint32 diff)
                 if(itr->second.LastOnlineTime >= MAX_OFFLINE_TIME)                   // 5 minutes
                     m_RemovedPlayers[itr->first] = 1;       // add to remove list (BG)
         }
-    }*/
+    }
 
     m_LastResurrectTime += diff;
     if (m_LastResurrectTime >= RESURRECTION_INTERVAL)
@@ -849,9 +847,7 @@ void BattleGround::RemovePlayerAtLeave(uint64 guid, bool Transport, bool SendPac
         plr->SetBGTeam(0);
 
         if(Transport)
-        {
-            plr->TeleportTo(plr->GetBattleGroundEntryPointMap(), plr->GetBattleGroundEntryPointX(), plr->GetBattleGroundEntryPointY(), plr->GetBattleGroundEntryPointZ(), plr->GetBattleGroundEntryPointO());
-        }
+            plr->TeleportTo(plr->GetBattleGroundEntryPoint());
 
         // Log
         sLog.outDetail("BATTLEGROUND: Removed player %s from BattleGround.", plr->GetName());
@@ -1326,6 +1322,9 @@ void BattleGround::SpawnBGCreature(uint32 type, uint32 respawntime)
 */
 bool BattleGround::DelCreature(uint32 type)
 {
+    if(!m_BgCreatures[type])
+        return true;
+
     Creature *cr = HashMapHolder<Creature>::Find(m_BgCreatures[type]);
     if(!cr)
     {
@@ -1340,6 +1339,9 @@ bool BattleGround::DelCreature(uint32 type)
 
 bool BattleGround::DelObject(uint32 type)
 {
+    if(!m_BgObjects[type])
+        return true;
+
     GameObject *obj = HashMapHolder<GameObject>::Find(m_BgObjects[type]);
     if(!obj)
     {
@@ -1495,6 +1497,31 @@ uint32 BattleGround::GetPlayerTeam(uint64 guid)
     if(itr!=m_Players.end())
         return itr->second.Team;
     return 0;
+}
+
+bool BattleGround::IsPlayerInBattleGround(uint64 guid)
+{
+    std::map<uint64, BattleGroundPlayer>::const_iterator itr = m_Players.find(guid);
+    if(itr!=m_Players.end())
+        return true;
+    return false;
+}
+
+void BattleGround::PlayerRelogin(Player* plr)
+{
+    if(GetStatus() != STATUS_WAIT_LEAVE)
+        return;
+
+    WorldPacket data;
+    uint32 bgQueueTypeId = BattleGroundMgr::BGQueueTypeId(GetTypeID(), GetArenaType());
+
+    BlockMovement(plr);
+
+    sBattleGroundMgr.BuildPvpLogDataPacket(&data, this);
+    plr->GetSession()->SendPacket(&data);
+
+    sBattleGroundMgr.BuildBattleGroundStatusPacket(&data, this, plr->GetTeam(), plr->GetBattleGroundQueueIndex(bgQueueTypeId), STATUS_IN_PROGRESS, TIME_TO_AUTOREMOVE, GetStartTime());
+    plr->GetSession()->SendPacket(&data);
 }
 
 uint32 BattleGround::GetAlivePlayersCountByTeam(uint32 Team) const
