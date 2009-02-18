@@ -28,6 +28,7 @@ class AHBConfig
 {
    private:
      uint32 AHID;
+     uint32 AHFID;
 	 uint32 minItems;
 	 uint32 maxItems;
 	 uint32 minTime;
@@ -81,6 +82,21 @@ class AHBConfig
     AHBConfig(uint32 ahid)
      {
 		 AHID = ahid;
+         switch(ahid)
+		 {
+		 case 2:
+			 AHFID = 55;
+			 break;
+		 case 6:
+			AHFID = 29;
+			 break;
+		 case 7:
+			AHFID = 120;
+			 break;
+         default:
+			AHFID = 120;
+			 break;
+         }
      }
      AHBConfig()
      {
@@ -88,6 +104,10 @@ class AHBConfig
 	 uint32 GetAHID()
 	 {
 		 return AHID;
+	 }
+	 uint32 GetAHFID()
+	 {
+		 return AHFID;
 	 }
 	 void SetMinItems(uint32 value)
 	 {

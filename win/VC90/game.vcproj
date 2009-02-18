@@ -377,7 +377,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\game\AuctionHouse.cpp"
+				RelativePath="..\..\src\game\AuctionHouseHandler.cpp"
 				>
 			</File>
 			<File
@@ -851,7 +851,11 @@
 				RelativePath="..\..\src\game\AuctionHouseBot.h">
 			</File>
 			<File
-				RelativePath="..\..\src\game\AuctionHouseObject.h"
+				RelativePath="..\..\src\game\AuctionHouseMgr.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\game\AuctionHouseMgr.h"
 				>
 			</File>
 			<File
