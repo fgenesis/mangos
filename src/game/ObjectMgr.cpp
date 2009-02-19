@@ -397,6 +397,57 @@ void ObjectMgr::LoadNpcOptionLocales()
     sLog.outString( ">> Loaded %u npc_option locale strings", mNpcOptionLocaleMap.size() );
 }
 
+void ObjectMgr::LoadPointOfInterestLocales()
+{
+    mPointOfInterestLocaleMap.clear();                              // need for reload case
+
+    QueryResult *result = WorldDatabase.Query("SELECT entry,icon_name_loc1,icon_name_loc2,icon_name_loc3,icon_name_loc4,icon_name_loc5,icon_name_loc6,icon_name_loc7,icon_name_loc8 FROM locales_points_of_interest");
+
+    if(!result)
+    {
+        barGoLink bar(1);
+
+        bar.step();
+
+        sLog.outString("");
+        sLog.outString(">> Loaded 0 points_of_interest locale strings. DB table `locales_points_of_interest` is empty.");
+        return;
+    }
+
+    barGoLink bar(result->GetRowCount());
+
+    do
+    {
+        Field *fields = result->Fetch();
+        bar.step();
+
+        uint32 entry = fields[0].GetUInt32();
+
+        PointOfInterestLocale& data = mPointOfInterestLocaleMap[entry];
+
+        for(int i = 1; i < MAX_LOCALE; ++i)
+        {
+            std::string str = fields[i].GetCppString();
+            if(str.empty())
+                continue;
+
+            int idx = GetOrNewIndexForLocale(LocaleConstant(i));
+            if(idx >= 0)
+            {
+                if(data.IconName.size() <= idx)
+                    data.IconName.resize(idx+1);
+
+                data.IconName[idx] = str;
+            }
+        }
+    } while (result->NextRow());
+
+    delete result;
+
+    sLog.outString();
+    sLog.outString( ">> Loaded %u points_of_interest locale strings", mPointOfInterestLocaleMap.size() );
+}
+
 struct SQLCreatureLoader : public SQLStorageLoaderBase<SQLCreatureLoader>
 {
     template<class D>
@@ -800,10 +851,10 @@ void ObjectMgr::LoadCreatures()
     QueryResult *result = WorldDatabase.PQuery("SELECT creature.guid, id, map, modelid,"
     //   4             5           6           7           8            9              10         11
         "equipment_id, position_x, position_y, position_z, orientation, spawntimesecs, spawndist, currentwaypoint,"
-    //   12         13       14          15            16         17         18
-        "curhealth, curmana, DeathState, MovementType, spawnMask, phaseMask, event "
-        "FROM creature LEFT OUTER JOIN game_event_creature ON creature.guid = game_event_creature.guid"
-        " WHERE creature.guid NOT IN(SELECT guid FROM creature_realmbind WHERE realmid<>%u)",realmID);
+    //   12         13       14          15            16         17         18     19
+        "curhealth, curmana, DeathState, MovementType, spawnMask, phaseMask, event, pool_entry "
+        "FROM creature LEFT OUTER JOIN game_event_creature ON creature.guid = game_event_creature.guid "
+        "LEFT OUTER JOIN pool_creature ON creature.guid = pool_creature.guid");
 
     if(!result)
     {
@@ -830,11 +881,19 @@ void ObjectMgr::LoadCreatures()
         Field *fields = result->Fetch();
         bar.step();
 
-        uint32 guid = fields[0].GetUInt32();
+        uint32 guid         = fields[ 0].GetUInt32();
+        uint32 entry        = fields[ 1].GetUInt32();
+
+        CreatureInfo const* cInfo = GetCreatureTemplate(entry);
+        if(!cInfo)
+        {
+            sLog.outErrorDb("Table `creature` has creature (GUID: %u) with non existing creature entry %u, skipped.", guid, entry);
+            continue;
+        }
 
         CreatureData& data = mCreatureDataMap[guid];
 
-        data.id             = fields[ 1].GetUInt32();
+        data.id             = entry;
         data.mapid          = fields[ 2].GetUInt32();
         data.displayid      = fields[ 3].GetUInt32();
         data.equipmentId    = fields[ 4].GetUInt32();
@@ -852,13 +911,7 @@ void ObjectMgr::LoadCreatures()
         data.spawnMask      = fields[16].GetUInt8();
         data.phaseMask      = fields[17].GetUInt16();
         int16 gameEvent     = fields[18].GetInt16();
-
-        CreatureInfo const* cInfo = GetCreatureTemplate(data.id);
-        if(!cInfo)
-        {
-            sLog.outErrorDb("Table `creature` have creature (GUID: %u) with not existed creature entry %u, skipped.",guid,data.id );
-            continue;
-        }
+        int16 PoolId        = fields[19].GetInt16();
 
         if(heroicCreatures.find(data.id)!=heroicCreatures.end())
         {
@@ -943,7 +996,7 @@ void ObjectMgr::LoadCreatures()
             }
         }
 
-        if (gameEvent==0)                                   // if not this is to be managed by GameEvent System
+        if (gameEvent==0 && PoolId==0)                      // if not this is to be managed by GameEvent System or Pool system
             AddCreatureToGrid(guid, &data);
         ++count;
 
@@ -992,11 +1045,11 @@ void ObjectMgr::LoadGameobjects()
     uint32 count = 0;
 
     //                                                0                1   2    3           4           5           6
-    QueryResult *result = WorldDatabase.PQuery("SELECT gameobject.guid, id, map, position_x, position_y, position_z, orientation,"
-    //   7          8          9          10         11             12            13     14         15         16
-        "rotation0, rotation1, rotation2, rotation3, spawntimesecs, animprogress, state, spawnMask, phaseMask, event "
-        "FROM gameobject LEFT OUTER JOIN game_event_gameobject ON gameobject.guid = game_event_gameobject.guid"
-        " WHERE gameobject.guid NOT IN(SELECT guid FROM gameobject_realmbind WHERE realmid<>%u)",realmID);
+    QueryResult *result = WorldDatabase.Query("SELECT gameobject.guid, id, map, position_x, position_y, position_z, orientation,"
+    //   7          8          9          10         11             12            13     14         15         16     17
+        "rotation0, rotation1, rotation2, rotation3, spawntimesecs, animprogress, state, spawnMask, phaseMask, event, pool_entry "
+        "FROM gameobject LEFT OUTER JOIN game_event_gameobject ON gameobject.guid = game_event_gameobject.guid "
+        "LEFT OUTER JOIN pool_gameobject ON gameobject.guid = pool_gameobject.guid");
 
     if(!result)
     {
@@ -1016,11 +1069,19 @@ void ObjectMgr::LoadGameobjects()
         Field *fields = result->Fetch();
         bar.step();
 
-        uint32 guid = fields[0].GetUInt32();
+        uint32 guid         = fields[ 0].GetUInt32();
+        uint32 entry        = fields[ 1].GetUInt32();
+
+        GameObjectInfo const* gInfo = GetGameObjectInfo(entry);
+        if(!gInfo)
+        {
+            sLog.outErrorDb("Table `gameobject` has gameobject (GUID: %u) with non existing gameobject entry %u, skipped.", guid, entry);
+            continue;
+        }
 
         GameObjectData& data = mGameObjectDataMap[guid];
 
-        data.id             = fields[ 1].GetUInt32();
+        data.id             = entry;
         data.mapid          = fields[ 2].GetUInt32();
         data.posX           = fields[ 3].GetFloat();
         data.posY           = fields[ 4].GetFloat();
@@ -1036,13 +1097,7 @@ void ObjectMgr::LoadGameobjects()
         data.spawnMask      = fields[14].GetUInt8();
         data.phaseMask      = fields[15].GetUInt16();
         int16 gameEvent     = fields[16].GetInt16();
-
-        GameObjectInfo const* gInfo = GetGameObjectInfo(data.id);
-        if(!gInfo)
-        {
-            sLog.outErrorDb("Table `gameobject` have gameobject (GUID: %u) with not existed gameobject entry %u, skipped.",guid,data.id );
-            continue;
-        }
+        int16 PoolId        = fields[17].GetInt16();
 
         if(data.phaseMask==0)
         {
@@ -1050,7 +1105,7 @@ void ObjectMgr::LoadGameobjects()
             data.phaseMask = 1;
         }
 
-        if (gameEvent==0)                                   // if not this is to be managed by GameEvent System
+        if (gameEvent==0 && PoolId==0)                      // if not this is to be managed by GameEvent System or Pool system
             AddGameobjectToGrid(guid, &data);
         ++count;
 
@@ -3740,12 +3795,33 @@ void ObjectMgr::LoadScripts(ScriptMapMap& scripts, char const* tablename)
             }
 
             case SCRIPT_COMMAND_REMOVE_AURA:
+            {
+                if(!sSpellStore.LookupEntry(tmp.datalong))
+                {
+                    sLog.outErrorDb("Table `%s` using non-existent spell (id: %u) in SCRIPT_COMMAND_REMOVE_AURA or SCRIPT_COMMAND_CAST_SPELL for script id %u",
+                        tablename,tmp.datalong,tmp.id);
+                    continue;
+                }
+                if(tmp.datalong2 & ~0x1)                    // 1 bits (0,1)
+                {
+                    sLog.outErrorDb("Table `%s` using unknown flags in datalong2 (%u)i n SCRIPT_COMMAND_CAST_SPELL for script id %u",
+                        tablename,tmp.datalong2,tmp.id);
+                    continue;
+                }
+                break;
+            }
             case SCRIPT_COMMAND_CAST_SPELL:
             {
                 if(!sSpellStore.LookupEntry(tmp.datalong))
                 {
                     sLog.outErrorDb("Table `%s` using non-existent spell (id: %u) in SCRIPT_COMMAND_REMOVE_AURA or SCRIPT_COMMAND_CAST_SPELL for script id %u",
                         tablename,tmp.datalong,tmp.id);
+                    continue;
+                }
+                if(tmp.datalong2 & ~0x3)                    // 2 bits
+                {
+                    sLog.outErrorDb("Table `%s` using unknown flags in datalong2 (%u)i n SCRIPT_COMMAND_CAST_SPELL for script id %u",
+                        tablename,tmp.datalong2,tmp.id);
                     continue;
                 }
                 break;
@@ -5719,6 +5795,58 @@ void ObjectMgr::LoadReputationOnKill()
     sLog.outString(">> Loaded %u creature award reputation definitions", count);
 }
 
+void ObjectMgr::LoadPointsOfInterest()
+{
+    uint32 count = 0;
+
+    //                                                0      1  2  3      4     5
+    QueryResult *result = WorldDatabase.Query("SELECT entry, x, y, icon, flags, data, icon_name FROM points_of_interest");
+
+    if(!result)
+    {
+        barGoLink bar(1);
+
+        bar.step();
+
+        sLog.outString();
+        sLog.outErrorDb(">> Loaded 0 Points of Interest definitions. DB table `points_of_interest` is empty.");
+        return;
+    }
+
+    barGoLink bar(result->GetRowCount());
+
+    do
+    {
+        Field *fields = result->Fetch();
+        bar.step();
+
+        uint32 point_id = fields[0].GetUInt32();
+
+        PointOfInterest POI;
+        POI.x                    = fields[1].GetFloat();
+        POI.y                    = fields[2].GetFloat();
+        POI.icon                 = fields[3].GetUInt32();
+        POI.flags                = fields[4].GetUInt32();
+        POI.data                 = fields[5].GetUInt32();
+        POI.icon_name            = fields[6].GetCppString();
+
+        if(!MaNGOS::IsValidMapCoord(POI.x,POI.y))
+        {
+            sLog.outErrorDb("Table `points_of_interest` (Entry: %u) have invalid coordinates (X: %f Y: %f), ignored.",point_id,POI.x,POI.y);
+            continue;
+        }
+
+        mPointsOfInterest[point_id] = POI;
+
+        ++count;
+    } while (result->NextRow());
+
+    delete result;
+
+    sLog.outString();
+    sLog.outString(">> Loaded %u Points of Interest definitions", count);
+}
+
 void ObjectMgr::LoadWeatherZoneChances()
 {
     uint32 count = 0;
@@ -6850,9 +6978,6 @@ void ObjectMgr::LoadTrainerSpell()
 
         TrainerSpellData& data = m_mCacheTrainerSpellMap[entry];
 
-        if(SpellMgr::IsProfessionSpell(spell))
-            data.trainerType = 2;
-
         TrainerSpell& trainerSpell = data.spellList[spell];
         trainerSpell.spell         = spell;
         trainerSpell.spellCost     = fields[2].GetUInt32();
@@ -6875,6 +7000,9 @@ void ObjectMgr::LoadTrainerSpell()
                 break;
             }
         }
+
+        if(SpellMgr::IsProfessionSpell(trainerSpell.learnedSpell))
+            data.trainerType = 2;
 
         ++count;
 
@@ -7348,4 +7476,14 @@ AnticheatAccInfo *ObjectMgr::GetAnticheatAccInfo(uint32 acc)
         return it->second;
     return NULL;
 }*/
+
+CreatureInfo const* GetCreatureTemplateStore(uint32 entry)
+{
+    return sCreatureStorage.LookupEntry<CreatureInfo>(entry);
+}
+
+Quest const* GetQuestTemplateStore(uint32 entry)
+{
+    return objmgr.GetQuestTemplate(entry);
+}
 

@@ -338,6 +338,7 @@ pAuraHandler AuraHandler[TOTAL_AURAS]=
     &Aura::HandleUnused,                                    //285 not used by any spells (3.08a)
     &Aura::HandleUnused,                                    //286 not used by any spells (3.08a)
     &Aura::HandleNoImmediateEffect,                         //287 SPELL_AURA_DEFLECT_SPELLS             implemented in Unit::MagicSpellHitResult and Unit::MeleeSpellHitResult
+    &Aura::HandleUnused,                                    //288 not used by any spells (3.09) except 1 test spell.
 };
 
 Aura::Aura(SpellEntry const* spellproto, uint32 eff, int32 *currentBasePoints, Unit *target, Unit *caster, Item* castItem) :
@@ -405,7 +406,12 @@ m_updated(false), m_isRemovedOnShapeLost(true), m_in_use(false)
     Player* modOwner = caster ? caster->GetSpellModOwner() : NULL;
 
     if(!m_permanent && modOwner)
+    {
         modOwner->ApplySpellMod(GetId(), SPELLMOD_DURATION, m_maxduration);
+        // Get zero duration aura after - need set m_maxduration > 0 for apply/remove aura work
+        if (m_maxduration<=0)
+            m_maxduration = 1;
+    }
 
     m_duration = m_maxduration;
 
@@ -1768,11 +1774,8 @@ void Aura::TriggerSpell()
                 {
                     // Invisibility
                     case 66:
-                    {
-                        if(!m_duration)
-                            m_target->CastSpell(m_target, 32612, true, NULL, this);
+                    // Here need periodic triger reducing threat spell (or do it manually)
                         return;
-                    }
                     default:
                         break;
                 }
@@ -3861,7 +3864,7 @@ void Aura::HandleModMechanicImmunity(bool apply, bool Real)
     uint32 mechanic = 1 << m_modifier.m_miscvalue;
 
     //immune movement impairment and loss of control
-    if(GetId()==42292)
+    if(GetId()==42292 || GetId()==59752)
         mechanic=IMMUNE_TO_MOVEMENT_IMPAIRMENT_AND_LOSS_CONTROL_MASK;
 
     if(apply && GetSpellProto()->AttributesEx & SPELL_ATTR_EX_DISPEL_AURAS_ON_IMMUNITY)
@@ -4081,6 +4084,11 @@ void Aura::HandleAuraModStalked(bool apply, bool Real)
 void Aura::HandlePeriodicTriggerSpell(bool apply, bool Real)
 {
     m_isPeriodic = apply;
+    if (m_spellProto->Id == 66 && !apply)
+    {
+        if (m_removeMode == AURA_REMOVE_BY_DEFAULT && m_duration<=0)
+            m_target->CastSpell(m_target, 32612, true, NULL, this);
+    }
 }
 
 void Aura::HandlePeriodicTriggerSpellWithValue(bool apply, bool Real)
