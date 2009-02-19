@@ -8,6 +8,7 @@
 #include "Player.h"
 #include "World.h"
 #include "WorldSession.h"
+#include "AuctionHouseMgr.h"
 #include <vector>
 
 using namespace std;
@@ -79,9 +80,9 @@ static inline uint32 minValue(uint32 a, uint32 b)
 ///////////////////////////////////////////////////////////////////////////////
 //
 ///////////////////////////////////////////////////////////////////////////////
-static void deleteOldAuctions(AuctionLocation ahMapID)
+static void deleteOldAuctions(uint32 ahFactionId)
 {
-   AuctionHouseObject* auctionHouse = objmgr.GetAuctionsMap(ahMapID);
+   AuctionHouseObject* auctionHouse = auctionmgr.GetAuctionsMap(ahFactionId);
 
    AuctionHouseObject::AuctionEntryMap::iterator itr;
    itr = auctionHouse->GetAuctionsBegin();
@@ -97,15 +98,15 @@ static void deleteOldAuctions(AuctionLocation ahMapID)
       if (tmp->second->bidder != 0)
          continue;
 
-      if (tmp->second->time > sWorld.GetGameTime())
+      if (tmp->second->expire_time > sWorld.GetGameTime())
          continue;
 
       // quietly delete the item and auction...
 
-      Item* item = objmgr.GetAItem(tmp->second->item_guidlow);
+      Item* item = auctionmgr.GetAItem(tmp->second->item_guidlow);
       if (item != NULL)
       {
-         objmgr.RemoveAItem(tmp->second->item_guidlow);
+         auctionmgr.RemoveAItem(tmp->second->item_guidlow);
          item->DeleteFromDB();
          delete item;
       }
@@ -127,9 +128,9 @@ static void deleteOldAuctions(AuctionLocation ahMapID)
 ///////////////////////////////////////////////////////////////////////////////
 //
 ///////////////////////////////////////////////////////////////////////////////
-static void addNewAuctions(AuctionLocation ahMapID, uint32 maxAuctions, uint32 minAuctions, Player *AHBplayer)
+static void addNewAuctions(uint32 ahFactionID, uint32 maxAuctions, uint32 minAuctions, Player *AHBplayer)
 {
-   AuctionHouseObject* auctionHouse = objmgr.GetAuctionsMap(ahMapID);
+   AuctionHouseObject* auctionHouse = auctionmgr.GetAuctionsMap(ahFactionID);
 
    if (auctionHouse->Getcount() > minAuctions)
       return;
@@ -267,19 +268,19 @@ static void addNewAuctions(AuctionLocation ahMapID, uint32 maxAuctions, uint32 m
       auctionEntry->bidder = 0;
       auctionEntry->bid = 0;
       auctionEntry->deposit = 0;
-      auctionEntry->location = ahMapID;
-      auctionEntry->time = (time_t) (urand(minTime, maxTime) * 60 * 60 + 
+      auctionEntry->auctionHouseEntry = auctionmgr.GetAuctionHouseEntry(ahFactionID);
+      auctionEntry->expire_time = (time_t) (urand(minTime, maxTime) * 60 * 60 + 
                                      time(NULL));
       
       item->SaveToDB();
       item->RemoveFromUpdateQueueOf(AHBplayer);
-      objmgr.AddAItem(item);
+      auctionmgr.AddAItem(item);
       auctionHouse->AddAuction(auctionEntry);
 
       CharacterDatabase.PExecute("INSERT INTO `auctionhouse` (`id`,"
                                  "`auctioneerguid`,`itemguid`,`item_template`,"
                                  "`itemowner`,`buyoutprice`,`time`,`buyguid`,"
-                                 "`lastbid`,`startbid`,`deposit`,`location`) "
+                                 "`lastbid`,`startbid`,`deposit`) "
                                  "VALUES ('%u', '%u', '%u', '%u', '%u', '%u', "
                                  "'" I64FMTD "', '%u', '%u', '%u', '%u', '%u')",
                                  auctionEntry->Id, 
@@ -288,12 +289,11 @@ static void addNewAuctions(AuctionLocation ahMapID, uint32 maxAuctions, uint32 m
                                  auctionEntry->item_template, 
                                  auctionEntry->owner, 
                                  auctionEntry->buyout, 
-                                 (uint64) auctionEntry->time, 
+                                 (uint64) auctionEntry->expire_time, 
                                  auctionEntry->bidder, 
                                  auctionEntry->bid, 
                                  auctionEntry->startbid, 
-                                 auctionEntry->deposit, 
-                                 auctionEntry->location);
+                                 auctionEntry->deposit);
    }
 }
 

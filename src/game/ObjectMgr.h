@@ -32,7 +32,6 @@
 #include "ItemPrototype.h"
 #include "NPCHandler.h"
 #include "Database/DatabaseEnv.h"
-#include "AuctionHouseObject.h"
 #include "Mail.h"
 #include "Map.h"
 #include "ObjectAccessor.h"
@@ -294,9 +293,10 @@ class ObjectMgr
         typedef UNORDERED_MAP<uint32, Item*> ItemMap;
 
         typedef std::set< Group * > GroupSet;
-        typedef std::set< Guild * > GuildSet;
 
-        typedef UNORDERED_MAP<uint32, ArenaTeam* > ArenaTeamMap;
+        typedef UNORDERED_MAP<uint32, Guild *> GuildMap;
+
+        typedef UNORDERED_MAP<uint32, ArenaTeam*> ArenaTeamMap;
 
         typedef UNORDERED_MAP<uint32, Quest*> QuestMap;
 
@@ -325,17 +325,17 @@ class ObjectMgr
         void RemoveGroup(Group* group) { mGroupSet.erase( group ); }
 
         Guild* GetGuildByLeader(uint64 const&guid) const;
-        Guild* GetGuildById(const uint32 GuildId) const;
+        Guild* GetGuildById(uint32 GuildId) const;
         Guild* GetGuildByName(const std::string& guildname) const;
-        std::string GetGuildNameById(const uint32 GuildId) const;
-        void AddGuild(Guild* guild) { mGuildSet.insert( guild ); }
-        void RemoveGuild(Guild* guild) { mGuildSet.erase( guild ); }
+        std::string GetGuildNameById(uint32 GuildId) const;
+        void AddGuild(Guild* guild);
+        void RemoveGuild(uint32 Id);
 
-        ArenaTeam* GetArenaTeamById(const uint32 arenateamid) const;
+        ArenaTeam* GetArenaTeamById(uint32 arenateamid) const;
         ArenaTeam* GetArenaTeamByName(const std::string& arenateamname) const;
         ArenaTeam* GetArenaTeamByCaptain(uint64 const& guid) const;
         void AddArenaTeam(ArenaTeam* arenaTeam);
-        void RemoveArenaTeam(ArenaTeam* arenaTeam);
+        void RemoveArenaTeam(uint32 Id);
         ArenaTeamMap::iterator GetArenaTeamMapBegin() { return mArenaTeamMap.begin(); }
         ArenaTeamMap::iterator GetArenaTeamMapEnd()   { return mArenaTeamMap.end(); }
 
@@ -360,42 +360,6 @@ class ObjectMgr
         {
             return sInstanceTemplate.LookupEntry<InstanceTemplate>(map);
         }
-
-        Item* GetAItem(uint32 id)
-        {
-            ItemMap::const_iterator itr = mAitems.find(id);
-            if (itr != mAitems.end())
-            {
-                return itr->second;
-            }
-            return NULL;
-        }
-        void AddAItem(Item* it)
-        {
-            ASSERT( it );
-            ASSERT( mAitems.find(it->GetGUIDLow()) == mAitems.end());
-            mAitems[it->GetGUIDLow()] = it;
-        }
-        bool RemoveAItem(uint32 id)
-        {
-            ItemMap::iterator i = mAitems.find(id);
-            if (i == mAitems.end())
-            {
-                return false;
-            }
-            mAitems.erase(i);
-            return true;
-        }
-        AuctionHouseObject * GetAuctionsMap( AuctionLocation location );
-
-        //auction messages
-        void SendAuctionWonMail( AuctionEntry * auction );
-        void SendAuctionSalePendingMail( AuctionEntry * auction );
-        void SendAuctionSuccessfulMail( AuctionEntry * auction );
-        void SendAuctionExpiredMail( AuctionEntry * auction );
-        static uint32 GetAuctionCut( AuctionLocation location, uint32 highBid );
-        static uint32 GetAuctionDeposit(AuctionLocation location, uint32 time, Item *pItem);
-        static uint32 GetAuctionOutBid(uint32 currentBid);
 
         PetLevelInfo const* GetPetLevelInfo(uint32 creature_id, uint32 level) const;
 
@@ -452,8 +416,7 @@ class ObjectMgr
             return false;
         }
 
-        void AddGossipText(GossipText *pGText);
-        GossipText *GetGossipText(uint32 Text_ID);
+        GossipText const* GetGossipText(uint32 Text_ID) const;
 
         WorldSafeLocsEntry const *GetClosestGraveYard(float x, float y, float z, uint32 MapId, uint32 team);
         bool AddGraveYardLink(uint32 id, uint32 zone, uint32 team, bool inDB = true);
@@ -549,9 +512,6 @@ class ObjectMgr
         void LoadItemTexts();
         void LoadPageTexts();
 
-        //load first auction items, because of check if item exists, when loading
-        void LoadAuctionItems();
-        void LoadAuctions();
         void LoadPlayerInfo();
         void LoadPetLevelInfo();
         void LoadExplorationBaseXP();
@@ -584,12 +544,12 @@ class ObjectMgr
 
         void SetHighestGuids();
         uint32 GenerateLowGuid(HighGuid guidhigh);
-        uint32 GenerateAuctionID();
-        uint32 GenerateMailID();
-        uint32 GenerateItemTextID();
-        uint32 GeneratePetNumber();
         uint32 GenerateArenaTeamId();
+        uint32 GenerateAuctionID();
         uint32 GenerateGuildId();
+        uint32 GenerateItemTextID();
+        uint32 GenerateMailID();
+        uint32 GeneratePetNumber();
 
         uint32 CreateItemText(std::string text);
         std::string GetItemText( uint32 id )
@@ -788,11 +748,11 @@ class ObjectMgr
     protected:
 
         // first free id for selected id type
-        uint32 m_auctionid;
-        uint32 m_mailid;
-        uint32 m_ItemTextId;
         uint32 m_arenaTeamId;
+        uint32 m_auctionid;
         uint32 m_guildId;
+        uint32 m_ItemTextId;
+        uint32 m_mailid;
         uint32 m_hiPetNumber;
 
         // first free low guid for seelcted guid type
@@ -807,24 +767,17 @@ class ObjectMgr
 
         QuestMap            mQuestTemplates;
 
-        typedef UNORDERED_MAP<uint32, GossipText*> GossipTextMap;
+        typedef UNORDERED_MAP<uint32, GossipText> GossipTextMap;
         typedef UNORDERED_MAP<uint32, uint32> QuestAreaTriggerMap;
         typedef UNORDERED_MAP<uint32, std::string> ItemTextMap;
         typedef std::set<uint32> TavernAreaTriggerSet;
         typedef std::set<uint32> GameObjectForQuestSet;
 
         GroupSet            mGroupSet;
-        GuildSet            mGuildSet;
+        GuildMap            mGuildMap;
         ArenaTeamMap        mArenaTeamMap;
 
-        ItemMap             mItems;
-        ItemMap             mAitems;
-
         ItemTextMap         mItemTexts;
-
-        AuctionHouseObject  mHordeAuctions;
-        AuctionHouseObject  mAllianceAuctions;
-        AuctionHouseObject  mNeutralAuctions;
 
         QuestAreaTriggerMap mQuestAreaTriggerMap;
         TavernAreaTriggerSet mTavernAreaTriggerSet;

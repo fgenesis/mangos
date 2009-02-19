@@ -3,6 +3,13 @@
 
 #include "Common.h"
 
+enum AuctionHouseBotFactions
+{
+    AUCTION_ALLIANCE = 55,
+    AUCTION_HORDE = 29,
+    AUCTION_NEUTRAL = 120
+};
+
 uint32 AuctionHouseBotNoMail();
 void AuctionHouseBot();
 void AuctionHouseBotInit();

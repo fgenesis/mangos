@@ -28,6 +28,7 @@
 #include "Config/ConfigEnv.h"
 #include "PlayerDropMgr.h"
 #include "VirtualPlayerMgr.h"
+#include "AuctionHouseMgr.h"
 
 
 bool ChatHandler::UnlockMove(const char* args)
@@ -669,16 +670,16 @@ bool ChatHandler::HandleAHExpireCommand(const char* args)
     if (args == NULL)
         return false;
 
-    char* ahMapIdStr = strtok((char*) args, " ");
+    char* ahFactionIdStr = strtok((char*) args, " ");
     char* playerGuidStr = strtok(NULL, " ");
 
-    if ((ahMapIdStr == NULL) || (playerGuidStr == NULL))
+    if ((ahFactionIdStr == NULL) || (playerGuidStr == NULL))
         return false;
 
-    AuctionLocation ahMapID = (AuctionLocation) strtoul(ahMapIdStr, NULL, 0);
+    uint32 ahFactionID = strtoul(ahFactionIdStr, NULL, 0);
     uint32 playerGUID = (uint32) strtoul(playerGuidStr, NULL, 0);
 
-    AuctionHouseObject* auctionHouse = objmgr.GetAuctionsMap(ahMapID);
+    AuctionHouseObject* auctionHouse = auctionmgr.GetAuctionsMap(ahFactionID);
 
     if (auctionHouse == NULL)
         return false;
@@ -689,7 +690,7 @@ bool ChatHandler::HandleAHExpireCommand(const char* args)
     while (itr != auctionHouse->GetAuctionsEnd())
     {
         if (itr->second->owner == playerGUID)
-            itr->second->time = sWorld.GetGameTime();
+            itr->second->expire_time = sWorld.GetGameTime();
 
         ++itr;
     }
@@ -702,16 +703,16 @@ bool ChatHandler::HandleAHDeleteCommand(const char* args)
     if (args == NULL)
         return false;
 
-    char* ahMapIdStr = strtok((char*) args, " ");
+    char* ahFactionIdStr = strtok((char*) args, " ");
     char* playerGuidStr = strtok(NULL, " ");
 
-    if ((ahMapIdStr == NULL) || (playerGuidStr == NULL))
+    if ((ahFactionIdStr == NULL) || (playerGuidStr == NULL))
         return false;
 
-    AuctionLocation ahMapID = (AuctionLocation) strtoul(ahMapIdStr, NULL, 0);
+    uint32 ahFactionID = strtoul(ahFactionIdStr, NULL, 0);
     uint32 playerGUID = (uint32) strtoul(playerGuidStr, NULL, 0);
 
-    AuctionHouseObject* auctionHouse = objmgr.GetAuctionsMap(ahMapID);
+    AuctionHouseObject* auctionHouse = auctionmgr.GetAuctionsMap(ahFactionID);
 
     if (auctionHouse == NULL)
         return false;
@@ -727,10 +728,10 @@ bool ChatHandler::HandleAHDeleteCommand(const char* args)
         if (tmp->second->owner != playerGUID)
             continue;
 
-        Item* item = objmgr.GetAItem(tmp->second->item_guidlow);
+        Item* item = auctionmgr.GetAItem(tmp->second->item_guidlow);
         if (item != NULL)
         {
-            objmgr.RemoveAItem(tmp->second->item_guidlow);
+            auctionmgr.RemoveAItem(tmp->second->item_guidlow);
             item->DeleteFromDB();
             delete item;
         }

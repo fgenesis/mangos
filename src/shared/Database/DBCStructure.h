@@ -511,6 +511,16 @@ struct AreaTriggerEntry
     float   box_orientation;                                // 9        m_box_yaw
 };
 
+struct AuctionHouseEntry
+{
+    uint32    houseId;                                      // 0 index
+    uint32    faction;                                      // 1 id of faction.dbc for player factions associated with city
+    uint32    depositPercent;                               // 2 1/3 from real
+    uint32    cutPercent;                                   // 3
+    //char*     name[16];                                   // 4-19
+                                                            // 20 string flag, unused
+};
+
 struct BankBagSlotPricesEntry
 {
     uint32  ID;
@@ -858,6 +868,15 @@ struct ItemExtendedCostEntry
     uint32      reqitem[5];                                 // 3-7 required item id
     uint32      reqitemcount[5];                            // 8-12 required count of 1st item
     uint32      reqpersonalarenarating;                     // 13 required personal arena rating
+};
+
+struct ItemLimitCategoryEntry
+{
+    uint32      ID;                                         // 0 Id
+    //char*     name[16]                                    // 1-16     m_name_lang
+                                                            // 17 name flags
+    uint32      maxCount;                                  // max allowed equipped as item or in gem slot
+    //uint32      unk;                                        // 1 for prismatic gems only...
 };
 
 struct ItemRandomPropertiesEntry
