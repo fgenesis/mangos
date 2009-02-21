@@ -339,7 +339,7 @@ static void addNewAuctions(Player *AHBplayer, AHBConfig *config)
         CharacterDatabase.PExecute("INSERT INTO `auctionhouse` (`id`,"
                                  "`auctioneerguid`,`itemguid`,`item_template`,"
                                  "`itemowner`,`buyoutprice`,`time`,`buyguid`,"
-                                 "`lastbid`,`startbid`,`deposit`,`location`) "
+                                 "`lastbid`,`startbid`,`deposit`) "
                                  "VALUES ('%u', '%u', '%u', '%u', '%u', '%u', "
                                  "'" I64FMTD "', '%u', '%u', '%u', '%u')",
                                  auctionEntry->Id,
@@ -362,7 +362,7 @@ static void addNewAuctionBuyerBotBid(Player *AHBplayer, AHBConfig *config, World
         return;
 
         // Fetches content of selected AH
-   AuctionHouseObject* auctionHouse = auctionmgr.GetAuctionsMap(config->GetAHID());
+   AuctionHouseObject* auctionHouse = auctionmgr.GetAuctionsMap(config->GetAHFID());
    AuctionHouseObject::AuctionEntryMap::iterator itr;
 
    itr = auctionHouse->GetAuctionsBegin();
