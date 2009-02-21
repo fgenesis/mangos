@@ -69,6 +69,17 @@ static void addNewAuctions(Player *AHBplayer, AHBConfig *config)
     uint32 minItems = config->GetMinItems();
     uint32 maxItems = config->GetMaxItems();
     uint32 auctions = auctionHouse->Getcount();
+    uint32 AuctioneerGUID = 0;
+    switch (config->GetAHID()){
+        case 1:
+            AuctioneerGUID = 79707; //Human in stormwind.
+        case 6:
+            AuctioneerGUID = 4656; //orc in Orgrimmar
+        case 7:
+            AuctioneerGUID = 23442; //goblin in GZ
+        default:
+            AuctioneerGUID = 23442; //just default to neutral 7 not like it matters. =P
+    }
 
     if (auctions >= minItems)
       return;
@@ -321,7 +332,7 @@ static void addNewAuctions(Player *AHBplayer, AHBConfig *config)
 
         AuctionEntry* auctionEntry = new AuctionEntry;
         auctionEntry->Id = objmgr.GenerateAuctionID();
-        auctionEntry->auctioneer = 0;
+        auctionEntry->auctioneer = AuctioneerGUID;
         auctionEntry->item_guidlow = item->GetGUIDLow();
         auctionEntry->item_template = item->GetEntry();
         auctionEntry->owner = AHBplayer->GetGUIDLow();
