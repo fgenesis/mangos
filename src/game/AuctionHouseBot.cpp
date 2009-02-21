@@ -282,7 +282,7 @@ static void addNewAuctions(uint32 ahFactionID, uint32 maxAuctions, uint32 minAuc
                                  "`itemowner`,`buyoutprice`,`time`,`buyguid`,"
                                  "`lastbid`,`startbid`,`deposit`) "
                                  "VALUES ('%u', '%u', '%u', '%u', '%u', '%u', "
-                                 "'" I64FMTD "', '%u', '%u', '%u', '%u', '%u')",
+                                 "'" I64FMTD "', '%u', '%u', '%u', '%u')",
                                  auctionEntry->Id, 
                                  auctionEntry->auctioneer,
                                  auctionEntry->item_guidlow, 
