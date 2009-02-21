@@ -564,9 +564,9 @@ static void addNewAuctionBuyerBotBid(Player *AHBplayer, AHBConfig *config, World
     {sLog.outError("bidprice: %u", bidprice);}
 
       // Check our bid is high enough to be valid. If not, correct it to minimum.
-   if((currentprice + auctionmgr.GetAuctionOutBid(currentprice)) > bidprice)
+   if((currentprice + auction->GetAuctionOutBid()) > bidprice)
    {
-      bidprice = currentprice + auctionmgr.GetAuctionOutBid(currentprice);
+      bidprice = currentprice + auction->GetAuctionOutBid();
         if(debug_Out)
         {sLog.outError("bidprice(>): %u", bidprice);}
    }
@@ -947,7 +947,7 @@ void AuctionHouseBotCommands(uint32 command, uint32 ahMapID, uint32 col, char* a
     {
     case 0:     //ahexpire
         {
-            AuctionHouseObject* auctionHouse = auctionmgr.GetAuctionsMap(AuctionLocation(ahMapID));
+            AuctionHouseObject* auctionHouse = auctionmgr.GetAuctionsMap(ahMapID);
 
             AuctionHouseObject::AuctionEntryMap::iterator itr;
             itr = auctionHouse->GetAuctionsBegin();
