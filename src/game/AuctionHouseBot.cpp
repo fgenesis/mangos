@@ -346,7 +346,8 @@ static void addNewAuctions(Player *AHBplayer, AHBConfig *config)
         item->RemoveFromUpdateQueueOf(AHBplayer);
         auctionmgr.AddAItem(item);
         auctionHouse->AddAuction(auctionEntry);
-
+        auctionEntry->SaveToDB();
+/*
         CharacterDatabase.PExecute("INSERT INTO `auctionhouse` (`id`,"
                                  "`auctioneerguid`,`itemguid`,`item_template`,"
                                  "`itemowner`,`buyoutprice`,`time`,`buyguid`,"
@@ -364,6 +365,7 @@ static void addNewAuctions(Player *AHBplayer, AHBConfig *config)
                                  auctionEntry->bid,
                                  auctionEntry->startbid,
                                  auctionEntry->deposit);
+*/
     }
 }
 
