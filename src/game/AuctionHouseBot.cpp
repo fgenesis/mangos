@@ -15,9 +15,8 @@
 
 using namespace std;
 
-static bool debug_Out = 0;
+static bool debug_Out = sConfig.GetIntDefault("AuctionHouseBot.DEBUG", 0);
 
-static string AHBotRev =  "$Revision: 144 Mangos$";
 static vector<uint32> npcItems;
 static vector<uint32> lootItems;
 static vector<uint32> whiteTradeGoods;
@@ -347,25 +346,6 @@ static void addNewAuctions(Player *AHBplayer, AHBConfig *config)
         auctionmgr.AddAItem(item);
         auctionHouse->AddAuction(auctionEntry);
         auctionEntry->SaveToDB();
-/*
-        CharacterDatabase.PExecute("INSERT INTO `auctionhouse` (`id`,"
-                                 "`auctioneerguid`,`itemguid`,`item_template`,"
-                                 "`itemowner`,`buyoutprice`,`time`,`buyguid`,"
-                                 "`lastbid`,`startbid`,`deposit`) "
-                                 "VALUES ('%u', '%u', '%u', '%u', '%u', '%u', "
-                                 "'" I64FMTD "', '%u', '%u', '%u', '%u')",
-                                 auctionEntry->Id,
-                                 auctionEntry->auctioneer,
-                                 auctionEntry->item_guidlow,
-                                 auctionEntry->item_template,
-                                 auctionEntry->owner,
-                                 auctionEntry->buyout,
-                                 (uint64) auctionEntry->expire_time,
-                                 auctionEntry->bidder,
-                                 auctionEntry->bid,
-                                 auctionEntry->startbid,
-                                 auctionEntry->deposit);
-*/
     }
 }
 
@@ -914,9 +894,7 @@ void AuctionHouseBotInit()
         sLog.outString("loaded %d blue items", blueItems.size());
         sLog.outString("loaded %d purple items", purpleItems.size());
     }
-    AHBotRev.erase(AHBotRev.begin());
-    AHBotRev.erase((AHBotRev.end()-1));
-    sLog.outString("AuctionHouseBot %s by Paradox (original by ChrisK) has been loaded.", AHBotRev.c_str());
+    sLog.outString("AuctionHouseBot by Paradox (original by ChrisK) has been loaded.");
     sLog.outString("AuctionHouseBot now includes AHBuyer by Kerbe and Paradox");
 
 }
