@@ -51,9 +51,9 @@
 extern int m_ServiceStatus;
 #endif
 
-#if COMPILER == COMPILER_GNU
+/*#if COMPILER == COMPILER_GNU
 #include "LinuxCrashDump.h"
-#endif
+#endif*/
 
 /// \todo Warning disabling not useful under VC++2005. Can somebody say on which compiler it is useful?
 #pragma warning(disable:4305)
@@ -484,16 +484,16 @@ void Master::_OnSignal(int s)
         #endif
             World::StopNow(SHUTDOWN_EXIT_CODE);
             break;
-        #if COMPILER == COMPILER_GNU
+        /*#if COMPILER == COMPILER_GNU
         case SIGSEGV:
         {
             char fn[30];
             sprintf(fn,"./crashlog_%u.txt",realmID);
             dump_trace(fn);
-            _UnhookSignals();
+            Master::_UnhookSignals();
             raise(SIGSEGV); // raise SIGSEGV after dumping, since it should crash anyway
         }
-        #endif
+        #endif*/
     }
 
     signal(s, _OnSignal);

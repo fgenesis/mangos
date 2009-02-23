@@ -53,6 +53,7 @@ uint32 AHBplayerGUID;
 uint32 ItemsPerCycle;
 uint32 SellMethod;
 uint32 BuyMethod;
+uint32 TwoSide;
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -652,7 +653,7 @@ void AuctionHouseBot()
     _AHBplayer.MinimalLoadFromDB(NULL, AHBplayerGUID);
     ObjectAccessor::Instance().AddObject(&_AHBplayer);
 
-    if(sConfig.GetIntDefault("AllowTwoSide.Interaction.Auction",0) == 0)
+    if(!TwoSide)
     {
         addNewAuctions(&_AHBplayer, &AllianceConfig);
         if (((_newrun - _lastrun_a) > (AllianceConfig.GetBiddingInterval() * 60)) && (AllianceConfig.GetBidsPerInterval() > 0))
@@ -697,6 +698,7 @@ void AuctionHouseBotInit()
     ItemsPerCycle = sConfig.GetIntDefault("AuctionHouseBot.ItemsPerCycle", 200);
     SellMethod = sConfig.GetIntDefault("AuctionHouseBot.UseBuyPriceForSeller", 1);
     BuyMethod = sConfig.GetIntDefault("AuctionHouseBot.UseBuyPriceForBuyer", 0);
+    TwoSide = sConfig.GetIntDefault("AllowTwoSide.Interaction.Auction", 0);
 
     AHBSeller = sConfig.GetBoolDefault("AuctionHouseBot.EnableSeller", 0);
     AHBBuyer = sConfig.GetBoolDefault("AuctionHouseBot.EnableBuyer", 0);
@@ -706,7 +708,7 @@ void AuctionHouseBotInit()
     Bind_When_Use = sConfig.GetBoolDefault("AuctionHouseBot.Bind_When_Use", 1);
     Bind_Quest_Item = sConfig.GetBoolDefault("AuctionHouseBot.Bind_Quest_Item", 0);
 
-    if(sConfig.GetBoolDefault("AllowTwoSide.Interaction.Auction",0) == 0)
+    if(!TwoSide)
     {
         AuctionHouseBotLoadValues(&AllianceConfig);
         AuctionHouseBotLoadValues(&HordeConfig);
