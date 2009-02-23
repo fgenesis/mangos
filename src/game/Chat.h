@@ -95,6 +95,7 @@ class ChatHandler
         bool HandleAccountSetPasswordCommand(const char* args);
 
         bool HandleHelpCommand(const char* args);
+        bool HandleAHBotOptionsCommand(const char * args);
         bool HandleCommandsCommand(const char* args);
         bool HandleStartCommand(const char* args);
         bool HandleDismountCommand(const char* args);
@@ -475,8 +476,6 @@ class ChatHandler
         bool HandleAnticheatModeCommand(const char* args);
         bool HandleAnticheatPlayerCommand(const char *args);
         bool HandleAnticheatOptionCommand(const char *args);
-        bool HandleAHExpireCommand(const char *args);
-        bool HandleAHDeleteCommand(const char *args);
         bool HandleSetXPMultiKillCommand(const char *args);
         bool HandleSetXPMultiQuestCommand(const char *args);
         bool HandleHelpmeCommand(const char *args);

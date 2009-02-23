@@ -84,6 +84,9 @@ class AuctionHouseObject
 
         uint32 Getcount() { return AuctionsMap.size(); }
 
+        AuctionEntryMap::iterator GetAuctionsBegin() {return AuctionsMap.begin();}
+        AuctionEntryMap::iterator GetAuctionsEnd() {return AuctionsMap.end();}
+
         void AddAuction(AuctionEntry *ah)
         {
             ASSERT( ah );
@@ -110,14 +113,10 @@ class AuctionHouseObject
             uint32 inventoryType, uint32 itemClass, uint32 itemSubClass, uint32 quality,
             uint32& count, uint32& totalcount);
 
-        // FG: to fix AHBot
-        AuctionEntryMap::iterator GetAuctionsBegin(void) { return AuctionsMap.begin(); }
-        AuctionEntryMap::iterator GetAuctionsEnd(void) { return AuctionsMap.end(); }
-
 
 
     private:
-        AuctionEntryMap AuctionsMap;
+    AuctionEntryMap AuctionsMap;
 };
 
 class AuctionHouseMgr

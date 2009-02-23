@@ -628,6 +628,7 @@ ChatCommand * ChatHandler::getCommandTable()
         { "cometome",       SEC_ADMINISTRATOR,  false, &ChatHandler::HandleComeToMeCommand,            "", NULL },
         { "damage",         SEC_ADMINISTRATOR,  false, &ChatHandler::HandleDamageCommand,              "", NULL },
         { "combatstop",     SEC_GAMEMASTER,     false, &ChatHandler::HandleCombatStopCommand,          "", NULL },
+        { "ahbotoptions",   SEC_ADMINISTRATOR,  true,	&ChatHandler::HandleAHBotOptionsCommand,        "", NULL },
         { "flusharenapoints",    SEC_ADMINISTRATOR, false, &ChatHandler::HandleFlushArenaPointsCommand,         "",   NULL },
         { "chardelete",     SEC_CONSOLE,        true,  &ChatHandler::HandleCharacterDeleteCommand,     "", NULL },
         { "sendmessage",    SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleSendMessageCommand,         "", NULL },
@@ -665,11 +666,6 @@ ChatCommand * ChatHandler::getCommandTable()
         { "addspw", SEC_ADMINISTRATOR,false, &ChatHandler::HandleNpcAddCommand, "", NULL },
         { "fly", SEC_ADMINISTRATOR,false,  &ChatHandler::HandleFlyModeCommand, "", NULL },
         { "info", SEC_PLAYER,false, &ChatHandler::HandleServerInfoCommand, "", NULL },
-
-        // others
-        { "ahexpire",       SEC_ADMINISTRATOR, true, &ChatHandler::HandleAHExpireCommand,            "",   NULL },
-        { "ahdelete",       SEC_ADMINISTRATOR, true, &ChatHandler::HandleAHDeleteCommand,            "",   NULL },
-
 
         { NULL,             0,                  false, NULL,                                           "", NULL }
     };

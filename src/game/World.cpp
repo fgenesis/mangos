@@ -61,6 +61,7 @@
 #include "WaypointManager.h"
 #include "GMTicketMgr.h"
 #include "Util.h"
+#include "AuctionHouseBot.h"
 
 #include "AuctionHouseBot.h"
 #include "PlayerDropMgr.h"
@@ -1446,6 +1447,7 @@ void World::SetInitialWorldSettings()
     m_timers[WUPDATE_EVENTS].SetInterval(nextGameEvent);    //depend on next event
 
     // FG: more custom stuff
+    sLog.outString("Initialize AuctionHouseBot...");
     AuctionHouseBotInit();
 
     if(sWorld.getConfig(CONFIG_AUTOBROADCAST_INTERVAL) > 0)
@@ -1469,7 +1471,6 @@ void World::SetInitialWorldSettings()
     }
     sVPlayerMgr.ClearOnlineBots();
     // FG: -end-
-
 
     sLog.outString( "WORLD: World initialized" );
 }
@@ -1540,10 +1541,8 @@ void World::Update(uint32 diff)
     /// <ul><li> Handle auctions when the timer has passed
     if (m_timers[WUPDATE_AUCTIONS].Passed())
     {
+		AuctionHouseBot();
         m_timers[WUPDATE_AUCTIONS].Reset();
-
-        // FG: AHBot handler
-        AuctionHouseBot();
 
         ///- Update mails (return old mails with item, or delete them)
         //(tested... works on win)
