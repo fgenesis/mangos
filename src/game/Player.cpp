@@ -5958,7 +5958,7 @@ bool Player::SetOneFactionReputation(FactionEntry const* factionEntry, int32 sta
 int32 Player::CalculateReputationGain(uint32 creatureOrQuestLevel, int32 rep, bool for_quest)
 {
     // for grey creature kill received 20%, in other case 100.
-    int32 percent = (!for_quest && (creatureOrQuestLevel <= MaNGOS::XP::GetGrayLevel(getLevel()))) ? 20 : 100;
+    /*int32 percent = (!for_quest && (creatureOrQuestLevel <= MaNGOS::XP::GetGrayLevel(getLevel()))) ? 20 : 100;
 
     int32 repMod = GetTotalAuraModifier(SPELL_AURA_MOD_REPUTATION_GAIN);
 
@@ -5966,8 +5966,9 @@ int32 Player::CalculateReputationGain(uint32 creatureOrQuestLevel, int32 rep, bo
 
     if(percent <=0)
         return 0;
+    */
 
-    return int32(sWorld.getRate(RATE_REPUTATION_GAIN)*rep*percent/100);
+    return int32(sWorld.getRate(RATE_REPUTATION_GAIN)*rep/**percent/100*/);
 }
 
 //Calculates how many reputation points player gains in victim's enemy factions
@@ -6481,8 +6482,10 @@ void Player::CheckDuelDistance(time_t currTime)
 void Player::DuelComplete(DuelCompleteType type)
 {
     // duel not requested
-    if(!duel)
+    if(!duel || duel->ended)
         return;
+
+    duel->ended = true;
 
     WorldPacket data(SMSG_DUEL_COMPLETE, (1));
     data << (uint8)((type != DUEL_INTERUPTED) ? 1 : 0);
@@ -6516,8 +6519,14 @@ void Player::DuelComplete(DuelCompleteType type)
 
     //Remove Duel Flag object
     GameObject* obj = ObjectAccessor::GetGameObject(*this, GetUInt64Value(PLAYER_DUEL_ARBITER));
+    
+    sLog.outDetail("-- DuelComplete: %s: type=%u obj=%X opponent=%s", GetName(),type,obj,(duel->opponent ? duel->opponent->GetName() : "NULL!!!") );
+
     if(obj)
+    {
+        sLog.outDetail("++ obj.entry=%u obj.guid="I64FMT, obj->GetEntry(), obj->GetGUID());
         duel->initiator->RemoveGameObject(obj,true);
+    }
 
     /* remove auras */
     std::vector<uint32> auras2remove;

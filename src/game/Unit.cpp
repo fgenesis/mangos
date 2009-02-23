@@ -10348,6 +10348,11 @@ uint32 createProcExtendMask(SpellNonMeleeDamage *damageInfo, SpellMissInfo missC
 
 void Unit::ProcDamageAndSpellFor( bool isVictim, Unit * pTarget, uint32 procFlag, uint32 procExtra, WeaponAttackType attType, SpellEntry const * procSpell, uint32 damage )
 {
+    if(!pTarget)
+    {
+        sLog.outError("-- Unit::ProcDamageAndSpellFor: typeid=%u lowguid=%u name=%s - pTarget=NULL!",GetTypeId(),GetGUIDLow(),GetName());
+    }
+
     // For melee/ranged based attack need update skills and set some Aura states
     if (procFlag & MELEE_BASED_TRIGGER_MASK)
     {
@@ -10357,7 +10362,7 @@ void Unit::ProcDamageAndSpellFor( bool isVictim, Unit * pTarget, uint32 procFlag
             // On melee based hit/miss/resist need update skill (for victim and attacker)
             if (procExtra&(PROC_EX_NORMAL_HIT|PROC_EX_MISS|PROC_EX_RESIST))
             {
-                if (pTarget->GetTypeId() != TYPEID_PLAYER && pTarget->GetCreatureType() != CREATURE_TYPE_CRITTER)
+                if (pTarget && pTarget->GetTypeId() != TYPEID_PLAYER && pTarget->GetCreatureType() != CREATURE_TYPE_CRITTER)
                     ((Player*)this)->UpdateCombatSkills(pTarget, attType, isVictim);
             }
             // Update defence if player is victim and parry/dodge/block
@@ -10405,7 +10410,7 @@ void Unit::ProcDamageAndSpellFor( bool isVictim, Unit * pTarget, uint32 procFlag
             else //For attacker
             {
                 // Overpower on victim dodge
-                if (procExtra&PROC_EX_DODGE && GetTypeId() == TYPEID_PLAYER && getClass() == CLASS_WARRIOR)
+                if (procExtra&PROC_EX_DODGE && GetTypeId() == TYPEID_PLAYER && getClass() == CLASS_WARRIOR && pTarget)
                 {
                     ((Player*)this)->AddComboPoints(pTarget, 1);
                     StartReactiveTimer( REACTIVE_OVERPOWER );
