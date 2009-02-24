@@ -30,7 +30,9 @@ mangos_worldd_SOURCES = \
     RASocket.cpp \
     RASocket.h \
     WorldRunnable.cpp \
-    WorldRunnable.h
+    WorldRunnable.h \
+    LinuxCrashDump.cpp \
+    LinuxCrashDump.h
 
 ## Link world daemon against the shared library
 mangos_worldd_LDADD = ../bindings/ScriptDev2/libmangosscript.la ../game/libmangosgame.a ../shared/Database/libmangosdatabase.a ../shared/Config/libmangosconfig.a ../shared/Auth/libmangosauth.a ../shared/libmangosshared.a ../shared/vmap/libmangosvmaps.a ../framework/libmangosframework.a ../../dep/src/sockets/libmangossockets.a  ../../dep/src/zthread/libZThread.la ../../dep/src/g3dlite/libg3dlite.a
