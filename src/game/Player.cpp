@@ -459,6 +459,10 @@ Player::Player (WorldSession *session): Unit(), m_achievementMgr(this)
 
     m_declinedname = NULL;
     m_runes = NULL;
+
+    // FG: init custom vars
+    m_customChanMask = -1; // by default we joined all custom channels
+    m_myinfoForbidden = false;
 }
 
 Player::~Player ()
@@ -4282,11 +4286,13 @@ void Player::RepopAtGraveyard()
 
 void Player::JoinedChannel(Channel *c)
 {
+    SetCustomChannelJoined(c->GetSpecialID(),true);
     m_channels.push_back(c);
 }
 
 void Player::LeftChannel(Channel *c)
 {
+    SetCustomChannelJoined(c->GetSpecialID(),false);
     m_channels.remove(c);
 }
 
@@ -14647,15 +14653,17 @@ bool Player::LoadFromDB( uint32 guid, SqlQueryHolder *holder )
     m_achievementMgr.LoadFromDB(holder->GetResult(PLAYER_LOGIN_QUERY_LOADACHIEVEMENTS), holder->GetResult(PLAYER_LOGIN_QUERY_LOADCRITERIAPROGRESS));
     m_achievementMgr.CheckAllAchievementCriteria();
 
-    // FG: load self-definable xp-multis
-    QueryResult *exdata_result = CharacterDatabase.PQuery("SELECT xp_multi_kill, xp_multi_quest FROM character_extra WHERE guid='%u'", GetGUIDLow());
+    // FG: load extended data, such as self-definable xp-multis etc
+    QueryResult *exdata_result = holder->GetResult(PLAYER_LOGIN_QUERY_LOADEXTENDED);
     if(exdata_result)
     {
         Field *fields = exdata_result->Fetch();
         GetSession()->SetXPMultiKill(fields[0].GetFloat());
         GetSession()->SetXPMultiQuest(fields[1].GetFloat());
+        m_customChanMask = fields[2].GetUInt32();
         delete exdata_result;
     }
+
     return true;
 }
 
@@ -15789,8 +15797,8 @@ void Player::SaveToDB()
 
     // FG: save custom XP multis
     CharacterDatabase.PExecute("DELETE FROM character_extra WHERE guid='%u'", GetGUIDLow());
-    CharacterDatabase.PExecute("INSERT INTO character_extra (guid, xp_multi_kill, xp_multi_quest) VALUES ('%u', '%f', '%f')",
-        GetGUIDLow(), GetSession()->GetXPMultiKill(), GetSession()->GetXPMultiQuest() );
+    CharacterDatabase.PExecute("INSERT INTO character_extra (guid, xp_multi_kill, xp_multi_quest, custom_chan_mask) VALUES ('%u', '%f', '%f', '%u')",
+        GetGUIDLow(), GetSession()->GetXPMultiKill(), GetSession()->GetXPMultiQuest(), GetCustomChanMask() );
 
     CharacterDatabase.CommitTransaction();
 
@@ -18563,34 +18571,20 @@ bool Player::GetBGAccessByLevel(BattleGroundTypeId bgTypeId) const
     return true;
 }
 
-uint32 Player::GetMinLevelForBattleGroundQueueId(uint32 queue_id, BattleGroundTypeId bgTypeId)
+BGQueueIdBasedOnLevel Player::GetBattleGroundQueueIdFromLevel(BattleGroundTypeId bgTypeId) const
 {
-    BattleGround *bg = sBattleGroundMgr.GetBattleGroundTemplate(bgTypeId);
-    assert(bg);
-    return (queue_id*10)+bg->GetMinLevel();
-}
+    //returned to hardcoded version of this function, because there is no way to code it dynamic
+    uint32 level = getLevel();
+    if( bgTypeId == BATTLEGROUND_QUEUE_AV )
+        level--;
 
-uint32 Player::GetMaxLevelForBattleGroundQueueId(uint32 queue_id, BattleGroundTypeId bgTypeId)
-{
-    return GetMinLevelForBattleGroundQueueId(queue_id, bgTypeId)+10;
-}
-
-uint32 Player::GetBattleGroundQueueIdFromLevel(BattleGroundTypeId bgTypeId) const
-{
-    BattleGround *bg = sBattleGroundMgr.GetBattleGroundTemplate(bgTypeId);
-    assert(bg);
-    if(getLevel()<bg->GetMinLevel())
+    uint32 queue_id = (level / 10) - 1; // for ranges 0 - 19, 20 - 29, 30 - 39, 40 - 49, 50 - 59, 60 - 69, 70 -79, 80
+    if( queue_id >= MAX_BATTLEGROUND_QUEUES )
     {
-        sLog.outError("getting queue_id for player who doesn't meet the requirements - this shouldn't happen");
-        return 0;
+        sLog.outError("BattleGround: too high queue_id %u this shouldn't happen", queue_id);
+        return QUEUE_ID_MAX_LEVEL_80;
     }
-    uint32 queue_id = (getLevel() - bg->GetMinLevel()) / 10;
-    if(queue_id>MAX_BATTLEGROUND_QUEUES)
-    {
-        sLog.outError("to high queue_id %u this shouldn't happen",queue_id);
-        return 0;
-    }
-    return queue_id;
+    return BGQueueIdBasedOnLevel(queue_id);
 }
 
 float Player::GetReputationPriceDiscount( Creature const* pCreature ) const
@@ -19541,7 +19535,7 @@ void Player::GivePlayerDropReward(Player *victim)
     }
     else
     {
-        sLog.outError("-- Player::FillPlayerLoot(): ptr error: victim=0x%X, killer=0x%X");
+        sLog.outError("-- Player::GivePlayerDropReward(): ptr error: victim=0x%X, killer=0x%X");
     }
 }
 
