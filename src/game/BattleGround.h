@@ -210,9 +210,9 @@ enum BattleGroundWinner
 enum BattleGroundTeamId
 {
     BG_TEAM_ALLIANCE        = 0,
-    BG_TEAM_HORDE           = 1,
-    BG_TEAMS_COUNT          = 2
+    BG_TEAM_HORDE           = 1
 };
+#define BG_TEAMS_COUNT  2
 
 enum BattleGroundJoinError
 {
@@ -426,7 +426,7 @@ class BattleGround
         virtual void EventPlayerCapturedFlag(Player* /*player*/) {}
 
         /* Death related */
-        virtual WorldSafeLocsEntry const* GetClosestGraveYard(float /*x*/, float /*y*/, float /*z*/, uint32 /*team*/)  { return NULL; }
+        virtual WorldSafeLocsEntry const* GetClosestGraveYard(Player* player);
 
         virtual void AddPlayer(Player *plr);                // must be implemented in BG subclass
 

@@ -22,7 +22,7 @@
 DROP TABLE IF EXISTS `db_version`;
 CREATE TABLE `db_version` (
   `version` varchar(120) default NULL,
-  `required_7332_01_mangos_command` bit(1) default NULL
+  `required_7382_01_mangos_creature_template` bit(1) default NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=FIXED COMMENT='Used DB version notes';
 
 --
@@ -811,6 +811,8 @@ CREATE TABLE `creature_template` (
   `AIName` char(64) NOT NULL default '',
   `MovementType` tinyint(3) unsigned NOT NULL default '0',
   `InhabitType` tinyint(3) unsigned NOT NULL default '3',
+  `unk16` float NOT NULL default '1',
+  `unk17` float NOT NULL default '1',
   `RacialLeader` tinyint(3) unsigned NOT NULL default '0',
   `RegenHealth` tinyint(3) unsigned NOT NULL default '1',
   `equipment_id` mediumint(8) unsigned NOT NULL default '0',
@@ -827,7 +829,7 @@ CREATE TABLE `creature_template` (
 LOCK TABLES `creature_template` WRITE;
 /*!40000 ALTER TABLE `creature_template` DISABLE KEYS */;
 INSERT INTO `creature_template` VALUES
-(1,1,10045,0,10045,0,'Waypoint(Only GM can see it)','Visual',NULL,1,1,64,64,0,0,0,35,35,0,0.91,1,0,14,15,0,100,2000,2200,4096,0,0,0,0,0,0,1.76,2.42,100,8,5242886,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,'',0,3,0,1,0,0,0x82,'');
+(1,1,10045,0,10045,0,'Waypoint(Only GM can see it)','Visual',NULL,1,1,64,64,0,0,0,35,35,0,0.91,1,0,14,15,0,100,2000,2200,4096,0,0,0,0,0,0,1.76,2.42,100,8,5242886,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,'',0,3,1.0,1.0,0,1,0,0,0x82,'');
 /*!40000 ALTER TABLE `creature_template` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -13047,10 +13049,6 @@ CREATE TABLE `quest_template` (
   `ReqSourceCount2` smallint(5) unsigned NOT NULL default '0',
   `ReqSourceCount3` smallint(5) unsigned NOT NULL default '0',
   `ReqSourceCount4` smallint(5) unsigned NOT NULL default '0',
-  `ReqSourceRef1` tinyint(3) unsigned NOT NULL default '0',
-  `ReqSourceRef2` tinyint(3) unsigned NOT NULL default '0',
-  `ReqSourceRef3` tinyint(3) unsigned NOT NULL default '0',
-  `ReqSourceRef4` tinyint(3) unsigned NOT NULL default '0',
   `ReqCreatureOrGOId1` mediumint(9) NOT NULL default '0',
   `ReqCreatureOrGOId2` mediumint(9) NOT NULL default '0',
   `ReqCreatureOrGOId3` mediumint(9) NOT NULL default '0',
@@ -13286,6 +13284,33 @@ CREATE TABLE `spell_affect` (
 LOCK TABLES `spell_affect` WRITE;
 /*!40000 ALTER TABLE `spell_affect` DISABLE KEYS */;
 /*!40000 ALTER TABLE `spell_affect` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `spell_area`
+--
+
+DROP TABLE IF EXISTS `spell_area`;
+CREATE TABLE `spell_area` (
+  `spell`              mediumint(8) unsigned NOT NULL default '0',
+  `area`               mediumint(8) unsigned NOT NULL default '0',
+  `quest_start`        mediumint(8) unsigned NOT NULL default '0',
+  `quest_start_active` tinyint(1) unsigned NOT NULL default '0',
+  `quest_end`          mediumint(8) unsigned NOT NULL default '0',
+  `aura_spell`         mediumint(8) NOT NULL default '0',
+  `racemask`           mediumint(8) unsigned NOT NULL default '0',
+  `gender`             tinyint(1) unsigned NOT NULL default '2',
+  `autocast`           tinyint(1) unsigned NOT NULL default '0',
+  PRIMARY KEY  (`spell`,`area`,`quest_start`,`quest_start_active`,`aura_spell`,`racemask`,`gender`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+--
+-- Dumping data for table `spell_area`
+--
+
+LOCK TABLES `spell_area` WRITE;
+/*!40000 ALTER TABLE `spell_area` DISABLE KEYS */;
+/*!40000 ALTER TABLE `spell_area` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
