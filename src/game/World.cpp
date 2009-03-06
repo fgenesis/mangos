@@ -1412,13 +1412,8 @@ void World::SetInitialWorldSettings()
     m_timers[WUPDATE_AUCTIONS].SetInterval(MINUTE*IN_MILISECONDS);
     m_timers[WUPDATE_UPTIME].SetInterval(m_configs[CONFIG_UPTIME_UPDATE]*MINUTE*IN_MILISECONDS);
                                                             //Update "uptime" table based on configuration entry in minutes.
-<<<<<<< HEAD:src/game/World.cpp
-    m_timers[WUPDATE_CORPSES].SetInterval(20*MINUTE*1000);  //erase corpses every 20 minutes
+    m_timers[WUPDATE_CORPSES].SetInterval(20*MINUTE*IN_MILISECONDS);  //erase corpses every 20 minutes
     m_timers[WUPDATE_ONLINESTATS].SetInterval(60000); // FG: addition
-=======
-    m_timers[WUPDATE_CORPSES].SetInterval(20*MINUTE*IN_MILISECONDS);
-                                                            //erase corpses every 20 minutes
->>>>>>> c6d12b792c3ef8fca187e681206ae9fde4454099:src/game/World.cpp
 
     //to set mailtimer to return mails every day between 4 and 5 am
     //mailtimer is increased when updating auctions
@@ -1483,6 +1478,8 @@ void World::SetInitialWorldSettings()
         sVPlayerMgr.Load();
     }
     sVPlayerMgr.ClearOnlineBots();
+
+    objmgr.LoadSpecialChannels();
     // FG: -end-
 
     sLog.outString( "WORLD: World initialized" );

@@ -851,7 +851,9 @@ enum PlayerLoginQueryIndex
     PLAYER_LOGIN_QUERY_LOADARENAINFO            = 18,
     PLAYER_LOGIN_QUERY_LOADACHIEVEMENTS         = 19,
     PLAYER_LOGIN_QUERY_LOADCRITERIAPROGRESS     = 20,
-    MAX_PLAYER_LOGIN_QUERY                      = 21
+    PLAYER_LOGIN_QUERY_LOADMYINFO = 21,
+    PLAYER_LOGIN_QUERY_LOADEXTENDED = 22,
+    MAX_PLAYER_LOGIN_QUERY                      = 23
 };
 
 // Player summoning auto-decline time (in secs)
@@ -2166,9 +2168,21 @@ class MANGOS_DLL_SPEC Player : public Unit
         bool isGMTriggers() const { return GetSession()->GetSecurity() >= SEC_MODERATOR && (m_ExtraFlags & PLAYER_EXTRA_GM_SHOW_TRIGGERS); }
         void SetGMTriggers(bool on) { if(on) m_ExtraFlags |= PLAYER_EXTRA_GM_SHOW_TRIGGERS; else m_ExtraFlags &= ~PLAYER_EXTRA_GM_SHOW_TRIGGERS; }
         void UpdateDiplomacyDistance(void);
-
+        inline uint32 GetCustomChanMask(void) { return m_customChanMask; }
+        inline void SetCustomChannelJoined(uint32 id, bool j)
+        {
+            if(j)
+                m_customChanMask |= (1 << id);
+            else
+                m_customChanMask &= ~(1 << id);
+        }
+        inline void SetMyinfoForbidden(bool b) { m_myinfoForbidden = b; }
+        inline bool IsMyinfoForbidden(void) { return m_myinfoForbidden; }
 
     protected:
+        
+        bool m_myinfoForbidden;
+        uint32 m_customChanMask;
 
         /*********************************************************/
         /***               BATTLEGROUND SYSTEM                 ***/

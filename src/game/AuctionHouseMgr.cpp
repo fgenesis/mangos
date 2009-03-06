@@ -461,11 +461,7 @@ void AuctionHouseMgr::Update()
 
 AuctionHouseEntry const* AuctionHouseMgr::GetAuctionHouseEntry(uint32 factionTemplateId)
 {
-<<<<<<< HEAD:src/game/AuctionHouseMgr.cpp
-    uint32 houseid = 7;                                     // human auction house
-=======
     uint32 houseid = 1;                                     // dwarf auction house (used for normal cut/etc percents)
->>>>>>> c6d12b792c3ef8fca187e681206ae9fde4454099:src/game/AuctionHouseMgr.cpp
 
     if(!sWorld.getConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_AUCTION))
     {

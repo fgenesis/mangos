@@ -59,17 +59,13 @@ bool ChatHandler::LockMove(const char* args)
 bool ChatHandler::HandleMyinfoCommand(const char* args)
 {
     uint32 guid = m_session->GetPlayer()->GetGUIDLow();
-    QueryResult *inf=CharacterDatabase.PQuery("SELECT `guid`,`forbidden`,`msg` FROM character_myinfo WHERE guid=%u",guid);
-    if(!inf)
-        CharacterDatabase.PExecute("INSERT INTO character_myinfo VALUES (%u,0,'')",guid);
-    if(inf && inf->Fetch()[1].GetUInt16())
+    if(m_session->GetPlayer()->IsMyinfoForbidden())
     {
         PSendSysMessage("You are not allowed to set your info.");
         CharacterDatabase.PExecute("UPDATE character_myinfo SET `msg`='<forbidden>' WHERE guid=%u",guid);
-        delete inf;
         return true;
     }
-    delete inf;
+
     std::string msg(args);
 
     if(!msg.length())
@@ -78,13 +74,6 @@ bool ChatHandler::HandleMyinfoCommand(const char* args)
         PSendSysMessage("Personal info message deleted.");
         return true;
     }
-    std::string msg2=msg;
-    CharacterDatabase.escape_string(msg);
-
-    if (msg!=msg2)
-    {
-        PSendSysMessage("Your message was slightly modified due to possible SQL injection");
-    }
 
     if (msg.length()>60)
     {
@@ -92,7 +81,12 @@ bool ChatHandler::HandleMyinfoCommand(const char* args)
         PSendSysMessage("Message was too long, truncated to 60 chars: '%s'",msg.c_str());
     }    
 
-    CharacterDatabase.PExecute("UPDATE character_myinfo SET `msg`='%s' WHERE guid=%u",msg.c_str(),guid);
+    CharacterDatabase.escape_string(msg);
+
+    CharacterDatabase.BeginTransaction();
+    CharacterDatabase.PExecute("DELETE FROM character_myinfo WHERE guid='%u'");
+    CharacterDatabase.PExecute("INSERT INTO character_myinfo VALUES ('%u',0,'%s')",guid,msg.c_str());
+    CharacterDatabase.CommitTransaction();
     PSendSysMessage("Personal info message updated.");
     return true;
 }

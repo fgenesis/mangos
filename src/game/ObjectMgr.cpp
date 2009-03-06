@@ -7424,6 +7424,52 @@ AnticheatAccInfo *ObjectMgr::GetAnticheatAccInfo(uint32 acc)
     return NULL;
 }*/
 
+void ObjectMgr::LoadSpecialChannels(void)
+{
+    sLog.outString("FG: Loading Special Channels...");
+    mSpecialChannels.clear();
+    QueryResult *result = CharacterDatabase.PQuery("SELECT id,name FROM channels_special");
+    uint32 count = 0;
+    if(result)
+    {
+        barGoLink bar(result->GetRowCount());
+        do
+        {
+            Field *fields = result->Fetch();
+            uint32 id = fields[0].GetUInt32();
+            std::string ch = fields[1].GetCppString();
+            if(id <= 32)
+            {
+                mSpecialChannels[id] = ch;
+                sLog.outString("Special Channel #%u: %s",id,ch.c_str());
+            }
+            else
+            {
+                sLog.outError("Special Channel #%u: %s: ID must be < 32",id,ch.c_str());
+            }
+            
+            bar.step();
+            count++;
+        }
+        while(result->NextRow());
+
+        sLog.outString(">> FG: Loaded %u special channels", count);
+        delete result;
+    }
+    else
+        sLog.outError("FG: Can't load special channels!");
+}
+
+int32 ObjectMgr::GetSpecialChanID(std::string ch)
+{
+    for(std::map<uint32,std::string>::iterator it = mSpecialChannels.begin(); it != mSpecialChannels.end(); it++)
+    {
+        if(it->second == ch)
+            return it->first;
+    }
+    return -1;
+}
+
 CreatureInfo const* GetCreatureTemplateStore(uint32 entry)
 {
     return sCreatureStorage.LookupEntry<CreatureInfo>(entry);

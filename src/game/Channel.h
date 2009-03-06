@@ -157,6 +157,9 @@ class Channel
     uint32      m_channelId;
     uint64      m_ownerGUID;
 
+    // FG: extra vars
+    int32 m_specialId;
+
     private:
         // initial packet data (notify type and channel name)
         void MakeNotifyPacket(WorldPacket *data, uint8 notify_type);
@@ -278,5 +281,8 @@ class Channel
         void DeVoice(uint64 guid1, uint64 guid2);
         void JoinNotify(uint64 guid);                                           // invisible notify
         void LeaveNotify(uint64 guid);                                          // invisible notify
+
+        // FG:
+        inline int32 GetSpecialID(void) { return m_specialId; }
 };
 #endif

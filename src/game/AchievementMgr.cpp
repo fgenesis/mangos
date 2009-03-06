@@ -1024,11 +1024,7 @@ AchievementCompletionState AchievementMgr::GetAchievementCompletionState(Achieve
 
 void AchievementMgr::SetCriteriaProgress(AchievementCriteriaEntry const* entry, uint32 changeValue, ProgressType ptype)
 {
-<<<<<<< HEAD:src/game/AchievementMgr.cpp
-    DEBUG_LOG("AchievementMgr::SetCriteriaProgress(%u, %u)", entry->ID, newValue);
-=======
     sLog.outDetail("AchievementMgr::SetCriteriaProgress(%u, %u) for (GUID:%u)", entry->ID, changeValue);
->>>>>>> c6d12b792c3ef8fca187e681206ae9fde4454099:src/game/AchievementMgr.cpp
     CriteriaProgress *progress = NULL;
 
     CriteriaProgressMap::iterator iter = m_criteriaProgress.find(entry->ID);

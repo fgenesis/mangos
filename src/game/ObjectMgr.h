@@ -776,6 +776,11 @@ class ObjectMgr
         void LoadAnticheatAccInfo(void);
         AnticheatAccInfo *GetAnticheatAccInfo(uint32);
         void LoadCustomInstanceResetTimes(void);
+        void LoadSpecialChannels(void);
+        int32 GetSpecialChanID(std::string);
+        std::map<uint32,std::string>::iterator GetSpecialChansBegin(void) { return mSpecialChannels.begin(); }
+        std::map<uint32,std::string>::iterator GetSpecialChansEnd(void) { return mSpecialChannels.end(); }
+
 
         void LoadScriptNames();
         ScriptNameMap &GetScriptNames() { return m_scriptNames; }
@@ -901,6 +906,9 @@ class ObjectMgr
         CacheNpcTextIdMap m_mCacheNpcTextIdMap;
         CacheVendorItemMap m_mCacheVendorItemMap;
         CacheTrainerSpellMap m_mCacheTrainerSpellMap;
+
+        // FG: storage for special channels
+        std::map<uint32,std::string> mSpecialChannels;
 };
 
 #define objmgr MaNGOS::Singleton<ObjectMgr>::Instance()

@@ -462,6 +462,10 @@ Player::Player (WorldSession *session): Unit(), m_achievementMgr(this)
 
     m_declinedname = NULL;
     m_runes = NULL;
+
+    // FG: init custom vars
+    m_customChanMask = -1; // by default we joined all custom channels
+    m_myinfoForbidden = false;
 }
 
 Player::~Player ()
@@ -4310,11 +4314,13 @@ void Player::RepopAtGraveyard()
 
 void Player::JoinedChannel(Channel *c)
 {
+    SetCustomChannelJoined(c->GetSpecialID(),true);
     m_channels.push_back(c);
 }
 
 void Player::LeftChannel(Channel *c)
 {
+    SetCustomChannelJoined(c->GetSpecialID(),false);
     m_channels.remove(c);
 }
 
@@ -14745,15 +14751,17 @@ bool Player::LoadFromDB( uint32 guid, SqlQueryHolder *holder )
     m_achievementMgr.LoadFromDB(holder->GetResult(PLAYER_LOGIN_QUERY_LOADACHIEVEMENTS), holder->GetResult(PLAYER_LOGIN_QUERY_LOADCRITERIAPROGRESS));
     m_achievementMgr.CheckAllAchievementCriteria();
 
-    // FG: load self-definable xp-multis
-    QueryResult *exdata_result = CharacterDatabase.PQuery("SELECT xp_multi_kill, xp_multi_quest FROM character_extra WHERE guid='%u'", GetGUIDLow());
+    // FG: load extended data, such as self-definable xp-multis etc
+    QueryResult *exdata_result = holder->GetResult(PLAYER_LOGIN_QUERY_LOADEXTENDED);
     if(exdata_result)
     {
         Field *fields = exdata_result->Fetch();
         GetSession()->SetXPMultiKill(fields[0].GetFloat());
         GetSession()->SetXPMultiQuest(fields[1].GetFloat());
+        m_customChanMask = fields[2].GetUInt32();
         delete exdata_result;
     }
+
     return true;
 }
 
@@ -15888,8 +15896,8 @@ void Player::SaveToDB()
 
     // FG: save custom XP multis
     CharacterDatabase.PExecute("DELETE FROM character_extra WHERE guid='%u'", GetGUIDLow());
-    CharacterDatabase.PExecute("INSERT INTO character_extra (guid, xp_multi_kill, xp_multi_quest) VALUES ('%u', '%f', '%f')",
-        GetGUIDLow(), GetSession()->GetXPMultiKill(), GetSession()->GetXPMultiQuest() );
+    CharacterDatabase.PExecute("INSERT INTO character_extra (guid, xp_multi_kill, xp_multi_quest, custom_chan_mask) VALUES ('%u', '%f', '%f', '%u')",
+        GetGUIDLow(), GetSession()->GetXPMultiKill(), GetSession()->GetXPMultiQuest(), GetCustomChanMask() );
 
     CharacterDatabase.CommitTransaction();
 
@@ -19711,7 +19719,7 @@ void Player::GivePlayerDropReward(Player *victim)
     }
     else
     {
-        sLog.outError("-- Player::FillPlayerLoot(): ptr error: victim=0x%X, killer=0x%X");
+        sLog.outError("-- Player::GivePlayerDropReward(): ptr error: victim=0x%X, killer=0x%X");
     }
 }
 

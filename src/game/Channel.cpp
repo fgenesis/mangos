@@ -22,7 +22,7 @@
 #include "SocialMgr.h"
 
 Channel::Channel(const std::string& name, uint32 channel_id)
-: m_announce(true), m_moderate(false), m_name(name), m_flags(0), m_channelId(channel_id), m_ownerGUID(0)
+: m_announce(true), m_moderate(false), m_name(name), m_flags(0), m_channelId(channel_id), m_ownerGUID(0), m_specialId(-1)
 {
     // set special flags if built-in channel
     ChatChannelsEntry const* ch = GetChannelEntryFor(channel_id);
@@ -47,6 +47,14 @@ Channel::Channel(const std::string& name, uint32 channel_id)
     else                                                    // it's custom channel
     {
         m_flags |= CHANNEL_FLAG_CUSTOM;
+    }
+
+    // FG: if m_specialId > 0 its a special channel
+    m_specialId = objmgr.GetSpecialChanID(m_name);
+    if(m_specialId > -1)
+    {
+        m_announce = false;
+        m_flags = CHANNEL_FLAG_CUSTOM; // its a custom channel anyway; no additional flags needed
     }
 }
 
@@ -366,6 +374,10 @@ void Channel::SetMode(uint64 p, const char *p2n, bool mod, bool set)
 
 void Channel::SetOwner(uint64 p, const char *newname)
 {
+    // FG: special channels do not have an owner
+    if(m_specialId > -1)
+        return;
+
     uint32 sec = 0;
     Player *plr = objmgr.GetPlayer(p);
     if(plr)
@@ -632,6 +644,10 @@ void Channel::Invite(uint64 p, const char *newname)
 
 void Channel::SetOwner(uint64 guid, bool exclaim)
 {
+    // FG: special channels do not have an owner
+    if(m_specialId > -1)
+        return;
+
     if(m_ownerGUID)
     {
         // [] will re-add player after it possible removed
