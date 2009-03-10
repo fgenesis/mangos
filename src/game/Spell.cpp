@@ -33,7 +33,6 @@
 #include "Unit.h"
 #include "Spell.h"
 #include "DynamicObject.h"
-#include "SpellAuras.h"
 #include "Group.h"
 #include "UpdateData.h"
 #include "MapManager.h"
@@ -2045,7 +2044,7 @@ void Spell::SetTargetMap(uint32 i,uint32 cur,std::list<Unit*> &TagUnitMap)
                 }
             }
             else
-                sLog.outError( "SPELL: unknown target coordinates for spell ID %u\n", m_spellInfo->Id );
+                sLog.outError( "SPELL: unknown target coordinates for spell ID %u", m_spellInfo->Id );
         }break;
         case TARGET_BEHIND_VICTIM:
         {
@@ -3355,7 +3354,7 @@ uint8 Spell::CheckRuneCost(uint32 runeCostID)
         runeCost[i] = src->RuneCost[i];
     }
 
-    runeCost[RUNE_DEATH] = 0;                               // calculated later
+    runeCost[RUNE_DEATH] = MAX_RUNES;                       // calculated later
 
     for(uint32 i = 0; i < MAX_RUNES; ++i)
     {
@@ -3374,7 +3373,7 @@ uint8 Spell::CheckRuneCost(uint32 runeCostID)
         }
     }
 
-    if(runeCost[RUNE_DEATH] > 0)
+    if(runeCost[RUNE_DEATH] > MAX_RUNES)
         return SPELL_FAILED_NO_POWER;                       // not sure if result code is correct
 
     return 0;
@@ -3531,7 +3530,7 @@ void Spell::HandleEffects(Unit *pUnitTarget,Item *pItemTarget,GameObject *pGOTar
             EffectEnchantItemTmp(i);
         else
         {
-            sLog.outError("SPELL: unknown effect %u spell id %u\n",
+            sLog.outError("SPELL: unknown effect %u spell id %u",
                 eff, m_spellInfo->Id);
         }
     }
@@ -4110,7 +4109,7 @@ uint8 Spell::CanCast(bool strict)
 
                 // In BattleGround players can use only flags and banners
                 if( ((Player*)m_caster)->InBattleGround() &&
-                    !((Player*)m_caster)->isAllowUseBattleGroundObject() )
+                    !((Player*)m_caster)->CanUseBattleGroundObject() )
                     return SPELL_FAILED_TRY_AGAIN;
 
                 // get the lock entry

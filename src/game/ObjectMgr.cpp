@@ -28,14 +28,13 @@
 #include "SpellMgr.h"
 #include "UpdateMask.h"
 #include "World.h"
-#include "WorldSession.h"
 #include "Group.h"
 #include "Guild.h"
 #include "ArenaTeam.h"
 #include "Transports.h"
 #include "ProgressBar.h"
 #include "Language.h"
-#include "GameEvent.h"
+#include "GameEventMgr.h"
 #include "Spell.h"
 #include "Chat.h"
 #include "AccountMgr.h"
@@ -43,7 +42,6 @@
 #include "SpellAuras.h"
 #include "Util.h"
 #include "WaypointManager.h"
-#include "BattleGround.h"
 
 #include "AuctionHouseBot.h"
 
@@ -1768,7 +1766,10 @@ void ObjectMgr::LoadPetLevelInfo()
                 if(current_level > STRONG_MAX_LEVEL)        // hardcoded level maximum
                     sLog.outErrorDb("Wrong (> %u) level %u in `pet_levelstats` table, ignoring.",STRONG_MAX_LEVEL,current_level);
                 else
+                {
                     sLog.outDetail("Unused (> MaxPlayerLevel in mangosd.conf) level %u in `pet_levelstats` table, ignoring.",current_level);
+                    ++count;                                // make result loading percent "expected" correct in case disabled detail mode for example.
+                }
                 continue;
             }
             else if(current_level < 1)
@@ -2147,7 +2148,10 @@ void ObjectMgr::LoadPlayerInfo()
                 if(current_level > STRONG_MAX_LEVEL)        // hardcoded level maximum
                     sLog.outErrorDb("Wrong (> %u) level %u in `player_classlevelstats` table, ignoring.",STRONG_MAX_LEVEL,current_level);
                 else
+                {
                     sLog.outDetail("Unused (> MaxPlayerLevel in mangosd.conf) level %u in `player_classlevelstats` table, ignoring.",current_level);
+                    ++count;                                // make result loading percent "expected" correct in case disabled detail mode for example.
+                }
                 continue;
             }
 
@@ -2242,7 +2246,10 @@ void ObjectMgr::LoadPlayerInfo()
                 if(current_level > STRONG_MAX_LEVEL)        // hardcoded level maximum
                     sLog.outErrorDb("Wrong (> %u) level %u in `player_levelstats` table, ignoring.",STRONG_MAX_LEVEL,current_level);
                 else
+                {
                     sLog.outDetail("Unused (> MaxPlayerLevel in mangosd.conf) level %u in `player_levelstats` table, ignoring.",current_level);
+                    ++count;                                // make result loading percent "expected" correct in case disabled detail mode for example.
+                }
                 continue;
             }
 
@@ -2350,7 +2357,10 @@ void ObjectMgr::LoadPlayerInfo()
                 if(current_level > STRONG_MAX_LEVEL)        // hardcoded level maximum
                     sLog.outErrorDb("Wrong (> %u) level %u in `player_xp_for_level` table, ignoring.", STRONG_MAX_LEVEL,current_level);
                 else
+                {
                     sLog.outDetail("Unused (> MaxPlayerLevel in mangosd.conf) level %u in `player_xp_for_levels` table, ignoring.",current_level);
+                    ++count;                                // make result loading percent "expected" correct in case disabled detail mode for example.
+                }
                 continue;
             }
             //PlayerXPperLevel
@@ -3274,14 +3284,15 @@ void ObjectMgr::LoadQuests()
 
         if(qinfo->NextQuestInChain)
         {
-            if(mQuestTemplates.find(qinfo->NextQuestInChain) == mQuestTemplates.end())
+            QuestMap::iterator qNextItr = mQuestTemplates.find(qinfo->NextQuestInChain);
+            if(qNextItr == mQuestTemplates.end())
             {
                 sLog.outErrorDb("Quest %u has `NextQuestInChain` = %u but quest %u does not exist, quest chain will not work.",
                     qinfo->GetQuestId(),qinfo->NextQuestInChain ,qinfo->NextQuestInChain );
                 qinfo->NextQuestInChain = 0;
             }
             else
-                mQuestTemplates[qinfo->NextQuestInChain]->prevChainQuests.push_back(qinfo->GetQuestId());
+                qNextItr->second->prevChainQuests.push_back(qinfo->GetQuestId());
         }
 
         // fill additional data stores
@@ -3299,14 +3310,15 @@ void ObjectMgr::LoadQuests()
 
         if(qinfo->NextQuestId)
         {
-            if (mQuestTemplates.find(abs(qinfo->GetNextQuestId())) == mQuestTemplates.end())
+            QuestMap::iterator qNextItr = mQuestTemplates.find(abs(qinfo->GetNextQuestId()));
+            if (qNextItr == mQuestTemplates.end())
             {
                 sLog.outErrorDb("Quest %d has NextQuestId %i, but no such quest", qinfo->GetQuestId(), qinfo->GetNextQuestId());
             }
             else
             {
                 int32 signedQuestId = qinfo->NextQuestId < 0 ? -int32(qinfo->GetQuestId()) : int32(qinfo->GetQuestId());
-                mQuestTemplates[abs(qinfo->GetNextQuestId())]->prevQuests.push_back(signedQuestId);
+                qNextItr->second->prevQuests.push_back(signedQuestId);
             }
         }
 
@@ -4941,7 +4953,8 @@ void ObjectMgr::LoadAreaTriggerTeleports()
 
         if(at.requiredQuest)
         {
-            if(!mQuestTemplates[at.requiredQuest])
+            QuestMap::iterator qReqItr = mQuestTemplates.find(at.requiredQuest);
+            if(qReqItr != mQuestTemplates.end())
             {
                 sLog.outErrorDb("Required Quest %u not exist for trigger %u, remove quest done requirement.",at.requiredQuest,Trigger_ID);
                 at.requiredQuest = 0;
@@ -4950,7 +4963,8 @@ void ObjectMgr::LoadAreaTriggerTeleports()
 
         if(at.requiredQuestHeroic)
         {
-            if(!mQuestTemplates[at.requiredQuestHeroic])
+            QuestMap::iterator qReqItr = mQuestTemplates.find(at.requiredQuestHeroic);
+            if(qReqItr != mQuestTemplates.end())
             {
                 sLog.outErrorDb("Required Quest %u not exist for trigger %u, remove quest done requirement.",at.requiredQuestHeroic,Trigger_ID);
                 at.requiredQuestHeroic = 0;
@@ -6686,7 +6700,7 @@ bool PlayerCondition::IsValid(ConditionType condition, uint32 value1, uint32 val
         }
         case CONDITION_ACTIVE_EVENT:
         {
-            GameEvent::GameEventDataMap const& events = gameeventmgr.GetEventMap();
+            GameEventMgr::GameEventDataMap const& events = gameeventmgr.GetEventMap();
             if(value1 >=events.size() || !events[value1].isValid())
             {
                 sLog.outErrorDb("Active event condition requires existed event id (%u), skipped", value1);

@@ -26,10 +26,8 @@
 #include "UpdateMask.h"
 #include "Opcodes.h"
 #include "WorldPacket.h"
-#include "WorldSession.h"
 #include "World.h"
 #include "Database/DatabaseEnv.h"
-#include "MapManager.h"
 #include "LootMgr.h"
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
@@ -1201,7 +1199,7 @@ void GameObject::Use(Unit* user)
 
             Player* player = (Player*)user;
 
-            if( player->isAllowUseBattleGroundObject() )
+            if( player->CanUseBattleGroundObject() )
             {
                 // in battleground check
                 BattleGround *bg = player->GetBattleGround();
@@ -1226,7 +1224,7 @@ void GameObject::Use(Unit* user)
 
             Player* player = (Player*)user;
 
-            if( player->isAllowUseBattleGroundObject() )
+            if( player->CanUseBattleGroundObject() )
             {
                 // in battleground check
                 BattleGround *bg = player->GetBattleGround();

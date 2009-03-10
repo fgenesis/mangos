@@ -19,7 +19,6 @@
 #include "Common.h"
 #include "Database/DatabaseEnv.h"
 #include "WorldPacket.h"
-#include "WorldSession.h"
 #include "World.h"
 #include "ObjectMgr.h"
 #include "SpellMgr.h"
@@ -35,7 +34,6 @@
 #include "CreatureAI.h"
 #include "CreatureAISelector.h"
 #include "Formulas.h"
-#include "SpellAuras.h"
 #include "WaypointMovementGenerator.h"
 #include "InstanceData.h"
 #include "BattleGroundMgr.h"
@@ -1572,7 +1570,7 @@ SpellEntry const *Creature::reachWithSpellAttack(Unit *pVictim)
         SpellEntry const *spellInfo = sSpellStore.LookupEntry(m_spells[i] );
         if(!spellInfo)
         {
-            sLog.outError("WORLD: unknown spell id %i\n", m_spells[i]);
+            sLog.outError("WORLD: unknown spell id %i", m_spells[i]);
             continue;
         }
 
@@ -1622,7 +1620,7 @@ SpellEntry const *Creature::reachWithSpellCure(Unit *pVictim)
         SpellEntry const *spellInfo = sSpellStore.LookupEntry(m_spells[i] );
         if(!spellInfo)
         {
-            sLog.outError("WORLD: unknown spell id %i\n", m_spells[i]);
+            sLog.outError("WORLD: unknown spell id %i", m_spells[i]);
             continue;
         }
 
