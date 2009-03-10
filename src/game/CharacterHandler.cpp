@@ -91,7 +91,7 @@ bool LoginQueryHolder::Initialize()
     
     // FG: load extra data async also
     res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADMYINFO,          "SELECT msg,forbidden FROM character_myinfo WHERE guid='%u'",GUID_LOPART(m_guid));
-    res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADEXTENDED,        "SELECT xp_multi_kill, xp_multi_quest, custom_chan_mask FROM character_extra WHERE guid='%u'", GUID_LOPART(m_guid));
+    res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADEXTENDED,        "SELECT xp_multi_kill, xp_multi_quest FROM character_extra WHERE guid='%u'", GUID_LOPART(m_guid));
     return res;
 }
 
@@ -876,27 +876,6 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder * holder)
     if(pCurrChar->isGameMaster())
         SendNotification(LANG_GM_ON);
 
-    // FG: auto-join custom channels if required
-    DEBUG_LOG("-- Player %s custom chan mask = %X",pCurrChar->GetName(),pCurrChar->GetCustomChanMask());
-    /*for(std::map<uint32,std::string>::iterator it = objmgr.GetSpecialChansBegin(); it != objmgr.GetSpecialChansEnd(); it++)
-    {
-        if(pCurrChar->GetCustomChanMask() & (1 << it->first))
-        {
-            if(ChannelMgr* cMgr = channelMgr(_player->GetTeam()))
-            {
-                if(Channel *chn = cMgr->GetJoinChannel(it->second, 0)) // FG: TODO: not sure if 0 is correct
-                {
-                    chn->Join(_player->GetGUID(), "");
-                    DEBUG_LOG("-- Auto-joined channel '%s' (%u)",it->second.c_str(), it->first);
-                }
-            }
-
-        }
-        else
-        {
-            DEBUG_LOG("-- NOT joined channel '%s' (%u)",it->second.c_str(), it->first);
-        }
-    }*/
     // FG: .myinfo msg start
     std::string inf = (myinf.empty()) ? "You have no personal information set. Use \".myinfo <msg>\" to set." : "Your current personal info message is: \""+myinf+"\"";
     ChatHandler(this).FillSystemMessageData(&data, inf.c_str());

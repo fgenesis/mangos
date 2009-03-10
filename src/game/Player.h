@@ -1826,7 +1826,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         void SetCanBlock(bool value);
         bool CanDualWield() const { return m_canDualWield; }
         void SetCanDualWield(bool value) { m_canDualWield = value; }
-        bool CanTitanGrip() const { return m_canTitanGrip ; }
+        bool CanTitanGrip() const;
         void SetCanTitanGrip(bool value) { m_canTitanGrip = value; }
 
         void SetRegularAttackTime();
@@ -2168,21 +2168,12 @@ class MANGOS_DLL_SPEC Player : public Unit
         bool isGMTriggers() const { return GetSession()->GetSecurity() >= SEC_MODERATOR && (m_ExtraFlags & PLAYER_EXTRA_GM_SHOW_TRIGGERS); }
         void SetGMTriggers(bool on) { if(on) m_ExtraFlags |= PLAYER_EXTRA_GM_SHOW_TRIGGERS; else m_ExtraFlags &= ~PLAYER_EXTRA_GM_SHOW_TRIGGERS; }
         void UpdateDiplomacyDistance(void);
-        inline uint32 GetCustomChanMask(void) { return m_customChanMask; }
-        inline void SetCustomChannelJoined(uint32 id, bool j)
-        {
-            if(j)
-                m_customChanMask |= (1 << id);
-            else
-                m_customChanMask &= ~(1 << id);
-        }
         inline void SetMyinfoForbidden(bool b) { m_myinfoForbidden = b; }
         inline bool IsMyinfoForbidden(void) { return m_myinfoForbidden; }
 
     protected:
         
         bool m_myinfoForbidden;
-        uint32 m_customChanMask;
 
         /*********************************************************/
         /***               BATTLEGROUND SYSTEM                 ***/

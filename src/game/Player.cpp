@@ -464,7 +464,6 @@ Player::Player (WorldSession *session): Unit(), m_achievementMgr(this)
     m_runes = NULL;
 
     // FG: init custom vars
-    m_customChanMask = -1; // by default we joined all custom channels
     m_myinfoForbidden = false;
 }
 
@@ -4314,13 +4313,11 @@ void Player::RepopAtGraveyard()
 
 void Player::JoinedChannel(Channel *c)
 {
-    SetCustomChannelJoined(c->GetSpecialID(),true);
     m_channels.push_back(c);
 }
 
 void Player::LeftChannel(Channel *c)
 {
-    SetCustomChannelJoined(c->GetSpecialID(),false);
     m_channels.remove(c);
 }
 
@@ -14758,7 +14755,6 @@ bool Player::LoadFromDB( uint32 guid, SqlQueryHolder *holder )
         Field *fields = exdata_result->Fetch();
         GetSession()->SetXPMultiKill(fields[0].GetFloat());
         GetSession()->SetXPMultiQuest(fields[1].GetFloat());
-        m_customChanMask = fields[2].GetUInt32();
         delete exdata_result;
     }
 
@@ -15896,8 +15892,8 @@ void Player::SaveToDB()
 
     // FG: save custom XP multis
     CharacterDatabase.PExecute("DELETE FROM character_extra WHERE guid='%u'", GetGUIDLow());
-    CharacterDatabase.PExecute("INSERT INTO character_extra (guid, xp_multi_kill, xp_multi_quest, custom_chan_mask) VALUES ('%u', '%f', '%f', '%u')",
-        GetGUIDLow(), GetSession()->GetXPMultiKill(), GetSession()->GetXPMultiQuest(), GetCustomChanMask() );
+    CharacterDatabase.PExecute("INSERT INTO character_extra (guid, xp_multi_kill, xp_multi_quest) VALUES ('%u', '%f', '%f')",
+        GetGUIDLow(), GetSession()->GetXPMultiKill(), GetSession()->GetXPMultiQuest() );
 
     CharacterDatabase.CommitTransaction();
 
@@ -20051,4 +20047,62 @@ void Player::HandleFall(MovementInfo const& movementInfo)
 void Player::UpdateAchievementCriteria( AchievementCriteriaTypes type, uint32 miscvalue1/*=0*/, uint32 miscvalue2/*=0*/, Unit *unit/*=NULL*/, uint32 time/*=0*/ )
 {
     GetAchievementMgr().UpdateAchievementCriteria(type, miscvalue1,miscvalue2,unit,time);
+}
+
+// FG: this is a hackfix, should work as intended.
+// This will at least prevent weapon equipping in AutoUnequipOffhandIfNeed()
+bool Player::CanTitanGrip(void) const
+{
+    if(!m_canTitanGrip)
+        return false;
+
+    Item *mhi = GetItemByPos( INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND );
+    if(mhi)
+    {
+        const ItemPrototype *mh = mhi->GetProto();
+        if(mh && mh->Class == ITEM_CLASS_WEAPON)
+        {
+            switch(mh->SubClass)
+            {
+                case ITEM_SUBCLASS_WEAPON_AXE:
+                case ITEM_SUBCLASS_WEAPON_AXE2:
+                case ITEM_SUBCLASS_WEAPON_SWORD:
+                case ITEM_SUBCLASS_WEAPON_SWORD2:
+                case ITEM_SUBCLASS_WEAPON_MACE:
+                case ITEM_SUBCLASS_WEAPON_MACE2:
+                case ITEM_SUBCLASS_WEAPON_DAGGER:
+                case ITEM_SUBCLASS_WEAPON_FIST:
+                    break;
+
+                default:
+                    return false;
+            }
+        }
+    }
+
+    Item *ohi = GetItemByPos( INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND );
+    if(ohi)
+    {
+        const ItemPrototype *oh = ohi->GetProto();
+        if(oh && oh->Class == ITEM_CLASS_WEAPON)
+        {
+            switch(oh->SubClass)
+            {
+                case ITEM_SUBCLASS_WEAPON_AXE:
+                case ITEM_SUBCLASS_WEAPON_AXE2:
+                case ITEM_SUBCLASS_WEAPON_SWORD:
+                case ITEM_SUBCLASS_WEAPON_SWORD2:
+                case ITEM_SUBCLASS_WEAPON_MACE:
+                case ITEM_SUBCLASS_WEAPON_MACE2:
+                case ITEM_SUBCLASS_WEAPON_DAGGER:
+                case ITEM_SUBCLASS_WEAPON_FIST:
+                    break;
+
+                default:
+                    return false;
+            }
+        }
+    }
+
+    return true;
 }

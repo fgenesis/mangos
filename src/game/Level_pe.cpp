@@ -29,6 +29,7 @@
 #include "PlayerDropMgr.h"
 #include "VirtualPlayerMgr.h"
 #include "AuctionHouseMgr.h"
+#include "ChannelMgr.h"
 
 
 bool ChatHandler::UnlockMove(const char* args)
@@ -84,7 +85,7 @@ bool ChatHandler::HandleMyinfoCommand(const char* args)
     CharacterDatabase.escape_string(msg);
 
     CharacterDatabase.BeginTransaction();
-    CharacterDatabase.PExecute("DELETE FROM character_myinfo WHERE guid='%u'");
+    CharacterDatabase.PExecute("DELETE FROM character_myinfo WHERE guid='%u'",guid);
     CharacterDatabase.PExecute("INSERT INTO character_myinfo VALUES ('%u',0,'%s')",guid,msg.c_str());
     CharacterDatabase.CommitTransaction();
     PSendSysMessage("Personal info message updated.");
@@ -721,6 +722,3 @@ bool ChatHandler::HandleGMTriggersCommand(const char* args)
     SetSentErrorMessage(true);
     return false;
 }
-
-
-
