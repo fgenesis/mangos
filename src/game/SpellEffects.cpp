@@ -1755,6 +1755,32 @@ void Spell::EffectDummy(uint32 i)
                 return;
             }
             break;
+
+        case SPELLFAMILY_DEATHKNIGHT:
+            // Death Coil -- FG: see http://getmangos.com/community/showthread.php?t=6079
+            if(m_spellInfo->SpellFamilyFlags & 0x002000LL)
+            {
+                uint32 spell_id = 0;
+                int32 bp = 0;
+                damage += m_caster->GetTotalAttackPowerValue(BASE_ATTACK) * 0.15f;
+                if(m_caster->IsFriendlyTo(unitTarget))
+                {
+                    if(unitTarget->GetCreatureType() != CREATURE_TYPE_UNDEAD)
+                        return;
+
+                    spell_id = 47633;
+                    bp = damage * 1.5f;
+                }
+                else
+                {
+                    spell_id = 47632;
+                    bp = damage;
+                }                  
+                
+                m_caster->CastCustomSpell(unitTarget,spell_id,&bp,NULL,NULL,true);
+                return;
+            }
+            break;
     }
 
     // pet auras
