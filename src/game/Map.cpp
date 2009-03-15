@@ -65,7 +65,8 @@ bool Map::ExistMap(uint32 mapid,int x,int y)
 
     map_fileheader header;
     fread(&header, sizeof(header), 1, pf);
-    if (header.mapMagic != MAP_MAGIC || header.versionMagic != MAP_VERSION_MAGIC)
+    if (header.mapMagic     != uint32(MAP_MAGIC) ||
+        header.versionMagic != uint32(MAP_VERSION_MAGIC))
     {
         sLog.outError("Map file '%s' is non-compatible version (outdated?). Please, create new using ad.exe program.",tmp);
         delete [] tmp;
@@ -1089,7 +1090,8 @@ bool GridMap::loadData(char *filename)
     if (!in)
         return true;
     fread(&header, sizeof(header),1,in);
-    if (header.mapMagic == MAP_MAGIC && header.versionMagic == MAP_VERSION_MAGIC)
+    if (header.mapMagic     == uint32(MAP_MAGIC) &&
+        header.versionMagic == uint32(MAP_VERSION_MAGIC))
     {
         // loadup area data
         if (header.areaMapOffset && !loadAreaData(in, header.areaMapOffset, header.areaMapSize))
@@ -1140,11 +1142,11 @@ bool GridMap::loadAreaData(FILE *in, uint32 offset, uint32 size)
     map_areaHeader header;
     fseek(in, offset, SEEK_SET);
     fread(&header, sizeof(header), 1, in);
-    if (header.fourcc != MAP_AREA_MAGIC)
+    if (header.fourcc != uint32(MAP_AREA_MAGIC))
         return false;
 
     m_gridArea = header.gridArea;
-    if (!(header.flags&MAP_AREA_NO_AREA))
+    if (!(header.flags & MAP_AREA_NO_AREA))
     {
         m_area_map = new uint16 [16*16];
         fread(m_area_map, sizeof(uint16), 16*16, in);
@@ -1157,13 +1159,13 @@ bool  GridMap::loadHeihgtData(FILE *in, uint32 offset, uint32 size)
     map_heightHeader header;
     fseek(in, offset, SEEK_SET);
     fread(&header, sizeof(header), 1, in);
-    if (header.fourcc != MAP_HEIGTH_MAGIC)
+    if (header.fourcc != uint32(MAP_HEIGTH_MAGIC))
         return false;
 
     m_gridHeight = header.gridHeight;
-    if (!(header.flags&MAP_HEIGHT_NO_HIGHT))
+    if (!(header.flags & MAP_HEIGHT_NO_HIGHT))
     {
-        if ((header.flags&MAP_HEIGHT_AS_INT16))
+        if ((header.flags & MAP_HEIGHT_AS_INT16))
         {
             m_uint16_V9 = new uint16 [129*129];
             m_uint16_V8 = new uint16 [128*128];
@@ -1172,7 +1174,7 @@ bool  GridMap::loadHeihgtData(FILE *in, uint32 offset, uint32 size)
             m_gridIntHeightMultiplier = (header.gridMaxHeight - header.gridHeight) / 65535;
             m_gridGetHeight = &GridMap::getHeightFromUint16;
         }
-        else if ((header.flags&MAP_HEIGHT_AS_INT8))
+        else if ((header.flags & MAP_HEIGHT_AS_INT8))
         {
             m_uint8_V9 = new uint8 [129*129];
             m_uint8_V8 = new uint8 [128*128];
@@ -1200,7 +1202,7 @@ bool  GridMap::loadLiquidData(FILE *in, uint32 offset, uint32 size)
     map_liquidHeader header;
     fseek(in, offset, SEEK_SET);
     fread(&header, sizeof(header), 1, in);
-    if (header.fourcc != MAP_LIQUID_MAGIC)
+    if (header.fourcc != uint32(MAP_LIQUID_MAGIC))
         return false;
 
     m_liquidType   = header.liquidType;
@@ -1537,7 +1539,7 @@ inline ZLiquidStatus GridMap::getLiquidStatus(float x, float y, float z, uint8 R
     }
 
     // For speed check as int values
-    int delta = (liquid_level - z) * 10;
+    int delta = int((liquid_level - z) * 10);
 
     // Get position delta
     if (delta > 20)                   // Under water
@@ -1689,7 +1691,7 @@ float Map::GetWaterLevel(float x, float y ) const
         return 0;
 }
 
-uint32 Map::GetAreaId(uint16 areaflag,uint32 map_id)
+uint32 Map::GetAreaIdByAreaFlag(uint16 areaflag,uint32 map_id)
 {
     AreaTableEntry const *entry = GetAreaEntryByAreaFlagAndMap(areaflag,map_id);
 
@@ -1699,7 +1701,7 @@ uint32 Map::GetAreaId(uint16 areaflag,uint32 map_id)
         return 0;
 }
 
-uint32 Map::GetZoneId(uint16 areaflag,uint32 map_id)
+uint32 Map::GetZoneIdByAreaFlag(uint16 areaflag,uint32 map_id)
 {
     AreaTableEntry const *entry = GetAreaEntryByAreaFlagAndMap(areaflag,map_id);
 
@@ -1707,6 +1709,14 @@ uint32 Map::GetZoneId(uint16 areaflag,uint32 map_id)
         return ( entry->zone != 0 ) ? entry->zone : entry->ID;
     else
         return 0;
+}
+
+void Map::GetZoneAndAreaIdByAreaFlag(uint32& zoneid, uint32& areaid, uint16 areaflag,uint32 map_id)
+{
+    AreaTableEntry const *entry = GetAreaEntryByAreaFlagAndMap(areaflag,map_id);
+
+    areaid = entry ? entry->ID : 0;
+    zoneid = entry ? (( entry->zone != 0 ) ? entry->zone : entry->ID) : 0;
 }
 
 bool Map::IsInWater(float x, float y, float pZ) const
@@ -2220,7 +2230,6 @@ bool InstanceMap::Add(Player *player)
         // first player enters (no players yet)
         SetResetSchedule(false);
 
-        player->SendInitWorldStates();
         sLog.outDetail("MAP: Player '%s' entered the instance '%u' of map '%s'", player->GetName(), GetInstanceId(), GetMapName());
         // initialize unload state
         m_unloadTimer = 0;

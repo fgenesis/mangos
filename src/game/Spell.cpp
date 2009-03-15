@@ -426,6 +426,21 @@ void Spell::FillTargetMap()
         // but need it support in some know cases
         switch(m_spellInfo->EffectImplicitTargetA[i])
         {
+            case TARGET_SELF:
+                switch(m_spellInfo->EffectImplicitTargetB[i])
+                {
+                    case 0:
+                        SetTargetMap(i,m_spellInfo->EffectImplicitTargetA[i],tmpUnitMap);
+                        break;
+                    case TARGET_BEHIND_VICTIM:              // use B case that not dependent from from A in fact
+                        SetTargetMap(i,m_spellInfo->EffectImplicitTargetB[i],tmpUnitMap);
+                        break;
+                    default:
+                        SetTargetMap(i,m_spellInfo->EffectImplicitTargetA[i],tmpUnitMap);
+                        SetTargetMap(i,m_spellInfo->EffectImplicitTargetB[i],tmpUnitMap);
+                        break;
+                }
+                break;
             case TARGET_CASTER_COORDINATES:
                 // Note: this hack with search required until GO casting not implemented
                 // environment damage spells already have around enemies targeting but this not help in case not existed GO casting support
@@ -448,6 +463,9 @@ void Spell::FillTargetMap()
             default:
                 switch(m_spellInfo->EffectImplicitTargetB[i])
                 {
+                    case 0:
+                        SetTargetMap(i,m_spellInfo->EffectImplicitTargetA[i],tmpUnitMap);
+                        break;
                     case TARGET_SCRIPT_COORDINATES:         // B case filled in canCast but we need fill unit list base at A case
                         SetTargetMap(i,m_spellInfo->EffectImplicitTargetA[i],tmpUnitMap);
                         break;
@@ -2048,8 +2066,15 @@ void Spell::SetTargetMap(uint32 i,uint32 cur,std::list<Unit*> &TagUnitMap)
         }break;
         case TARGET_BEHIND_VICTIM:
         {
-            Unit *pTarget = m_caster->getVictim();
-            if(!pTarget && m_caster->GetTypeId() == TYPEID_PLAYER)
+            Unit *pTarget = NULL;
+
+            // explicit cast data from client or server-side cast
+            // some spell at client send caster
+            if(m_targets.getUnitTarget() && m_targets.getUnitTarget()!=m_caster)
+                pTarget = m_targets.getUnitTarget();
+            else if(m_caster->getVictim())
+                pTarget = m_caster->getVictim();
+            else if(m_caster->GetTypeId() == TYPEID_PLAYER)
                 pTarget = ObjectAccessor::GetUnit(*m_caster, ((Player*)m_caster)->GetSelection());
 
             if(pTarget)
@@ -2057,15 +2082,37 @@ void Spell::SetTargetMap(uint32 i,uint32 cur,std::list<Unit*> &TagUnitMap)
                 float _target_x, _target_y, _target_z;
                 pTarget->GetClosePoint(_target_x, _target_y, _target_z, m_caster->GetObjectSize(), CONTACT_DISTANCE, M_PI);
                 if(pTarget->IsWithinLOS(_target_x,_target_y,_target_z))
+                {
+                    TagUnitMap.push_back(m_caster);
                     m_targets.setDestination(_target_x, _target_y, _target_z);
+                }
             }
-        }break;
+            break;
+        }
         case TARGET_DYNAMIC_OBJECT_COORDINATES:
         {
             // if parent spell create dynamic object extract area from it
             if(DynamicObject* dynObj = m_caster->GetDynObject(m_triggeredByAuraSpell ? m_triggeredByAuraSpell->Id : m_spellInfo->Id))
                 m_targets.setDestination(dynObj->GetPositionX(), dynObj->GetPositionY(), dynObj->GetPositionZ());
-        }break;
+            break;
+        }
+        case TARGET_DIRECTLY_FORWARD:
+        {
+            if (!(m_targets.m_targetMask & TARGET_FLAG_DEST_LOCATION))
+            {
+                SpellRangeEntry const* rEntry = sSpellRangeStore.LookupEntry(m_spellInfo->rangeIndex);
+                float minRange = GetSpellMinRange(rEntry);
+                float maxRange = GetSpellMaxRange(rEntry);
+                float dist = minRange+ rand_norm()*(maxRange-minRange);
+
+                float _target_x, _target_y, _target_z;
+                m_caster->GetClosePoint(_target_x, _target_y, _target_z, m_caster->GetObjectSize(), dist);
+                m_targets.setDestination(_target_x, _target_y, _target_z);
+            }
+
+            TagUnitMap.push_back(m_caster);
+            break;
+        }
         default:
             break;
     }
@@ -2520,12 +2567,11 @@ void Spell::SendSpellCooldown()
 
     Player* _player = (Player*)m_caster;
 
-    // mana/health potions, disabled by client
-    if (m_spellInfo->Category==SPELLCATEGORY_HEALTH_MANA_POTIONS)
+    // mana/health/etc potions, disabled by client (until combat out as declarate)
+    if (m_CastItem && m_CastItem->IsPotion())
     {
         // need in some way provided data for Spell::finish SendCooldownEvent
-        if(m_CastItem)
-            _player->SetLastPotionId(m_CastItem->GetEntry());
+        _player->SetLastPotionId(m_CastItem->GetEntry());
         return;
     }
 
@@ -3757,7 +3803,10 @@ uint8 Spell::CanCast(bool strict)
                 return SPELL_FAILED_NOT_IN_ARENA;
 
     // zone check
-    if (uint8 res= spellmgr.GetSpellAllowedInLocationError(m_spellInfo,m_caster->GetMapId(),m_caster->GetZoneId(),m_caster->GetAreaId(),
+    uint32 zone, area;
+    m_caster->GetZoneAndAreaId(zone,area);
+
+    if (uint8 res= spellmgr.GetSpellAllowedInLocationError(m_spellInfo,m_caster->GetMapId(),zone,area,
         m_caster->GetTypeId()==TYPEID_PLAYER ? ((Player*)m_caster) : NULL))
         return res;
 
@@ -4124,6 +4173,7 @@ uint8 Spell::CanCast(bool strict)
                 {
                     // check for lock - key pair (checked by client also, just prevent cheating
                     bool ok_key = false;
+                    bool req_key = false;
                     for(int it = 0; it < 8; ++it)
                     {
                         switch(lockInfo->Type[it])
@@ -4132,6 +4182,7 @@ uint8 Spell::CanCast(bool strict)
                                 break;
                             case LOCK_KEY_ITEM:
                             {
+                                req_key = true;
                                 if(lockInfo->Index[it])
                                 {
                                     if(m_CastItem && m_CastItem->GetEntry()==lockInfo->Index[it])
@@ -4141,30 +4192,22 @@ uint8 Spell::CanCast(bool strict)
                             }
                             case LOCK_KEY_SKILL:
                             {
+                                req_key = true;
                                 if(uint32(m_spellInfo->EffectMiscValue[i])!=lockInfo->Index[it])
                                     break;
 
-                                switch(lockInfo->Index[it])
-                                {
-                                    case LOCKTYPE_HERBALISM:
-                                        if(((Player*)m_caster)->HasSkill(SKILL_HERBALISM))
-                                            ok_key =true;
-                                        break;
-                                    case LOCKTYPE_MINING:
-                                        if(((Player*)m_caster)->HasSkill(SKILL_MINING))
-                                            ok_key =true;
-                                        break;
-                                    default:
-                                        ok_key =true;
-                                        break;
-                                }
+                                SkillType skill = SkillByLockType(LockType(lockInfo->Index[it]));
+                                if(skill==SKILL_NONE)
+                                    ok_key =true;
+                                else if(((Player*)m_caster)->HasSkill(skill))
+                                    ok_key =true;
                             }
                         }
                         if(ok_key)
                             break;
                     }
 
-                    if(!ok_key)
+                    if(!ok_key && req_key)
                         return SPELL_FAILED_BAD_TARGETS;
                 }
 
