@@ -39,6 +39,7 @@
 #include "Formulas.h"
 #include "BattleGround.h"
 #include "CreatureAI.h"
+#include "ScriptCalls.h"
 #include "Util.h"
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
@@ -1437,7 +1438,7 @@ void Aura::TriggerSpell()
                             caster->ModifyPower( POWER_MANA, mana );
                             caster->SendEnergizeSpellLog(caster, 23493, mana, POWER_MANA);
                         }
-                        break;
+                        return;
                     }
 //                    // Stoneclaw Totem Passive TEST
 //                    case 23792: break;
@@ -1483,8 +1484,13 @@ void Aura::TriggerSpell()
 //                    case 27746: break;
 //                    // Steam Tank Passive
 //                    case 27747: break;
-//                    // Frost Blast
-//                    case 27808: break;
+                    // Frost Blast
+                    case 27808:
+                    {
+                        int32 bpDamage = target->GetMaxHealth()*26/100;
+                        caster->CastCustomSpell(target,29879,&bpDamage,NULL,NULL,true,NULL,this);
+                        return;
+                    }
 //                    // Detonate Mana
 //                    case 27819: break;
 //                    // Controller Timer
@@ -1505,8 +1511,11 @@ void Aura::TriggerSpell()
 //                    case 28522: break;
 //                    // Silithyst
 //                    case 29519: break;
-//                    // Inoculate Nestlewood Owlkin
-                    case 29528: trigger_spell_id = 28713; break;
+                    // Inoculate Nestlewood Owlkin
+                    case 29528:
+                        if(target->GetTypeId()!=TYPEID_UNIT)// prevent error reports in case ignored player target
+                            return;
+                        break;
 //                    // Overload
 //                    case 29768: break;
 //                    // Return Fire
@@ -1548,7 +1557,6 @@ void Aura::TriggerSpell()
                             creature->SetHealth(0);         // just for nice GM-mode view
                         }
                         return;
-                        break;
                     }
                     // Quake
                     case 30576: trigger_spell_id = 30571; break;
@@ -1929,13 +1937,9 @@ void Aura::TriggerSpell()
             default:
                 break;
         }
+
         // Reget trigger spell proto
         triggeredSpellInfo = sSpellStore.LookupEntry(trigger_spell_id);
-        if(triggeredSpellInfo == NULL)
-        {
-            sLog.outError("Aura::TriggerSpell: Spell %u have 0 in EffectTriggered[%d], not handled custom case?",GetId(),GetEffIndex());
-            return;
-        }
     }
     else
     {
@@ -1987,8 +1991,12 @@ void Aura::TriggerSpell()
             }
         }
     }
+
     // All ok cast by default case
-    caster->CastSpell(target, triggeredSpellInfo, true, 0, this);
+    if(triggeredSpellInfo)
+        caster->CastSpell(target, triggeredSpellInfo, true, 0, this);
+    else if(target->GetTypeId()!=TYPEID_UNIT || !Script->EffectDummyCreature(caster, GetId(), GetEffIndex(), (Creature*)target))
+        sLog.outError("Aura::TriggerSpell: Spell %u have 0 in EffectTriggered[%d], not handled custom case?",GetId(),GetEffIndex());
 }
 
 void Aura::TriggerSpellWithValue()
@@ -2301,6 +2309,45 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
         }
         case SPELLFAMILY_DRUID:
         {
+            switch(GetId())
+            {
+                case 34246:                                 // Idol of the Emerald Queen
+                {
+                    if (m_target->GetTypeId() != TYPEID_PLAYER)
+                        return;
+
+                    if(apply)
+                    {
+                        SpellModifier *mod = new SpellModifier;
+                        mod->op = SPELLMOD_DOT;
+                        mod->value = m_modifier.m_amount/7;
+                        mod->type = SPELLMOD_FLAT;
+                        mod->spellId = GetId();
+                        mod->mask = 0x001000000000LL;
+                        mod->mask2= 0LL;
+
+                        m_spellmod = mod;
+                    }
+
+                    ((Player*)m_target)->AddSpellMod(m_spellmod, apply);
+                    return;
+                }
+                case 61336:                                 // Survival Instincts
+                {
+                    if(apply)
+                    {
+                        if (!m_target->IsInFeralForm())
+                            return;
+
+                        int32 bp0 = int32(m_target->GetMaxHealth() * m_modifier.m_amount / 100);
+                        m_target->CastCustomSpell(m_target, 50322, &bp0, NULL, NULL, true);
+                    }
+                    else
+                        m_target-> RemoveAurasDueToSpell(50322);
+                    return;
+                }
+            }
+
             // Lifebloom
             if ( GetSpellProto()->SpellFamilyFlags & 0x1000000000LL )
             {
@@ -2338,25 +2385,6 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
             if(m_target->GetTypeId()==TYPEID_PLAYER && GetSpellProto()->SpellIconID == 1563)
             {
                 ((Player*)m_target)->UpdateAttackPowerAndDamage();
-                return;
-            }
-            // Idol of the Emerald Queen
-            if ( GetId() == 34246 && m_target->GetTypeId()==TYPEID_PLAYER )
-            {
-                if(apply)
-                {
-                    SpellModifier *mod = new SpellModifier;
-                    mod->op = SPELLMOD_DOT;
-                    mod->value = m_modifier.m_amount/7;
-                    mod->type = SPELLMOD_FLAT;
-                    mod->spellId = GetId();
-                    mod->mask = 0x001000000000LL;
-                    mod->mask2= 0LL;
-
-                    m_spellmod = mod;
-                }
-
-                ((Player*)m_target)->AddSpellMod(m_spellmod, apply);
                 return;
             }
             break;
@@ -3369,7 +3397,7 @@ void Aura::HandleAuraModDisarm(bool apply, bool Real)
         return;
 
     // main-hand attack speed already set to special value for feral form already and don't must change and reset at remove.
-    if (((Player *)m_target)->IsInFeralForm())
+    if (m_target->IsInFeralForm())
         return;
 
     if (apply)
@@ -4733,6 +4761,7 @@ void Aura::HandleAuraModIncreaseHealth(bool apply, bool Real)
         case 28726:                                         // Nightmare Seed ( Nightmare Seed )
         case 34511:                                         // Valor (Bulwark of Kings, Bulwark of the Ancient Kings)
         case 44055:                                         // Tremendous Fortitude (Battlemaster's Alacrity)
+        case 50322:                                         // Survival Instincts
         {
             if(Real)
             {
