@@ -284,8 +284,8 @@ bool ChatHandler::HandleGPSCommand(const char* args)
     CellPair cell_val = MaNGOS::ComputeCellPair(obj->GetPositionX(), obj->GetPositionY());
     Cell cell(cell_val);
 
-    uint32 zone_id = obj->GetZoneId();
-    uint32 area_id = obj->GetAreaId();
+    uint32 zone_id, area_id;
+    obj->GetZoneAndAreaId(zone_id,area_id);
 
     MapEntry const* mapEntry = sMapStore.LookupEntry(obj->GetMapId());
     AreaTableEntry const* zoneEntry = GetAreaEntryByAreaID(zone_id);
@@ -511,7 +511,7 @@ bool ChatHandler::HandleGonameCommand(const char* args)
             // remember current position as entry point for return at bg end teleportation
             _player->SetBattleGroundEntryPoint(_player->GetMapId(),_player->GetPositionX(),_player->GetPositionY(),_player->GetPositionZ(),_player->GetOrientation());
         }
-        else if(cMap->IsDungeon() && cMap->Instanceable())
+        else if(cMap->IsDungeon())
         {
             // we have to go to instance, and can go to player only if:
             //   1) we are in his group (either as leader or as member)

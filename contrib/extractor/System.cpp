@@ -16,7 +16,23 @@
 
 #include "loadlib/adt.h"
 #include "loadlib/wdt.h"
+#include <fcntl.h>
 
+#if defined( __GNUC__ )
+    #define _open   open
+    #define _close close
+    #ifndef O_BINARY
+        #define O_BINARY 0
+    #endif
+#else
+    #include <io.h>
+#endif
+
+#ifdef O_LARGEFILE
+    #define OPEN_FLAGS  (O_RDONLY | O_BINARY | O_LARGEFILE)
+#else
+    #define OPEN_FLAGS (O_RDONLY | O_BINARY)
+#endif
 extern ArchiveSet gOpenArchives;
 
 typedef struct
@@ -81,9 +97,10 @@ void CreateDir( const std::string& Path )
 
 bool FileExists( const char* FileName )
 {
-    if(FILE* fp = fopen( FileName, "rb" ))
+    int fp = _open(FileName, OPEN_FLAGS);
+    if(fp != -1)
     {
-        fclose(fp);
+        _close(fp);
         return true;
     }
 
@@ -153,7 +170,12 @@ uint32 ReadMapDBC()
 {
     printf("Read Map.dbc file... ");
     DBCFile dbc("DBFilesClient\\Map.dbc");
-    dbc.open();
+
+    if(!dbc.open())
+    {
+        printf("Fatal error: Invalid Map.dbc file format!\n");
+        exit(1);
+    }
 
     size_t map_count = dbc.getRecordCount();
     map_ids = new map_id[map_count];
@@ -170,7 +192,12 @@ void ReadAreaTableDBC()
 {
     printf("Read AreaTable.dbc file...");
     DBCFile dbc("DBFilesClient\\AreaTable.dbc");
-    dbc.open();
+
+    if(!dbc.open())
+    {
+        printf("Fatal error: Invalid AreaTable.dbc file format!\n");
+        exit(1);
+    }
 
     size_t area_count = dbc.getRecordCount();
     size_t maxid = dbc.getMaxId();
@@ -189,7 +216,12 @@ void ReadLiquidTypeTableDBC()
 {
     printf("Read LiquidType.dbc file...");
     DBCFile dbc("DBFilesClient\\LiquidType.dbc");
-    dbc.open();
+    if(!dbc.open())
+    {
+        printf("Fatal error: Invalid LiquidType.dbc file format!\n");
+        exit(1);
+    }
+
     size_t LiqType_count = dbc.getRecordCount();
     size_t LiqType_maxid = dbc.getMaxId();
     LiqType = new uint16[LiqType_maxid + 1];
