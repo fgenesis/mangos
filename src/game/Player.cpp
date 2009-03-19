@@ -16674,6 +16674,9 @@ void Player::RemovePet(Pet* pet, PetSaveMode mode, bool returnreagent)
         m_temporaryUnsummonedPetNumber = 0;
     }
 
+    if(pet == GetCharm())
+        SetCharm(NULL);
+
     if(!pet || pet->GetOwnerGUID()!=GetGUID())
         return;
 
