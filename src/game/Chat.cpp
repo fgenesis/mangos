@@ -661,11 +661,11 @@ ChatCommand * ChatHandler::getCommandTable()
 
 
         // alternative defs
-        { "morph", SEC_GAMEMASTER,false, &ChatHandler::HandleMorphCommand, "", NULL },
-        { "addgo", SEC_ADMINISTRATOR,false, &ChatHandler::HandleGameObjectCommand, "", NULL },
+        { "morph", SEC_GAMEMASTER,false, &ChatHandler::HandleModifyMorphCommand, "", NULL },
+        { "addgo", SEC_ADMINISTRATOR,false, &ChatHandler::HandleGameObjectAddCommand, "", NULL },
         { "delete", SEC_ADMINISTRATOR,false, &ChatHandler::HandleNpcDeleteCommand, "", NULL },
         { "addspw", SEC_ADMINISTRATOR,false, &ChatHandler::HandleNpcAddCommand, "", NULL },
-        { "fly", SEC_ADMINISTRATOR,false,  &ChatHandler::HandleFlyModeCommand, "", NULL },
+        { "fly", SEC_ADMINISTRATOR,false,  &ChatHandler::HandleGMFlyModeCommand, "", NULL },
         { "info", SEC_PLAYER,false, &ChatHandler::HandleServerInfoCommand, "", NULL },
 
         { NULL,             0,                  false, NULL,                                           "", NULL }
