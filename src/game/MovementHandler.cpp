@@ -175,6 +175,9 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
     if(GetPlayer()->GetDontMove())
         return;
 
+    Unit *mover = _player->m_mover ? _player->m_mover : _player;
+    Player *pmover = mover->GetTypeId() == TYPEID_PLAYER ? (Player*)mover : NULL;
+
     /* extract packet */
     MovementInfo movementInfo;
     ReadMovementInfo(recv_data, &movementInfo);
@@ -203,24 +206,24 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
             return;
 
         // if we boarded a transport, add us to it
-        if (!GetPlayer()->m_transport)
+        if (pmover && (!pmover->m_transport))
         {
             // elevators also cause the client to send MOVEMENTFLAG_ONTRANSPORT - just unmount if the guid can be found in the transport list
             for (MapManager::TransportSet::iterator iter = MapManager::Instance().m_Transports.begin(); iter != MapManager::Instance().m_Transports.end(); ++iter)
             {
                 if ((*iter)->GetGUID() == movementInfo.t_guid)
                 {
-                    GetPlayer()->m_transport = (*iter);
-                    (*iter)->AddPassenger(GetPlayer());
+                    pmover->m_transport = (*iter);
+                    (*iter)->AddPassenger(pmover);
                     break;
                 }
             }
         }
     }
-    else if (GetPlayer()->m_transport)                      // if we were on a transport, leave
+    else if (pmover && pmover->m_transport)                      // if we were on a transport, leave
     {
-        GetPlayer()->m_transport->RemovePassenger(GetPlayer());
-        GetPlayer()->m_transport = NULL;
+        pmover->m_transport->RemovePassenger(pmover);
+        pmover->m_transport = NULL;
         movementInfo.t_x = 0.0f;
         movementInfo.t_y = 0.0f;
         movementInfo.t_z = 0.0f;
@@ -230,19 +233,19 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
     }
 
     // fall damage generation (ignore in flight case that can be triggered also at lags in moment teleportation to another map).
-    if (opcode == MSG_MOVE_FALL_LAND && !GetPlayer()->isInFlight())
-        GetPlayer()->HandleFall(movementInfo);
+    if (opcode == MSG_MOVE_FALL_LAND && pmover && !pmover->isInFlight())
+        pmover->HandleFall(movementInfo);
 
-    if(((movementInfo.flags & MOVEMENTFLAG_SWIMMING) != 0) != GetPlayer()->IsInWater())
+    if(pmover && ((movementInfo.flags & MOVEMENTFLAG_SWIMMING) != 0) != pmover->IsInWater())
     {
         // now client not include swimming flag in case jumping under water
-        GetPlayer()->SetInWater( !GetPlayer()->IsInWater() || GetPlayer()->GetBaseMap()->IsUnderWater(movementInfo.x, movementInfo.y, movementInfo.z) );
+        pmover->SetInWater( !pmover->IsInWater() || pmover->GetBaseMap()->IsUnderWater(movementInfo.x, movementInfo.y, movementInfo.z) );
     }
 
     /*----------------------*/
 
     /* process position-change */
-    Unit *mover = _player->m_mover;
+    //Unit *mover = _player->m_mover; // FG: moved up
     recv_data.put<uint32>(6, getMSTime());                  // fix time, offset flags(4) + unk(2)
     WorldPacket data(recv_data.GetOpcode(), (mover->GetPackGUID().size()+recv_data.size()));
     data.append(_player->m_mover->GetPackGUID());           // use mover guid
@@ -271,43 +274,46 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
 
             // FG: diplomacy related stuff (group distance calculation, etc...)
             // - we dont do anything in Player::SetPosition because we want to listen to 1 opcode only - performance reasons
-            if(opcode == MSG_MOVE_HEARTBEAT)
+            /*if(opcode == MSG_MOVE_HEARTBEAT)
             {
                 ((Player*)mover)->UpdateDiplomacyDistance();
-            }
+            }*/ // BULLSHIT HERE
         }
     }
-
-    if (GetPlayer()->m_lastFallTime >= movementInfo.fallTime || GetPlayer()->m_lastFallZ <=movementInfo.z || recv_data.GetOpcode() == MSG_MOVE_FALL_LAND)
-        GetPlayer()->SetFallInformation(movementInfo.fallTime, movementInfo.z);
-
-    if(GetPlayer()->isMovingOrTurning())
-        GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
-
-    if(movementInfo.z < -500.0f)
+    
+    if(pmover)
     {
-        if(GetPlayer()->InBattleGround()
-            && GetPlayer()->GetBattleGround()
-            && GetPlayer()->GetBattleGround()->HandlePlayerUnderMap(_player))
-        {
-            // do nothing, the handle already did if returned true
-        }
-        else
-        {
-            // NOTE: this is actually called many times while falling
-            // even after the player has been teleported away
-            // TODO: discard movement packets after the player is rooted
-            if(GetPlayer()->isAlive())
-            {
-                GetPlayer()->EnvironmentalDamage(GetPlayer()->GetGUID(),DAMAGE_FALL_TO_VOID, GetPlayer()->GetMaxHealth());
-                // change the death state to CORPSE to prevent the death timer from
-                // starting in the next player update
-                GetPlayer()->KillPlayer();
-                GetPlayer()->BuildPlayerRepop();
-            }
+        if (pmover->m_lastFallTime >= movementInfo.fallTime || pmover->m_lastFallZ <=movementInfo.z || recv_data.GetOpcode() == MSG_MOVE_FALL_LAND)
+            pmover->SetFallInformation(movementInfo.fallTime, movementInfo.z);
 
-            // cancel the death timer here if started
-            GetPlayer()->RepopAtGraveyard();
+        if(pmover->isMovingOrTurning())
+            pmover->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
+
+        if(movementInfo.z < -500.0f)
+        {
+            if(pmover->InBattleGround()
+                && pmover->GetBattleGround()
+                && pmover->GetBattleGround()->HandlePlayerUnderMap(pmover))
+            {
+                // do nothing, the handle already did if returned true
+            }
+            else
+            {
+                // NOTE: this is actually called many times while falling
+                // even after the player has been teleported away
+                // TODO: discard movement packets after the player is rooted
+                if(pmover->isAlive())
+                {
+                    pmover->EnvironmentalDamage(GetPlayer()->GetGUID(),DAMAGE_FALL_TO_VOID, GetPlayer()->GetMaxHealth());
+                    // change the death state to CORPSE to prevent the death timer from
+                    // starting in the next player update
+                    pmover->KillPlayer();
+                    pmover->BuildPlayerRepop();
+                }
+
+                // cancel the death timer here if started
+                pmover->RepopAtGraveyard();
+            }
         }
     }
 }

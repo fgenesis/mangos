@@ -3085,8 +3085,11 @@ void Unit::InterruptSpell(uint32 spellType, bool withDelayed)
 
         if (m_currentSpells[spellType]->getState() != SPELL_STATE_FINISHED)
             m_currentSpells[spellType]->cancel();
-        m_currentSpells[spellType]->SetReferencedFromCurrent(false);
-        m_currentSpells[spellType] = NULL;
+        if(m_currentSpells[spellType]) // FG: crashfix for mind control... strange one
+        {
+            m_currentSpells[spellType]->SetReferencedFromCurrent(false);
+            m_currentSpells[spellType] = NULL;
+        }
     }
 }
 
@@ -9236,6 +9239,11 @@ void Unit::setDeathState(DeathState s)
 
     if (s == JUST_DIED)
     {
+        // FG: stop creatures upon death
+        StopMoving();
+        GetMotionMaster()->Clear();
+        GetMotionMaster()->MoveIdle();
+
         RemoveAllAurasOnDeath();
         UnsummonAllTotems();
 
@@ -10166,10 +10174,10 @@ void CharmInfo::InitEmptyActionBar()
 
 void CharmInfo::InitPossessCreateSpells()
 {
+    InitEmptyActionBar();                                   //charm action bar
+
     if(m_unit->GetTypeId() == TYPEID_PLAYER)
         return;
-
-    InitEmptyActionBar();                                   //charm action bar
 
     for(uint32 x = 0; x < CREATURE_MAX_SPELLS; ++x)
     {

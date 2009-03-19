@@ -295,6 +295,7 @@ bool IsPositiveEffect(uint32 spellId, uint32 effIndex)
             // FG: temp fix, that they are not cancelable
         case 36810:
         case 36809:
+        case 605: // mind control
             return false;
     }
 

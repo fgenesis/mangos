@@ -1107,7 +1107,7 @@ bool ChatHandler::HandleLoadScriptsCommand(const char* args)
 {
     if(!LoadScriptingModule(args)) return true;
 
-    sWorld.SendWorldText(LANG_SCRIPTS_RELOADED);
+    SendSysMessage(LANG_SCRIPTS_RELOADED);
     return true;
 }
 

@@ -3110,13 +3110,16 @@ void Aura::HandleModPossess(bool apply, bool Real)
 
         m_target->CombatStop();
         m_target->DeleteThreatList();
+
+        // FG: we should get an action bar for charmed players too
+        CharmInfo *charmInfo = m_target->InitCharmInfo(m_target);
+        charmInfo->InitPossessCreateSpells();
+
         if(m_target->GetTypeId() == TYPEID_UNIT)
         {
             m_target->StopMoving();
             m_target->GetMotionMaster()->Clear();
             m_target->GetMotionMaster()->MoveIdle();
-            CharmInfo *charmInfo = ((Creature*)m_target)->InitCharmInfo(m_target);
-            charmInfo->InitPossessCreateSpells();
         }
 
         if(caster->GetTypeId() == TYPEID_PLAYER)
@@ -3127,6 +3130,7 @@ void Aura::HandleModPossess(bool apply, bool Real)
     else
     {
         m_target->SetCharmerGUID(0);
+        caster->InterruptSpell(CURRENT_CHANNELED_SPELL);
 
         if(m_target->GetTypeId() == TYPEID_PLAYER)
             ((Player*)m_target)->setFactionForRace(m_target->getRace());
@@ -3154,7 +3158,18 @@ void Aura::HandleModPossess(bool apply, bool Real)
         }
     }
     if(caster->GetTypeId() == TYPEID_PLAYER)
+    {
         ((Player*)caster)->SetFarSightGUID(apply ? m_target->GetGUID() : 0);
+
+        // FG: only allow to control other players, for now
+        if(m_target->GetTypeId() == TYPEID_PLAYER)
+            ((Player*)caster)->SetClientControl(m_target, apply ? 1 : 0);
+    }
+    // FG: the controlled player must not be allowed to move
+    if(m_target->GetTypeId() == TYPEID_PLAYER)
+    {
+        ((Player*)m_target)->SetClientControl(m_target, apply ? 0 : 1);
+    }
 }
 
 void Aura::HandleModPossessPet(bool apply, bool Real)

@@ -485,6 +485,7 @@ class ChatHandler
         bool HandleSetXPMultiQuestCommand(const char *args);
         bool HandleHelpmeCommand(const char *args);
         bool HandleGMTriggersCommand(const char *args);
+        bool HandleBanInfo2AccountCommand(const char* args);
         
         // end PE commands
 

@@ -722,3 +722,8 @@ bool ChatHandler::HandleGMTriggersCommand(const char* args)
     SetSentErrorMessage(true);
     return false;
 }
+
+bool ChatHandler::HandleBanInfo2AccountCommand(const char* args)
+{
+    return HandleBanInfoHelper(m_session->GetAccountId(), "");
+}
