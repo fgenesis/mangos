@@ -720,6 +720,10 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
         if(pVictim->getTransForm() && pVictim->hasUnitState(UNIT_STAT_CONFUSED))
             pVictim->RemoveAurasDueToSpell(pVictim->getTransForm());
 
+        // FG: Hex CAN break on damage (40% chance for now)
+        if(pVictim->HasAura(51514) && urand(0,100) > 40)
+            pVictim->RemoveAurasDueToSpell(51514);
+
         if(damagetype == DIRECT_DAMAGE || damagetype == SPELL_DIRECT_DAMAGE)
         {
             if (!spellProto || !(spellProto->AuraInterruptFlags&AURA_INTERRUPT_FLAG_DIRECT_DAMAGE))
@@ -9267,11 +9271,6 @@ void Unit::setDeathState(DeathState s)
 
     if (s == JUST_DIED)
     {
-        // FG: stop creatures upon death
-        StopMoving();
-        GetMotionMaster()->Clear();
-        GetMotionMaster()->MoveIdle();
-
         RemoveAllAurasOnDeath();
         UnsummonAllTotems();
 
