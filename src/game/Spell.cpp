@@ -2430,6 +2430,8 @@ void Spell::cast(bool skipCheck)
         {
             if (m_spellInfo->SpellFamilyFlags&0x0000000000400080LL)    // Divine Shield, Divine Protection or Hand of Protection
                 m_preCastSpell = 25771;                                // Forbearance
+            if(m_spellInfo->Id == 31884) // FG: avenging wrath
+                m_preCastSpell = 61987; // FG: avenging wrath marker
             break;
         }
         case SPELLFAMILY_SHAMAN:
@@ -2807,6 +2809,17 @@ void Spell::finish(bool ok)
     //remove spell mods
     if (m_caster->GetTypeId() == TYPEID_PLAYER)
         ((Player*)m_caster)->RemoveSpellMods(this);
+
+    // FG: --spellfixes start --
+
+    //Avenging Wrath cannot be used within 30 sec. of being the target of Divine Shield, Divine Protection, or Hand of Protection.
+    if (m_spellInfo->SpellFamilyName == SPELLFAMILY_PALADIN && m_spellInfo->SpellFamilyFlags&0x0000000000400080LL)
+    {
+        m_targets.getUnitTarget()->CastSpell(m_targets.getUnitTarget(), 61987, true);
+    }
+
+
+    // FG: -- spellfixes end --
 
     // handle SPELL_AURA_ADD_TARGET_TRIGGER auras
     Unit::AuraList const& targetTriggers = m_caster->GetAurasByType(SPELL_AURA_ADD_TARGET_TRIGGER);
@@ -4500,6 +4513,24 @@ SpellCastResult Spell::CheckCast(bool strict)
                 break;
         }
     }
+
+    // FG: -- spellfix start --
+    if(Unit *target = m_targets.getUnitTarget())
+    {
+        // all paladin spells affected by avenging wrath marker
+        if (m_spellInfo->SpellFamilyName == SPELLFAMILY_PALADIN && (m_spellInfo->SpellFamilyFlags&0x0000000000400080LL || m_spellInfo->Id == 31884) && target->HasAura(61987))
+            return SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW;
+        // exhaustion preventing heroism
+        if(m_spellInfo->Id == 32182 && target->HasAura(57723))
+            return SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW;
+        // sated preventing bloodlust
+        if(m_spellInfo->Id == 2825 && target->HasAura(57724))
+            return SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW;
+    }
+
+
+
+    // FG: -- spellfix end --
 
     // all ok
     return SPELL_CAST_OK;

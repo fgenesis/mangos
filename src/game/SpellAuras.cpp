@@ -4003,6 +4003,10 @@ void Aura::HandleModMechanicImmunity(bool apply, bool Real)
     if(GetId()==42292 || GetId()==59752)
         mechanic=IMMUNE_TO_MOVEMENT_IMPAIRMENT_AND_LOSS_CONTROL_MASK;
 
+    // Forbearance(right immune mechanic)
+    if (GetId()==25771)
+        m_modifier.m_miscvalue = MECHANIC_IMMUNE_SHIELD;
+
     if(apply && GetSpellProto()->AttributesEx & SPELL_ATTR_EX_DISPEL_AURAS_ON_IMMUNITY)
     {
         Unit::AuraMap& Auras = m_target->GetAuras();
