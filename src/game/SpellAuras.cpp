@@ -4077,44 +4077,6 @@ void Aura::HandleModMechanicImmunity(bool apply, bool Real)
 
 void Aura::HandleAuraModEffectImmunity(bool apply, bool Real)
 {
-    if(!apply)
-    {
-        if(m_target->GetTypeId() == TYPEID_PLAYER)
-        {
-            if(((Player*)m_target)->InBattleGround())
-            {
-                BattleGround *bg = ((Player*)m_target)->GetBattleGround();
-                if(bg)
-                {
-                    switch(bg->GetTypeID())
-                    {
-                        case BATTLEGROUND_AV:
-                        {
-                            break;
-                        }
-                        case BATTLEGROUND_WS:
-                        {
-                            // Warsong Flag, horde               // Silverwing Flag, alliance
-                            if(GetId() == 23333 || GetId() == 23335)
-                                    bg->EventPlayerDroppedFlag(((Player*)m_target));
-                            break;
-                        }
-                        case BATTLEGROUND_AB:
-                        {
-                            break;
-                        }
-                        case BATTLEGROUND_EY:
-                        {
-                           if(GetId() == 34976)
-                                bg->EventPlayerDroppedFlag(((Player*)m_target));
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     m_target->ApplySpellImmune(GetId(),IMMUNITY_EFFECT,m_modifier.m_miscvalue,apply);
 }
 
@@ -4173,6 +4135,30 @@ void Aura::HandleAuraModSchoolImmunity(bool apply, bool Real)
             m_target->addUnitState(UNIT_STAT_ISOLATED);
         else
             m_target->clearUnitState(UNIT_STAT_ISOLATED);
+    }
+
+    if(apply && GetSpellProto()->Mechanic == MECHANIC_IMMUNE_SHIELD )
+    {
+        if(m_target->GetTypeId() == TYPEID_PLAYER)
+        {
+            if(((Player*)m_target)->InBattleGround())
+            {
+                BattleGround *bg = ((Player*)m_target)->GetBattleGround();
+                if(bg)
+                {
+                    Unit::AuraList const& Auras = m_target->GetAurasByType(SPELL_AURA_EFFECT_IMMUNITY);
+                    for(Unit::AuraList::const_iterator iter = Auras.begin(); iter != Auras.end(); ++iter)
+                    {    
+                        SpellEntry const* spell = (*iter)->GetSpellProto();
+                        if(spell->EffectMiscValue[0] == 85)
+                        {
+                            bg->EventPlayerDroppedFlag(((Player*)m_target));
+                            break;
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

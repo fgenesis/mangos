@@ -10883,6 +10883,20 @@ bool Unit::IsPolymorphed() const
     return GetSpellSpecific(getTransForm())==SPELL_MAGE_POLYMORPH;
 }
 
+bool Unit::HasInvulnerabilityAura() const
+{
+    AuraList const& Auras = m_modAuras[SPELL_AURA_SCHOOL_IMMUNITY];
+    for(Unit::AuraList::const_iterator iter = Auras.begin(); iter != Auras.end(); ++iter)
+    {	
+        SpellEntry const* spell = (*iter)->GetSpellProto();
+        if(spell->Mechanic == MECHANIC_IMMUNE_SHIELD)
+        {	
+            return true;
+        }
+    }
+    return false;
+}
+
 void Unit::SetDisplayId(uint32 modelId)
 {
     SetUInt32Value(UNIT_FIELD_DISPLAYID, modelId);
