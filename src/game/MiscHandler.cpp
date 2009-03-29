@@ -498,7 +498,8 @@ void WorldSession::HandleSetTargetOpcode( WorldPacket & recv_data )
     if(!unit)
         return;
 
-    _player->SetFactionVisibleForFactionTemplateId(unit->getFaction());
+    if(FactionTemplateEntry const* factionTemplateEntry = sFactionTemplateStore.LookupEntry(unit->getFaction()))
+        _player->GetReputationMgr().SetVisible(factionTemplateEntry);
 }
 
 void WorldSession::HandleSetSelectionOpcode( WorldPacket & recv_data )
@@ -515,7 +516,8 @@ void WorldSession::HandleSetSelectionOpcode( WorldPacket & recv_data )
     if(!unit)
         return;
 
-    _player->SetFactionVisibleForFactionTemplateId(unit->getFaction());
+    if(FactionTemplateEntry const* factionTemplateEntry = sFactionTemplateStore.LookupEntry(unit->getFaction()))
+        _player->GetReputationMgr().SetVisible(factionTemplateEntry);
 }
 
 void WorldSession::HandleStandStateChangeOpcode( WorldPacket & recv_data )
@@ -998,7 +1000,7 @@ void WorldSession::HandleUpdateAccountData(WorldPacket &recv_data)
 
     if(decompressedSize == 0)                               // erase
     {
-        SetAccountData(type, timestamp, "");
+        SetAccountData(type, 0, "");
 
         WorldPacket data(SMSG_UPDATE_ACCOUNT_DATA_COMPLETE, 4+4);
         data << uint32(type);
@@ -1098,7 +1100,7 @@ void WorldSession::HandleSetActionButtonOpcode(WorldPacket& recv_data)
         }
         else if(type==ACTION_BUTTON_SPELL)
         {
-            sLog.outDetail( "MISC: Added Action %u into button %u", action, button );
+            sLog.outDetail( "MISC: Added Spell %u into button %u", action, button );
             GetPlayer()->addActionButton(button,action,type,misc);
         }
         else if(type==ACTION_BUTTON_ITEM)
@@ -1318,7 +1320,7 @@ void WorldSession::HandleInspectOpcode(WorldPacket& recv_data)
 
                 // find talent rank
                 uint32 curtalent_maxrank = 0;
-                for(uint32 k = 5; k > 0; --k)
+                for(uint32 k = MAX_TALENT_RANK; k > 0; --k)
                 {
                     if(talentInfo->RankID[k-1] && plr->HasSpell(talentInfo->RankID[k-1]))
                     {

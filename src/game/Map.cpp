@@ -1627,6 +1627,8 @@ float Map::GetHeight(float x, float y, float z, bool pUseVmaps) const
     }
 }
 
+#include "World.h"
+
 uint16 Map::GetAreaFlag(float x, float y, float z) const
 {
     // FG: possible crashfix
@@ -1661,7 +1663,13 @@ uint16 Map::GetAreaFlag(float x, float y, float z) const
         case 1593:
         case 2484:
         case 2492:
-            if( (x < 6116 && x > 5568) && (y < 982 && y > 282) && z > 563.0f) areaflag = 2153; break;
+            if (x > 5568.0f && x < 6116.0f && y > 282.0f && y < 982.0f && z > 563.0f) areaflag = 2153; break;
+        // Maw of Neltharion (cave)
+        case 164:                                           // Dragonblight
+        case 1797:                                          // Obsidian Dragonshrine (Dragonblight)
+        case 1827:                                          // Wintergrasp
+        case 2591:                                          // The Cauldron of Flames (Wintergrasp)
+            if (x > 4364.0f && x < 4632.0f && y > 1545.0f && y < 1886.0f && z < 200.0f) areaflag = 1853; break;
     }
 
     return areaflag;
@@ -1752,8 +1760,8 @@ bool Map::CheckGridIntegrity(Creature* c, bool moved) const
     Cell xy_cell(xy_val);
     if(xy_cell != cur_cell)
     {
-        sLog.outError("ERROR: %s (GUID: %u) X: %f Y: %f (%s) in grid[%u,%u]cell[%u,%u] instead grid[%u,%u]cell[%u,%u]",
-            (c->GetTypeId()==TYPEID_PLAYER ? "Player" : "Creature"),c->GetGUIDLow(),
+        sLog.outError("Creature (GUIDLow: %u) X: %f Y: %f (%s) in grid[%u,%u]cell[%u,%u] instead grid[%u,%u]cell[%u,%u]",
+            c->GetGUIDLow(),
             c->GetPositionX(),c->GetPositionY(),(moved ? "final" : "original"),
             cur_cell.GridX(), cur_cell.GridY(), cur_cell.CellX(), cur_cell.CellY(),
             xy_cell.GridX(),  xy_cell.GridY(),  xy_cell.CellX(),  xy_cell.CellY());
@@ -1961,7 +1969,7 @@ void Map::RemoveAllObjectsInRemoveList()
             {
                 Corpse* corpse = ObjectAccessor::Instance().GetCorpse(*obj, obj->GetGUID());
                 if (!corpse)
-                    sLog.outError("ERROR: Try delete corpse/bones %u that not in map", obj->GetGUIDLow());
+                    sLog.outError("Try delete corpse/bones %u that not in map", obj->GetGUIDLow());
                 else
                     Remove(corpse,true);
                 break;

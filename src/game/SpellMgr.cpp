@@ -20,7 +20,7 @@
 #include "ObjectMgr.h"
 #include "SpellAuraDefines.h"
 #include "ProgressBar.h"
-#include "Database/DBCStores.h"
+#include "DBCStores.h"
 #include "World.h"
 #include "Chat.h"
 #include "Spell.h"
@@ -298,10 +298,6 @@ bool IsPositiveEffect(uint32 spellId, uint32 effIndex)
 
     switch(spellId)
     {
-        case 23333:                                         // BG spell
-        case 23335:                                         // BG spell
-        case 34976:                                         // BG spell
-            return true;
         case 28441:                                         // not positive dummy spell
         case 37675:                                         // Chaos Blast
             return false;
@@ -535,6 +531,7 @@ bool IsSingleTargetSpells(SpellEntry const *spellInfo1, SpellEntry const *spellI
     switch(spec1)
     {
         case SPELL_JUDGEMENT:
+        case SPELL_MAGE_POLYMORPH:
             if(GetSpellSpecific(spellInfo2->Id) == spec1)
                 return true;
             break;

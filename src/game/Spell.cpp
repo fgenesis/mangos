@@ -593,6 +593,9 @@ void Spell::FillTargetMap()
                 case SPELL_EFFECT_REPUTATION:
                     if(m_targets.getUnitTarget())
                         tmpUnitMap.push_back(m_targets.getUnitTarget());
+                    // Triggered spells have additional spell targets - cast them even if no explicit unit target is given (required for spell 50516 for example)
+                    else if(m_spellInfo->Effect[i] == SPELL_EFFECT_TRIGGER_SPELL)
+                        tmpUnitMap.push_back(m_caster);
                     break;
                 case SPELL_EFFECT_SUMMON_PLAYER:
                     if(m_caster->GetTypeId()==TYPEID_PLAYER && ((Player*)m_caster)->GetSelection())
@@ -1326,6 +1329,19 @@ void Spell::SetTargetMap(uint32 i,uint32 cur,std::list<Unit*> &TagUnitMap)
 
     // Get spell max affected targets
     uint32 unMaxTargets = m_spellInfo->MaxAffectedTargets;
+
+    // custom target amount cases
+    switch(m_spellInfo->SpellFamilyName)
+    {
+        case SPELLFAMILY_DRUID:
+            // Starfall
+            if (m_spellInfo->SpellFamilyFlags2 & 0x00000100LL)
+                unMaxTargets = 2;
+            break;
+        default:
+            break;
+    }
+
     Unit::AuraList const& mod = m_caster->GetAurasByType(SPELL_AURA_MOD_MAX_AFFECTED_TARGETS);
     for(Unit::AuraList::const_iterator m = mod.begin(); m != mod.end(); ++m)
     {
@@ -1333,6 +1349,7 @@ void Spell::SetTargetMap(uint32 i,uint32 cur,std::list<Unit*> &TagUnitMap)
             continue;
         unMaxTargets+=(*m)->GetModifier()->m_amount;
     }
+
     switch(cur)
     {
         case TARGET_TOTEM_EARTH:
@@ -4661,7 +4678,7 @@ SpellCastResult Spell::CheckCasterAuras() const
     }
 
     // Attr must make flag drop spell totally immune from all effects
-    if(prevented_reason)
+    if(prevented_reason != SPELL_CAST_OK)
     {
         if(school_immune || mechanic_immune || dispel_immune)
         {
@@ -4776,8 +4793,9 @@ SpellCastResult Spell::CheckRange(bool strict)
 
     if(target && target != m_caster)
     {
-        // distance from target center in checks
-        float dist = m_caster->GetDistance(target->GetPositionX(),target->GetPositionY(),target->GetPositionZ());
+        // distance from target in checks
+        float dist = m_caster->GetCombatDistance(target);
+
         if(dist > max_range)
             return SPELL_FAILED_OUT_OF_RANGE;               //0x5A;
         if(dist < min_range)
@@ -5031,7 +5049,7 @@ SpellCastResult Spell::CheckItems()
                 ItemPrototype const *proto = m_CastItem->GetProto();
                 if(!proto)
                     return SPELL_FAILED_ITEM_NOT_READY;
-                for(int s=0;s < MAX_ITEM_PROTO_SPELLS; ++s)
+                for(int s=0; s < MAX_ITEM_PROTO_SPELLS; ++s)
                 {
                     // CastItem will be used up and does not count as reagent
                     int32 charges = m_CastItem->GetSpellCharges(s);

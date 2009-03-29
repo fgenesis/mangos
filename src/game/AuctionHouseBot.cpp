@@ -1,3 +1,4 @@
+#include "DBCStores.h"
 #include "AuctionHouseBot.h"
 #include "Bag.h"
 #include "Config/ConfigEnv.h"

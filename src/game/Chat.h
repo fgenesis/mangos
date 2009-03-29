@@ -136,6 +136,7 @@ class ChatHandler
         bool HandleLearnAllDefaultCommand(const char* args);
         bool HandleLearnAllLangCommand(const char* args);
         bool HandleLearnAllMyClassCommand(const char* args);
+        bool HandleLearnAllMyPetTalentsCommand(const char* args);
         bool HandleLearnAllMySpellsCommand(const char* args);
         bool HandleLearnAllMyTalentsCommand(const char* args);
 
@@ -392,11 +393,10 @@ class ChatHandler
         bool HandleResetHonorCommand(const char * args);
         bool HandleResetLevelCommand(const char * args);
         bool HandleResetSpellsCommand(const char * args);
-
         bool HandleResetStatsCommand(const char * args);
         bool HandleResetTalentsCommand(const char * args);
-
         bool HandleResetAllCommand(const char * args);
+
         bool HandleTicketCommand(const char* args);
         bool HandleDelTicketCommand(const char* args);
         bool HandleMaxSkillCommand(const char* args);
@@ -418,7 +418,6 @@ class ChatHandler
         bool HandleDebugSellErrorCommand(const char* args);
         bool HandleDebugBuyErrorCommand(const char* args);
         bool HandleDebugUpdateWorldStateCommand(const char* args);
-        bool HandleDebugPlaySound2Command(const char* args);
         bool HandleDebugSendChannelNotifyCommand(const char* args);
         bool HandleDebugSendChatMsgCommand(const char* args);
         bool HandleRenameCommand(const char * args);
@@ -453,6 +452,7 @@ class ChatHandler
         bool HandleDebugSpawnVehicle(const char * args);
         bool HandleDebugSendLargePacketCommand(const char * args);
         bool HandleDebugSendSetPhaseShiftCommand(const char * args);
+        bool HandleDebugSetItemFlagCommand(const char * args);
 
 
 

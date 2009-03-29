@@ -296,7 +296,7 @@ enum ItemQualities
 #define SPELL_ATTR_EX2_UNK18                      0x00040000            // 18 Only Revive pet - possible req dead pet
 #define SPELL_ATTR_EX2_NOT_NEED_SHAPESHIFT        0x00080000            // 19 does not necessarly need shapeshift
 #define SPELL_ATTR_EX2_UNK20                      0x00100000            // 20
-#define SPELL_ATTR_EX2_UNK21                      0x00200000            // 21
+#define SPELL_ATTR_EX2_DAMAGE_REDUCED_SHIELD      0x00200000            // 21 for ice blocks, pala immunity buffs, priest absorb shields, but used also for other spells -> not sure!
 #define SPELL_ATTR_EX2_UNK22                      0x00400000            // 22
 #define SPELL_ATTR_EX2_UNK23                      0x00800000            // 23 Only mage Arcane Concentration have this flag
 #define SPELL_ATTR_EX2_UNK24                      0x01000000            // 24
@@ -347,7 +347,7 @@ enum ItemQualities
 #define SPELL_ATTR_EX4_UNK3                       0x00000008            // 3
 #define SPELL_ATTR_EX4_UNK4                       0x00000010            // 4 This will no longer cause guards to attack on use??
 #define SPELL_ATTR_EX4_UNK5                       0x00000020            // 5
-#define SPELL_ATTR_EX4_UNK6                       0x00000040            // 6
+#define SPELL_ATTR_EX4_NOT_STEALABLE              0x00000040            // 6 although such auras might be dispellable, they cannot be stolen
 #define SPELL_ATTR_EX4_UNK7                       0x00000080            // 7
 #define SPELL_ATTR_EX4_UNK8                       0x00000100            // 8
 #define SPELL_ATTR_EX4_UNK9                       0x00000200            // 9
@@ -440,7 +440,7 @@ enum ItemQualities
 #define SPELL_ATTR_EX6_UNK30                      0x40000000            // 30 not set in 3.0.3
 #define SPELL_ATTR_EX6_UNK31                      0x80000000            // 31 not set in 3.0.3
 
-#define MAX_GLYPH_SLOT_INDEX    5
+#define MAX_GLYPH_SLOT_INDEX    6
 
 enum SheathTypes
 {

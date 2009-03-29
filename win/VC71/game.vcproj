@@ -142,12 +142,6 @@
 				RelativePath="..\..\src\game\AchievementMgr.h">
 			</File>
 			<File
-				RelativePath="..\..\src\game\AddonHandler.cpp">
-			</File>
-			<File
-				RelativePath="..\..\src\game\AddonHandler.h">
-			</File>
-			<File
 				RelativePath="..\..\src\game\ArenaTeamHandler.cpp">
 			</File>
 			<File
@@ -733,6 +727,12 @@
 				RelativePath="..\..\src\game\ReactorAI.h">
 			</File>
 			<File
+				RelativePath="..\..\src\game\ReputationMgr.cpp">
+			</File>
+			<File
+				RelativePath="..\..\src\game\ReputationMgr.h">
+			</File>
+			<File
 				RelativePath="..\..\src\game\SocialMgr.cpp">
 			</File>
 			<File
@@ -804,6 +804,21 @@
 		</Filter>
 		<Filter
 			Name="Server">
+			<File
+				RelativePath="..\..\src\game\DBCEnums.h">
+			</File>
+			<File
+				RelativePath="..\..\src\game\DBCfmt.h">
+			</File>
+			<File
+				RelativePath="..\..\src\game\DBCStores.cpp">
+			</File>
+			<File
+				RelativePath="..\..\src\game\DBCStores.h">
+			</File>
+			<File
+				RelativePath="..\..\src\game\DBCStructure.h">
+			</File>
 			<File
 				RelativePath="..\..\src\game\GlobalEvents.cpp">
 			</File>
