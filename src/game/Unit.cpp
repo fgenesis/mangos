@@ -721,7 +721,7 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
             pVictim->RemoveAurasDueToSpell(pVictim->getTransForm());
 
         // FG: Hex CAN break on damage (40% chance for now)
-        if(pVictim->HasAura(51514) && urand(0,100) > 40)
+        if(pVictim->HasAura(51514) && urand(0,100) < 40)
             pVictim->RemoveAurasDueToSpell(51514);
 
         if(damagetype == DIRECT_DAMAGE || damagetype == SPELL_DIRECT_DAMAGE)
@@ -10898,20 +10898,6 @@ void Unit::SetStandState(uint8 state)
 bool Unit::IsPolymorphed() const
 {
     return GetSpellSpecific(getTransForm())==SPELL_MAGE_POLYMORPH;
-}
-
-bool Unit::HasInvulnerabilityAura() const
-{
-    AuraList const& Auras = m_modAuras[SPELL_AURA_SCHOOL_IMMUNITY];
-    for(Unit::AuraList::const_iterator iter = Auras.begin(); iter != Auras.end(); ++iter)
-    {	
-        SpellEntry const* spell = (*iter)->GetSpellProto();
-        if(spell->Mechanic == MECHANIC_IMMUNE_SHIELD)
-        {	
-            return true;
-        }
-    }
-    return false;
 }
 
 void Unit::SetDisplayId(uint32 modelId)

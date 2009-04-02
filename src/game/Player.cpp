@@ -19115,7 +19115,6 @@ bool Player::CanUseBattleGroundObject()
              !HasStealthAura() &&                           // not stealthed
              !HasInvisibilityAura() &&                      // not invisible
              !HasAura(SPELL_RECENTLY_DROPPED_FLAG, 0) &&    // can't pickup
-             !HasInvulnerabilityAura() &&                   // player cannot use object when he is invulnerable (immune) - (ice block, divine shield, divine intervention ...)
              isAlive()                                      // live player
            );
 }

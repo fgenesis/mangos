@@ -4067,25 +4067,20 @@ void Aura::HandleAuraModEffectImmunity(bool apply, bool Real)
     m_target->ApplySpellImmune(GetId(),IMMUNITY_EFFECT,m_modifier.m_miscvalue,apply);
 }
 
-void Aura::HandleAuraModStateImmunity(bool apply, bool Real)
+//this method is called whenever we add / remove aura which gives m_target some imunity to some spell effect
+void Aura::HandleAuraModEffectImmunity(bool apply, bool Real)
 {
-    if(apply && Real && GetSpellProto()->AttributesEx & SPELL_ATTR_EX_DISPEL_AURAS_ON_IMMUNITY)
+    // when removing flag aura, handle flag drop
+    if( !apply && m_target->GetTypeId() == TYPEID_PLAYER
+        && (GetSpellProto()->AuraInterruptFlags & AURA_INTERRUPT_FLAG_IMMUNE_OR_LOST_SELECTION) )
     {
-        Unit::AuraList const& auraList = m_target->GetAurasByType(AuraType(m_modifier.m_miscvalue));
-        for(Unit::AuraList::const_iterator itr = auraList.begin(); itr != auraList.end();)
-        {
-            if (auraList.front() != this)                   // skip itself aura (it already added)
-            {
-                m_target->RemoveAurasDueToSpell(auraList.front()->GetId());
-                itr = auraList.begin();
-            }
-            else
-                ++itr;
-        }
+        if( BattleGround *bg = ((Player*)m_target)->GetBattleGround() )
+            bg->EventPlayerDroppedFlag(((Player*)m_target));
     }
 
-    m_target->ApplySpellImmune(GetId(),IMMUNITY_STATE,m_modifier.m_miscvalue,apply);
+    m_target->ApplySpellImmune(GetId(),IMMUNITY_EFFECT,m_modifier.m_miscvalue,apply);
 }
+
 
 void Aura::HandleAuraModSchoolImmunity(bool apply, bool Real)
 {
@@ -4128,31 +4123,8 @@ void Aura::HandleAuraModSchoolImmunity(bool apply, bool Real)
         else
             m_target->clearUnitState(UNIT_STAT_ISOLATED);
     }
-
-    if(apply && GetSpellProto()->Mechanic == MECHANIC_IMMUNE_SHIELD )
-    {
-        if(m_target->GetTypeId() == TYPEID_PLAYER)
-        {
-            if(((Player*)m_target)->InBattleGround())
-            {
-                BattleGround *bg = ((Player*)m_target)->GetBattleGround();
-                if(bg)
-                {
-                    Unit::AuraList const& Auras = m_target->GetAurasByType(SPELL_AURA_EFFECT_IMMUNITY);
-                    for(Unit::AuraList::const_iterator iter = Auras.begin(); iter != Auras.end(); ++iter)
-                    {    
-                        SpellEntry const* spell = (*iter)->GetSpellProto();
-                        if(spell->EffectMiscValue[0] == 85)
-                        {
-                            bg->EventPlayerDroppedFlag(((Player*)m_target));
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
+
 
 void Aura::HandleAuraModDmgImmunity(bool apply, bool Real)
 {
