@@ -680,6 +680,12 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
                 //else if(GetTypeId() == TYPEID_UNIT)
                 //    bg->HandleKillPlayer(killed,(Creature*)this);
         }
+        else if(pVictim->GetTypeId() == TYPEID_UNIT)
+        {
+            if(player)
+                if(BattleGround *bg = player->GetBattleGround())
+                    bg->HandleKillUnit((Creature*)pVictim,player);
+        }
     }
     else                                                    // if (health <= damage)
     {

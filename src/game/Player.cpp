@@ -7136,6 +7136,14 @@ void Player::SendLoot(uint64 guid, LootType loot_type)
         if(go->getLootState() == GO_READY)
         {
             uint32 lootid =  go->GetLootId();
+            if((go->GetEntry() == BG_AV_OBJECTID_MINE_N || go->GetEntry() == BG_AV_OBJECTID_MINE_S))
+                if( BattleGround *bg = GetBattleGround())
+                    if(bg->GetTypeID() == BATTLEGROUND_AV)
+                        if(!(((BattleGroundAV*)bg)->PlayerCanDoMineQuest(go->GetEntry(),GetTeam())))
+                        {
+                            SendLootRelease(guid);
+                            return;
+                        }
 
             if(lootid)
             {
@@ -7224,6 +7232,8 @@ void Player::SendLoot(uint64 guid, LootType loot_type)
             bones->lootForBody = true;
             uint32 pLevel = bones->loot.gold;
             bones->loot.clear();
+            if(GetBattleGround()->GetTypeID() == BATTLEGROUND_AV)
+                loot->FillLoot(1, LootTemplates_Creature, this, false);
             // It may need a better formula
             // Now it works like this: lvl10: ~6copper, lvl70: ~9silver
             bones->loot.gold = (uint32)( urand(50, 150) * 0.016f * pow( ((float)pLevel)/5.76f, 2.5f) * sWorld.getRate(RATE_DROP_MONEY) );
@@ -13474,7 +13484,8 @@ bool Player::HasQuestForItem( uint32 itemid ) const
 
             // hide quest if player is in raid-group and quest is no raid quest
             if(GetGroup() && GetGroup()->isRaidGroup() && qinfo->GetType() != QUEST_TYPE_RAID)
-                continue;
+                if(!InBattleGround()) //there are two ways.. we can make every bg-quest a raidquest, or add this code here.. i don't know if this can be exploited by other quests, but i think all other quests depend on a specific area.. but keep this in mind, if something strange happens later
+                    continue;
 
             // There should be no mixed ReqItem/ReqSource drop
             // This part for ReqItem drop
