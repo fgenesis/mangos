@@ -64,6 +64,10 @@
 // FG
 #include "PlayerDropMgr.h"
 extern PlayerDropStorage sPlayerDropStore;
+
+// by balrok
+#include "BattleGroundAV.h"
+
 // FG end
 
 #define ZONE_UPDATE_INTERVAL (1*IN_MILISECONDS)
