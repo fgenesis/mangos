@@ -220,7 +220,7 @@ ChatCommand * ChatHandler::getCommandTable()
         { "listbinds",      SEC_ADMINISTRATOR,  false, &ChatHandler::HandleInstanceListBindsCommand,   "", NULL },
         { "unbind",         SEC_ADMINISTRATOR,  false, &ChatHandler::HandleInstanceUnbindCommand,      "", NULL },
         { "stats",          SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleInstanceStatsCommand,       "", NULL },
-        { "savedata",       SEC_ADMINISTRATOR,      false, &ChatHandler::HandleInstanceSaveDataCommand,    "", NULL },
+        { "savedata",       SEC_ADMINISTRATOR,  false, &ChatHandler::HandleInstanceSaveDataCommand,    "", NULL },
         { NULL,             0,                  false, NULL,                                           "", NULL }
     };
 
@@ -361,6 +361,7 @@ ChatCommand * ChatHandler::getCommandTable()
     static ChatCommand reloadCommandTable[] =
     {
         { "all",            SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleReloadAllCommand,           "", NULL },
+        { "all_achievement",SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleReloadAllAchievementCommand,"", NULL },
         { "all_area",       SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleReloadAllAreaCommand,       "", NULL },
         { "all_loot",       SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleReloadAllLootCommand,       "", NULL },
         { "all_npc",        SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleReloadAllNpcCommand,        "", NULL },
@@ -376,7 +377,10 @@ ChatCommand * ChatHandler::getCommandTable()
         { "pe",             SEC_ADMINISTRATOR, true, &ChatHandler::HandleReloadPECommand,            "", NULL },
         { "player_drop_template",  SEC_ADMINISTRATOR,true, &ChatHandler::HandleReloadPlayerDropTemplateCommand, "", NULL },
         { "creature_extended",     SEC_ADMINISTRATOR,true, &ChatHandler::HandleReloadCreatureExtendedCommand, "", NULL },
+        // FG: end
 
+        { "achievement_criteria_data",   SEC_ADMINISTRATOR, true,  &ChatHandler::HandleReloadAchievementCriteriaDataCommand, "", NULL },
+        { "achievement_reward",          SEC_ADMINISTRATOR, true,  &ChatHandler::HandleReloadAchievementRewardCommand,       "", NULL },
         { "areatrigger_tavern",          SEC_ADMINISTRATOR, true,  &ChatHandler::HandleReloadAreaTriggerTavernCommand,       "", NULL },
         { "areatrigger_teleport",        SEC_ADMINISTRATOR, true,  &ChatHandler::HandleReloadAreaTriggerTeleportCommand,     "", NULL },
         { "areatrigger_involvedrelation",SEC_ADMINISTRATOR, true,  &ChatHandler::HandleReloadQuestAreaTriggersCommand,       "", NULL },
@@ -396,6 +400,7 @@ ChatCommand * ChatHandler::getCommandTable()
         { "gameobject_scripts",          SEC_ADMINISTRATOR, true,  &ChatHandler::HandleReloadGameObjectScriptsCommand,       "", NULL },
         { "item_enchantment_template",   SEC_ADMINISTRATOR, true,  &ChatHandler::HandleReloadItemEnchantementsCommand,       "", NULL },
         { "item_loot_template",          SEC_ADMINISTRATOR, true,  &ChatHandler::HandleReloadLootTemplatesItemCommand,       "", NULL },
+        { "locales_achievement_reward",  SEC_ADMINISTRATOR, true,  &ChatHandler::HandleReloadLocalesAchievementRewardCommand,"", NULL },
         { "locales_creature",            SEC_ADMINISTRATOR, true,  &ChatHandler::HandleReloadLocalesCreatureCommand,         "", NULL },
         { "locales_gameobject",          SEC_ADMINISTRATOR, true,  &ChatHandler::HandleReloadLocalesGameobjectCommand,       "", NULL },
         { "locales_item",                SEC_ADMINISTRATOR, true,  &ChatHandler::HandleReloadLocalesItemCommand,             "", NULL },

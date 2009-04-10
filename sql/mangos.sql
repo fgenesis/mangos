@@ -22,7 +22,8 @@
 DROP TABLE IF EXISTS `db_version`;
 CREATE TABLE `db_version` (
   `version` varchar(120) default NULL,
-  `required_7622_03_mangos_creature_ai_texts` bit(1) default NULL
+  `creature_ai_version` varchar(120) default NULL,
+  `required_7643_02_mangos_mangos_string` bit(1) default NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=FIXED COMMENT='Used DB version notes';
 
 --
@@ -32,8 +33,30 @@ CREATE TABLE `db_version` (
 LOCK TABLES `db_version` WRITE;
 /*!40000 ALTER TABLE `db_version` DISABLE KEYS */;
 INSERT INTO `db_version` VALUES
-('Mangos default database.',NULL);
+('Mangos default database.','Creature EventAI not provided.',NULL);
 /*!40000 ALTER TABLE `db_version` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `achievement_criteria_data`
+--
+
+DROP TABLE IF EXISTS `achievement_criteria_data`;
+CREATE TABLE `achievement_criteria_data` (
+  `criteria_id` mediumint(8) NOT NULL,
+  `type` tinyint(3) unsigned NOT NULL DEFAULT '0',
+  `value1` mediumint(8) unsigned NOT NULL DEFAULT '0',
+  `value2` mediumint(8) unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`criteria_id`,`type`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=FIXED COMMENT='Achievment system';
+
+--
+-- Dumping data for table `achievement_criteria_data`
+--
+
+LOCK TABLES `achievement_criteria_data` WRITE;
+/*!40000 ALTER TABLE `achievement_criteria_data` DISABLE KEYS */;
+/*!40000 ALTER TABLE `achievement_criteria_data` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -50,7 +73,7 @@ CREATE TABLE `achievement_reward` (
   `subject` varchar(255) default NULL,
   `text` text,
   PRIMARY KEY  (`entry`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=FIXED COMMENT='Loot System';
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=FIXED COMMENT='Achievment system';
 
 --
 -- Dumping data for table `achievement_reward`
@@ -2441,6 +2464,7 @@ INSERT INTO `mangos_string` VALUES
 (56,'Current Message of the day: \r\n%s',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
 (57,'Using World DB: %s',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
 (58,'Using script library: %s',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
+(59,'Using creature EventAI: %s',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
 (100,'Global notify: ',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
 (101,'Map: %u (%s) Zone: %u (%s) Area: %u (%s) Phase: %u\nX: %f Y: %f Z: %f Orientation: %f\ngrid[%u,%u]cell[%u,%u] InstanceID: %u\n ZoneX: %f ZoneY: %f\nGroundZ: %f FloorZ: %f Have height data (Map: %u VMap: %u)',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
 (102,'%s is already being teleported.',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
