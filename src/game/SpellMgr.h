@@ -858,6 +858,8 @@ class SpellMgr
         void LoadSpellThreats();
         void LoadSkillLineAbilityMap();
         void LoadSpellPetAuras();
+        uint32* LoadPetLevelupSpellMapWarlockInit(uint32 *pet_spell_db_count);
+        void LoadPetLevelupSpellMapWarlock();
         void LoadPetLevelupSpellMap();
         void LoadSpellAreas();
 
