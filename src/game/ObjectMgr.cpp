@@ -530,6 +530,18 @@ void ObjectMgr::LoadCreatureTemplates()
                 continue;
             }
 
+            if(heroicInfo->AIName && *heroicInfo->AIName)
+            {
+                sLog.outErrorDb("Heroic mode creature (Entry: %u) has `AIName`, but in any case will used normal mode creature (Entry: %u) AIName.",cInfo->HeroicEntry,i);
+                continue;
+            }
+
+            if(heroicInfo->ScriptID)
+            {
+                sLog.outErrorDb("Heroic mode creature (Entry: %u) has `ScriptName`, but in any case will used normal mode creature (Entry: %u) ScriptName.",cInfo->HeroicEntry,i);
+                continue;
+            }
+
             hasHeroicEntries.insert(i);
             heroicEntries.insert(cInfo->HeroicEntry);
         }
@@ -4161,6 +4173,23 @@ void ObjectMgr::LoadInstanceTemplate()
     sLog.outString();
 }
 
+bool ObjectMgr::IsGameObjectOfTypeInRange(Player *player, uint64 guid, GameobjectTypes type) const
+{
+    if(GameObject *go = ObjectAccessor::GetGameObject(*player, guid))
+    {
+        if(go->GetGoType() == type)
+        {
+            // TODO: find out how the client calculates the maximal usage distance to spellless working
+            // gameobjects like guildbanks and mailboxes - 10.0 is a just an abitrary choosen number
+            if (go->IsWithinDistInMap(player, 10.0f))
+                return true;
+            sLog.outError("IsGameObjectOfTypeInRange: GameObject '%s' [GUID: %u] is too far away from player %s [GUID: %u] to be used by him (distance=%f, maximal 10 is allowed)", go->GetGOInfo()->name,
+                    go->GetGUIDLow(), player->GetName(), player->GetGUIDLow(), go->GetDistance(player));
+        }
+    }
+    return false;
+}
+
 GossipText const *ObjectMgr::GetGossipText(uint32 Text_ID) const
 {
     GossipTextMap::const_iterator itr = mGossipText.find(Text_ID);
@@ -7376,13 +7405,16 @@ void ObjectMgr::CheckScripts(ScriptMapMap const& scripts,std::set<int32>& ids)
     {
         for(ScriptMap::const_iterator itrM = itrMM->second.begin(); itrM != itrMM->second.end(); ++itrM)
         {
-            if(itrM->second.dataint)
+            switch(itrM->second.command)
             {
-                if(!GetMangosStringLocale (itrM->second.dataint))
-                    sLog.outErrorDb( "Table `db_script_string` has not existed string id  %u", itrM->first);
+                case SCRIPT_COMMAND_TALK:
+                {
+                    if(!GetMangosStringLocale (itrM->second.dataint))
+                        sLog.outErrorDb( "Table `db_script_string` not has string id  %u used db script (ID: %s)", itrM->second.dataint, itrMM->first);
 
-                if(ids.count(itrM->second.dataint))
-                    ids.erase(itrM->second.dataint);
+                    if(ids.count(itrM->second.dataint))
+                        ids.erase(itrM->second.dataint);
+                }
             }
         }
     }
