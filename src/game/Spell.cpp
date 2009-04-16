@@ -5149,18 +5149,22 @@ SpellCastResult Spell::CheckItems()
                 if(!targetItem)
                     return SPELL_FAILED_ITEM_NOT_FOUND;
 
-                if( targetItem->GetProto()->ItemLevel < m_spellInfo->baseLevel )
+                if( targetItem->GetProto()->ItemLevel < m_spellInfo->baseLevel && targetItem->GetProto()->Quality < ITEM_QUALITY_HEIRLOOM )
                     return SPELL_FAILED_LOWLEVEL;
+
+                uint32 enchant_id = m_spellInfo->EffectMiscValue[i];
+                SpellItemEnchantmentEntry const *pEnchant = sSpellItemEnchantmentStore.LookupEntry(enchant_id);
+                if(!pEnchant)
+                    return SPELL_FAILED_ERROR;
+
+                // do not allow enchanting account bound items with enchants that would make them soulbound
+                if(pEnchant->slot & ENCHANTMENT_CAN_SOULBOUND && targetItem->IsAccountBound())
+                    return SPELL_FAILED_ERROR; // TODO: find correct error message
+
                 // Not allow enchant in trade slot for some enchant type
-                if( targetItem->GetOwner() != m_caster )
-                {
-                    uint32 enchant_id = m_spellInfo->EffectMiscValue[i];
-                    SpellItemEnchantmentEntry const *pEnchant = sSpellItemEnchantmentStore.LookupEntry(enchant_id);
-                    if(!pEnchant)
-                        return SPELL_FAILED_ERROR;
-                    if (pEnchant->slot & ENCHANTMENT_CAN_SOULBOUND)
-                        return SPELL_FAILED_NOT_TRADEABLE;
-                }
+                if( targetItem->GetOwner() != m_caster && pEnchant->slot & ENCHANTMENT_CAN_SOULBOUND)
+                    return SPELL_FAILED_NOT_TRADEABLE;
+
                 break;
             }
             case SPELL_EFFECT_ENCHANT_ITEM_TEMPORARY:

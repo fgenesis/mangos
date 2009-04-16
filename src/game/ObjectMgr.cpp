@@ -1772,6 +1772,11 @@ void ObjectMgr::LoadItemPrototypes()
             sLog.outErrorDb("Item (Entry: %u) has wrong LimitCategory value (%u)",i,proto->ItemLimitCategory);
             const_cast<ItemPrototype*>(proto)->ItemLimitCategory = 0;
         }
+
+        if(proto->Flags & ITEM_FLAGS_BOA && proto->Bonding != BIND_TO_ACCOUNT)
+        {
+            sLog.outError("Item (Entry: %u) has ITEM_FLAGS_BOA but is not bind to account (current bind: %u)", i, proto->Bonding);
+        }
     }
 }
 

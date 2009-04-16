@@ -139,16 +139,19 @@ void WorldSession::HandleSendMail(WorldPacket & recv_data )
     Player *receive = objmgr.GetPlayer(rc);
 
     uint32 rc_team = 0;
+    uint32 rc_account = 0;
     uint8 mails_count = 0;                                  //do not allow to send to one player more than 100 mails
 
     if(receive)
     {
         rc_team = receive->GetTeam();
+        rc_account = receive->GetSession()->GetAccountId();
         mails_count = receive->GetMailSize();
     }
     else
     {
         rc_team = objmgr.GetPlayerTeamByGUID(rc);
+        rc_account = objmgr.GetPlayerAccountIdByGUID(rc);
         QueryResult* result = CharacterDatabase.PQuery("SELECT COUNT(*) FROM mail WHERE receiver = '%u'", GUID_LOPART(rc));
         if(result)
         {
@@ -190,7 +193,7 @@ void WorldSession::HandleSendMail(WorldPacket & recv_data )
 
             mailItem.item = pl->GetItemByGuid(MAKE_NEW_GUID(mailItem.item_guidlow, 0, HIGHGUID_ITEM));
             // prevent sending bag with items (cheat: can be placed in bag after adding equipped empty bag to mail)
-            if(!mailItem.item || !mailItem.item->CanBeTraded())
+            if(!mailItem.item || !mailItem.item->CanBeTraded(false))
             {
                 pl->SendMailResult(0, 0, MAIL_ERR_INTERNAL_ERROR);
                 return;
@@ -204,6 +207,11 @@ void WorldSession::HandleSendMail(WorldPacket & recv_data )
             if(COD && mailItem.item->HasFlag(ITEM_FIELD_FLAGS, ITEM_FLAGS_WRAPPED))
             {
                 pl->SendMailResult(0, 0, MAIL_ERR_CANT_SEND_WRAPPED_COD);
+                return;
+            }
+            if(mailItem.item->IsAccountBound() && pl->GetSession()->GetAccountId() != rc_account)
+            {
+                pl->SendMailResult(0, 0, MAIL_ERR_INTERNAL_ERROR);
                 return;
             }
         }

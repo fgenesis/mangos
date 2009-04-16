@@ -385,9 +385,17 @@ bool Item::LoadFromDB(uint32 guid, uint64 owner_guid, QueryResult *result)
     }
 
     // Remove bind flag for items vs NO_BIND set
-    if (IsSoulBound() && proto->Bonding == NO_BIND)
+    if (IsSoulBound() && (proto->Bonding == NO_BIND || proto->Bonding == BIND_TO_ACCOUNT))
     {
         ApplyModFlag(ITEM_FIELD_FLAGS,ITEM_FLAGS_BINDED, false);
+        need_save = true;
+    }
+    
+    // Set/Remove bound on account flag if necessary
+    if( (!IsAccountBound() && proto->Bonding == BIND_TO_ACCOUNT)
+        || (IsAccountBound() && proto->Bonding != BIND_TO_ACCOUNT))
+    {
+        ApplyModFlag(ITEM_FIELD_FLAGS,ITEM_FLAGS_BOA, (proto->Bonding == BIND_TO_ACCOUNT) );
         need_save = true;
     }
 
@@ -696,9 +704,11 @@ bool Item::IsEquipped() const
     return !IsInBag() && m_slot < EQUIPMENT_SLOT_END;
 }
 
-bool Item::CanBeTraded() const
+bool Item::CanBeTraded(bool check_for_boa /* = true */) const
 {
     if(IsSoulBound())
+        return false;
+    if(check_for_boa && IsAccountBound())
         return false;
     if(IsBag() && (Player::IsBagPos(GetPos()) || !((Bag const*)this)->IsEmpty()) )
         return false;
