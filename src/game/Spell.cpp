@@ -457,6 +457,11 @@ void Spell::FillTargetMap()
                     case 0:
                         SetTargetMap(i,m_spellInfo->EffectImplicitTargetA[i],tmpUnitMap);
                         break;
+                    case TARGET_AREAEFFECT_INSTANT:         // use B case that not dependent from from A in fact
+                        if((m_targets.m_targetMask & TARGET_FLAG_DEST_LOCATION)==0)
+                            m_targets.setDestination(m_caster->GetPositionX(),m_caster->GetPositionY(),m_caster->GetPositionZ());
+                        SetTargetMap(i,m_spellInfo->EffectImplicitTargetB[i],tmpUnitMap);
+                        break;
                     case TARGET_BEHIND_VICTIM:              // use B case that not dependent from from A in fact
                         SetTargetMap(i,m_spellInfo->EffectImplicitTargetB[i],tmpUnitMap);
                         break;
@@ -482,8 +487,25 @@ void Spell::FillTargetMap()
                 }
                 break;
             case TARGET_TABLE_X_Y_Z_COORDINATES:
-                // Only if target A, for target B (used in teleports) dest select in effect
-                SetTargetMap(i,m_spellInfo->EffectImplicitTargetA[i],tmpUnitMap);
+                switch(m_spellInfo->EffectImplicitTargetB[i])
+                {
+                    case 0:
+                        SetTargetMap(i,m_spellInfo->EffectImplicitTargetA[i],tmpUnitMap);
+
+                        // need some target for proccesing
+                        if(m_targets.getUnitTarget())
+                            tmpUnitMap.push_back(m_targets.getUnitTarget());
+                        else
+                            tmpUnitMap.push_back(m_caster); 
+                        break;
+                    case TARGET_AREAEFFECT_INSTANT:         // All 17/7 pairs used for dest teleportation, A processed in effect code
+                        SetTargetMap(i,m_spellInfo->EffectImplicitTargetB[i],tmpUnitMap);
+                        break;
+                    default:
+                        SetTargetMap(i,m_spellInfo->EffectImplicitTargetA[i],tmpUnitMap);
+                        SetTargetMap(i,m_spellInfo->EffectImplicitTargetB[i],tmpUnitMap);
+                    break;
+                }
                 break;
             default:
                 switch(m_spellInfo->EffectImplicitTargetB[i])
@@ -1520,9 +1542,11 @@ void Spell::SetTargetMap(uint32 i,uint32 cur,UnitList& TagUnitMap)
         {
             if (EffectChainTarget <= 1)
             {
-                Unit* pUnitTarget = SelectMagnetTarget();
-                if(pUnitTarget)
+                if(Unit* pUnitTarget = m_caster->SelectMagnetTarget(m_targets.getUnitTarget(), m_spellInfo))
+                {
+                    m_targets.setUnitTarget(pUnitTarget);
                     TagUnitMap.push_back(pUnitTarget);
+                }
             }
             else
             {
@@ -1601,7 +1625,18 @@ void Spell::SetTargetMap(uint32 i,uint32 cur,UnitList& TagUnitMap)
             FillAreaTargets(TagUnitMap,m_targets.m_destX, m_targets.m_destY,radius,PUSH_DEST_CENTER,SPELL_TARGETS_AOE_DAMAGE);
             break;
         }
+        case TARGET_AREAEFFECT_INSTANT:
+        {
+            SpellTargets targetB = SPELL_TARGETS_AOE_DAMAGE;
+            // Select friendly targets for positive effect
+            if (IsPositiveEffect(m_spellInfo->Id, i))
+                targetB = SPELL_TARGETS_FRIENDLY;
 
+            FillAreaTargets(TagUnitMap,m_caster->GetPositionX(), m_caster->GetPositionY(),radius, PUSH_DEST_CENTER, targetB);
+
+            // exclude caster
+            TagUnitMap.remove(m_caster);
+        }
         case TARGET_ALL_ENEMY_IN_AREA_INSTANT:
         {
             // targets the ground, not the units in the area
@@ -1748,7 +1783,7 @@ void Spell::SetTargetMap(uint32 i,uint32 cur,UnitList& TagUnitMap)
         {
             // Check original caster is GO - set its coordinates as dst cast
             WorldObject *caster = NULL;
-            if (m_originalCasterGUID)
+            if (IS_GAMEOBJECT_GUID(m_originalCasterGUID))
                 caster = ObjectAccessor::GetGameObject(*m_caster, m_originalCasterGUID);
             if (!caster)
                 caster = m_caster;
@@ -1838,9 +1873,11 @@ void Spell::SetTargetMap(uint32 i,uint32 cur,UnitList& TagUnitMap)
                 }
                 else
                 {
-                    Unit* pUnitTarget = SelectMagnetTarget();
-                    if(pUnitTarget)
+                    if(Unit* pUnitTarget = m_caster->SelectMagnetTarget(m_targets.getUnitTarget(), m_spellInfo))
+                    {
+                        m_targets.setUnitTarget(pUnitTarget);
                         TagUnitMap.push_back(pUnitTarget);
+                    }
                 }
             }
         }break;
@@ -1872,9 +1909,11 @@ void Spell::SetTargetMap(uint32 i,uint32 cur,UnitList& TagUnitMap)
         }break;
         case TARGET_SINGLE_ENEMY:
         {
-            Unit* pUnitTarget = SelectMagnetTarget();
-            if(pUnitTarget)
+            if(Unit* pUnitTarget = m_caster->SelectMagnetTarget(m_targets.getUnitTarget(), m_spellInfo))
+            {
+                m_targets.setUnitTarget(pUnitTarget);
                 TagUnitMap.push_back(pUnitTarget);
+            }
         }break;
         case TARGET_AREAEFFECT_PARTY:
         {
@@ -2057,17 +2096,8 @@ void Spell::SetTargetMap(uint32 i,uint32 cur,UnitList& TagUnitMap)
             {
                 if (st->target_mapId == m_caster->GetMapId())
                     m_targets.setDestination(st->target_X, st->target_Y, st->target_Z);
-
-                // if B==TARGET_TABLE_X_Y_Z_COORDINATES then A already fill all required targets
-                if (m_spellInfo->EffectImplicitTargetB[i] && m_spellInfo->EffectImplicitTargetB[i]!=TARGET_TABLE_X_Y_Z_COORDINATES)
-                {
-                    SpellTargets targetB = SPELL_TARGETS_AOE_DAMAGE;
-                    // Select friendly targets for positive effect
-                    if (IsPositiveEffect(m_spellInfo->Id, i))
-                        targetB = SPELL_TARGETS_FRIENDLY;
-
-                    FillAreaTargets(TagUnitMap,m_caster->GetPositionX(), m_caster->GetPositionY(),radius, PUSH_DEST_CENTER, targetB);
-                }
+                else
+                    sLog.outError( "SPELL: wrong map (%u instead %u) target coordinates for spell ID %u", st->target_mapId, m_caster->GetMapId(), m_spellInfo->Id );
             }
             else
                 sLog.outError( "SPELL: unknown target coordinates for spell ID %u", m_spellInfo->Id );
@@ -5450,7 +5480,7 @@ bool Spell::CheckTarget( Unit* target, uint32 eff )
         default:                                            // normal case
             // Get GO cast coordinates if original caster -> GO
             WorldObject *caster = NULL;
-            if (m_originalCasterGUID)
+            if (IS_GAMEOBJECT_GUID(m_originalCasterGUID))
                 caster = ObjectAccessor::GetGameObject(*m_caster, m_originalCasterGUID);
             if (!caster)
                 caster = m_caster;
@@ -5460,34 +5490,6 @@ bool Spell::CheckTarget( Unit* target, uint32 eff )
     }
 
     return true;
-}
-
-Unit* Spell::SelectMagnetTarget()
-{
-    Unit* target = m_targets.getUnitTarget();
-
-    if(target && target->HasAuraType(SPELL_AURA_SPELL_MAGNET) && !(m_spellInfo->Attributes & 0x10))
-    {
-        Unit::AuraList const& magnetAuras = target->GetAurasByType(SPELL_AURA_SPELL_MAGNET);
-        for(Unit::AuraList::const_iterator itr = magnetAuras.begin(); itr != magnetAuras.end(); ++itr)
-        {
-            if(Unit* magnet = (*itr)->GetCaster())
-            {
-                if(magnet->IsWithinLOSInMap(m_caster))
-                {
-                    target = magnet;
-
-                    if( ((Creature*)magnet)->isTotem() && magnet->isAlive() )
-                        magnet->DealDamage(magnet, magnet->GetHealth(), NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);
-
-                    m_targets.setUnitTarget(target);
-                    break;
-                }
-            }
-        }
-    }
-
-    return target;
 }
 
 bool Spell::IsNeedSendToClient() const

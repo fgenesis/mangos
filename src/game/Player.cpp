@@ -12470,7 +12470,7 @@ void Player::RewardQuest( Quest const *pQuest, uint32 reward, Object* questGiver
     if (pQuest->GetZoneOrSort() > 0)
         GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_COMPLETE_QUESTS_IN_ZONE, pQuest->GetZoneOrSort());
     GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_COMPLETE_QUEST_COUNT);
-    GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_COMPLETE_QUEST);
+    GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_COMPLETE_QUEST, pQuest->GetQuestId());
 
     uint32 zone = 0;
     uint32 area = 0;
@@ -19615,7 +19615,7 @@ void Player::HandleFall(MovementInfo const& movementInfo)
     sLog.outDebug("zDiff = %f", z_diff);
 
     //Players with low fall distance, Feather Fall or physical immunity (charges used) are ignored
-    // 14.57 can be calculated by resolving damageperc formular below to 0
+    // 14.57 can be calculated by resolving damageperc formula below to 0
     if (z_diff >= 14.57f && !isDead() && !isGameMaster() &&
         !HasAuraType(SPELL_AURA_HOVER) && !HasAuraType(SPELL_AURA_FEATHER_FALL) &&
         !HasAuraType(SPELL_AURA_FLY) && !IsImmunedToDamage(SPELL_SCHOOL_MASK_NORMAL) )
