@@ -154,7 +154,7 @@ bool ChatHandler::HandleTargetAndDeleteObjectCommand(const char *args)
         return false;
     }
 
-    GameObject* obj = ObjectAccessor::Instance().GetGameObject(*m_session->GetPlayer(), MAKE_NEW_GUID(guid, id, HIGHGUID_GAMEOBJECT));
+    GameObject* obj = m_session->GetPlayer()->GetMap()->GetGameObject(MAKE_NEW_GUID(guid, id, HIGHGUID_GAMEOBJECT));
 
     if(!obj)
     {
@@ -553,7 +553,7 @@ bool ChatHandler::HandleBindObjectCommand(const char *args)
         return false;
     }
 
-    GameObject* obj = ObjectAccessor::Instance().GetGameObject(*m_session->GetPlayer(), MAKE_NEW_GUID(guid, id, HIGHGUID_GAMEOBJECT));
+    GameObject* obj = m_session->GetPlayer()->GetMap()->GetGameObject(MAKE_NEW_GUID(guid, id, HIGHGUID_GAMEOBJECT));
 
     if(!obj)
     {
