@@ -1431,8 +1431,7 @@ void Aura::TriggerSpell()
                     case 23493:
                     {
                         int32 heal = caster->GetMaxHealth() / 10;
-                        caster->ModifyHealth( heal );
-                        caster->SendHealSpellLog(caster, 23493, heal);
+                        caster->DealHeal(caster, heal, auraSpellInfo);
 
                         int32 mana = caster->GetMaxPower(POWER_MANA);
                         if (mana)
@@ -3457,7 +3456,7 @@ void Aura::HandleAuraModStun(bool apply, bool Real)
         {
             GameObject* pObj = new GameObject;
             if(pObj->Create(objmgr.GenerateLowGuid(HIGHGUID_GAMEOBJECT), 185584, m_target->GetMap(), m_target->GetPhaseMask(),
-                m_target->GetPositionX(), m_target->GetPositionY(), m_target->GetPositionZ(), m_target->GetOrientation(), 0.0f, 0.0f, 0.0f, 0.0f, 100, 1))
+                m_target->GetPositionX(), m_target->GetPositionY(), m_target->GetPositionZ(), m_target->GetOrientation(), 0.0f, 0.0f, 0.0f, 0.0f, 100, GO_STATE_READY))
             {
                 pObj->SetRespawnTime(GetAuraDuration()/IN_MILISECONDS);
                 pObj->SetSpellId(GetId());
@@ -5953,10 +5952,8 @@ void Aura::PeriodicTick()
 
             uint32 heal = pCaster->SpellHealingBonus(pCaster, spellProto, uint32(new_damage * multiplier), DOT, stackAmount);
 
-            int32 gain = pCaster->ModifyHealth(heal);
+            int32 gain = pCaster->DealHeal(pCaster, heal, spellProto);
             pCaster->getHostilRefManager().threatAssist(pCaster, gain * 0.5f, spellProto);
-
-            pCaster->SendHealSpellLog(pCaster, spellProto->Id, heal);
             break;
         }
         case SPELL_AURA_PERIODIC_HEAL:

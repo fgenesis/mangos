@@ -419,7 +419,7 @@ struct AchievementCriteriaEntry
         {
             uint32  skillLine;                              // 3
             uint32  spellCount;                             // 4
-        } learn_skilline_spell;
+        } learn_skillline_spell;
 
         // ACHIEVEMENT_CRITERIA_TYPE_WIN_DUEL               = 76
         struct
@@ -509,7 +509,8 @@ struct AreaTableEntry
 struct AreaGroupEntry
 {
     uint32  AreaGroupId;                                    // 0
-    uint32  AreaId[7];                                      // 1-7
+    uint32  AreaId[6];                                      // 1-6
+    uint32  nextGroup;                                      // 7 index of next group
 };
 
 struct AreaTriggerEntry

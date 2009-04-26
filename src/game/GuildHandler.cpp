@@ -801,7 +801,7 @@ void WorldSession::HandleGuildSaveEmblemOpcode(WorldPacket& recvPacket)
 
     recvPacket >> vendorGuid;
 
-    Creature *pCreature = ObjectAccessor::GetNPCIfCanInteractWith(*_player, vendorGuid,UNIT_NPC_FLAG_TABARDDESIGNER);
+    Creature *pCreature = GetPlayer()->GetNPCIfCanInteractWith(vendorGuid,UNIT_NPC_FLAG_TABARDDESIGNER);
     if (!pCreature)
     {
         //"That's not an emblem vendor!"
@@ -924,7 +924,7 @@ void WorldSession::HandleGuildBankQuery( WorldPacket & recv_data )
     uint8  unk;
     recv_data >> GoGuid >> unk;
 
-    if (!objmgr.IsGameObjectOfTypeInRange(_player, GoGuid, GAMEOBJECT_TYPE_GUILD_BANK))
+    if (!GetPlayer()->GetGameObjectIfCanInteractWith(GoGuid, GAMEOBJECT_TYPE_GUILD_BANK))
         return;
 
     if (uint32 GuildId = GetPlayer()->GetGuildId())
@@ -948,7 +948,7 @@ void WorldSession::HandleGuildBankTabColon( WorldPacket & recv_data )
     uint8 TabId,unk1;
     recv_data >> GoGuid >> TabId >> unk1;
 
-    if (!objmgr.IsGameObjectOfTypeInRange(_player, GoGuid, GAMEOBJECT_TYPE_GUILD_BANK))
+    if (!GetPlayer()->GetGameObjectIfCanInteractWith(GoGuid, GAMEOBJECT_TYPE_GUILD_BANK))
         return;
 
     uint32 GuildId = GetPlayer()->GetGuildId();
@@ -977,7 +977,7 @@ void WorldSession::HandleGuildBankDeposit( WorldPacket & recv_data )
     if (!money)
         return;
 
-    if (!objmgr.IsGameObjectOfTypeInRange(_player, GoGuid, GAMEOBJECT_TYPE_GUILD_BANK))
+    if (!GetPlayer()->GetGameObjectIfCanInteractWith(GoGuid, GAMEOBJECT_TYPE_GUILD_BANK))
         return;
 
     uint32 GuildId = GetPlayer()->GetGuildId();
@@ -1025,7 +1025,7 @@ void WorldSession::HandleGuildBankWithdraw( WorldPacket & recv_data )
     if (!money)
         return;
 
-    if (!objmgr.IsGameObjectOfTypeInRange(_player, GoGuid, GAMEOBJECT_TYPE_GUILD_BANK))
+    if (!GetPlayer()->GetGameObjectIfCanInteractWith(GoGuid, GAMEOBJECT_TYPE_GUILD_BANK))
         return;
 
     uint32 GuildId = GetPlayer()->GetGuildId();
@@ -1126,7 +1126,7 @@ void WorldSession::HandleGuildBankDepositItem( WorldPacket & recv_data )
             return;
     }
 
-    if (!objmgr.IsGameObjectOfTypeInRange(_player, GoGuid, GAMEOBJECT_TYPE_GUILD_BANK))
+    if (!GetPlayer()->GetGameObjectIfCanInteractWith(GoGuid, GAMEOBJECT_TYPE_GUILD_BANK))
         return;
 
     uint32 GuildId = GetPlayer()->GetGuildId();
@@ -1581,7 +1581,7 @@ void WorldSession::HandleGuildBankBuyTab( WorldPacket & recv_data )
     recv_data >> GoGuid;
     recv_data >> TabId;
 
-    if (!objmgr.IsGameObjectOfTypeInRange(_player, GoGuid, GAMEOBJECT_TYPE_GUILD_BANK))
+    if (!GetPlayer()->GetGameObjectIfCanInteractWith(GoGuid, GAMEOBJECT_TYPE_GUILD_BANK))
         return;
 
     uint32 GuildId = GetPlayer()->GetGuildId();
@@ -1638,7 +1638,7 @@ void WorldSession::HandleGuildBankModifyTab( WorldPacket & recv_data )
     if(IconIndex.empty())
         return;
 
-    if (!objmgr.IsGameObjectOfTypeInRange(_player, GoGuid, GAMEOBJECT_TYPE_GUILD_BANK))
+    if (!GetPlayer()->GetGameObjectIfCanInteractWith(GoGuid, GAMEOBJECT_TYPE_GUILD_BANK))
         return;
 
     uint32 GuildId = GetPlayer()->GetGuildId();
