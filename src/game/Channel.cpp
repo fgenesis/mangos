@@ -177,7 +177,7 @@ void Channel::Leave(uint64 p, bool send)
 
 void Channel::KickOrBan(uint64 good, const char *badname, bool ban)
 {
-    uint32 sec = 0;
+    AccountTypes sec = SEC_PLAYER;
     Player *gplr = objmgr.GetPlayer(good);
     if(gplr)
         sec = gplr->GetSession()->GetSecurity();
@@ -461,7 +461,7 @@ void Channel::List(Player* player)
         bool gmInWhoList = sWorld.getConfig(CONFIG_GM_IN_WHO_LIST) || player->GetSession()->GetSecurity() > SEC_PLAYER;
 
         uint32 count  = 0;
-        for(PlayerList::iterator i = players.begin(); i != players.end(); ++i)
+        for(PlayerList::const_iterator i = players.begin(); i != players.end(); ++i)
         {
             Player *plr = objmgr.GetPlayer(i->first);
 
@@ -678,7 +678,7 @@ void Channel::SetOwner(uint64 guid, bool exclaim)
 
 void Channel::SendToAll(WorldPacket *data, uint64 p)
 {
-    for(PlayerList::iterator i = players.begin(); i != players.end(); ++i)
+    for(PlayerList::const_iterator i = players.begin(); i != players.end(); ++i)
     {
         Player *plr = objmgr.GetPlayer(i->first);
         if(plr)
@@ -691,7 +691,7 @@ void Channel::SendToAll(WorldPacket *data, uint64 p)
 
 void Channel::SendToAllButOne(WorldPacket *data, uint64 who)
 {
-    for(PlayerList::iterator i = players.begin(); i != players.end(); ++i)
+    for(PlayerList::const_iterator i = players.begin(); i != players.end(); ++i)
     {
         if(i->first != who)
         {
