@@ -208,8 +208,6 @@ void WorldSession::HandleGroupAcceptOpcode( WorldPacket & /*recv_data*/ )
     if(!group->AddMember(GetPlayer()->GetGUID(), GetPlayer()->GetName()))
         return;
 
-    uint8 subgroup = group->GetMemberGroup(GetPlayer()->GetGUID());
-
     // FG: part of blue group fix
     group->BroadcastGroupUpdate();
 }

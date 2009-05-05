@@ -125,14 +125,6 @@ ObjectMgr::ObjectMgr()
     m_arenaTeamId       = 1;
     m_auctionid         = 1;
 
-    mGuildBankTabPrice.resize(GUILD_BANK_MAX_TABS);
-    mGuildBankTabPrice[0] = 100;
-    mGuildBankTabPrice[1] = 250;
-    mGuildBankTabPrice[2] = 500;
-    mGuildBankTabPrice[3] = 1000;
-    mGuildBankTabPrice[4] = 2500;
-    mGuildBankTabPrice[5] = 5000;
-
     // Only zero condition left, others will be added while loading DB tables
     mConditions.resize(1);
 }
@@ -4854,8 +4846,10 @@ WorldSafeLocsEntry const *ObjectMgr::GetClosestGraveYard(float x, float y, float
         if(MapId != entry->map_id)
         {
             // if find graveyard at different map from where entrance placed (or no entrance data), use any first
-            if (!mapEntry || mapEntry->entrance_map < 0 || mapEntry->entrance_map != entry->map_id ||
-                mapEntry->entrance_x == 0 && mapEntry->entrance_y == 0)
+            if (!mapEntry ||
+                 mapEntry->entrance_map < 0 ||
+                 mapEntry->entrance_map != entry->map_id ||
+                (mapEntry->entrance_x == 0 && mapEntry->entrance_y == 0))
             {
                 // not have any corrdinates for check distance anyway
                 entryFar = entry;
@@ -5922,6 +5916,76 @@ void ObjectMgr::LoadPointsOfInterest()
     sLog.outString(">> Loaded %u Points of Interest definitions", count);
 }
 
+void ObjectMgr::LoadNPCSpellClickSpells()
+{
+    uint32 count = 0;
+
+    mSpellClickInfoMap.clear();
+
+    QueryResult *result = WorldDatabase.Query("SELECT npc_entry, spell_id, quest_id, cast_flags FROM npc_spellclick_spells");
+
+    if(!result)
+    {
+        barGoLink bar(1);
+
+        bar.step();
+
+        sLog.outString();
+        sLog.outErrorDb(">> Loaded 0 spellclick spells. DB table `npc_spellclick_spells` is empty.");
+        return;
+    }
+
+    barGoLink bar(result->GetRowCount());
+
+    do
+    {
+        Field *fields = result->Fetch();
+        bar.step();
+
+        uint32 npc_entry = fields[0].GetUInt32();
+        CreatureInfo const* cInfo = GetCreatureTemplate(npc_entry);
+        if (!cInfo)
+        {
+            sLog.outErrorDb("Table npc_spellclick_spells references unknown creature_template %u. Skipping entry.", npc_entry);
+            continue;
+        }
+
+        uint32 spellid = fields[1].GetUInt32();
+        SpellEntry const *spellinfo = sSpellStore.LookupEntry(spellid);
+        if (!spellinfo)
+        {
+            sLog.outErrorDb("Table npc_spellclick_spells references unknown spellid %u. Skipping entry.", spellid);
+            continue;
+        }
+
+        uint32 quest = fields[2].GetUInt32();
+
+        // quest might be 0 to enable spellclick independent of any quest
+        if (quest)
+        {
+            if(mQuestTemplates.find(quest) == mQuestTemplates.end())
+            {
+                sLog.outErrorDb("Table npc_spellclick_spells references unknown quest %u. Skipping entry.", spellid);
+                continue;
+            }
+
+        }
+
+        uint8 castFlags = fields[3].GetUInt8();
+        SpellClickInfo info;
+        info.spellId = spellid;
+        info.questId = quest;
+        info.castFlags = castFlags;
+        mSpellClickInfoMap.insert(SpellClickInfoMap::value_type(npc_entry, info));
+        ++count;
+    } while (result->NextRow());
+
+    delete result;
+
+    sLog.outString();
+    sLog.outString(">> Loaded %u spellclick definitions", count);
+}
+
 void ObjectMgr::LoadWeatherZoneChances()
 {
     uint32 count = 0;
@@ -6822,6 +6886,8 @@ bool PlayerCondition::IsValid(ConditionType condition, uint32 value1, uint32 val
             }
             break;
         }
+        case CONDITION_NONE:
+            break;
     }
     return true;
 }
