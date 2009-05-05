@@ -16,7 +16,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "Object.h"
 #include "Player.h"
 #include "BattleGround.h"
 #include "BattleGroundAV.h"
@@ -686,6 +685,7 @@ void BattleGroundAV::EventPlayerDestroyedPoint(BG_AV_Nodes node)
 
 void BattleGroundAV::ChangeMineOwner(uint8 mine, uint32 team)
 {
+    // TODO implement quest 7122
     // mine=0 northmine, mine=1 southmine
     // TODO changing the owner should result in setting respawntime to infinite for current creatures (they should fight the new ones), spawning new mine owners creatures and changing the chest - objects so that the current owning team can use them
     assert(mine == BG_AV_NORTH_MINE || mine == BG_AV_SOUTH_MINE);
@@ -923,6 +923,7 @@ void BattleGroundAV::EventPlayerDefendsPoint(Player* player)
 
 void BattleGroundAV::EventPlayerAssaultsPoint(Player* player)
 {
+    // TODO implement quest 7101, 7081
     BG_AV_Nodes node = GetNodeThroughPlayerPosition(player);
     if (node == BG_AV_NODES_ERROR)
         return;

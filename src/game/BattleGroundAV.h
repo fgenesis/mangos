@@ -639,4 +639,5 @@ class BattleGroundAV : public BattleGround
         uint32 m_RepSurviveCaptain;
         uint32 m_RepSurviveTower;
 };
+
 #endif
