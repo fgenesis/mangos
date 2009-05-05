@@ -85,8 +85,8 @@ bool ChatHandler::HandleMyinfoCommand(const char* args)
     CharacterDatabase.escape_string(msg);
 
     CharacterDatabase.BeginTransaction();
-    CharacterDatabase.PExecute("DELETE FROM character_myinfo WHERE guid='%u'",guid);
-    CharacterDatabase.PExecute("INSERT INTO character_myinfo VALUES ('%u',0,'%s')",guid,msg.c_str());
+    CharacterDatabase.PExecute("INSERT IGNORE INTO character_myinfo (guid) VALUES (%u)",guid);
+    CharacterDatabase.PExecute("UPDATE character_myinfo SET msg='%s' WHERE guid=%u", msg.c_str(), guid);
     CharacterDatabase.CommitTransaction();
     PSendSysMessage("Personal info message updated.");
     return true;
