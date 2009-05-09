@@ -3852,7 +3852,7 @@ void Spell::EffectEnchantItemPerm(uint32 effect_idx)
     if(!item_owner)
         return;
 
-    if(item_owner!=p_caster && p_caster->GetSession()->GetSecurity() > SEC_PLAYER && sWorld.getConfig(CONFIG_GM_LOG_TRADE) )
+    if(item_owner!=p_caster && p_caster->GetSession()->GetSecurity() >= SEC_MODERATOR && sWorld.getConfig(CONFIG_GM_LOG_TRADE) )
     {
         sLog.outCommand(p_caster->GetSession()->GetAccountId(),"GM %s (Account: %u) enchanting(perm): %s (Entry: %d) for player: %s (Account: %u)",
             p_caster->GetName(),p_caster->GetSession()->GetAccountId(),
@@ -3910,7 +3910,7 @@ void Spell::EffectEnchantItemPrismatic(uint32 effect_idx)
     if(!item_owner)
         return;
 
-    if(item_owner!=p_caster && p_caster->GetSession()->GetSecurity() > SEC_PLAYER && sWorld.getConfig(CONFIG_GM_LOG_TRADE) )
+    if(item_owner!=p_caster && p_caster->GetSession()->GetSecurity() >= SEC_MODERATOR && sWorld.getConfig(CONFIG_GM_LOG_TRADE) )
     {
         sLog.outCommand(p_caster->GetSession()->GetAccountId(),"GM %s (Account: %u) enchanting(perm): %s (Entry: %d) for player: %s (Account: %u)",
             p_caster->GetName(),p_caster->GetSession()->GetAccountId(),
@@ -4040,7 +4040,7 @@ void Spell::EffectEnchantItemTmp(uint32 i)
     if(!item_owner)
         return;
 
-    if(item_owner!=p_caster && p_caster->GetSession()->GetSecurity() > SEC_PLAYER && sWorld.getConfig(CONFIG_GM_LOG_TRADE) )
+    if(item_owner!=p_caster && p_caster->GetSession()->GetSecurity() > SEC_MODERATOR && sWorld.getConfig(CONFIG_GM_LOG_TRADE) )
     {
         sLog.outCommand(p_caster->GetSession()->GetAccountId(),"GM %s (Account: %u) enchanting(temp): %s (Entry: %d) for player: %s (Account: %u)",
             p_caster->GetName(),p_caster->GetSession()->GetAccountId(),

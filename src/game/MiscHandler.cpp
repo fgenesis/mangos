@@ -168,7 +168,7 @@ void WorldSession::HandleWhoOpcode( WorldPacket & recv_data )
                 continue;
 
             // player can see MODERATOR, GAME MASTER, ADMINISTRATOR only if CONFIG_GM_IN_WHO_LIST
-            if ((itr->second->GetSession()->GetSecurity() > SEC_PLAYER && !gmInWhoList))
+            if ((itr->second->GetSession()->GetSecurity() >= SEC_MODERATOR && !gmInWhoList))
                 continue;
         }
 

@@ -866,14 +866,6 @@ bool Pet::InitStatsForLevel(uint32 petlevel, uint32 levelupspells_mode)
 
     uint32 creature_ID = (getPetType() == HUNTER_PET) ? 1 : cinfo->Entry;
 
-    if(mode == 2)
-    {
-        // when crash, use mode 2
-        // WARLOCK
-        learnLevelupSpellsWarlock();
-        return true;
-    }
-
     SetLevel(petlevel);
 
     SetMeleeDamageSchool(SpellSchools(cinfo->dmgschool));

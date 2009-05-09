@@ -603,7 +603,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder * holder)
     if(resultmyinfo)
     {
         Field *fieldmyinfo = resultmyinfo->Fetch();
-        myinf = fieldmyinfo[0].GetString();
+        myinf = fieldmyinfo[0].GetCppString();
         pCurrChar->SetMyinfoForbidden(fieldmyinfo[1].GetBool());
         delete resultmyinfo;
     }
@@ -1048,7 +1048,7 @@ void WorldSession::HandleChangePlayerNameOpcode(WorldPacket& recv_data)
     }
 
     // check name limitations
-    if(GetSecurity() == SEC_PLAYER && objmgr.IsReservedName(newname))
+    if(GetSecurity() < SEC_MODERATOR && objmgr.IsReservedName(newname))
     {
         WorldPacket data(SMSG_CHAR_RENAME, 1);
         data << uint8(CHAR_NAME_RESERVED);
@@ -1320,7 +1320,7 @@ void WorldSession::HandleCharCustomize(WorldPacket& recv_data)
     }
 
     // check name limitations
-    if(GetSecurity() == SEC_PLAYER && objmgr.IsReservedName(newname))
+    if(GetSecurity() < SEC_MODERATOR && objmgr.IsReservedName(newname))
     {
         WorldPacket data(SMSG_CHAR_CUSTOMIZE, 1);
         data << uint8(CHAR_NAME_RESERVED);

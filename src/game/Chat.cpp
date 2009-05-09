@@ -768,7 +768,7 @@ bool ChatHandler::HasLowerSecurityAccount(WorldSession* target, uint32 target_ac
         return false;
 
     // ignore only for non-players for non strong checks (when allow apply command at least to same sec level)
-    if (m_session->GetSecurity() > SEC_PLAYER && !strong && !sWorld.getConfig(CONFIG_GM_LOWER_SECURITY))
+    if (m_session->GetSecurity() >= SEC_MODERATOR && !strong && !sWorld.getConfig(CONFIG_GM_LOWER_SECURITY))
         return false;
 
     if (target)
@@ -916,7 +916,7 @@ bool ChatHandler::ExecuteCommandInTable(ChatCommand *table, const char* text, co
         // table[i].Name == "" is special case: send original command to handler
         if((this->*(table[i].Handler))(strlen(table[i].Name)!=0 ? text : oldtext))
         {
-            if(table[i].SecurityLevel > SEC_PLAYER)
+            if(table[i].SecurityLevel >= SEC_MODERATOR)
             {
                 // chat case
                 if(m_session)

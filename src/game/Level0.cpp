@@ -159,7 +159,7 @@ bool ChatHandler::HandleGMListIngameCommand(const char* /*args*/)
     HashMapHolder<Player>::MapType::const_iterator itr = m.begin();
     for(; itr != m.end(); ++itr)
     {
-        if (itr->second->GetSession()->GetSecurity() > SEC_PLAYER &&
+        if (itr->second->GetSession()->GetSecurity() >= SEC_MODERATOR &&
             (itr->second->isGameMaster() || sWorld.getConfig(CONFIG_GM_IN_GM_LIST)) &&
             (!m_session || itr->second->IsVisibleGloballyFor(m_session->GetPlayer())) )
         {
