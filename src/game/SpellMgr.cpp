@@ -2130,74 +2130,13 @@ void SpellMgr::LoadSpellPetAuras()
     sLog.outString( ">> Loaded %u spell pet auras", count );
 }
 
-uint32* SpellMgr::LoadPetLevelupSpellMapWarlockInit(uint32 *pet_spell_db_count)
-{
-    uint32 *pet_spell_data = NULL;
-    *pet_spell_db_count = 0;
-
-    //                                                 0      1
-    QueryResult *result = WorldDatabase.PQuery("SELECT entry, spell FROM pet_levelspell");
-
-    if(!result)
-    {
-        sLog.outErrorDb(">> Loaded 0 pet dblevel spell. DB table `pet_levelspell` is empty.");
-        return(NULL);
-    }
-    else
-    {
-        *pet_spell_db_count = result->GetRowCount();
-        uint32 pet_spell_count = 0;
-
-        if(*pet_spell_db_count)
-        {
-            if ((pet_spell_data = (uint32 *) malloc(*pet_spell_db_count * sizeof(uint32) * 2)) == NULL) {
-                sLog.outErrorDb(">> Loaded 0 pet dblevel spell. DB table `pet_levelspell` allocate memory error.");
-                *pet_spell_db_count = 0;
-                return(NULL);
-            }
-        }
-        else {
-            sLog.outErrorDb(">> Loaded 0 pet dblevel spell. DB table `pet_levelspell` count is zero.");
-            return(NULL);
-        }
-
-        do {
-            Field *fields = result->Fetch();
-
-            pet_spell_data[(pet_spell_count*2)+0] = fields[0].GetUInt32();
-            pet_spell_data[(pet_spell_count*2)+1] = fields[1].GetUInt32();
-
-            pet_spell_count++;
-
-            if(pet_spell_count >= *pet_spell_db_count)
-            {
-                break;
-            }
-        }
-        while ( result->NextRow() );
-
-        delete result;
-
-        sLog.outString();
-        sLog.outString( ">> Loaded %u pet dblevel spell", pet_spell_count );
-
-    }
-
-    return(pet_spell_data);
-
-}
-
-void SpellMgr::LoadPetLevelupSpellMapWarlock()
+void SpellMgr::LoadWarlockPetLevelupSpellMap()
 {
     CreatureFamilyEntry const *creatureFamily;
     SpellEntry const *spell;
     uint32 count = 0;
 
-    uint32 *warlock_pet_spell_data = NULL;
-    uint32 warlock_pet_spell_count = 0;
-
-    // Load Pet Spell Warlock From DB
-    warlock_pet_spell_data = LoadPetLevelupSpellMapWarlockInit(&warlock_pet_spell_count);
+    int loc = sWorld.GetDefaultDbcLocale();
 
     for (uint32 i = 0; i < sCreatureFamilyStore.GetNumRows(); ++i)
     {
@@ -2206,28 +2145,19 @@ void SpellMgr::LoadPetLevelupSpellMapWarlock()
         if(!creatureFamily)                                 // not exist
             continue;
 
-        bool warlock_pet_spell_true = false;
-        if(warlock_pet_spell_count)
-        {
-            //WARLOCK
-            switch (creatureFamily->ID) {
-                case CREATURE_FAMILY_IMP:
-                case CREATURE_FAMILY_VOIDWALKER:
-                case CREATURE_FAMILY_SUCCUBUS:
-                case CREATURE_FAMILY_FELHUNTER:
-                case CREATURE_FAMILY_FELGUARD:
-                    warlock_pet_spell_true = true;
-                    break;
-                default:
-                    warlock_pet_spell_true = false;
-                    break;
-            }
-        }
-
-        if(warlock_pet_spell_true == false)
-        {
+        //WARLOCK
+        switch (creatureFamily->ID) {
+            case CREATURE_FAMILY_IMP:
+            case CREATURE_FAMILY_VOIDWALKER:
+            case CREATURE_FAMILY_SUCCUBUS:
+            case CREATURE_FAMILY_FELHUNTER:
+            case CREATURE_FAMILY_FELGUARD:
+                break;
+            default:
                 continue;
         }
+
+        SpellEntry const *first_spell = NULL;
 
         for(uint32 j = 0; j < sSpellStore.GetNumRows(); ++j)
         {
@@ -2237,21 +2167,104 @@ void SpellMgr::LoadPetLevelupSpellMapWarlock()
             if(!spell)
                 continue;
 
-            for(uint32 k = 0; k < warlock_pet_spell_count; k++)
-            {
-                if(creatureFamily->ID == warlock_pet_spell_data[(k*2)+0] && spell->Id == warlock_pet_spell_data[(k*2)+1])
-                {
-                    mPetLevelupSpellMap[creatureFamily->ID][spell->spellLevel + (k*0x10000)] = spell->Id;
-                    count++;
-                    break;
-                }
+            switch(creatureFamily->ID) {
+
+                case CREATURE_FAMILY_IMP:
+
+                    // Firebolt
+                    if(spell->SpellFamilyFlags == 0x00001000LL && spell->SpellIconID == 18 && spell->SpellVisual[0] == 67 && spell->EffectRealPointsPerLevel[0] != 0.0f) break;
+                    // Phase Shift
+                    else if(spell->SpellFamilyFlags == 0x00000000LL && spell->SpellIconID == 211 && spell->SpellVisual[0] == 72 && spell->EffectApplyAuraName[0] == 93) break;
+                    // Fire Shield
+                    else if(spell->SpellFamilyFlags == 0x00800000LL && spell->SpellIconID == 16 && spell->SpellVisual[0] == 289 && spell->AttributesEx == 0x80000) break;
+                    // Blood Pact
+                    else if(spell->SpellFamilyFlags == 0x00800000LL && spell->SpellIconID == 541 && spell->SpellVisual[0] == 799 && spell->EffectApplyAuraName[0] == 230) break;
+
+                    continue;
+
+                case CREATURE_FAMILY_VOIDWALKER:
+
+                    // Torment
+                    if(spell->SpellFamilyFlags == 0x02000000LL && spell->SpellIconID == 173 && spell->SpellVisual[0] == 71) {
+
+                        // first spell save
+                        if(!first_spell) first_spell = sSpellStore.LookupEntry(j);
+
+                        // 1st = Torment 2nd = Anguish
+                        if(strcmp((const char *)spell->SpellName[loc] ,(const char *)first_spell->SpellName[loc]))
+                            continue;
+
+                        break;
+                    }
+                    // Sacrifice
+                    else if(spell->SpellFamilyFlags == 0x02000000LL && spell->SpellIconID == 693 && spell->SpellVisual[0] == 154) break;
+                    // Consume Shadows
+                    else if(spell->SpellFamilyFlags == 0x02000000LL && spell->SpellIconID == 207 && spell->SpellVisual[0] == 4779 && spell->AttributesEx == 0x20040) break;
+                    // Suffering
+                    else if(spell->SpellFamilyFlags == 0x02000000LL && spell->SpellIconID == 9 && spell->SpellVisual[0] == 71) break;
+
+                    continue;
+
+                case CREATURE_FAMILY_SUCCUBUS:
+
+                    // Seduction
+                    if(spell->SpellFamilyFlags == 0x1000000040000000LL && spell->SpellIconID == 48 && spell->SpellVisual[0] == 2576) break;
+                    // Lesser Invisibility
+                    else if(spell->SpellFamilyFlags == 0x40000000LL && spell->SpellIconID == 331 && spell->SpellVisual[0] == 72) break;
+                    // Lash of Pain
+                    else if(spell->SpellFamilyFlags == 0x00002000LL && spell->SpellIconID == 596 && spell->SpellVisual[0] == 792) break;
+                    // Soothing Kiss
+                    else if(spell->SpellFamilyFlags == 0x40000000LL && spell->SpellIconID == 694 && spell->SpellVisual[0] == 2577) break;
+
+                    continue;
+
+                case CREATURE_FAMILY_FELHUNTER:
+
+                    // Spell Lock
+                    if(spell->SpellFamilyFlags == 0x00000000LL && spell->SpellIconID == 77 && spell->SpellVisual[0] == 5282) break;
+                    // Devour Magic
+                    else if(spell->SpellFamilyFlags == 0x00000000LL && spell->SpellIconID == 47 && spell->SpellVisual[0] == 970 && spell->Attributes == 0x10000) break;
+                    // Fel Intelligence
+                    else if(spell->SpellFamilyFlags == 0x200000000000000LL && spell->SpellIconID == 1940 && spell->SpellVisual[0] == 799) break;
+                    // Shadow Bite
+                    else if(spell->SpellFamilyFlags == 0x40000000000000LL && spell->SpellIconID == 2027 && spell->SpellVisual[0] == 11837) break;
+
+                    continue;
+
+                case CREATURE_FAMILY_FELGUARD:
+
+                    // Anguish
+                    if(spell->SpellFamilyFlags == 0x02000000LL && spell->SpellIconID == 173 && spell->SpellVisual[0] == 71) {
+
+                        // first spell save
+                        if(!first_spell) first_spell = sSpellStore.LookupEntry(j);
+
+                        // 1st = Torment 2nd = Anguish
+                        if(!strcmp((const char *)spell->SpellName[loc] ,(const char *)first_spell->SpellName[loc]))
+                            continue;
+
+                        break;
+                    }
+                    // Cleave
+                    else if(spell->SpellFamilyFlags == 0x00400000LL && spell->SpellIconID == 277 && spell->SpellVisual[0] == 219 && spell->Attributes == 0x50010) break;
+                    // Intercept
+                    else if(spell->SpellFamilyFlags == 0x00000000LL && spell->SpellIconID == 516 && spell->SpellVisual[0] == 29 && spell->AttributesEx == 0x600) break;
+
+                    continue;
+
+                default:
+                    continue;
             }
 
-        }
-    }
+            WarlockPetLevelupSpellSet node;
 
-    if(warlock_pet_spell_data != NULL) {
-        free(warlock_pet_spell_data);
+            node.level = spell->spellLevel;
+            node.spell = spell->Id;
+            mWarlockPetLevelupSpellMap.insert(WarlockPetLevelupSpellMap::value_type(creatureFamily->ID,node));
+
+            count++;
+
+        }
     }
 
     sLog.outString();

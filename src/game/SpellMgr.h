@@ -562,6 +562,14 @@ typedef std::multimap<uint32, SkillLineAbilityEntry const*> SkillLineAbilityMap;
 typedef std::map<uint32, uint32> PetLevelupSpellSet;
 typedef std::map<uint32, PetLevelupSpellSet> PetLevelupSpellMap;
 
+struct WarlockPetLevelupSpellSet
+{
+    uint32 level;
+    uint32 spell;
+};
+
+typedef std::multimap<uint32, WarlockPetLevelupSpellSet> WarlockPetLevelupSpellMap;
+
 inline bool IsPrimaryProfessionSkill(uint32 skill)
 {
     SkillLineEntry const *pSkill = sSkillLineStore.LookupEntry(skill);
@@ -812,6 +820,16 @@ class SpellMgr
                 return NULL;
         }
 
+        WarlockPetLevelupSpellMap::const_iterator GetWarlockBeginLevelupSpellList(uint32 petFamily) const
+        {
+            return mWarlockPetLevelupSpellMap.lower_bound(petFamily);
+        }
+
+        WarlockPetLevelupSpellMap::const_iterator GetWarlockEndLevelupSpellList(uint32 petFamily) const
+        {
+            return mWarlockPetLevelupSpellMap.upper_bound(petFamily);
+        }
+
         SpellCastResult GetSpellAllowedInLocationError(SpellEntry const *spellInfo, uint32 map_id, uint32 zone_id, uint32 area_id, Player const* player = NULL);
 
         SpellAreaMapBounds GetSpellAreaMapBounds(uint32 spell_id) const
@@ -859,8 +877,7 @@ class SpellMgr
         void LoadSpellThreats();
         void LoadSkillLineAbilityMap();
         void LoadSpellPetAuras();
-        uint32* LoadPetLevelupSpellMapWarlockInit(uint32 *pet_spell_db_count);
-        void LoadPetLevelupSpellMapWarlock();
+        void LoadWarlockPetLevelupSpellMap();
         void LoadPetLevelupSpellMap();
         void LoadSpellAreas();
 
@@ -878,6 +895,7 @@ class SpellMgr
         SkillLineAbilityMap mSkillLineAbilityMap;
         SpellPetAuraMap     mSpellPetAuraMap;
         PetLevelupSpellMap  mPetLevelupSpellMap;
+        WarlockPetLevelupSpellMap  mWarlockPetLevelupSpellMap;
         SpellAreaMap         mSpellAreaMap;
         SpellAreaForQuestMap mSpellAreaForQuestMap;
         SpellAreaForQuestMap mSpellAreaForActiveQuestMap;

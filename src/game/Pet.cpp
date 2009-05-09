@@ -229,8 +229,9 @@ bool Pet::LoadPetFromDB( Player* owner, uint32 petentry, uint32 petnumber, bool 
             sLog.outError("Pet have incorrect type (%u) for pet loading.", getPetType());
     }
 
-    if(petlevelchange == true) {
+    if(owner->getClass() == CLASS_WARLOCK) {
         // if player level up without pet, when player summon a pet, pet auto level up. (only warlock)
+        // skip learnWarlockLevelupSpells routine in InitStatsForLevel - by set levelupspells_mode 1
         InitStatsForLevel(petlevel, 1);
     }
     else {
@@ -373,6 +374,11 @@ bool Pet::LoadPetFromDB( Player* owner, uint32 petentry, uint32 petnumber, bool 
                 m_declinedname->name[i] = fields2[i].GetCppString();
             }
         }
+    }
+
+    if(owner->getClass() == CLASS_WARLOCK) {
+        //if player level up to high level without pet, when player summon a pet, pet auto level up. (only warlock)
+        learnWarlockLevelupSpells();
     }
 
     m_loading = false;
@@ -846,7 +852,7 @@ bool Pet::CreateBaseAtCreature(Creature* creature)
     return true;
 }
 
-bool Pet::InitStatsForLevel(uint32 petlevel, uint32 mode)
+bool Pet::InitStatsForLevel(uint32 petlevel, uint32 levelupspells_mode)
 {
     CreatureInfo const *cinfo = GetCreatureInfo();
     assert(cinfo);
@@ -923,10 +929,13 @@ bool Pet::InitStatsForLevel(uint32 petlevel, uint32 mode)
                         uint32 shadow = owner->GetUInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS + SPELL_SCHOOL_SHADOW);
                         uint32 val  = (fire > shadow) ? fire : shadow;
 
-                        if(mode == 0)
+                        if(levelupspells_mode == 0)
                         {
                             // WARLOCK
-                            learnLevelupSpellsWarlock();
+                            // LoadPetFromDB and EffectSummonPet skip this routine.
+                            // because the spells is init after learnWarlockLevelupSpells by _LoadSpells or InitPetCreateSpells.
+                            // so learnWarlockLevelupSpells must perporm after pet spawned.
+                            learnWarlockLevelupSpells();
                         }
 
                         SetBonusDamage(int32 (val * 0.15f));
@@ -1473,110 +1482,88 @@ void Pet::learnLevelupSpells()
     }
 }
 
-void Pet::learnLevelupSpellsWarlock()
+bool Pet::CheckAutocast(uint32 spell_id)
+{
+    SpellEntry const *spellInfo = sSpellStore.LookupEntry(spell_id);
+    if (!spellInfo) return true;
+
+    // Voidwalker Sacrifice check (don't auto cast)
+    if(spellInfo->SpellFamilyFlags != 0x02000000LL || spellInfo->SpellIconID != 693 || spellInfo->SpellVisual[0] != 154) return true;
+
+    return false;
+}
+
+void Pet::learnWarlockLevelupSpells()
 {
     Unit* owner = GetOwner();
-    if(!owner)
-    {
-        return;
-    }
+    if(!owner) return;
 
-    if(owner->GetTypeId() != TYPEID_PLAYER)
-    {
-        return;
-    }
-
-    if(owner->getClass() != CLASS_WARLOCK)
-    {
-            return;
-    }
-
-    if(getPetType() != SUMMON_PET)
-    {
-            return;
-    }
-
-    PetLevelupSpellSet const *levelupSpells = spellmgr.GetPetLevelupSpellList(GetCreatureInfo()->family);
-    if(!levelupSpells)
-        return;
+    if(owner->GetTypeId() != TYPEID_PLAYER || owner->getClass() != CLASS_WARLOCK || getPetType() != SUMMON_PET) return;
 
     uint32 level = getLevel();
 
-    for(PetLevelupSpellSet::const_iterator itr = levelupSpells->begin(); itr != levelupSpells->end(); ++itr)
+    WarlockPetLevelupSpellMap::const_iterator spell_begin = spellmgr.GetWarlockBeginLevelupSpellList(GetCreatureInfo()->family);
+    WarlockPetLevelupSpellMap::const_iterator spell_end   = spellmgr.GetWarlockEndLevelupSpellList(GetCreatureInfo()->family);
+
+    for(WarlockPetLevelupSpellMap::const_iterator itr = spell_begin; itr != spell_end; ++itr)
     {
-        if((itr->first & 0xffff) <= level) {
+        if(itr->second.level <= level) {
 
-            if(existAddSpell(itr->second) == true) {
+            // Temporary check, this spell is the status to add ?
+            if(IsAddSpell(itr->second.spell) == true) {
 
-                if(existLowRankOfSpell(itr->second) == false)
+                // this spell is low rank or same rank of spell chain against now pet spell ?
+                if(IsLowOrEqualRankOfSpell(itr->second.spell) == false)
                 {
-                    learnSpell(itr->second);
+                    bool exist_levelspellhigh = false;
+                    WarlockPetLevelupSpellMap::const_iterator cmpitr = itr;
+
+                    for(++cmpitr ; cmpitr != spell_end; ++cmpitr) {
+                        if(cmpitr->second.level <= level) {
+                            if(spellmgr.IsHighRankOfSpell(cmpitr->second.spell,itr->second.spell)) {
+                                exist_levelspellhigh = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    // if player level up , pet auto level up only one highest rank of spell.
+                    if(exist_levelspellhigh == false) learnSpell(itr->second.spell);
                 }
             }
         }
         else {
-            if(existDeleteSpell(itr->second) == true) {
-                unlearnSpell(itr->second);
-            }
+            // delete spell
+            unlearnSpell(itr->second.spell);
         }
     }
 
 }
 
-bool Pet::existLowRankOfSpell(uint32 spell_id)
+bool Pet::IsLowOrEqualRankOfSpell(uint32 spell_id)
 {
-    uint32 levelspelllow = 0;
-
-    for (PetSpellMap::const_iterator sitr = m_spells.begin(), next = m_spells.begin(); sitr != m_spells.end(); sitr = next) {
-        ++next;
-        if(sitr->first == spell_id) {
-            levelspelllow = 1;
-            break;
-        }
-        else if(spellmgr.IsHighRankOfSpell(sitr->first,spell_id)) {
-            levelspelllow = 1;
-            break;
-        }
+    for (PetSpellMap::const_iterator itr = m_spells.begin(); itr != m_spells.end(); ++itr) {
+        if(itr->first == spell_id) return true;
+        else if(spellmgr.IsHighRankOfSpell(itr->first,spell_id)) return true;
     }
 
-    if(levelspelllow)
-    {
-        return(true);
-    }
-
-    return(false);
+    return false;
 }
 
-bool Pet::existAddSpell(uint32 spell_id)
+bool Pet::IsAddSpell(uint32 spell_id)
 {
     SpellEntry const *spellInfo = sSpellStore.LookupEntry(spell_id);
     if (!spellInfo)
     {
-        sLog.outError("Pet::existAddSpell: Non-existed in SpellStore spell #%u request.",spell_id);
+        sLog.outError("Pet::IsAddSpell: Non-existed in SpellStore spell #%u request.",spell_id);
         return false;
     }
 
     PetSpellMap::iterator itr = m_spells.find(spell_id);
     if (itr != m_spells.end())
     {
-        if (itr->second->state == PETSPELL_REMOVED)
-        {
-        }
-        else
-            return false;
+        if (itr->second->state != PETSPELL_REMOVED) return false;
     }
-
-    return true;
-}
-
-bool Pet::existDeleteSpell(uint32 spell_id)
-{
-    PetSpellMap::iterator itr = m_spells.find(spell_id);
-    if (itr == m_spells.end())
-        return false;
-
-    if(itr->second->state == PETSPELL_REMOVED)
-        return false;
 
     return true;
 }
@@ -1848,20 +1835,8 @@ void Pet::ToggleAutocast(uint32 spellid, bool apply)
     if(IsPassiveSpell(spellid))
         return;
 
-    // FG: HACKFIX: Sacrifice is not autocastable (- by DasBlub)
-    switch(spellid)
-    {
-        case 7812: // Sacrifice Rank 1
-        case 19438: // Sacrifice Rank 2
-        case 19440: // Sacrifice Rank 3
-        case 19441: // Sacrifice Rank 4
-        case 19442: // Sacrifice Rank 5
-        case 19443: // Sacrifice Rank 6
-        case 27273: // Sacrifice Rank 7
-        case 47985: // Sacrifice Rank 8
-        case 47986: // Sacrifice Rank 9
-        return;
-    }
+    // Warlock voidwalker don't auto cast sacrifice
+    if(CheckAutocast(spellid) == false) return;
 
     PetSpellMap::const_iterator itr = m_spells.find(spellid);
 
