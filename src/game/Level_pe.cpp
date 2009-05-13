@@ -727,3 +727,61 @@ bool ChatHandler::HandleBanInfo2AccountCommand(const char* args)
 {
     return HandleBanInfoHelper(m_session->GetAccountId(), "");
 }
+
+bool ChatHandler::HandleCharacterRemoveItemsCommand(const char *args)
+{
+    if(!args || !*args)
+    {
+        return false;
+    }
+
+    Player *pl = getSelectedPlayer();
+    uint64 guid = pl->GetGUID();
+
+    if(!stricmp(args,"all")) // remove all items except totems!!
+    {
+        if(sLog.IsOutCharDump())                                // optimize GetPlayerDump call
+        {
+            std::string dump = PlayerDumpWriter().GetDump(GUID_LOPART(guid));
+            sLog.outCharDump(dump.c_str(),m_session->GetAccountId(),GUID_LOPART(guid),pl->GetName());
+        }
+
+        // in inventory
+        for(int i = INVENTORY_SLOT_ITEM_START; i < INVENTORY_SLOT_ITEM_END; ++i)
+            if (Item* pItem = pl->GetItemByPos( INVENTORY_SLOT_BAG_0, i ))
+                if ( !pItem->IsBag() && !(pItem->GetProto()->Class == ITEM_CLASS_MISC && pItem->GetProto()->SubClass == ITEM_SUBCLASS_ARMOR_CLOTH && pItem->GetProto()->Flags & 32) )
+                    pl->DestroyItem( INVENTORY_SLOT_BAG_0, i, true);
+
+        for(int i = KEYRING_SLOT_START; i < QUESTBAG_SLOT_END; ++i)
+            if (Item* pItem = pl->GetItemByPos( INVENTORY_SLOT_BAG_0, i ))
+                if ( !pItem->IsBag() && !(pItem->GetProto()->Class == ITEM_CLASS_MISC && pItem->GetProto()->SubClass == ITEM_SUBCLASS_ARMOR_CLOTH && pItem->GetProto()->Flags & 32) )
+                    pl->DestroyItem( INVENTORY_SLOT_BAG_0, i, true);
+
+        // in inventory bags
+        for(int i = INVENTORY_SLOT_BAG_START; i < INVENTORY_SLOT_BAG_END; ++i)
+            if (Bag* pBag = (Bag*)pl->GetItemByPos( INVENTORY_SLOT_BAG_0, i ))
+                for(uint32 j = 0; j < pBag->GetBagSize(); ++j)
+                    if (Item* pItem = pBag->GetItemByPos(j))
+                        if ( !pItem->IsBag() && !(pItem->GetProto()->Class == ITEM_CLASS_MISC && pItem->GetProto()->SubClass == ITEM_SUBCLASS_ARMOR_CLOTH && pItem->GetProto()->Flags & 32) )
+                            pl->DestroyItem( i, j, true);
+
+        // in equipment and bag list
+        for(int i = EQUIPMENT_SLOT_START; i < INVENTORY_SLOT_BAG_END; ++i)
+            if (Item* pItem = pl->GetItemByPos( INVENTORY_SLOT_BAG_0, i ))
+                if ( !pItem->IsBag() && !(pItem->GetProto()->Class == ITEM_CLASS_MISC && pItem->GetProto()->SubClass == ITEM_SUBCLASS_ARMOR_CLOTH && pItem->GetProto()->Flags & 32) )
+                    pl->DestroyItem( INVENTORY_SLOT_BAG_0, i, true);
+
+
+        SendSysMessage("All items removed");
+
+
+
+    }
+    else
+    {
+        return false;
+    }
+
+    return true;
+}
+

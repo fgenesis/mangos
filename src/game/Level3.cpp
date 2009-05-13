@@ -5904,17 +5904,23 @@ bool ChatHandler::HandleBanInfoCharacterCommand(const char* args)
 
 bool ChatHandler::HandleBanInfoHelper(uint32 accountid, char const* accountname)
 {
-    QueryResult *result = loginDatabase.PQuery("SELECT FROM_UNIXTIME(bandate), unbandate-bandate, active, unbandate,banreason,bannedby FROM account_banned WHERE id = '%u' ORDER BY bandate ASC",accountid);
+    QueryResult *result = loginDatabase.PQuery("SELECT FROM_UNIXTIME(bandate), unbandate-bandate, active, unbandate,banreason,bannedby,(SELECT username FROM account WHERE id=account_banned.id) AS accname FROM account_banned WHERE id = '%u' ORDER BY bandate ASC",accountid);
     if(!result)
     {
         PSendSysMessage(LANG_BANINFO_NOACCOUNTBAN, accountname);
         return true;
     }
+    bool first = true;
 
-    PSendSysMessage(LANG_BANINFO_BANHISTORY,accountname);
     do
     {
         Field* fields = result->Fetch();
+        accountname = fields[6].GetString();
+        if(first)
+        {
+            first = false;
+            PSendSysMessage(LANG_BANINFO_BANHISTORY,accountname);
+        }
 
         time_t unbandate = time_t(fields[3].GetUInt64());
         bool active = false;

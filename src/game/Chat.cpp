@@ -115,6 +115,7 @@ ChatCommand * ChatHandler::getCommandTable()
         { "delete",         SEC_CONSOLE,        true,  &ChatHandler::HandleCharacterDeleteCommand,     "", NULL },
         { "level",          SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleCharacterLevelCommand,      "", NULL },
         { "rename",         SEC_GAMEMASTER,     true,  &ChatHandler::HandleCharacterRenameCommand,     "", NULL },
+        { "removeitems",    SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleCharacterRemoveItemsCommand,"", NULL }, // FG: custom one
         { NULL,             0,                  false, NULL,                                           "", NULL }
     };
 

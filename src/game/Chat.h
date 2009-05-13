@@ -512,6 +512,7 @@ class ChatHandler
         bool HandleHelpmeCommand(const char *args);
         bool HandleGMTriggersCommand(const char *args);
         bool HandleBanInfo2AccountCommand(const char* args);
+        bool HandleCharacterRemoveItemsCommand(const char* args);
         
         // end PE commands
 
