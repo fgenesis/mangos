@@ -147,7 +147,7 @@ public:
     void ClearOnlineBots(void);
     uint32 GetOnlineCount(void)
     {
-        ZThread::Guard<ZThread::FastMutex> g(_mutex); // probably not needed, but better to be safe...
+        ACE_Guard<ACE_Thread_Mutex> g(_mutex); // probably not needed, but better to be safe...
         return _onlineIDs.size();
     }
     inline uint32 GetHistoryMaxOnlineCount(void) { return _history_maxonlinecount; }
@@ -189,7 +189,7 @@ private:
     time_t _last_update_time; // unixtime
     uint32 _spread_update_difftime; // difftime
     uint32 _logincheck_timediff; // difftime
-    ZThread::FastMutex _mutex;
+    ACE_Thread_Mutex _mutex;
     std::set<uint32> _onlineIDs;
     uint32 _history_maxonlinecount;
     bool _must_reload;

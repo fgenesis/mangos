@@ -423,6 +423,36 @@ Spell::~Spell()
 {
 }
 
+template<typename T>
+WorldObject* Spell::FindCorpseUsing()
+{
+    // non-standard target selection
+    SpellRangeEntry const* srange = sSpellRangeStore.LookupEntry(m_spellInfo->rangeIndex);
+    float max_range = GetSpellMaxRange(srange);
+
+    CellPair p(MaNGOS::ComputeCellPair(m_caster->GetPositionX(), m_caster->GetPositionY()));
+    Cell cell(p);
+    cell.data.Part.reserved = ALL_DISTRICT;
+    cell.SetNoCreate();
+
+    WorldObject* result = NULL;
+
+    T u_check(m_caster, max_range);
+    MaNGOS::WorldObjectSearcher<T> searcher(m_caster, result, u_check);
+
+    TypeContainerVisitor<MaNGOS::WorldObjectSearcher<T>, GridTypeMapContainer > grid_searcher(searcher);
+    CellLock<GridReadGuard> cell_lock(cell, p);
+    cell_lock->Visit(cell_lock, grid_searcher, *m_caster->GetMap());
+
+    if (!result)
+    {
+        TypeContainerVisitor<MaNGOS::WorldObjectSearcher<T>, WorldTypeMapContainer > world_searcher(searcher);
+        cell_lock->Visit(cell_lock, world_searcher, *m_caster->GetMap());
+    }
+
+    return result;
+}
+
 void Spell::FillTargetMap()
 {
     // TODO: ADD the correct target FILLS!!!!!!
@@ -537,29 +567,7 @@ void Spell::FillTargetMap()
                     {
                         case 20577:                         // Cannibalize
                         {
-                            // non-standard target selection
-                            SpellRangeEntry const* srange = sSpellRangeStore.LookupEntry(m_spellInfo->rangeIndex);
-                            float max_range = GetSpellMaxRange(srange);
-
-                            CellPair p(MaNGOS::ComputeCellPair(m_caster->GetPositionX(), m_caster->GetPositionY()));
-                            Cell cell(p);
-                            cell.data.Part.reserved = ALL_DISTRICT;
-                            cell.SetNoCreate();
-
-                            WorldObject* result = NULL;
-
-                            MaNGOS::CannibalizeObjectCheck u_check(m_caster, max_range);
-                            MaNGOS::WorldObjectSearcher<MaNGOS::CannibalizeObjectCheck > searcher(m_caster, result, u_check);
-
-                            TypeContainerVisitor<MaNGOS::WorldObjectSearcher<MaNGOS::CannibalizeObjectCheck >, GridTypeMapContainer > grid_searcher(searcher);
-                            CellLock<GridReadGuard> cell_lock(cell, p);
-                            cell_lock->Visit(cell_lock, grid_searcher, *m_caster->GetMap());
-
-                            if(!result)
-                            {
-                                TypeContainerVisitor<MaNGOS::WorldObjectSearcher<MaNGOS::CannibalizeObjectCheck >, WorldTypeMapContainer > world_searcher(searcher);
-                                cell_lock->Visit(cell_lock, world_searcher, *m_caster->GetMap());
-                            }
+                            WorldObject* result = FindCorpseUsing<MaNGOS::CannibalizeObjectCheck> ();
 
                             if(result)
                             {
@@ -580,15 +588,7 @@ void Spell::FillTargetMap()
                             {
                                 // clear cooldown at fail
                                 if(m_caster->GetTypeId()==TYPEID_PLAYER)
-                                {
-                                    ((Player*)m_caster)->RemoveSpellCooldown(m_spellInfo->Id);
-
-                                    WorldPacket data(SMSG_CLEAR_COOLDOWN, (4+8));
-                                    data << uint32(m_spellInfo->Id);
-                                    data << uint64(m_caster->GetGUID());
-                                    ((Player*)m_caster)->GetSession()->SendPacket(&data);
-                                }
-
+                                    ((Player*)m_caster)->RemoveSpellCooldown(m_spellInfo->Id,true);
                                 SendCastResult(SPELL_FAILED_NO_EDIBLE_CORPSES);
                                 finish(false);
                             }
@@ -613,6 +613,7 @@ void Spell::FillTargetMap()
                 case SPELL_EFFECT_SUMMON_OBJECT_WILD:
                 case SPELL_EFFECT_SELF_RESURRECT:
                 case SPELL_EFFECT_REPUTATION:
+                case SPELL_EFFECT_SEND_TAXI:
                     if(m_targets.getUnitTarget())
                         tmpUnitMap.push_back(m_targets.getUnitTarget());
                     // Triggered spells have additional spell targets - cast them even if no explicit unit target is given (required for spell 50516 for example)
@@ -1055,6 +1056,7 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
 
         // Add bonuses and fill damageInfo struct
         caster->CalculateSpellDamage(&damageInfo, m_damage, m_spellInfo);
+        caster->DealDamageMods(damageInfo.target,damageInfo.damage,&damageInfo.absorb);
 
         // Send log damage message to client
         caster->SendSpellNonMeleeDamageLog(&damageInfo);

@@ -723,7 +723,7 @@ class MANGOS_DLL_SPEC WorldSession
         AccountData m_accountData[NUM_ACCOUNT_DATA_TYPES];
         AddonsList m_addonsList;
 
-        ZThread::LockedQueue<WorldPacket*,ZThread::FastMutex> _recvQueue;
+        ACE_Based::LockedQueue<WorldPacket*, ACE_Thread_Mutex> _recvQueue;
 
         // FG: extra stuff
         float m_XPMultiKill;

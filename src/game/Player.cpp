@@ -233,7 +233,7 @@ bool PlayerTaxi::LoadTaxiDestinationsFromString( const std::string& values, uint
     }
 
     // can't load taxi path without mount set (quest taxi path?)
-    if(!objmgr.GetTaxiMount(GetTaxiSource(),team))
+    if(!objmgr.GetTaxiMount(GetTaxiSource(),team,true))
         return false;
 
     return true;
@@ -859,6 +859,8 @@ void Player::EnvironmentalDamage(EnviromentalDamage type, uint32 damage)
 
     damage-=absorb+resist;
 
+    DealDamageMods(this,damage,&absorb);
+
     WorldPacket data(SMSG_ENVIRONMENTALDAMAGELOG, (21));
     data << uint64(GetGUID());
     data << uint8(type!=DAMAGE_FALL_TO_VOID ? type : DAMAGE_FALL);
@@ -1477,7 +1479,7 @@ void Player::BuildEnumData( QueryResult * result, WorldPacket * p_data )
         uint32 petFamily  = 0;
 
         // show pet at selection character in character list  only for non-ghost character
-        if(result && isAlive() && (pClass == CLASS_WARLOCK || pClass == CLASS_HUNTER))
+        if (result && isAlive() && (pClass == CLASS_WARLOCK || pClass == CLASS_HUNTER || pClass == CLASS_DEATH_KNIGHT))
         {
             uint32 entry = fields[10].GetUInt32();
             CreatureInfo const* cInfo = sCreatureStorage.LookupEntry<CreatureInfo>(entry);
@@ -3228,6 +3230,20 @@ void Player::removeSpell(uint32 spell_id, bool disabled, bool update_action_bar_
         WorldPacket data(SMSG_REMOVED_SPELL, 4);
         data << uint16(spell_id);
         GetSession()->SendPacket(&data);
+    }
+}
+
+
+void Player::RemoveSpellCooldown( uint32 spell_id, bool update /* = false */ )
+{
+    m_spellCooldowns.erase(spell_id);
+
+    if(update)
+    {
+        WorldPacket data(SMSG_CLEAR_COOLDOWN, (4+8));
+        data << uint32(spell_id);
+        data << uint64(GetGUID());
+        SendDirectMessage(&data);
     }
 }
 
@@ -9634,14 +9650,17 @@ uint8 Player::CanEquipItem( uint8 slot, uint16 &dest, Item *pItem, bool swap, bo
                 {
                     if( Item* pBag = GetItemByPos( INVENTORY_SLOT_BAG_0, i ) )
                     {
-                        if( ItemPrototype const* pBagProto = pBag->GetProto() )
+                        if( pBag != pItem )
                         {
-                            if( pBagProto->Class==pProto->Class && (!swap || pBag->GetSlot() != eslot ) )
+                            if( ItemPrototype const* pBagProto = pBag->GetProto() )
                             {
-                                if(pBagProto->SubClass == ITEM_SUBCLASS_AMMO_POUCH)
-                                    return EQUIP_ERR_CAN_EQUIP_ONLY1_AMMOPOUCH;
-                                else
-                                    return EQUIP_ERR_CAN_EQUIP_ONLY1_QUIVER;
+                                if( pBagProto->Class==pProto->Class && (!swap || pBag->GetSlot() != eslot ) )
+                                {
+                                    if(pBagProto->SubClass == ITEM_SUBCLASS_AMMO_POUCH)
+                                        return EQUIP_ERR_CAN_EQUIP_ONLY1_AMMOPOUCH;
+                                    else
+                                        return EQUIP_ERR_CAN_EQUIP_ONLY1_QUIVER;
+                                }
                             }
                         }
                     }
@@ -16418,7 +16437,7 @@ void Player::PetSpellInitialize()
     uint8 addlist = 0;
     data << uint8(addlist);                                 // placeholder
 
-    if(pet->isControlled() && ((pet->getPetType() == HUNTER_PET) || ((pet->GetCreatureInfo()->type == CREATURE_TYPE_DEMON) && (getClass() == CLASS_WARLOCK))))
+    if (pet->IsPermanentPetFor(this))
     {
         // spells loop
         for (PetSpellMap::const_iterator itr = pet->m_spells.begin(); itr != pet->m_spells.end(); ++itr)
@@ -16798,34 +16817,13 @@ void Player::HandleStealthedUnitsDetection()
     }
 }
 
-bool Player::ActivateTaxiPathTo(std::vector<uint32> const& nodes, uint32 mount_id, Creature* npc)
+bool Player::ActivateTaxiPathTo(std::vector<uint32> const& nodes, Creature* npc /*= NULL*/, uint32 spellid /*= 0*/)
 {
     if(nodes.size() < 2)
         return false;
 
-    // not let cheating with start flight mounted
-    if(IsMounted())
-    {
-        WorldPacket data(SMSG_ACTIVATETAXIREPLY, 4);
-        data << uint32(ERR_TAXIPLAYERALREADYMOUNTED);
-        GetSession()->SendPacket(&data);
-        return false;
-    }
-
-    if( m_ShapeShiftFormSpellId && m_form != FORM_BATTLESTANCE && m_form != FORM_BERSERKERSTANCE && m_form != FORM_DEFENSIVESTANCE && m_form != FORM_SHADOW )
-    {
-        WorldPacket data(SMSG_ACTIVATETAXIREPLY, 4);
-        data << uint32(ERR_TAXIPLAYERSHAPESHIFTED);
-        GetSession()->SendPacket(&data);
-        return false;
-    }
-
     // not let cheating with start flight in time of logout process || if casting not finished || while in combat || if not use Spell's with EffectSendTaxi
-    if(GetSession()->isLogingOut() ||
-        (!m_currentSpells[CURRENT_GENERIC_SPELL] ||
-        m_currentSpells[CURRENT_GENERIC_SPELL]->m_spellInfo->Effect[0] != SPELL_EFFECT_SEND_TAXI)&&
-        IsNonMeleeSpellCasted(false) ||
-        isInCombat())
+    if(GetSession()->isLogingOut() || isInCombat())
     {
         WorldPacket data(SMSG_ACTIVATETAXIREPLY, 4);
         data << uint32(ERR_TAXIPLAYERBUSY);
@@ -16835,6 +16833,52 @@ bool Player::ActivateTaxiPathTo(std::vector<uint32> const& nodes, uint32 mount_i
 
     if(HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_DISABLE_MOVE))
         return false;
+
+    // taximaster case
+    if(npc)
+    {
+        // not let cheating with start flight mounted
+        if(IsMounted())
+        {
+            WorldPacket data(SMSG_ACTIVATETAXIREPLY, 4);
+            data << uint32(ERR_TAXIPLAYERALREADYMOUNTED);
+            GetSession()->SendPacket(&data);
+            return false;
+        }
+
+        if( m_ShapeShiftFormSpellId && m_form != FORM_BATTLESTANCE && m_form != FORM_BERSERKERSTANCE && m_form != FORM_DEFENSIVESTANCE && m_form != FORM_SHADOW )
+        {
+            WorldPacket data(SMSG_ACTIVATETAXIREPLY, 4);
+            data << uint32(ERR_TAXIPLAYERSHAPESHIFTED);
+            GetSession()->SendPacket(&data);
+            return false;
+        }
+
+        // not let cheating with start flight in time of logout process || if casting not finished || while in combat || if not use Spell's with EffectSendTaxi
+        if(IsNonMeleeSpellCasted(false))
+        {
+            WorldPacket data(SMSG_ACTIVATETAXIREPLY, 4);
+            data << uint32(ERR_TAXIPLAYERBUSY);
+            GetSession()->SendPacket(&data);
+            return false;
+        }
+    }
+    // cast case or scripted call case
+    else
+    {
+        RemoveSpellsCausingAura(SPELL_AURA_MOUNTED);
+
+        if( m_ShapeShiftFormSpellId && m_form != FORM_BATTLESTANCE && m_form != FORM_BERSERKERSTANCE && m_form != FORM_DEFENSIVESTANCE && m_form != FORM_SHADOW )
+            RemoveAurasDueToSpell(m_ShapeShiftFormSpellId);
+
+        if(m_currentSpells[CURRENT_GENERIC_SPELL] && m_currentSpells[CURRENT_GENERIC_SPELL]->m_spellInfo->Id != spellid)
+            InterruptSpell(CURRENT_GENERIC_SPELL,false);
+
+        InterruptSpell(CURRENT_AUTOREPEAT_SPELL,false);
+
+        if(m_currentSpells[CURRENT_CHANNELED_SPELL] && m_currentSpells[CURRENT_CHANNELED_SPELL]->m_spellInfo->Id != spellid)
+            InterruptSpell(CURRENT_CHANNELED_SPELL,true);
+    }
 
     uint32 sourcenode = nodes[0];
 
@@ -16863,8 +16907,8 @@ bool Player::ActivateTaxiPathTo(std::vector<uint32> const& nodes, uint32 mount_i
             return false;
         }
     }
-    // node must have pos if not spell case (npc!=0)
-    else if(npc)
+    // node must have pos if taxi master case (npc != NULL)
+    else if (npc)
     {
         WorldPacket data(SMSG_ACTIVATETAXIREPLY, 4);
         data << uint32(ERR_TAXIUNSPECIFIEDSERVERERROR);
@@ -16916,10 +16960,11 @@ bool Player::ActivateTaxiPathTo(std::vector<uint32> const& nodes, uint32 mount_i
         prevnode = lastnode;
     }
 
-    if(!mount_id)                                           // if not provide then attempt use default.
-        mount_id = objmgr.GetTaxiMount(sourcenode, GetTeam());
+    // get mount model (in case non taximaster (npc==NULL) allow more wide lookup)
+    uint16 mount_id = objmgr.GetTaxiMount(sourcenode, GetTeam(), npc == NULL);
 
-    if (mount_id == 0 || sourcepath == 0)
+    // in spell case allow 0 model
+    if (mount_id == 0 && spellid == 0 || sourcepath == 0)
     {
         WorldPacket data(SMSG_ACTIVATETAXIREPLY, 4);
         data << uint32(ERR_TAXIUNSPECIFIEDSERVERERROR);
@@ -16959,6 +17004,21 @@ bool Player::ActivateTaxiPathTo(std::vector<uint32> const& nodes, uint32 mount_i
     GetSession()->SendDoFlight(mount_id, sourcepath);
 
     return true;
+}
+
+bool Player::ActivateTaxiPathTo( uint32 taxi_path_id, uint32 spellid /*= 0*/ )
+{
+    TaxiPathEntry const* entry = sTaxiPathStore.LookupEntry(taxi_path_id);
+    if(!entry)
+        return false;
+
+    std::vector<uint32> nodes;
+
+    nodes.resize(2);
+    nodes[0] = entry->from;
+    nodes[1] = entry->to;
+
+    return ActivateTaxiPathTo(nodes,NULL,spellid);
 }
 
 void Player::ProhibitSpellScholl(SpellSchoolMask idSchoolMask, uint32 unTimeMs )

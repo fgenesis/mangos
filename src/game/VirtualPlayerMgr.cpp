@@ -31,7 +31,7 @@ bool VirtualPlayerMgr::NameExists(std::string n)
 {
     if(!_enabled)
         return false;
-    ZThread::Guard<ZThread::FastMutex> g(_mutex);
+    ACE_Guard<ACE_Thread_Mutex> g(_mutex);
     bool result = false;
     for(VPCharMap::iterator it = _chars.begin(); it != _chars.end(); it++)
     {
@@ -48,7 +48,7 @@ VirtualPlayer *VirtualPlayerMgr::GetChar(std::string n)
 {
     if(!_enabled)
         return NULL;
-    ZThread::Guard<ZThread::FastMutex> g(_mutex);
+    ACE_Guard<ACE_Thread_Mutex> g(_mutex);
     for(VPCharMap::iterator it = _chars.begin(); it != _chars.end(); it++)
     {
         if(!stricmp(it->second.name.c_str(), n.c_str()))
@@ -63,7 +63,7 @@ bool VirtualPlayerMgr::IsOnline(std::string n)
 {
     if(!_enabled)
         return false;
-    ZThread::Guard<ZThread::FastMutex> g(_mutex);
+    ACE_Guard<ACE_Thread_Mutex> g(_mutex);
     bool result = false;
     for(VPCharMap::iterator it = _chars.begin(); it != _chars.end(); it++)
     {
@@ -77,7 +77,7 @@ bool VirtualPlayerMgr::IsOnline(std::string n)
 
 std::set<uint32> VirtualPlayerMgr::GetOnlineSet(void)
 {
-    ZThread::Guard<ZThread::FastMutex> g(_mutex);
+    ACE_Guard<ACE_Thread_Mutex> g(_mutex);
     std::set<uint32> cp = _onlineIDs; // copy set before return
     return cp;
 }
@@ -86,7 +86,7 @@ VirtualPlayer *VirtualPlayerMgr::GetChar(uint32 id)
 {
     if(!_enabled)
         return NULL;
-    ZThread::Guard<ZThread::FastMutex> g(_mutex);
+    ACE_Guard<ACE_Thread_Mutex> g(_mutex);
     VPCharMap::iterator it = _chars.find(id);
     if(it != _chars.end())
         return &(it->second);
