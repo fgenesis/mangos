@@ -109,13 +109,20 @@ ChatCommand * ChatHandler::getCommandTable()
         { NULL,             0,                  false, NULL,                                           "", NULL }
     };
 
+    static ChatCommand characterDizintegrateCommandTable[] =
+    {
+        { "selected",      SEC_ADMINISTRATOR, true,  &ChatHandler::HandleCharacterDizintegrateSelectedCommand,  "", NULL },
+        { "name",          SEC_ADMINISTRATOR, true,  &ChatHandler::HandleCharacterDizintegrateNameCommand,      "", NULL },
+        { NULL,            0,                 false, NULL,                                                      "", NULL }
+    };
+
     static ChatCommand characterCommandTable[] =
     {
         { "customize",      SEC_GAMEMASTER,     true,  &ChatHandler::HandleCharacterCustomizeCommand,  "", NULL },
         { "delete",         SEC_CONSOLE,        true,  &ChatHandler::HandleCharacterDeleteCommand,     "", NULL },
         { "level",          SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleCharacterLevelCommand,      "", NULL },
         { "rename",         SEC_GAMEMASTER,     true,  &ChatHandler::HandleCharacterRenameCommand,     "", NULL },
-        { "removeitems",    SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleCharacterRemoveItemsCommand,"", NULL }, // FG: custom one
+        { "dizintegrate",   SEC_ADMINISTRATOR,  true,  NULL,                                           "", characterDizintegrateCommandTable }, // FG: custom one
         { NULL,             0,                  false, NULL,                                           "", NULL }
     };
 

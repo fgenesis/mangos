@@ -728,19 +728,20 @@ bool ChatHandler::HandleBanInfo2AccountCommand(const char* args)
     return HandleBanInfoHelper(m_session->GetAccountId(), "");
 }
 
-bool ChatHandler::HandleCharacterRemoveItemsCommand(const char *args)
+bool ChatHandler::CharacterDizintegrateHelper(Player *pl, const char* args)
 {
-    if(!args || !*args)
+    if(!pl)
     {
+        SendSysMessage(LANG_PLAYER_NOT_FOUND);
+        SetSentErrorMessage(true);
         return false;
     }
 
-    Player *pl = getSelectedPlayer();
     uint64 guid = pl->GetGUID();
 
     if(!stricmp(args,"all")) // remove all items except totems!!
     {
-        if(sLog.IsOutCharDump())                                // optimize GetPlayerDump call
+        if(sLog.IsOutCharDump())
         {
             std::string dump = PlayerDumpWriter().GetDump(GUID_LOPART(guid));
             sLog.outCharDump(dump.c_str(),m_session->GetAccountId(),GUID_LOPART(guid),pl->GetName());
@@ -752,7 +753,8 @@ bool ChatHandler::HandleCharacterRemoveItemsCommand(const char *args)
                 if ( !pItem->IsBag() && !(pItem->GetProto()->Class == ITEM_CLASS_MISC && pItem->GetProto()->SubClass == ITEM_SUBCLASS_ARMOR_CLOTH && pItem->GetProto()->Flags & 32) )
                     pl->DestroyItem( INVENTORY_SLOT_BAG_0, i, true);
 
-        for(int i = KEYRING_SLOT_START; i < QUESTBAG_SLOT_END; ++i)
+        // DO NOT delete keys!!
+        for(int i = VANITYPET_SLOT_START; i < QUESTBAG_SLOT_END; ++i)
             if (Item* pItem = pl->GetItemByPos( INVENTORY_SLOT_BAG_0, i ))
                 if ( !pItem->IsBag() && !(pItem->GetProto()->Class == ITEM_CLASS_MISC && pItem->GetProto()->SubClass == ITEM_SUBCLASS_ARMOR_CLOTH && pItem->GetProto()->Flags & 32) )
                     pl->DestroyItem( INVENTORY_SLOT_BAG_0, i, true);
@@ -771,11 +773,31 @@ bool ChatHandler::HandleCharacterRemoveItemsCommand(const char *args)
                 if ( !pItem->IsBag() && !(pItem->GetProto()->Class == ITEM_CLASS_MISC && pItem->GetProto()->SubClass == ITEM_SUBCLASS_ARMOR_CLOTH && pItem->GetProto()->Flags & 32) )
                     pl->DestroyItem( INVENTORY_SLOT_BAG_0, i, true);
 
+        // in bank
+        for(int i = BANK_SLOT_ITEM_START; i < BANK_SLOT_ITEM_END; ++i)
+            if (Item* pItem = pl->GetItemByPos( INVENTORY_SLOT_BAG_0, i ))
+                if ( !pItem->IsBag() && !(pItem->GetProto()->Class == ITEM_CLASS_MISC && pItem->GetProto()->SubClass == ITEM_SUBCLASS_ARMOR_CLOTH && pItem->GetProto()->Flags & 32) )
+                    pl->DestroyItem( INVENTORY_SLOT_BAG_0, i, true);
+
+        // in bank bags
+        // in inventory bags
+        for(int i = BANK_SLOT_BAG_START; i < BANK_SLOT_BAG_END; ++i)
+            if (Bag* pBag = (Bag*)pl->GetItemByPos( INVENTORY_SLOT_BAG_0, i ))
+                for(uint32 j = 0; j < pBag->GetBagSize(); ++j)
+                    if (Item* pItem = pBag->GetItemByPos(j))
+                        if ( !pItem->IsBag() && !(pItem->GetProto()->Class == ITEM_CLASS_MISC && pItem->GetProto()->SubClass == ITEM_SUBCLASS_ARMOR_CLOTH && pItem->GetProto()->Flags & 32) )
+                            pl->DestroyItem( i, j, true);
+
+        std::string bannedby = m_session->GetPlayerName();
+        std::string banreason = "[auto-message] DIZINTEGRATED!";
+
+        loginDatabase.escape_string(bannedby);
+        loginDatabase.escape_string(banreason);
+
+        loginDatabase.PExecute("INSERT INTO account_banned(id,bandate,unbandate,bannedby,banreason,active) VALUES (%u,UNIX_TIMESTAMP(),UNIX_TIMESTAMP()+1,'%s','%s',0)", pl->GetSession()->GetAccountId(), bannedby.c_str(), banreason.c_str() );
+
 
         SendSysMessage("All items removed");
-
-
-
     }
     else
     {
@@ -784,4 +806,29 @@ bool ChatHandler::HandleCharacterRemoveItemsCommand(const char *args)
 
     return true;
 }
+
+bool ChatHandler::HandleCharacterDizintegrateSelectedCommand(const char *args)
+{
+    return CharacterDizintegrateHelper(getSelectedPlayer(), args);
+}
+
+bool ChatHandler::HandleCharacterDizintegrateNameCommand(const char *args)
+{
+    char* cname = strtok ((char*)args, " ");
+    if (!cname || !*cname)
+        return false;
+
+    char* rest = strtok (NULL," ");
+    std::string pname = cname;
+    if(!normalizePlayerName(pname))
+    {
+        SendSysMessage(LANG_PLAYER_NOT_FOUND);
+        SetSentErrorMessage(true);
+        return false;
+    }
+
+    return CharacterDizintegrateHelper(objmgr.GetPlayer(pname.c_str()), rest);
+}
+
+
 
