@@ -1226,6 +1226,12 @@ bool Aura::modStackAmount(int32 num)
         return true; // need remove aura
     }
 
+    // reset charge when modding stack, update aura in SetStackamount
+    m_procCharges = m_spellProto->procCharges;
+    Player* modOwner = GetCaster() ? GetCaster()->GetSpellModOwner() : NULL;
+    if(modOwner)
+        modOwner->ApplySpellMod(GetId(), SPELLMOD_CHARGES, m_procCharges);
+
     // Update stack amount
     SetStackAmount(stackAmount);
     return false;
@@ -2202,6 +2208,21 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                 if(caster)
                     caster->CastSpell(caster, 13138, true, NULL, this);
                 return;
+            case 34026:                                     // kill command
+            {
+                if(!caster || caster->GetTypeId() != TYPEID_PLAYER || !caster->GetPet() )
+                    return;
+                caster->CastSpell(caster,34027,true,NULL,this);
+
+                // set 3 stacks
+                Aura* owner_aura	= caster->GetAura(34027,0);
+                Aura* pet_aura	= caster->GetPet()->GetAura(58914,0);
+                if( owner_aura )
+                    owner_aura->SetStackAmount(3);
+                if( pet_aura )
+                    pet_aura->SetStackAmount(3);
+                return;
+            }
             case 39850:                                     // Rocket Blast
                 if(roll_chance_i(20))                       // backfire stun
                     m_target->CastSpell(m_target, 51581, true, NULL, this);
@@ -2311,6 +2332,17 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
             {
                 // casted only at creatures at spawn
                 m_target->CastSpell(m_target, 47287, true, NULL, this);
+                return;
+            }
+            case 58914:
+            {
+                // kill command, just eye candy
+                if(!caster)
+                    return;
+                // the "casting" dummy aura
+                caster->RemoveAurasDueToSpell(34026);
+                // the spellmod aura (e.g. in case pet gets killed)
+                caster->RemoveAurasDueToSpell(34027);
                 return;
             }
         }

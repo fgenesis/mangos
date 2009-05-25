@@ -1079,7 +1079,16 @@ void Unit::CalculateSpellDamage(SpellNonMeleeDamage *damageInfo, int32 damage, S
             // Physical Damage
             if ( damageSchoolMask & SPELL_SCHOOL_MASK_NORMAL )
             {
-                //Calculate armor mitigation
+                // FIX ME: physical school damage spells should also get affected from bonus damage
+                for (int j = 0; j < 3; j++)
+                    if( spellInfo->Effect[j] == SPELL_EFFECT_SCHOOL_DAMAGE )
+                        if( Player* modOwner = GetSpellModOwner() )
+                        {
+                            modOwner->ApplySpellMod(spellInfo->Id, SPELLMOD_DAMAGE, damage);
+                            break;
+                        }
+
+				//Calculate armor mitigation
                 damage = CalcArmorReducedDamage(pVictim, damage);
                 // Get blocked status
                 blocked = isSpellBlocked(pVictim, spellInfo, attackType);
@@ -5106,6 +5115,16 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                     triggered_spell_id = 48503;
                     basepoints0 = triggerAmount;
                     target = this;
+                    break;
+                }
+                // kill command (pet aura proc)
+                case 58914:
+                {
+                    Unit* owner = GetOwner();
+                    if( !owner || owner->GetTypeId() != TYPEID_PLAYER )
+                        break;
+                    // reduce the owner's aura stack
+                    owner->RemoveSingleSpellAurasFromStack(34027);
                     break;
                 }
                 // Vampiric Touch (generic, used by some boss)
@@ -11568,9 +11587,9 @@ void Unit::ProcDamageAndSpellFor( bool isVictim, Unit * pTarget, uint32 procFlag
         // Sort spells and remove dublicates
         removedSpells.sort();
         removedSpells.unique();
-        // Remove auras from removedAuras
+        // Remove auras (one stack) from removedAuras
         for(RemoveSpellList::const_iterator i = removedSpells.begin(); i != removedSpells.end();++i)
-            RemoveAurasDueToSpell(*i);
+            RemoveSingleSpellAurasFromStack(*i);
     }
 }
 
