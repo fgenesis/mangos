@@ -15,5 +15,6 @@
 *__Win32_Release*
 *__x64_Release*
 *.user
-*debug*
-*release*
+*.filters
+*.log
+

@@ -1737,6 +1737,33 @@ void Spell::SetTargetMap(uint32 i,uint32 cur,UnitList& TagUnitMap)
                             TagUnitMap.push_back(pet);
                 }
             }
+            if (m_spellInfo->Id==52759)                     //Ancestral Awakening (special target selection)
+            {
+                float lowestPerc   = (float)m_caster->GetHealth() / (float)m_caster->GetMaxHealth();
+                Unit* lowestTarget = m_caster;
+
+                if (pGroup)
+                {
+                    Group::MemberSlotList const& members = pGroup->GetMemberSlots();
+                    Group::MemberSlotList::const_iterator itr = members.begin();
+                    for(; itr != members.end(); ++itr)
+                    {
+                        if (Unit* member = ObjectAccessor::GetPlayer(*m_caster, (*itr).guid))
+                        {
+                            if (member == m_caster || member->isDead() || m_caster->IsHostileTo(member) || !m_caster->IsWithinDistInMap(member, radius))
+                                continue;
+
+                            float perc = (float)member->GetHealth() / (float)member->GetMaxHealth();
+                            if (perc <= lowestPerc)
+                            {
+                                lowestPerc = perc;
+                                lowestTarget = member;
+                            }
+                        }
+                    }
+                }
+                TagUnitMap.push_back(lowestTarget);
+            }
             else
             {
                 if(pGroup)
@@ -2438,18 +2465,19 @@ void Spell::cast(bool skipCheck)
         ((Player*)m_caster)->GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_CAST_SPELL, m_spellInfo->Id);
     }
 
+    FillTargetMap();
+
+    if(m_spellState == SPELL_STATE_FINISHED)                // stop cast if spell marked as finish somewhere in FillTargetMap
+    {
+        SetExecutedCurrently(false);
+        return;
+    }
+
     // CAST SPELL
     SendSpellCooldown();
 
     TakePower();
     TakeReagents();                                         // we must remove reagents before HandleEffects to allow place crafted item in same slot
-    FillTargetMap();
-
-    if(m_spellState == SPELL_STATE_FINISHED)                // stop cast if spell marked as finish somewhere in Take*/FillTargetMap
-    {
-        SetExecutedCurrently(false);
-        return;
-    }
 
     SendCastResult(castResult);
     SendSpellGo();                                          // we must send smsg_spell_go packet before m_castItem delete in TakeCastItem()...
@@ -3079,7 +3107,40 @@ void Spell::WriteAmmoToPacket( WorldPacket * data )
             }
         }
     }
-    // TODO: implement selection ammo data based at ranged weapon stored in equipmodel/equipinfo/equipslot fields
+    else
+    {
+        for (uint8 i = 0; i < 3; ++i)
+        {
+            if(uint32 item_id = m_caster->GetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + i))
+            {
+                if(ItemEntry const * itemEntry = sItemStore.LookupEntry(item_id))
+                {
+                    if(itemEntry->Class==ITEM_CLASS_WEAPON)
+                    {
+                        switch(itemEntry->SubClass)
+                        {
+                            case ITEM_SUBCLASS_WEAPON_THROWN:
+                                ammoDisplayID = itemEntry->DisplayId;
+                                ammoInventoryType = itemEntry->InventoryType;
+                                break;
+                            case ITEM_SUBCLASS_WEAPON_BOW:
+                            case ITEM_SUBCLASS_WEAPON_CROSSBOW:
+                                ammoDisplayID = 5996;       // is this need fixing?
+                                ammoInventoryType = INVTYPE_AMMO;
+                                break;
+                            case ITEM_SUBCLASS_WEAPON_GUN:
+                                ammoDisplayID = 5998;       // is this need fixing?
+                                ammoInventoryType = INVTYPE_AMMO;
+                                break;
+                        }
+
+                        if(ammoDisplayID)
+                            break;
+                    }
+                }
+            }
+        }
+    }
 
     *data << uint32(ammoDisplayID);
     *data << uint32(ammoInventoryType);
@@ -3820,9 +3881,11 @@ SpellCastResult Spell::CheckCast(bool strict)
         //Must be behind the target.
         if( m_spellInfo->AttributesEx2 == 0x100000 && (m_spellInfo->AttributesEx & 0x200) == 0x200 && target->HasInArc(M_PI, m_caster) )
         {
-            //Exclusion for Pounce and Mutilate: Facing Limitation was removed in 2.0.1 and 3.0.3, but they still use the same, old Ex-Flags
-            if((m_spellInfo->SpellFamilyName != SPELLFAMILY_DRUID || m_spellInfo->SpellFamilyFlags != 0x0000000000020000LL)
-                && !(m_spellInfo->SpellFamilyName == SPELLFAMILY_ROGUE && m_spellInfo->SpellFamilyFlags == 0x0020000000000000LL))
+            //Exclusion for Pounce:  Facing Limitation was removed in 2.0.1, but it still uses the same, old Ex-Flags
+            //Exclusion for Mutilate:Facing Limitation was removed in 2.0.1 and 3.0.3, but they still use the same, old Ex-Flags
+            if( (m_spellInfo->SpellFamilyName != SPELLFAMILY_DRUID || m_spellInfo->SpellFamilyFlags != 0x0000000000020000LL) &&
+                (m_spellInfo->SpellFamilyName != SPELLFAMILY_ROGUE || m_spellInfo->SpellFamilyFlags != 0x0020000000000000LL)
+              )
             {
                 SendInterrupted(2);
                 return SPELL_FAILED_NOT_BEHIND;

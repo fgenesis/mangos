@@ -6,6 +6,7 @@
 	ProjectGUID="{1DC6C4DA-A028-41F3-877D-D5400C594F88}"
 	RootNamespace="game"
 	Keyword="Win32Proj"
+	TargetFrameworkVersion="0"
 	>
 	<Platforms>
 		<Platform
@@ -1014,10 +1015,12 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\game\AuctionHouseBot.cpp">
+				RelativePath="..\..\src\game\AuctionHouseBot.cpp"
+				>
 			</File>
 			<File
-				RelativePath="..\..\src\game\AuctionHouseBot.h">
+				RelativePath="..\..\src\game\AuctionHouseBot.h"
+				>
 			</File>
 			<File
 				RelativePath="..\..\src\game\AuctionHouseMgr.cpp"
@@ -1593,6 +1596,30 @@
 			</File>
 			<File
 				RelativePath="..\..\src\game\ThreatManager.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="PE"
+			>
+			<File
+				RelativePath="..\..\src\game\Level_pe.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\game\PlayerDropMgr.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\game\PlayerDropMgr.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\game\VirtualPlayerMgr.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\game\VirtualPlayerMgr.h"
 				>
 			</File>
 		</Filter>

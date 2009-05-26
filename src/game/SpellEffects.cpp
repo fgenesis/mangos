@@ -1154,6 +1154,11 @@ void Spell::EffectDummy(uint32 i)
                     }
                     return;
                 }
+                case 52759:                                 // Ancestral Awakening
+                    if (!unitTarget)
+                        return;
+                    m_caster->CastCustomSpell(unitTarget, 52752, &damage, NULL, NULL, true);
+                    return;
                 case 53341:
                 case 53343:
                 {
@@ -1701,6 +1706,12 @@ void Spell::EffectDummy(uint32 i)
                         }
                     }
                 }
+                return;
+            }
+            // Cleansing Totem
+            if(m_spellInfo->SpellFamilyFlags & 0x0000000004000000LL && m_spellInfo->SpellIconID==1673)
+            {
+                m_caster->CastSpell(unitTarget, 52025, true);
                 return;
             }
             // Healing Stream Totem
@@ -2382,9 +2393,8 @@ void Spell::EffectPowerDrain(uint32 i)
 
         int32 gain = int32(new_damage*manaMultiplier);
 
-        m_caster->ModifyPower(POWER_MANA,gain);
-        //send log
         m_caster->SendEnergizeSpellLog(m_caster, m_spellInfo->Id,gain,POWER_MANA);
+		m_caster->ModifyPower(POWER_MANA,gain);
     }
 }
 
@@ -2725,17 +2735,30 @@ void Spell::EffectCreateItem(uint32 i)
 
 void Spell::EffectCreateItem2(uint32 i)
 {
-    // special case: generate using spell_loot_template
-    if(!m_spellInfo->EffectItemType[i])
+    if(m_caster->GetTypeId()!=TYPEID_PLAYER)
+        return;
+    Player* player = (Player*)m_caster;
+
+    uint32 item_id = m_spellInfo->EffectItemType[i];
+    if(item_id)
+        DoCreateItem(i,item_id);
+
+    // special case: fake item replaced by generate using spell_loot_template
+    if(IsLootCraftingSpell(m_spellInfo))
     {
-        if(m_caster->GetTypeId()!=TYPEID_PLAYER)
-            return;
+        if(item_id)
+        {
+            if(!player->HasItemCount(item_id,1))
+                return;
+
+            // remove reagent
+            uint32 count = 1;
+            player->DestroyItemCount (item_id,count,true);
+        }
 
         // create some random items
-        ((Player*)m_caster)->AutoStoreLoot(m_spellInfo->Id,LootTemplates_Spell);
-        return;
+        player->AutoStoreLoot(m_spellInfo->Id,LootTemplates_Spell);
     }
-    DoCreateItem(i,m_spellInfo->EffectItemType[i]);
 }
 
 void Spell::EffectPersistentAA(uint32 i)
@@ -2804,8 +2827,8 @@ void Spell::EffectEnergize(uint32 i)
     if(unitTarget->GetMaxPower(power) == 0)
         return;
 
-    unitTarget->ModifyPower(power,damage);
     m_caster->SendEnergizeSpellLog(unitTarget, m_spellInfo->Id, damage, power);
+	unitTarget->ModifyPower(power,damage);
 
     // Mad Alchemist's Potion
     if (m_spellInfo->Id == 45051)
@@ -2867,8 +2890,8 @@ void Spell::EffectEnergisePct(uint32 i)
         return;
 
     uint32 gain = damage * maxPower / 100;
-    unitTarget->ModifyPower(power, gain);
     m_caster->SendEnergizeSpellLog(unitTarget, m_spellInfo->Id, gain, power);
+	unitTarget->ModifyPower(power, gain);
 }
 
 void Spell::SendLoot(uint64 guid, LootType loottype)
@@ -4209,6 +4232,9 @@ void Spell::EffectSummonPet(uint32 i)
     if(m_caster->GetTypeId() == TYPEID_PLAYER)
         NewSummon->SetUInt32Value(UNIT_FIELD_FLAGS,UNIT_FLAG_PVP_ATTACKABLE);
 
+    if(m_caster->IsPvP())
+        NewSummon->SetPvP(true);
+
     NewSummon->InitStatsForLevel(petlevel);
     NewSummon->InitPetCreateSpells();
     NewSummon->InitLevelupSpellsForLevel();
@@ -4956,32 +4982,12 @@ void Spell::EffectScriptEffect(uint32 effIndex)
                 case 61288:                                 // Minor Inscription Research
                 case 61756:                                 // Northrend Inscription Research (FAST QA VERSION)
                 {
-                    if(!IsExplicitDiscoverySpell(m_spellInfo))
-                    {
-                        sLog.outError("Wrong explicit discovery spell %u structure, or outdated...",m_spellInfo->Id);
-                        return;
-                    }
-
                     if(m_caster->GetTypeId()!=TYPEID_PLAYER)
                         return;
-                    Player* player = (Player*)m_caster;
-
-                    // need replace effect 0 item by loot
-                    uint32 reagent_id = m_spellInfo->EffectItemType[0];
-
-                    if(!player->HasItemCount(reagent_id,1))
-                        return;
-
-                    // remove reagent
-                    uint32 count = 1;
-                    player->DestroyItemCount (reagent_id,count,true);
-
-                    // create some random items
-                    player->AutoStoreLoot(m_spellInfo->Id,LootTemplates_Spell);
 
                     // learn random explicit discovery recipe (if any)
-                    if(uint32 discoveredSpell = GetExplicitDiscoverySpell(m_spellInfo->Id, player))
-                        player->learnSpell(discoveredSpell,false);
+                    if(uint32 discoveredSpell = GetExplicitDiscoverySpell(m_spellInfo->Id, (Player*)m_caster))
+                        ((Player*)m_caster)->learnSpell(discoveredSpell,false);
                     return;
                 }
             }
@@ -5550,6 +5556,9 @@ void Spell::EffectSummonTotem(uint32 i)
 
     if(m_caster->GetTypeId() == TYPEID_PLAYER)
         pTotem->SetFlag(UNIT_FIELD_FLAGS,UNIT_FLAG_PVP_ATTACKABLE);
+
+    if(m_caster->IsPvP())
+        pTotem->SetPvP(true);
 
     pTotem->Summon(m_caster);
 

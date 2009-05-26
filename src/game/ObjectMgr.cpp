@@ -789,8 +789,8 @@ void ObjectMgr::LoadEquipmentTemplates()
     sLog.outString( ">> Loaded %u equipment template", sEquipmentStorage.RecordCount );
     sLog.outString();
 
-    // This DBC is currently only used for item templates and creature equipments checks.
-    sItemStore.Clear();
+    // Creature items can be not listed in item_template
+    //sItemStore.Clear(); -- so used in spell casting
 }
 
 CreatureModelInfo const* ObjectMgr::GetCreatureModelInfo(uint32 modelid)
@@ -3567,90 +3567,6 @@ void ObjectMgr::LoadQuestLocales()
 
     sLog.outString();
     sLog.outString( ">> Loaded %lu Quest locale strings", (unsigned long)mQuestLocaleMap.size() );
-}
-
-void ObjectMgr::LoadPetCreateSpells()
-{
-    QueryResult *result = WorldDatabase.Query("SELECT entry, Spell1, Spell2, Spell3, Spell4 FROM petcreateinfo_spell");
-    if(!result)
-    {
-        barGoLink bar( 1 );
-        bar.step();
-
-        sLog.outString();
-        sLog.outString( ">> Loaded 0 pet create spells" );
-        sLog.outErrorDb("`petcreateinfo_spell` table is empty!");
-        return;
-    }
-
-    uint32 count = 0;
-
-    barGoLink bar( result->GetRowCount() );
-
-    mPetCreateSpell.clear();
-
-    do
-    {
-        Field *fields = result->Fetch();
-        bar.step();
-
-        uint32 creature_id = fields[0].GetUInt32();
-
-        if(!creature_id)
-        {
-            sLog.outErrorDb("Creature id %u listed in `petcreateinfo_spell` not exist.",creature_id);
-            continue;
-        }
-
-        CreatureInfo const* cInfo = sCreatureStorage.LookupEntry<CreatureInfo>(creature_id);
-        if(!cInfo)
-        {
-            sLog.outErrorDb("Creature id %u listed in `petcreateinfo_spell` not exist.",creature_id);
-            continue;
-        }
-
-        PetCreateSpellEntry PetCreateSpell;
-
-        bool have_spell = false;
-        bool have_spell_db = false;
-        for(int i = 0; i < 4; i++)
-        {
-            PetCreateSpell.spellid[i] = fields[i + 1].GetUInt32();
-
-            if(!PetCreateSpell.spellid[i])
-                continue;
-
-            have_spell_db = true;
-
-            SpellEntry const* i_spell = sSpellStore.LookupEntry(PetCreateSpell.spellid[i]);
-            if(!i_spell)
-            {
-                sLog.outErrorDb("Spell %u listed in `petcreateinfo_spell` does not exist",PetCreateSpell.spellid[i]);
-                PetCreateSpell.spellid[i] = 0;
-                continue;
-            }
-
-            have_spell = true;
-        }
-
-        if(!have_spell_db)
-        {
-            sLog.outErrorDb("Creature %u listed in `petcreateinfo_spell` have only 0 spell data, why it listed?",creature_id);
-            continue;
-        }
-
-        if(!have_spell)
-            continue;
-
-        mPetCreateSpell[creature_id] = PetCreateSpell;
-        ++count;
-    }
-    while (result->NextRow());
-
-    delete result;
-
-    sLog.outString();
-    sLog.outString( ">> Loaded %u pet create spells", count );
 }
 
 void ObjectMgr::LoadScripts(ScriptMapMap& scripts, char const* tablename)
@@ -6560,11 +6476,7 @@ bool ObjectMgr::LoadMangosStrings(DatabaseType& db, char const* table, int32 min
     for(MangosStringLocaleMap::iterator itr = mMangosStringLocaleMap.begin(); itr != mMangosStringLocaleMap.end();)
     {
         if (itr->first >= start_value && itr->first < end_value)
-        {
-            MangosStringLocaleMap::iterator itr2 = itr;
-            ++itr;
-            mMangosStringLocaleMap.erase(itr2);
-        }
+            mMangosStringLocaleMap.erase(itr++);
         else
             ++itr;
     }
