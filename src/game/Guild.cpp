@@ -1906,7 +1906,7 @@ uint8 Guild::CanStoreItem( uint8 tab, uint8 slot, GuildItemPosCountVec &dest, ui
     if(count > pItem->GetCount())
         return EQUIP_ERR_COULDNT_SPLIT_ITEMS;
 
-    if(pItem->IsSoulBound() || pItem->IsAccountBound())
+    if(pItem->IsSoulBound())
         return EQUIP_ERR_CANT_DROP_SOULBOUND;
 
     // in specific slot

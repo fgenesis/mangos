@@ -5164,7 +5164,7 @@ SpellCastResult Spell::CheckItems()
                     return SPELL_FAILED_ERROR;
 
                 // do not allow enchanting account bound items with enchants that would make them soulbound
-                if(pEnchant->slot & ENCHANTMENT_CAN_SOULBOUND && targetItem->IsAccountBound())
+                if(pEnchant->slot & ENCHANTMENT_CAN_SOULBOUND && targetItem->IsBoundAccountWide())
                     return SPELL_FAILED_ERROR; // TODO: find correct error message
 
                 // Not allow enchant in trade slot for some enchant type

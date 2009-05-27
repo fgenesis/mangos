@@ -385,17 +385,9 @@ bool Item::LoadFromDB(uint32 guid, uint64 owner_guid, QueryResult *result)
     }
 
     // Remove bind flag for items vs NO_BIND set
-    if (IsSoulBound() && (proto->Bonding == NO_BIND || proto->Bonding == BIND_TO_ACCOUNT))
+    if (IsSoulBound() && proto->Bonding == NO_BIND)
     {
         ApplyModFlag(ITEM_FIELD_FLAGS,ITEM_FLAGS_BINDED, false);
-        need_save = true;
-    }
-    
-    // Set/Remove bound on account flag if necessary
-    if( (!IsAccountBound() && proto->Bonding == BIND_TO_ACCOUNT)
-        || (IsAccountBound() && proto->Bonding != BIND_TO_ACCOUNT))
-    {
-        ApplyModFlag(ITEM_FIELD_FLAGS,ITEM_FLAGS_BOA, (proto->Bonding == BIND_TO_ACCOUNT) );
         need_save = true;
     }
 
@@ -704,20 +696,19 @@ bool Item::IsEquipped() const
     return !IsInBag() && m_slot < EQUIPMENT_SLOT_END;
 }
 
-bool Item::CanBeTraded(bool check_for_boa /* = true */) const
+bool Item::CanBeTraded(bool mail) const
 {
-    if(IsSoulBound())
-        return false;
-    if(check_for_boa && IsAccountBound())
-        return false;
-    if(IsBag() && (Player::IsBagPos(GetPos()) || !((Bag const*)this)->IsEmpty()) )
+    if ((!mail || !IsBoundAccountWide()) && IsSoulBound())
         return false;
 
-    if(Player* owner = GetOwner())
+    if (IsBag() && (Player::IsBagPos(GetPos()) || !((Bag const*)this)->IsEmpty()) )
+        return false;
+
+    if (Player* owner = GetOwner())
     {
-        if(owner->CanUnequipItem(GetPos(),false) !=  EQUIP_ERR_OK )
+        if (owner->CanUnequipItem(GetPos(),false) !=  EQUIP_ERR_OK )
             return false;
-        if(owner->GetLootGUID()==GetGUID())
+        if (owner->GetLootGUID()==GetGUID())
             return false;
     }
 
@@ -954,4 +945,30 @@ Item* Item::CloneItem( uint32 count, Player const* player ) const
     newItem->SetUInt32Value( ITEM_FIELD_DURATION,     GetUInt32Value( ITEM_FIELD_DURATION ) );
     newItem->SetItemRandomProperties(GetItemRandomPropertyId());
     return newItem;
+}
+
+bool Item::IsBindedNotWith( Player const* player ) const
+{
+    // not binded item
+    if(!IsSoulBound())
+        return false;
+
+    // own item
+    if(GetOwnerGUID()== player->GetGUID())
+        return false;
+
+    // not BOA item case
+    if(!IsBoundAccountWide())
+        return true;
+
+    // online
+    if(Player* owner = objmgr.GetPlayer(GetOwnerGUID()))
+    {
+        return owner->GetSession()->GetAccountId() != player->GetSession()->GetAccountId();
+    }
+    // offline slow case
+    else
+    {
+        return objmgr.GetPlayerAccountIdByGUID(GetOwnerGUID()) != player->GetSession()->GetAccountId();
+    }
 }
