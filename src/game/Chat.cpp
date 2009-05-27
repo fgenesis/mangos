@@ -84,10 +84,10 @@ ChatCommand * ChatHandler::getCommandTable()
 
     static ChatCommand baninfoCommandTable[] =
     {
-        { "",               SEC_PLAYER,         true,  &ChatHandler::HandleBanInfo2AccountCommand,     "", NULL },
         { "account",        SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleBanInfoAccountCommand,      "", NULL },
         { "character",      SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleBanInfoCharacterCommand,    "", NULL },
         { "ip",             SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleBanInfoIPCommand,           "", NULL },
+        { "",               SEC_PLAYER,         true,  &ChatHandler::HandleBanInfo2AccountCommand,     "", NULL },
         { NULL,             0,                  false, NULL,                                           "", NULL }
     };
 
@@ -707,7 +707,6 @@ ChatCommand * ChatHandler::getCommandTable()
         //{ "anticheat", SEC_ADMINISTRATOR, NULL, "", anticheatCommandTable },
         { "xpmulti", SEC_ADMINISTRATOR,false, NULL, "", xpmultiCommandTable },
         { "helpme", SEC_PLAYER, false, &ChatHandler::HandleHelpmeCommand, "", NULL },
-        { "baninfo2", SEC_PLAYER, false, &ChatHandler::HandleBanInfo2AccountCommand, "", NULL },
         { "ahbotoptions",   SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleAHBotOptionsCommand,        "", NULL },
 
 

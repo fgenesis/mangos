@@ -5617,7 +5617,7 @@ bool ChatHandler::HandleBanInfoHelper(uint32 accountid, char const* accountname)
     QueryResult *result = loginDatabase.PQuery("SELECT FROM_UNIXTIME(bandate), unbandate-bandate, active, unbandate,banreason,bannedby,(SELECT username FROM account WHERE id=account_banned.id) AS accname FROM account_banned WHERE id = '%u' ORDER BY bandate ASC",accountid);
     if(!result)
     {
-        PSendSysMessage(LANG_BANINFO_NOACCOUNTBAN, accountname);
+        PSendSysMessage(LANG_BANINFO_NOACCOUNTBAN, m_session->GetSecurity() < SEC_MODERATOR ? "*****" : accountname);
         return true;
     }
     bool first = true;
@@ -5629,7 +5629,7 @@ bool ChatHandler::HandleBanInfoHelper(uint32 accountid, char const* accountname)
         if(first)
         {
             first = false;
-            PSendSysMessage(LANG_BANINFO_BANHISTORY,accountname);
+            PSendSysMessage(LANG_BANINFO_BANHISTORY, m_session->GetSecurity() < SEC_MODERATOR ? "*****" : accountname);
         }
 
         time_t unbandate = time_t(fields[3].GetUInt64());

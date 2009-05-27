@@ -59,6 +59,10 @@ namespace FactorySelector
         if (!ai_factory && creature->isGuard() )
             ai_factory = ai_registry.GetRegistryItem("GuardAI");
 
+        // FG: civilians must never attack if not attacked by player
+        if (!ai_factory && creature->isCivilian())
+            ai_factory = ai_registry.GetRegistryItem("ReactorAI");
+
         // select by permit check
         if (!ai_factory)
         {
