@@ -6952,10 +6952,14 @@ void Unit::setPowerType(Powers new_powertype)
     {
         default:
         case POWER_MANA:
+            if(GetTypeId() == TYPEID_PLAYER && IsUnderLastManaUseEffect())
+                RemoveFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_REGENERATE_POWER);
             break;
         case POWER_RAGE:
             SetMaxPower(POWER_RAGE,GetCreatePowers(POWER_RAGE));
             SetPower(   POWER_RAGE,0);
+            if(GetTypeId() == TYPEID_PLAYER)
+                SetFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_REGENERATE_POWER);
             break;
         case POWER_FOCUS:
             SetMaxPower(POWER_FOCUS,GetCreatePowers(POWER_FOCUS));
@@ -6964,6 +6968,8 @@ void Unit::setPowerType(Powers new_powertype)
         case POWER_ENERGY:
             SetMaxPower(POWER_ENERGY,GetCreatePowers(POWER_ENERGY));
             SetPower(   POWER_ENERGY,0);
+            if(GetTypeId() == TYPEID_PLAYER)
+                SetFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_REGENERATE_POWER);
             break;
         case POWER_HAPPINESS:
             SetMaxPower(POWER_HAPPINESS,GetCreatePowers(POWER_HAPPINESS));
