@@ -1845,6 +1845,11 @@ void Player::RegenerateAll()
 
     m_lastRegenerate = now;
 
+    // FG: Do NOT regenerate if player is dead
+    // TODO: be sure this is not causing side effects!!!
+    if(!isAlive())
+        return;
+
     // Not in combat or they have regeneration
     if( !isInCombat() || HasAuraType(SPELL_AURA_MOD_REGEN_DURING_COMBAT) ||
         HasAuraType(SPELL_AURA_MOD_HEALTH_REGEN_IN_COMBAT) || IsPolymorphed() )
