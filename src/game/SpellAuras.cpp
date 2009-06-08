@@ -2124,7 +2124,7 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                 case 30105: finalSpelId = 30104; break;
             }
 
-            if(finalSpelId)
+            if(finalSpelId && caster)
                 caster->CastSpell(m_target, finalSpelId, true, NULL, this);
             return;
         }
@@ -2186,14 +2186,14 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                     case 47835: finalSpelId = 47833; break;
                     case 47836: finalSpelId = 47834; break;
                 }
-                if(finalSpelId)
+                if(finalSpelId && caster)
                     caster->CastSpell(m_target,finalSpelId,true,NULL,this);
             }
             return;
         }
 
         // Living Bomb
-        if(GetId()==44457 || GetId()==55359 || GetId()==55360)
+        if(caster && (GetId()==44457 || GetId()==55359 || GetId()==55360))
         {
             if (m_removeMode!=AURA_REMOVE_BY_DEATH)
             {
@@ -2211,7 +2211,7 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
         }
 
         // FG: vomit after buff "Can't Hold Your Brew" expires
-        if(GetId() == 44315)
+        if(GetId() == 44315 && caster)
         {
             caster->CastSpell(caster,41995,true);
             return;
