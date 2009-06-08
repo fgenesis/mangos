@@ -1522,8 +1522,9 @@ void Unit::DealMeleeDamage(CalcDamageInfo *damageInfo, bool durabilityLoss)
     {
         if(GetTypeId() == TYPEID_PLAYER && pVictim->isAlive())
         {
-            for(int i = EQUIPMENT_SLOT_START; i < EQUIPMENT_SLOT_END; ++i)
-                ((Player*)this)->CastItemCombatSpell(((Player*)this)->GetItemByPos(INVENTORY_SLOT_BAG_0,i), pVictim, damageInfo->attackType);
+            ((Player*)this)->CastItemCombatSpell(((Player*)this)->GetWeaponForAttack(damageInfo->attackType, true), pVictim, damageInfo->attackType);
+        }
+
         }
 
         // victim's damage shield
