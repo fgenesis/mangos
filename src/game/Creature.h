@@ -181,8 +181,10 @@ struct CreatureInfo
     float   maxdmg;
     uint32  dmgschool;
     uint32  attackpower;
+    float   dmg_multiplier;
     uint32  baseattacktime;
     uint32  rangeattacktime;
+    uint32  unit_class;                                     // enum Classes. Note only 4 classes are known for creatures.
     uint32  unit_flags;                                     // enum UnitFlags mask values
     uint32  dynamicflags;
     uint32  family;                                         // enum CreatureFamily values (optional)
@@ -233,9 +235,13 @@ struct CreatureInfo
             return SKILL_SKINNING;                          // normal case
     }
 
-    bool isTameable() const
+    bool isTameable(bool exotic) const
     {
-        return type == CREATURE_TYPE_BEAST && family != 0 && (type_flags & CREATURE_TYPEFLAGS_TAMEABLE);
+        if(type != CREATURE_TYPE_BEAST || family == 0 || (type_flags & CREATURE_TYPEFLAGS_TAMEABLE)==0)
+            return false;
+
+        // if can tame exotic then can tame any temable
+        return exotic || (type_flags & CREATURE_TYPEFLAGS_EXOTIC)==0;
     }
 };
 
@@ -307,7 +313,6 @@ struct CreatureDataAddon
 {
     uint32 guidOrEntry;
     uint32 mount;
-    uint32 bytes0;
     uint32 bytes1;
     uint32 bytes2;
     uint32 emote;
@@ -615,6 +620,7 @@ class MANGOS_DLL_SPEC Creature : public Unit
         float GetAttackDistance(Unit const* pl) const;
 
         void DoFleeToGetAssistance();
+        void CallForHelp(float fRadius);
         void CallAssistance();
         void SetNoCallAssistance(bool val) { m_AlreadyCallAssistance = val; }
         void SetNoSearchAssistance(bool val) { m_AlreadySearchedAssistance = val; }

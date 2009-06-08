@@ -302,8 +302,8 @@ void Player::UpdateAttackPowerAndDamage(bool ranged )
                         Unit::AuraList const& mDummy = GetAurasByType(SPELL_AURA_DUMMY);
                         for(Unit::AuraList::const_iterator itr = mDummy.begin(); itr != mDummy.end(); ++itr)
                         {
-                            // Predatory Strikes
-                            if ((*itr)->GetSpellProto()->SpellIconID == 1563)
+                            // Predatory Strikes (effect 0)
+                            if ((*itr)->GetEffIndex()==0 && (*itr)->GetSpellProto()->SpellIconID == 1563)
                             {
                                 mLevelMult = (*itr)->GetModifier()->m_amount / 100.0f;
                                 break;
@@ -796,18 +796,17 @@ void Creature::UpdateDamagePhysical(WeaponAttackType attType)
 
     UnitMods unitMod = UNIT_MOD_DAMAGE_MAINHAND;
 
-    float att_speed = float(GetAttackTime(BASE_ATTACK))/1000.0f;
-
-    float base_value  = GetModifierValue(unitMod, BASE_VALUE) + GetTotalAttackPowerValue(attType)/ 14.0f * att_speed;
+    float base_value  = GetModifierValue(unitMod, BASE_VALUE) + GetTotalAttackPowerValue(attType);
     float base_pct    = GetModifierValue(unitMod, BASE_PCT);
     float total_value = GetModifierValue(unitMod, TOTAL_VALUE);
     float total_pct   = GetModifierValue(unitMod, TOTAL_PCT);
+    float dmg_multiplier = GetCreatureInfo()->dmg_multiplier;
 
     float weapon_mindamage = GetWeaponDamageRange(BASE_ATTACK, MINDAMAGE);
     float weapon_maxdamage = GetWeaponDamageRange(BASE_ATTACK, MAXDAMAGE);
 
-    float mindamage = ((base_value + weapon_mindamage) * base_pct + total_value) * total_pct ;
-    float maxdamage = ((base_value + weapon_maxdamage) * base_pct + total_value) * total_pct ;
+    float mindamage = ((base_value + weapon_mindamage) * base_pct + total_value) * total_pct * dmg_multiplier;
+    float maxdamage = ((base_value + weapon_maxdamage) * base_pct + total_value) * total_pct * dmg_multiplier;
 
     SetStatFloatValue(UNIT_FIELD_MINDAMAGE, mindamage);
     SetStatFloatValue(UNIT_FIELD_MAXDAMAGE, maxdamage);
