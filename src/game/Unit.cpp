@@ -1235,7 +1235,7 @@ void Unit::CalculateMeleeDamage(Unit *pVictim, uint32 damage, CalcDamageInfo *da
        damageInfo->cleanDamage    = 0;
        return;
     }
-    damage += CalculateDamage (damageInfo->attackType, false);
+    damage += CalculateDamage (damageInfo->attackType, false, true);
     // Add melee damage bonus
     MeleeDamageBonus(damageInfo->target, &damage, damageInfo->attackType);
     // Calculate armor reduction
@@ -2289,12 +2289,12 @@ MeleeHitOutcome Unit::RollMeleeOutcomeAgainst (const Unit *pVictim, WeaponAttack
     return MELEE_HIT_NORMAL;
 }
 
-uint32 Unit::CalculateDamage (WeaponAttackType attType, bool normalized)
+uint32 Unit::CalculateDamage (WeaponAttackType attType, bool normalized, bool addTotalPct)
 {
     float min_damage, max_damage;
 
-    if (normalized && GetTypeId()==TYPEID_PLAYER)
-        ((Player*)this)->CalculateMinMaxDamage(attType,normalized,min_damage, max_damage);
+    if (GetTypeId()==TYPEID_PLAYER && (normalized || !addTotalPct))
+        ((Player*)this)->CalculateMinMaxDamage(attType,normalized,addTotalPct,min_damage, max_damage);
     else
     {
         switch (attType)
@@ -5608,7 +5608,7 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                     else if (effIndex == 1)  // 1 effect - is proc on self
                     {
                         // add spell damage from prev effect (27%)
-                        damage += CalculateDamage(BASE_ATTACK, false) * 27 / 100;
+                        damage += CalculateDamage(BASE_ATTACK, false, true) * 27 / 100;
                         basepoints0 =  triggerAmount * damage / 100;
                         target = this;
                         triggered_spell_id = 32221;
@@ -5625,7 +5625,7 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                     else if (effIndex == 1) // 1 effect - is proc on self
                     {
                         // add spell damage from prev effect (27%)
-                        damage += CalculateDamage(BASE_ATTACK, false) * 27 / 100;
+                        damage += CalculateDamage(BASE_ATTACK, false, true) * 27 / 100;
                         basepoints0 =  triggerAmount * damage / 100;
                         target = this;
                         triggered_spell_id = 53718;
