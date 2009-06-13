@@ -753,12 +753,6 @@ bool ChatHandler::CharacterDizintegrateHelper(Player *pl, const char* args)
                 if ( !pItem->IsBag() && !(pItem->GetProto()->Class == ITEM_CLASS_MISC && pItem->GetProto()->SubClass == ITEM_SUBCLASS_ARMOR_CLOTH && pItem->GetProto()->Flags & 32) )
                     pl->DestroyItem( INVENTORY_SLOT_BAG_0, i, true);
 
-        // DO NOT delete keys!!
-        for(int i = VANITYPET_SLOT_START; i < QUESTBAG_SLOT_END; ++i)
-            if (Item* pItem = pl->GetItemByPos( INVENTORY_SLOT_BAG_0, i ))
-                if ( !pItem->IsBag() && !(pItem->GetProto()->Class == ITEM_CLASS_MISC && pItem->GetProto()->SubClass == ITEM_SUBCLASS_ARMOR_CLOTH && pItem->GetProto()->Flags & 32) )
-                    pl->DestroyItem( INVENTORY_SLOT_BAG_0, i, true);
-
         // in inventory bags
         for(int i = INVENTORY_SLOT_BAG_START; i < INVENTORY_SLOT_BAG_END; ++i)
             if (Bag* pBag = (Bag*)pl->GetItemByPos( INVENTORY_SLOT_BAG_0, i ))
