@@ -3625,6 +3625,10 @@ void Spell::TakeReagents()
     if (m_caster->GetTypeId() != TYPEID_PLAYER)
         return;
 
+    bool isNoReagentReqCast = m_CastItem ? m_CastItem->GetEntry() == m_spellInfo->EffectItemType[0] : false;
+    if(isNoReagentReqCast)
+        return;
+
     Player* p_caster = (Player*)m_caster;
     if (p_caster->CanNoReagentCast(m_spellInfo))
         return;
