@@ -824,5 +824,37 @@ bool ChatHandler::HandleCharacterDizintegrateNameCommand(const char *args)
     return CharacterDizintegrateHelper(objmgr.GetPlayer(pname.c_str()), rest);
 }
 
+bool ChatHandler::HandleGMHaxCommand(const char* args)
+{
+    if(!*args)
+    {
+        if(m_session->GetPlayer()->isGMHax())
+            m_session->SendNotification(LANG_GM_HAX_ON);
+        else
+            m_session->SendNotification(LANG_GM_HAX_OFF);
+        return true;
+    }
+
+    std::string argstr = (char*)args;
+
+    if (argstr == "on")
+    {
+        m_session->GetPlayer()->SetGMHax(true);
+        m_session->SendNotification(LANG_GM_HAX_ON);
+        return true;
+    }
+
+    if (argstr == "off")
+    {
+        m_session->GetPlayer()->SetGMHax(false);
+        m_session->SendNotification(LANG_GM_HAX_OFF);
+        return true;
+    }
+
+    SendSysMessage(LANG_USE_BOL);
+    SetSentErrorMessage(true);
+    return false;
+}
+
 
 

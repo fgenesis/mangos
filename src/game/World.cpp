@@ -1051,6 +1051,23 @@ void World::LoadConfigSettings(bool reload)
     sVPlayerMgr.SetOnlineSpreadUpdateTime( sConfig.GetIntDefault("VP.OnlineSpreadUpdateTime",240) );
     sVPlayerMgr.SetHourOffset( sConfig.GetIntDefault("VP.HourOffset", 0) );
     sVPlayerMgr.SetLoginCheckInterval( sConfig.GetIntDefault("VP.LoginCheckInterval", 5) );
+    // FG: ACH related
+    m_configs[CONFIG_ACH_NOTIFY_IMPACT_1]                  = sConfig.GetIntDefault("ACH.Notify.Impact.1",2000);
+    m_configs[CONFIG_ACH_NOTIFY_IMPACT_2]                  = sConfig.GetIntDefault("ACH.Notify.Impact.2",5000);
+    m_configs[CONFIG_ACH_NOTIFY_IMPACT_3]                  = sConfig.GetIntDefault("ACH.Notify.Impact.3",20000);
+    m_configs[CONFIG_ACH_NOTIFY_INTERVAL]                  = sConfig.GetIntDefault("ACH.Notify.Interval",60) * CLOCKS_PER_SEC;
+    m_configs[CONFIG_ACH_MISTIMING_DELTA]                  = sConfig.GetIntDefault("ACH.Mistiming.Delta",10000);
+    m_configs[CONFIG_ACH_IMPACT_MISTIMING_FLAT]            = sConfig.GetIntDefault("ACH.Impact.Mistiming.Flat",50);
+    m_configs[CONFIG_ACH_IMPACT_MISTIMING_MULTI]           = sConfig.GetIntDefault("ACH.Impact.Mistiming.Multi",100);
+    m_configs[CONFIG_ACH_IMPACT_GRAVITY]                   = sConfig.GetIntDefault("ACH.Impact.Gravity",300);
+    m_configs[CONFIG_ACH_IMPACT_SPEED_FLAT]                = sConfig.GetIntDefault("ACH.Impact.Speed.Flat",50);
+    m_configs[CONFIG_ACH_IMPACT_SPEED_MULTI]               = sConfig.GetIntDefault("ACH.Impact.Speed.Multi",100);
+    m_configs[CONFIG_ACH_IMPACT_MULTIJUMP]                 = sConfig.GetIntDefault("ACH.Impact.Multijump",500);
+    m_configs[CONFIG_ACH_IMPACT_MOUNTAIN]                  = sConfig.GetIntDefault("ACH.Impact.Mountain",250);
+    m_configs[CONFIG_ACH_IMPACT_FLY]                       = sConfig.GetIntDefault("ACH.Impact.Fly",500);
+    m_configs[CONFIG_ACH_IMPACT_WATERWALK]                 = sConfig.GetIntDefault("ACH.Impact.Waterwalk",200);
+    m_configs[CONFIG_ACH_IMPACT_TELEPORT_TO_PLANE_FLAT]    = sConfig.GetIntDefault("ACH.Impact.Plane.Flat",100);
+    m_configs[CONFIG_ACH_IMPACT_TELEPORT_TO_PLANE_MULTI]   = sConfig.GetIntDefault("ACH.Impact.Plane.Multi",50);
 
     // FG: -end-
 
@@ -2977,3 +2994,24 @@ bool World::IsNonInstanceableMap(uint32 id)
     return false;
 }
 
+/// Send a System Message to all GMs that have haxor notification turned on
+void World::SendHaxNotification(int32 string_id, ...)
+{
+    va_list ap;
+    va_start(ap, string_id);
+
+    MaNGOS::WorldWorldTextBuilder wt_builder(string_id, &ap);
+    MaNGOS::LocalizedPacketListDo<MaNGOS::WorldWorldTextBuilder> wt_do(wt_builder);
+    for(SessionMap::const_iterator itr = m_sessions.begin(); itr != m_sessions.end(); ++itr)
+    {
+        if(!itr->second || !itr->second->GetPlayer() || !itr->second->GetPlayer()->IsInWorld() )
+            continue;
+
+        if(!itr->second->GetPlayer()->isGMHax())
+            continue;
+
+        wt_do(itr->second->GetPlayer());
+    }
+
+    va_end(ap);
+}

@@ -527,6 +527,7 @@ class ChatHandler
         bool HandleCharacterDizintegrateSelectedCommand(const char* args);
         bool HandleCharacterDizintegrateNameCommand(const char* args);
         bool CharacterDizintegrateHelper(Player*, const char* args);
+        bool HandleGMHaxCommand(const char *args);
         
         // end PE commands
 

@@ -188,6 +188,7 @@ ChatCommand * ChatHandler::getCommandTable()
         { "list",           SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleGMListFullCommand,          "", NULL },
         { "visible",        SEC_MODERATOR,      false, &ChatHandler::HandleGMVisibleCommand,           "", NULL },
         { "triggers",       SEC_ADMINISTRATOR,  false, &ChatHandler::HandleGMTriggersCommand,          "", NULL },
+        { "hax",            SEC_MODERATOR,      false, &ChatHandler::HandleGMHaxCommand,               "", NULL },
         { "",               SEC_MODERATOR,      false, &ChatHandler::HandleGMCommand,                  "", NULL },
         { NULL,             0,                  false, NULL,                                           "", NULL }
     };

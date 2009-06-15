@@ -505,7 +505,8 @@ enum PlayerExtraFlags
     PLAYER_EXTRA_PVP_DEATH          = 0x0100,               // store PvP death status until corpse creating.
 
     // FG: more stuff
-    PLAYER_EXTRA_GM_SHOW_TRIGGERS   = 0x4000
+    PLAYER_EXTRA_GM_SHOW_TRIGGERS   = 0x4000,
+    PLAYER_EXTRA_GM_SHOW_HAXORS     = 0x8000
 };
 
 // 2^n values
@@ -2107,9 +2108,37 @@ class MANGOS_DLL_SPEC Player : public Unit
         void GivePlayerDropReward(Player *victim);
         bool isGMTriggers() const { return GetSession()->GetSecurity() >= SEC_MODERATOR && (m_ExtraFlags & PLAYER_EXTRA_GM_SHOW_TRIGGERS); }
         void SetGMTriggers(bool on) { if(on) m_ExtraFlags |= PLAYER_EXTRA_GM_SHOW_TRIGGERS; else m_ExtraFlags &= ~PLAYER_EXTRA_GM_SHOW_TRIGGERS; }
+        bool isGMHax() const { return GetSession()->GetSecurity() >= SEC_MODERATOR && (m_ExtraFlags & PLAYER_EXTRA_GM_SHOW_HAXORS); }
+        void SetGMHax(bool on) { if(on) m_ExtraFlags |= PLAYER_EXTRA_GM_SHOW_HAXORS; else m_ExtraFlags &= ~PLAYER_EXTRA_GM_SHOW_HAXORS; }
         void UpdateDiplomacyDistance(void);
         inline void SetMyinfoForbidden(bool b) { m_myinfoForbidden = b; }
         inline bool IsMyinfoForbidden(void) { return m_myinfoForbidden; }
+        // ACH start
+        uint32 m_anti_LastClientTime;     //last movement client time
+        uint32 m_anti_LastServerTime;     //last movement server time
+        uint32 m_anti_DeltaClientTime;    //client side session time
+        uint32 m_anti_DeltaServerTime;    //server side session time
+        uint32 m_anti_MistimingCount;     //mistiming counts before kick
+
+        uint32 m_anti_LastSpeedChangeTime;//last speed change time
+        uint32 m_anti_BeginFallTime;      //alternative falling begin time (obsolete)
+
+        float  m_anti_Last_HSpeed;        //horizontal speed, default RUN speed
+        float  m_anti_Last_VSpeed;        //vertical speed, default max jump height
+
+        uint64 m_anti_TransportGUID;      //current transport GUID
+
+        uint32 m_anti_JustTeleported;     //seted when player was teleported
+        uint32 m_anti_TeleToPlane_Count;  //Teleport To Plane alarm counter
+
+        uint64 m_anti_AlarmCount;         //alarm counter
+
+        uint32 m_anti_JustJumped;         //Jump already began, anti air jump check
+        float  m_anti_JumpBaseZ;           //Z coord before jump
+        uint8  m_anti_NotificationCount;  // how many notification were broadcasted to GMs already
+        clock_t m_anti_NotificationTime;   // last notification time
+        // ACH end
+
 
     protected:
         

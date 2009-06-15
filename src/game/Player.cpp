@@ -476,6 +476,32 @@ Player::Player (WorldSession *session): Unit(), m_achievementMgr(this), m_reputa
 
     // FG: init custom vars
     m_myinfoForbidden = false;
+
+    //movement anticheat
+    m_anti_LastClientTime  = 0;   //last movement client time
+    m_anti_LastServerTime  = 0;   //last movement server time
+    m_anti_DeltaClientTime = 0;   //client side session time
+    m_anti_DeltaServerTime = 0;   //server side session time
+    m_anti_MistimingCount  = 0;   //mistiming counts before kick
+
+    m_anti_LastSpeedChangeTime = 0;  //last speed change time
+    m_anti_BeginFallTime = 0;     //alternative falling begin time (obsolete)
+
+    m_anti_Last_HSpeed =  7.0f;   //horizontal speed, default RUN speed
+    m_anti_Last_VSpeed = -2.3f;   //vertical speed, default max jump height
+
+    m_anti_TransportGUID = 0;     //current transport GUID
+
+    m_anti_JustTeleported = 0;    //seted when player was teleported
+    m_anti_TeleToPlane_Count = 0; //Teleport To Plane alarm counter
+
+    m_anti_AlarmCount = 0;        //alarm counter
+
+    m_anti_JustJumped = 0;        //Jump already began, anti air jump check
+    m_anti_JumpBaseZ = 0;          //Z coord before jump (AntiGrav)
+    m_anti_NotificationCount = 0;
+    m_anti_NotificationTime = 0;
+    // << movement anticheat
 }
 
 Player::~Player ()
@@ -1586,6 +1612,10 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
         return false;
     }
 
+    //movement anticheat
+    m_anti_JustTeleported = 1;
+    //end movement anticheat
+
     // preparing unsummon pet if lost (we must get pet before teleportation or will not find it later)
     Pet* pet = GetPet();
 
@@ -1640,6 +1670,10 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
 
     if ((GetMapId() == mapid) && (!m_transport))
     {
+        // movmement anticheat
+        m_anti_JumpBaseZ = 0;
+        // end movement anticheat
+
         if (!(options & TELE_TO_NOT_UNSUMMON_PET))
         {
             //same map, only remove pet if out of range for new position
@@ -1753,6 +1787,10 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
 
             m_teleport_dest = WorldLocation(mapid, final_x, final_y, final_z, final_o);
             SetFallInformation(0, final_z);
+            // movement anticheat
+            m_anti_JumpBaseZ = 0;
+            // end movement anticheat
+
             // if the player is saved before worldportack (at logout for example)
             // this will be used instead of the current location in SaveToDB
 

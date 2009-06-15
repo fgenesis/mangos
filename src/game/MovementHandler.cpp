@@ -32,6 +32,10 @@
 #include "InstanceSaveMgr.h"
 #include "ObjectMgr.h"
 
+// FG: req. for ACH
+#include "World.h"
+#include "Language.h"
+
 void WorldSession::HandleMoveWorldportAckOpcode( WorldPacket & /*recv_data*/ )
 {
     sLog.outDebug( "WORLD: got MSG_MOVE_WORLDPORT_ACK." );
@@ -217,7 +221,10 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
 
     // ignore, waiting processing in WorldSession::HandleMoveWorldportAckOpcode and WorldSession::HandleMoveTeleportAck
     if(plMover && plMover->IsBeingTeleported())
+    {
+        plMover->m_anti_JustTeleported = 1; // ACH related
         return;
+    }
 
     /* extract packet */
     MovementInfo movementInfo;
@@ -247,7 +254,7 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
             return;
 
         // if we boarded a transport, add us to it
-        if (plMover && !plMover->m_transport)
+        if (plMover && plMover->m_anti_TransportGUID == 0 && movementInfo.t_guid && !plMover->m_transport)
         {
             // elevators also cause the client to send MOVEMENTFLAG_ONTRANSPORT - just unmount if the guid can be found in the transport list
             for (MapManager::TransportSet::const_iterator iter = MapManager::Instance().m_Transports.begin(); iter != MapManager::Instance().m_Transports.end(); ++iter)
@@ -260,22 +267,43 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
                 }
             }
         }
+        //movement anticheat;
+        if(movementInfo.t_guid)
+        {
+            //Correct finding GO guid in DB (thanks to GriffonHeart)
+            GameObject *obj = HashMapHolder<GameObject>::Find(movementInfo.t_guid);
+            if(obj)
+                plMover->m_anti_TransportGUID = obj->GetDBTableGUIDLow();
+            else
+                plMover->m_anti_TransportGUID = GUID_LOPART(movementInfo.t_guid);
+        }
+        // end movement anticheat
     }
-    else if (plMover && plMover->m_transport)               // if we were on a transport, leave
+    else if (plMover && (plMover->m_anti_TransportGUID || plMover->m_transport))               // if we were on a transport, leave
     {
-        plMover->m_transport->RemovePassenger(plMover);
-        plMover->m_transport = NULL;
+        if(plMover->m_transport)
+        {
+            plMover->m_transport->RemovePassenger(plMover);
+            plMover->m_transport = NULL;
+        }
         movementInfo.t_x = 0.0f;
         movementInfo.t_y = 0.0f;
         movementInfo.t_z = 0.0f;
         movementInfo.t_o = 0.0f;
         movementInfo.t_time = 0;
         movementInfo.t_seat = -1;
+        plMover->m_anti_TransportGUID = 0;
     }
 
     // fall damage generation (ignore in flight case that can be triggered also at lags in moment teleportation to another map).
     if (opcode == MSG_MOVE_FALL_LAND && plMover && !plMover->isInFlight())
+    {
+        //movement anticheat
+        plMover->m_anti_JustJumped = 0;
+        plMover->m_anti_JumpBaseZ = 0;
+        //end movement anticheat
         plMover->HandleFall(movementInfo);
+    }
 
     if (plMover && ((movementInfo.flags & MOVEMENTFLAG_SWIMMING) != 0) != plMover->IsInWater())
     {
@@ -285,7 +313,54 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
 
     /*----------------------*/
 
+    // ACH start
+    uint32 alarm_level = 0;
+    if(plMover && plMover == GetPlayer())
+    {
+        alarm_level = ACH_CheckMoveInfo(opcode, movementInfo, plMover);
+
+        if (alarm_level)
+        {
+            plMover->m_anti_AlarmCount += alarm_level;
+            /*
+            WorldPacket data;
+            plMover->SetUnitMovementFlags(0);
+            plMover->BuildTeleportAckMsg(&data, plMover->GetPositionX(), plMover->GetPositionY(), plMover->GetPositionZ(), plMover->GetOrientation());
+            plMover->GetSession()->SendPacket(&data);
+            plMover->BuildHeartBeatMsg(&data);
+            plMover->SendMessageToSet(&data, true);
+            return;
+            */
+            // ... we should process packets normally, dont make them suspicious
+            
+            clock_t curclock = clock();
+
+            if(plMover->m_anti_NotificationTime + sWorld.getConfig(CONFIG_ACH_NOTIFY_INTERVAL) < curclock)
+            {
+                plMover->m_anti_NotificationCount = 0;
+            }
+
+            if( plMover->m_anti_AlarmCount >= sWorld.getConfig(CONFIG_ACH_NOTIFY_IMPACT_3) && plMover->m_anti_NotificationCount == 2
+             || plMover->m_anti_AlarmCount >= sWorld.getConfig(CONFIG_ACH_NOTIFY_IMPACT_2) && plMover->m_anti_NotificationCount == 1
+             || plMover->m_anti_AlarmCount >= sWorld.getConfig(CONFIG_ACH_NOTIFY_IMPACT_1) && plMover->m_anti_NotificationCount == 0
+                )
+            {
+                sWorld.SendHaxNotification(LANG_GM_HAX_MESSAGE, plMover->GetSession()->GetAccountId(), plMover->GetName(), plMover->m_anti_AlarmCount);
+                plMover->m_anti_NotificationCount++;
+                plMover->m_anti_NotificationTime = curclock;
+            }
+        }
+
+        if (alarm_level == 0 && plMover->m_anti_AlarmCount > 0)
+        {
+            sLog.outError("MA-%s produced total alarm level %u",plMover->GetName(),plMover->m_anti_AlarmCount);
+            plMover->m_anti_AlarmCount = 0;
+        }
+    }
+    // ACH end
+
     /* process position-change */
+    
     recv_data.put<uint32>(6, getMSTime());                  // fix time, offset flags(4) + unk(2)
     WorldPacket data(recv_data.GetOpcode(), (mover->GetPackGUID().size()+recv_data.size()));
     data.append(mover->GetPackGUID());                      // use mover guid
@@ -490,34 +565,28 @@ void WorldSession::HandleMountSpecialAnimOpcode(WorldPacket& /*recvdata*/)
     GetPlayer()->SendMessageToSet(&data, false);
 }
 
-void WorldSession::HandleMoveKnockBackAck( WorldPacket & /*recv_data*/ )
+void WorldSession::HandleMoveKnockBackAck( WorldPacket &recv_data )
 {
     // CHECK_PACKET_SIZE(recv_data,?);
     sLog.outDebug("CMSG_MOVE_KNOCK_BACK_ACK");
     // Currently not used but maybe use later for recheck final player position
     // (must be at call same as into "recv_data >> x >> y >> z >> orientation;"
 
-    /*
-    uint32 flags, time;
-    float x, y, z, orientation;
-    uint64 guid;
-    uint32 sequence;
-    uint32 ukn1;
-    float xdirection,ydirection,hspeed,vspeed;
+    /* extract packet */
+    MovementInfo movementInfo;
+    uint32 unk1,unk2,unk3;
+    recv_data >> unk1 >> unk2 >> unk3;
+    ReadMovementInfo(recv_data, &movementInfo);
 
-    recv_data >> guid;
-    recv_data >> sequence;
-    recv_data >> flags >> time;
-    recv_data >> x >> y >> z >> orientation;
-    recv_data >> ukn1; //unknown
-    recv_data >> vspeed >> xdirection >> ydirection >> hspeed;
+    //Save movement flags
+    _player->SetUnitMovementFlags(movementInfo.flags);
 
-    // skip not personal message;
-    if(GetPlayer()->GetGUID()!=guid)
-        return;
+    _player->m_movementInfo = movementInfo;
+    _player->m_anti_Last_HSpeed = movementInfo.j_xyspeed;
+    _player->m_anti_Last_VSpeed = movementInfo.j_unk < 3.2f ? movementInfo.j_unk - 1.0f : 3.2f;
 
-    // check code
-    */
+    uint32 dt = (_player->m_anti_Last_VSpeed < 0) ? (int)(ceil(_player->m_anti_Last_VSpeed/-25)*1000) : (int)(ceil(_player->m_anti_Last_VSpeed/25)*1000);
+    _player->m_anti_LastSpeedChangeTime = movementInfo.time + dt + 1000;
 }
 
 void WorldSession::HandleMoveHoverAck( WorldPacket& /*recv_data*/ )
@@ -543,4 +612,302 @@ void WorldSession::HandleSummonResponseOpcode(WorldPacket& recv_data)
     recv_data >> agree;
 
     _player->SummonIfPossible(agree);
+}
+
+
+uint32 WorldSession::ACH_CheckMoveInfo(uint32 opcode, MovementInfo& movementInfo, Player *plMover)
+{
+    if(!plMover) // player to check
+        return true; // this does not necessarily have to be an error, just return anything here, as long as it works
+
+    uint32 alarm_level = 0; // "impact" generated, > 0 for suspicious packets
+
+    //calc time deltas
+    int32 cClientTimeDelta = 1500;
+    if (plMover->m_anti_LastClientTime)
+    {
+        cClientTimeDelta = movementInfo.time - plMover->m_anti_LastClientTime;
+        plMover->m_anti_DeltaClientTime += cClientTimeDelta;
+        plMover->m_anti_LastClientTime = movementInfo.time;
+    }
+    else
+    {
+        plMover->m_anti_LastClientTime = movementInfo.time;
+    }
+
+    uint32 cServerTime=getMSTime();
+    uint32 cServerTimeDelta = 1500;
+    if (plMover->m_anti_LastServerTime != 0)
+    {
+        cServerTimeDelta = cServerTime - plMover->m_anti_LastServerTime;
+        plMover->m_anti_DeltaServerTime += cServerTimeDelta;
+        plMover->m_anti_LastServerTime = cServerTime;
+    }
+    else
+    {
+        plMover->m_anti_LastServerTime = cServerTime;
+    }
+
+    //resync times on client login (first 90 sec for heavy areas)
+    if (plMover->m_anti_DeltaServerTime < 90000 && plMover->m_anti_DeltaClientTime < 0000)
+        plMover->m_anti_DeltaClientTime = plMover->m_anti_DeltaServerTime;
+
+    int32 sync_time = plMover->m_anti_DeltaClientTime - plMover->m_anti_DeltaServerTime;
+
+    //mistiming checks
+    int32 gmd = sWorld.getConfig(CONFIG_ACH_MISTIMING_DELTA);
+    if (sync_time > gmd || sync_time < -gmd)
+    {
+        cClientTimeDelta = cServerTimeDelta;
+        plMover->m_anti_MistimingCount++;
+
+        sLog.outError("MA-%s, mistiming exception. #:%d, mistiming: %dms ",
+            plMover->GetName(), plMover->m_anti_MistimingCount, sync_time);
+
+        alarm_level += (sWorld.getConfig(CONFIG_ACH_IMPACT_MISTIMING_FLAT) +
+            (plMover->m_anti_MistimingCount * sWorld.getConfig(CONFIG_ACH_IMPACT_MISTIMING_MULTI)));
+
+    }
+    // end mistiming checks
+
+
+    uint32 curDest = plMover->m_taxi.GetTaxiDestination(); //check taxi flight
+    if ((plMover->m_anti_TransportGUID == 0) && !curDest)
+    {
+        UnitMoveType move_type;
+
+        // calculating section ---------------------
+        //current speed
+        if (movementInfo.flags & MOVEMENTFLAG_FLYING) move_type = movementInfo.flags & MOVEMENTFLAG_BACKWARD ? MOVE_FLIGHT_BACK : MOVE_FLIGHT;
+        else if (movementInfo.flags & MOVEMENTFLAG_SWIMMING) move_type = movementInfo.flags & MOVEMENTFLAG_BACKWARD ? MOVE_SWIM_BACK : MOVE_SWIM;
+        else if (movementInfo.flags & MOVEMENTFLAG_WALK_MODE) move_type = MOVE_WALK;
+        //hmm... in first time after login player has MOVE_SWIMBACK instead MOVE_WALKBACK
+        else move_type = movementInfo.flags & MOVEMENTFLAG_BACKWARD ? MOVE_SWIM_BACK : MOVE_RUN;
+
+        float current_speed = plMover->GetSpeed(move_type);
+        // end current speed
+
+        // movement distance
+        float allowed_delta= 0;
+
+        float delta_x = plMover->GetPositionX() - movementInfo.x;
+        float delta_y = plMover->GetPositionY() - movementInfo.y;
+        float delta_z = plMover->GetPositionZ() - movementInfo.z;
+        float real_delta = delta_x * delta_x + delta_y * delta_y;
+        float tg_z = -99999; //tangens
+        // end movement distance
+
+        if (cClientTimeDelta < 0)
+            cClientTimeDelta = 0;
+        float time_delta = (cClientTimeDelta < 1500) ? (float)cClientTimeDelta/1000 : 1.5f; //normalize time - 1.5 second allowed for heavy loaded server
+
+        if (!(movementInfo.flags & (MOVEMENTFLAG_FLYING | MOVEMENTFLAG_SWIMMING)))
+            tg_z = (real_delta !=0) ? (delta_z*delta_z / real_delta) : -99999;
+
+        if (current_speed < plMover->m_anti_Last_HSpeed)
+        {
+            allowed_delta = plMover->m_anti_Last_HSpeed;
+            if (plMover->m_anti_LastSpeedChangeTime == 0 )
+                plMover->m_anti_LastSpeedChangeTime = movementInfo.time + (uint32)floor(((plMover->m_anti_Last_HSpeed / current_speed) * 1500)) + 100; //100ms above for random fluctuating =)))
+        }
+        else
+        {
+            allowed_delta = current_speed;
+        }
+        allowed_delta = allowed_delta * time_delta;
+        allowed_delta = allowed_delta * allowed_delta + 2;
+        if (tg_z > 2.2)
+            allowed_delta = allowed_delta + (delta_z*delta_z)/2.37; // mountain fall allowed speed
+
+        if (movementInfo.time>plMover->m_anti_LastSpeedChangeTime)
+        {
+            plMover->m_anti_Last_HSpeed = current_speed; // store current speed
+            plMover->m_anti_Last_VSpeed = -2.3f;
+            if (plMover->m_anti_LastSpeedChangeTime != 0)
+                plMover->m_anti_LastSpeedChangeTime = 0;
+        }
+        // end calculating section ---------------------
+
+        //AntiGrav
+        float JumpHeight = plMover->m_anti_JumpBaseZ - movementInfo.z;
+        if ((plMover->m_anti_JumpBaseZ != 0)
+            && !(movementInfo.flags & (MOVEMENTFLAG_SWIMMING | MOVEMENTFLAG_FLYING | MOVEMENTFLAG_FLYING2))
+            && (JumpHeight < plMover->m_anti_Last_VSpeed))
+        {
+            sLog.outError("MA-%s, GraviJump exception. JumpHeight = %f, Allowed Veritcal Speed = %f",
+                plMover->GetName(), JumpHeight, plMover->m_anti_Last_VSpeed);
+
+            //plMover->GetSession()->ACH_HandleGravity()
+
+            alarm_level += sWorld.getConfig(CONFIG_ACH_IMPACT_GRAVITY);
+        }
+
+        //multi jump checks
+        if (opcode == MSG_MOVE_JUMP && !plMover->IsInWater())
+        {
+            if (plMover->m_anti_JustJumped >= 1)
+            {
+                alarm_level += sWorld.getConfig(CONFIG_ACH_IMPACT_MULTIJUMP);
+                sLog.outError("MA-%s, MultiJump exception. Jumps = %u", plMover->GetName(), plMover->m_anti_JustJumped);
+                //plMover->GetSession()->ACH_HandleMultiJump()
+            }
+            else
+            {
+                plMover->m_anti_JustJumped += 1;
+                plMover->m_anti_JumpBaseZ = movementInfo.z;
+            }
+        }
+        else if (plMover->IsInWater())
+        {
+            plMover->m_anti_JustJumped = 0;
+        }
+
+        //speed hack checks
+        if ((real_delta > allowed_delta)) // && (delta_z < 0))
+        {
+            sLog.outError("MA-%s, speed exception | cDelta=%f aDelta=%f | cSpeed=%f lSpeed=%f deltaTime=%f",
+                plMover->GetName(), real_delta, allowed_delta, current_speed, plMover->m_anti_Last_HSpeed,time_delta);
+            //plMover->GetSession()->ACH_HandleSpeed()
+
+            alarm_level += (sWorld.getConfig(CONFIG_ACH_IMPACT_SPEED_FLAT) + 
+                (sqrt(real_delta - allowed_delta) * sWorld.getConfig(CONFIG_ACH_IMPACT_SPEED_MULTI)));
+        }
+        //teleport hack checks
+        if ((real_delta>4900.0f) && !(real_delta < allowed_delta))
+        {
+
+            sLog.outError("MA-%s, is teleport exception | cDelta=%f aDelta=%f | cSpeed=%f lSpeed=%f deltaToime=%f",
+                plMover->GetName(),real_delta, allowed_delta, current_speed, plMover->m_anti_Last_HSpeed,time_delta);
+            //plMover->GetSession()->ACH_HandleTeleport()
+            // TODO: add more code if necessary. most of it should be covered above anyway
+            //check_passed = false;
+        }
+
+        //mountian hack checks // 1.56f (delta_z < GetPlayer()->m_anti_Last_VSpeed))
+        if ((delta_z < plMover->m_anti_Last_VSpeed) && (plMover->m_anti_JustJumped == 0) && (tg_z > 2.37f))
+        {
+            sLog.outError("MA-%s, mountain exception | tg_z=%f", plMover->GetName(),tg_z);
+            //plMover->GetSession()->ACH_HandleMountain()
+
+            alarm_level += sWorld.getConfig(CONFIG_ACH_IMPACT_MOUNTAIN);
+        }
+        //Fly hack checks
+        if (((movementInfo.flags & (MOVEMENTFLAG_CAN_FLY | MOVEMENTFLAG_FLYING | MOVEMENTFLAG_FLYING2)) != 0)
+            && !plMover->isGameMaster()
+            && !(plMover->HasAuraType(SPELL_AURA_FLY) || plMover->HasAuraType(SPELL_AURA_MOD_INCREASE_FLIGHT_SPEED)))
+        {
+            sLog.outError("MA-%s, flight exception.",plMover->GetName());
+            //plMover->GetSession()->ACH_HandleFly()
+
+            alarm_level += sWorld.getConfig(CONFIG_ACH_IMPACT_FLY);
+        }
+        //Water-Walk checks
+        if (((movementInfo.flags & MOVEMENTFLAG_WATERWALKING) != 0)
+            && !plMover->isGameMaster()
+            && !(plMover->HasAuraType(SPELL_AURA_WATER_WALK) | plMover->HasAuraType(SPELL_AURA_GHOST)))
+        {
+            sLog.outError("MA-%s, water-walk exception. [%X]{SPELL_AURA_WATER_WALK=[%X]}",
+                plMover->GetName(), movementInfo.flags, plMover->HasAuraType(SPELL_AURA_WATER_WALK));
+            //plMover->GetSession()->ACH_HandleWaterwalk()
+
+            alarm_level += sWorld.getConfig(CONFIG_ACH_IMPACT_WATERWALK);
+        }
+        //Teleport To Plane checks
+        if (movementInfo.z < 0.0001f && movementInfo.z > -0.0001f
+            && ((movementInfo.flags & (MOVEMENTFLAG_SWIMMING | MOVEMENTFLAG_CAN_FLY | MOVEMENTFLAG_FLYING | MOVEMENTFLAG_FLYING2)) == 0)
+            && !plMover->isGameMaster())
+        {
+            // Prevent using TeleportToPlan.
+            Map *map = plMover->GetMap();
+            if (map){
+                float plane_z = map->GetHeight(movementInfo.x, movementInfo.y, MAX_HEIGHT) - movementInfo.z;
+                plane_z = (plane_z < -500.0f) ? 0 : plane_z; //check holes in heigth map
+                if(plane_z > 0.1f || plane_z < -0.1f)
+                {
+                    plMover->m_anti_TeleToPlane_Count++;
+                    alarm_level += (sWorld.getConfig(CONFIG_ACH_IMPACT_TELEPORT_TO_PLANE_FLAT) +
+                        (sWorld.getConfig(CONFIG_ACH_IMPACT_TELEPORT_TO_PLANE_MULTI) * plMover->m_anti_TeleToPlane_Count));
+
+                    sLog.outDebug("MA-%s, teleport to plane exception. plane_z: %f count=%u",
+                        plMover->GetName(), plane_z, plMover->m_anti_TeleToPlane_Count);
+
+                    //plMover->GetSession()->ACH_HandlePlaneTeleport()
+
+                }
+            }
+        }
+        else
+        {
+            if (plMover->m_anti_TeleToPlane_Count != 0)
+                plMover->m_anti_TeleToPlane_Count = 0;
+        }
+    }
+    else if (movementInfo.flags & MOVEMENTFLAG_ONTRANSPORT)
+    {
+        //antiwrap checks
+        if (plMover->m_transport)
+        {
+            float trans_rad = movementInfo.t_x*movementInfo.t_x + movementInfo.t_y*movementInfo.t_y + movementInfo.t_z*movementInfo.t_z;
+            if (trans_rad > 3600.0f)
+            {
+                //check_passed = false;
+
+                sLog.outError("MA-%s, leave transport.", plMover->GetName());
+            }
+        }
+        else
+        {
+            if (GameObjectData const* go_data = objmgr.GetGOData(plMover->m_anti_TransportGUID))
+            {
+                float delta_gox = go_data->posX - movementInfo.x;
+                float delta_goy = go_data->posY - movementInfo.y;
+                float delta_goz = go_data->posZ - movementInfo.z;
+                int mapid = go_data->mapid;
+
+                sLog.outDebug("MA-%s, transport movement. GO xyzo: %f,%f,%f",
+                    plMover->GetName(), go_data->posX,go_data->posY,go_data->posZ);
+
+                if (plMover->GetMapId() != mapid)
+                {
+                    //check_passed = false;
+                }
+                else if (mapid !=369)
+                {
+                    float delta_go = delta_gox*delta_gox + delta_goy*delta_goy;
+                    if (delta_go > 3600.0f)
+                    {
+                        //check_passed = false;
+
+                        sLog.outError("MA-%s, leave transport. GO xyzo: %f,%f,%f",
+                            plMover->GetName(), go_data->posX,go_data->posY,go_data->posZ);
+
+                    }
+                }
+
+            }
+            else
+            {
+
+                sLog.outDebug("MA-%s, undefined transport.", plMover->GetName());
+
+                //check_passed = false;
+            }
+        }
+
+        /*if (!check_passed)
+        {
+            if (plMover->m_transport)
+            {
+                plMover->m_transport->RemovePassenger(plMover);
+                plMover->m_transport = NULL;
+            }
+            movementInfo.t_x = 0.0f;
+            movementInfo.t_y = 0.0f;
+            movementInfo.t_z = 0.0f;
+            movementInfo.t_o = 0.0f;
+            movementInfo.t_time = 0;
+            plMover->m_anti_TransportGUID = 0;
+        }*/
+    }
+    return alarm_level;
 }
