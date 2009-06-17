@@ -2396,8 +2396,7 @@ void Spell::EffectPowerDrain(uint32 i)
 
         int32 gain = int32(new_damage * manaMultiplier);
 
-        m_caster->SendEnergizeSpellLog(m_caster, m_spellInfo->Id,gain,POWER_MANA);
-		m_caster->ModifyPower(POWER_MANA,gain);
+        m_caster->EnergizeBySpell(m_caster, m_spellInfo->Id, gain, POWER_MANA);
     }
 }
 
@@ -2782,7 +2781,7 @@ void Spell::EffectPersistentAA(uint32 i)
     dynObj->SetUInt32Value(GAMEOBJECT_DISPLAYID, 368003);
     dynObj->SetUInt32Value(DYNAMICOBJECT_BYTES, 0x01eeeeee);
     m_caster->AddDynObject(dynObj);
-    dynObj->GetMap()->Add(dynObj);
+    m_caster->GetMap()->Add(dynObj);
 }
 
 void Spell::EffectEnergize(uint32 i)
@@ -2830,8 +2829,7 @@ void Spell::EffectEnergize(uint32 i)
     if(unitTarget->GetMaxPower(power) == 0)
         return;
 
-    m_caster->SendEnergizeSpellLog(unitTarget, m_spellInfo->Id, damage, power);
-	unitTarget->ModifyPower(power,damage);
+    m_caster->EnergizeBySpell(unitTarget, m_spellInfo->Id, damage, power);
 
     // Mad Alchemist's Potion
     if (m_spellInfo->Id == 45051)
@@ -2893,8 +2891,7 @@ void Spell::EffectEnergisePct(uint32 i)
         return;
 
     uint32 gain = damage * maxPower / 100;
-    m_caster->SendEnergizeSpellLog(unitTarget, m_spellInfo->Id, gain, power);
-	unitTarget->ModifyPower(power, gain);
+    m_caster->EnergizeBySpell(unitTarget, m_spellInfo->Id, gain, power);
 }
 
 void Spell::SendLoot(uint64 guid, LootType loottype)
@@ -3578,7 +3575,7 @@ void Spell::EffectAddFarsight(uint32 i)
     dynObj->SetUInt32Value(OBJECT_FIELD_TYPE, 65);
     dynObj->SetUInt32Value(DYNAMICOBJECT_BYTES, 0x80000002);
     m_caster->AddDynObject(dynObj);
-    dynObj->GetMap()->Add(dynObj);
+    m_caster->GetMap()->Add(dynObj);
     if(m_caster->GetTypeId() == TYPEID_PLAYER)
         ((Player*)m_caster)->SetFarSightGUID(dynObj->GetGUID());
 }
@@ -3753,8 +3750,7 @@ void Spell::EffectSummonGuardian(uint32 i)
 
         spawnCreature->AIM_Initialize();
 
-        if(m_caster->GetTypeId()==TYPEID_PLAYER)
-            ((Player*)m_caster)->AddGuardian(spawnCreature);
+        m_caster->AddGuardian(spawnCreature);
 
         map->Add((Creature*)spawnCreature);
     }

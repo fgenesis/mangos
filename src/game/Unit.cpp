@@ -3257,12 +3257,12 @@ bool Unit::isInAccessablePlaceFor(Creature const* c) const
 
 bool Unit::IsInWater() const
 {
-    return MapManager::Instance().GetBaseMap(GetMapId())->IsInWater(GetPositionX(),GetPositionY(), GetPositionZ());
+    return GetBaseMap()->IsInWater(GetPositionX(),GetPositionY(), GetPositionZ());
 }
 
 bool Unit::IsUnderWater() const
 {
-    return MapManager::Instance().GetBaseMap(GetMapId())->IsUnderWater(GetPositionX(),GetPositionY(),GetPositionZ());
+    return GetBaseMap()->IsUnderWater(GetPositionX(),GetPositionY(),GetPositionZ());
 }
 
 void Unit::DeMorph()
@@ -4919,7 +4919,7 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                 break;
             }
 
-            //Arcane Potency
+            // Arcane Potency
             if (dummySpell->SpellIconID == 2120)
             {
                 if(!procSpell)
@@ -5878,6 +5878,20 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                     triggered_spell_id = 58879;
                     break;
                 }
+            }
+            // Storm, Earth and Fire
+            if (dummySpell->SpellIconID == 3063)
+            {
+                // Earthbind Totem summon only
+                if(procSpell->Id != 2484)
+                    return false;
+
+                float chance = triggerAmount;
+                if (!roll_chance_f(chance))
+                    return false;
+
+                triggered_spell_id = 64695;
+                break;
             }
             // Ancestral Awakening
             if (dummySpell->SpellIconID == 3065)
@@ -7403,13 +7417,10 @@ void Unit::CombatStopWithPets(bool includingCast)
         pet->CombatStop(includingCast);
     if(Unit* charm = GetCharm())
         charm->CombatStop(includingCast);
-    if(GetTypeId()==TYPEID_PLAYER)
-    {
-        GuardianPetList const& guardians = ((Player*)this)->GetGuardians();
-        for(GuardianPetList::const_iterator itr = guardians.begin(); itr != guardians.end(); ++itr)
-            if(Unit* guardian = Unit::GetUnit(*this,*itr))
-                guardian->CombatStop(includingCast);
-    }
+
+    for(GuardianPetList::const_iterator itr = m_guardianPets.begin(); itr != m_guardianPets.end(); ++itr)
+        if(Unit* guardian = Unit::GetUnit(*this,*itr))
+            guardian->CombatStop(includingCast);
 }
 
 bool Unit::isAttackingPlayer() const
@@ -7583,6 +7594,44 @@ void Unit::SetCharm(Unit* pet)
         ((Player*)this)->m_mover = pet ? pet : this;
 }
 
+
+void Unit::AddGuardian( Pet* pet )
+{
+    m_guardianPets.insert(pet->GetGUID());
+}
+
+
+void Unit::RemoveGuardian( Pet* pet )
+{
+    m_guardianPets.erase(pet->GetGUID());
+}
+
+void Unit::RemoveGuardians()
+{
+    while(!m_guardianPets.empty())
+    {
+        uint64 guid = *m_guardianPets.begin();
+        if(Pet* pet = ObjectAccessor::GetPet(guid))
+            pet->Remove(PET_SAVE_AS_DELETED);
+
+        m_guardianPets.erase(guid);
+    }
+}
+
+bool Unit::HasGuardianWithEntry(uint32 entry)
+{
+    // pet guid middle part is entry (and creature also)
+    // and in guardian list must be guardians with same entry _always_
+    for(GuardianPetList::const_iterator itr = m_guardianPets.begin(); itr != m_guardianPets.end(); ++itr)
+    {
+        if(Pet* pet = ObjectAccessor::GetPet(*itr))
+            if (pet->GetEntry() == entry)
+                return true;
+    }
+
+    return false;
+}
+
 void Unit::UnsummonAllTotems()
 {
     for (int8 i = 0; i < MAX_TOTEM; ++i)
@@ -7602,7 +7651,8 @@ int32 Unit::DealHeal(Unit *pVictim, uint32 addhealth, SpellEntry const *spellPro
 
     if (GetTypeId()==TYPEID_PLAYER)
     {
-        SendHealSpellLog(pVictim, spellProto->Id, addhealth, critical);
+        // overheal = addhealth - gain
+        SendHealSpellLog(pVictim, spellProto->Id, addhealth, addhealth - gain, critical);
 
         if (BattleGround *bg = ((Player*)this)->GetBattleGround())
             bg->UpdatePlayerScore((Player*)this, SCORE_HEALING_DONE, gain);
@@ -7651,7 +7701,7 @@ Unit* Unit::SelectMagnetTarget(Unit *victim, SpellEntry const *spellInfo)
     return victim;
 }
 
-void Unit::SendHealSpellLog(Unit *pVictim, uint32 SpellID, uint32 Damage, bool critical)
+void Unit::SendHealSpellLog(Unit *pVictim, uint32 SpellID, uint32 Damage, uint32 OverHeal, bool critical)
 {
     // we guess size
     WorldPacket data(SMSG_SPELLHEALLOG, (8+8+4+4+1));
@@ -7659,7 +7709,7 @@ void Unit::SendHealSpellLog(Unit *pVictim, uint32 SpellID, uint32 Damage, bool c
     data.append(GetPackGUID());
     data << uint32(SpellID);
     data << uint32(Damage);
-    data << uint32(0);                                      // over healing?
+    data << uint32(OverHeal);
     data << uint8(critical ? 1 : 0);
     data << uint8(0);                                       // unused in client?
     SendMessageToSet(&data, true);
@@ -7674,6 +7724,13 @@ void Unit::SendEnergizeSpellLog(Unit *pVictim, uint32 SpellID, uint32 Damage, Po
     data << uint32(powertype);
     data << uint32(Damage);
     SendMessageToSet(&data, true);
+}
+
+void Unit::EnergizeBySpell(Unit *pVictim, uint32 SpellID, uint32 Damage, Powers powertype)
+{
+    SendEnergizeSpellLog(pVictim, SpellID, Damage, powertype);
+    // needs to be called after sending spell log
+    ModifyPower(powertype, Damage);
 }
 
 uint32 Unit::SpellDamageBonus(Unit *pVictim, SpellEntry const *spellProto, uint32 pdamage, DamageEffectType damagetype, uint32 stack)
@@ -9479,6 +9536,7 @@ void Unit::setDeathState(DeathState s)
     if (s == JUST_DIED)
     {
         RemoveAllAurasOnDeath();
+        RemoveGuardians();
         UnsummonAllTotems();
 
         ModifyAuraState(AURA_STATE_HEALTHLESS_20_PERCENT, false);
@@ -10340,6 +10398,7 @@ void Unit::RemoveFromWorld()
     if(IsInWorld())
     {
         RemoveNotOwnSingleTargetAuras();
+        RemoveGuardians();
     }
 
     Object::RemoveFromWorld();
@@ -10535,7 +10594,7 @@ void CharmInfo::SetPetNumber(uint32 petnumber, bool statwindow)
         m_unit->SetUInt32Value(UNIT_FIELD_PETNUMBER, 0);
 }
 
-void CharmInfo::LoadPetActionBar( std::string data )
+void CharmInfo::LoadPetActionBar(const std::string& data )
 {
     InitPetActionBar();
 
@@ -10904,6 +10963,10 @@ void Unit::ProcDamageAndSpellFor( bool isVictim, Unit * pTarget, uint32 procFlag
             case SPELL_AURA_MOD_DAMAGE_FROM_CASTER:
                 // Compare casters
                 if (triggeredByAura->GetCasterGUID() != pTarget->GetGUID())
+                    continue;
+                break;
+            case SPELL_AURA_MOD_SPELL_CRIT_CHANCE:
+                if (!procSpell)
                     continue;
                 break;
             default:
