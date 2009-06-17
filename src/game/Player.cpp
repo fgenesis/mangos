@@ -4111,6 +4111,7 @@ void Player::ResurrectPlayer(float restore_percent, bool applySickness)
     SetMovement(MOVE_UNROOT);
 
     m_deathTimer = 0;
+    m_lastRegenerate = getMSTime();
 
     // set health/powers (0- will be set in caller)
     if(restore_percent>0.0f)
