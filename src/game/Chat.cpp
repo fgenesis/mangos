@@ -123,7 +123,7 @@ ChatCommand * ChatHandler::getCommandTable()
         { "level",          SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleCharacterLevelCommand,      "", NULL },
         { "rename",         SEC_GAMEMASTER,     true,  &ChatHandler::HandleCharacterRenameCommand,     "", NULL },
         { "reputation",     SEC_GAMEMASTER,     true,  &ChatHandler::HandleCharacterReputationCommand, "", NULL },
-		{ "dizintegrate",   SEC_ADMINISTRATOR,  true,  NULL,                                           "", NULL },
+        { "dizintegrate",   SEC_ADMINISTRATOR,  true,  NULL,                                           "", characterDizintegrateCommandTable },
         { NULL,             0,                  false, NULL,                                           "", NULL }
     };
 

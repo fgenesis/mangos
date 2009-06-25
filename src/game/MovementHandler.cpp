@@ -35,6 +35,7 @@
 // FG: req. for ACH
 #include "World.h"
 #include "Language.h"
+#include "Chat.h"
 
 void WorldSession::HandleMoveWorldportAckOpcode( WorldPacket & /*recv_data*/ )
 {
@@ -340,7 +341,9 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
              || plMover->m_anti_AlarmCount >= sWorld.getConfig(CONFIG_ACH_NOTIFY_IMPACT_1) && plMover->m_anti_NotificationCount == 0
                 )
             {
-                sWorld.SendHaxNotification(LANG_GM_HAX_MESSAGE, plMover->GetSession()->GetAccountId(), plMover->GetName(), plMover->m_anti_AlarmCount);
+                std::stringstream nameLink;
+                nameLink << "|cffffffff|Hplayer:" << plMover->GetName() << "|h[" <<  plMover->GetName() << "]|h|r";
+                sWorld.SendHaxNotification(LANG_GM_HAX_MESSAGE, plMover->GetSession()->GetAccountId(), nameLink.str().c_str(), plMover->m_anti_AlarmCount);
                 plMover->m_anti_NotificationCount++;
                 plMover->m_anti_NotificationTime = curclock;
             }

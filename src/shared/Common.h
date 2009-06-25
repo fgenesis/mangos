@@ -167,8 +167,8 @@ enum AccountTypes
     SEC_PLAYER         = 0,
     SEC_MODERATOR      = 2,
     SEC_GAMEMASTER     = 3,
-    SEC_ADMINISTRATOR  = 5,
-    SEC_CONSOLE        = 6                                  // must be always last in list, accounts must have less security level always also
+    SEC_ADMINISTRATOR  = 6,
+    SEC_CONSOLE        = 7                                  // must be always last in list, accounts must have less security level always also
 };
 
 enum LocaleConstant
