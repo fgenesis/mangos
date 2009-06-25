@@ -955,7 +955,7 @@ bool AuthSocket::_HandleXferAccept()
     ibuf.Remove(1);                                         // clear input buffer
     fseek(pPatch,0,0);
 
-	ACE_Based::Thread u(*new PatcherRunnable(this));
+    ACE_Based::Thread u(*new PatcherRunnable(this));
     return true;
 }
 
