@@ -6441,7 +6441,7 @@ bool ChatHandler::HandleComeToMeCommand(const char *args)
 
     uint32 newFlags = atoi(newFlagStr);
 
-    caster->SetUnitMovementFlags(newFlags);
+    caster->SetMonsterMoveFlags(MonsterMovementFlags(newFlags));
 
     Player* pl = m_session->GetPlayer();
 
