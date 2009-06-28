@@ -219,7 +219,7 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)
         //movement anticheat code
         GetPlayer()->SetPosition(movementInfo.x, movementInfo.y, movementInfo.z, movementInfo.o);
         GetPlayer()->m_movementInfo = movementInfo;
-        GetPlayer()->SetUnitMovementFlags(movementInfo.flags);
+        //GetPlayer()->SetUnitMovementFlags(movementInfo.flags);
 
         //calc time deltas
         int32 cClientTimeDelta = 0;
@@ -262,7 +262,7 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)
     //movement anticheat code
     GetPlayer()->SetPosition(movementInfo.x, movementInfo.y, movementInfo.z, movementInfo.o);
     GetPlayer()->m_movementInfo = movementInfo;
-    GetPlayer()->SetUnitMovementFlags(movementInfo.flags);
+    //GetPlayer()->SetUnitMovementFlags(movementInfo.flags);
     //calc time deltas
     int32 cClientTimeDelta = 0;
     if (GetPlayer()->m_anti_LastClientTime !=0)

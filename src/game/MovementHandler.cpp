@@ -576,7 +576,7 @@ void WorldSession::HandleMoveKnockBackAck( WorldPacket &recv_data )
     ReadMovementInfo(recv_data, &movementInfo);
 
     //Save movement flags
-    _player->SetUnitMovementFlags(movementInfo.flags);
+    //_player->SetUnitMovementFlags(movementInfo.flags);
 
     _player->m_movementInfo = movementInfo;
     _player->m_anti_Last_HSpeed = movementInfo.j_xyspeed;
