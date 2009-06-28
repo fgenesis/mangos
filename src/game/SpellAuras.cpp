@@ -2228,6 +2228,10 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
         {
             switch(GetId())
             {
+                // Recently Bandaged
+                case 11196:
+                    m_target->ApplySpellImmune(GetId(), IMMUNITY_MECHANIC, GetMiscValue(), apply);
+                    return;
                 // Unstable Power
                 case 24658:
                 {
@@ -3907,7 +3911,7 @@ void Aura::HandleModTaunt(bool apply, bool Real)
 
     Unit* caster = GetCaster();
 
-    if(!caster || !caster->isAlive() || caster->GetTypeId() != TYPEID_PLAYER)
+    if(!caster || !caster->isAlive())
         return;
 
     if(apply)
