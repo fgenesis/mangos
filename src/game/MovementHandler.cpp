@@ -801,7 +801,7 @@ uint32 WorldSession::ACH_CheckMoveInfo(uint32 opcode, MovementInfo& movementInfo
         //Water-Walk checks
         if (((movementInfo.flags & MOVEMENTFLAG_WATERWALKING) != 0)
             && !plMover->isGameMaster()
-            && !(plMover->HasAuraType(SPELL_AURA_WATER_WALK) | plMover->HasAuraType(SPELL_AURA_GHOST)))
+            && !(plMover->HasAuraType(SPELL_AURA_WATER_WALK) || plMover->HasAuraType(SPELL_AURA_GHOST) || plMover->HasAura(3714)))
         {
             sLog.outError("MA-%s, water-walk exception. [%X]{SPELL_AURA_WATER_WALK=[%X]}",
                 plMover->GetName(), movementInfo.flags, plMover->HasAuraType(SPELL_AURA_WATER_WALK));
