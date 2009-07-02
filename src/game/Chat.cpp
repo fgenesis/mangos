@@ -79,6 +79,7 @@ ChatCommand * ChatHandler::getCommandTable()
         { "account",        SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleBanAccountCommand,          "", NULL },
         { "character",      SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleBanCharacterCommand,        "", NULL },
         { "ip",             SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleBanIPCommand,               "", NULL },
+        { "auto",           SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleBanAutoCommand,             "", NULL }, // FG: autoban cmd
         { NULL,             0,                  false, NULL,                                           "", NULL }
     };
 

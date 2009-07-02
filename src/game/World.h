@@ -237,6 +237,8 @@ enum WorldConfigs
     CONFIG_ACH_IMPACT_TELEPORT_TO_PLANE_FLAT,
     CONFIG_ACH_IMPACT_TELEPORT_TO_PLANE_MULTI,
 
+    CONFIG_AUTOBAN_MIN_COUNTED_BANTIME,
+
     CONFIG_VALUE_COUNT
 };
 
@@ -543,6 +545,12 @@ class World
         // FG
         bool IsNonInstanceableMap(uint32);
         void SendHaxNotification(int32, ...);
+        const std::string GetAutoBanTime(uint32 count)
+        {
+            if(count >= m_autoBanTimes.size())
+                return m_autoBanTimes[m_autoBanTimes.size() - 1]; // by default return last element
+            return m_autoBanTimes[count];
+        }
 
     protected:
         void _UpdateGameTime();
@@ -617,6 +625,7 @@ class World
 
         // FG
         std::list<uint32> m_nonInstanceMaps;
+        std::vector<std::string> m_autoBanTimes;
 };
 
 extern uint32 realmID;

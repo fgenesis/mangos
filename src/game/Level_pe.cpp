@@ -856,5 +856,82 @@ bool ChatHandler::HandleGMHaxCommand(const char* args)
     return false;
 }
 
+bool ChatHandler::HandleBanAutoCommand(const char *args)
+{
+    if (!*args)
+        return false;
+
+    char* cname = strtok ((char*)args, " ");
+    if (!cname)
+        return false;
+
+    std::string name = cname;
+
+    char* creason = strtok (NULL,"");
+    std::string banreason = creason ? creason : "";
 
 
+    QueryResult *result;
+    Field *fields;
+
+    result = CharacterDatabase.PQuery("SELECT account FROM characters WHERE name = '%s'",name.c_str());
+    if(!result)
+    {
+        PSendSysMessage(LANG_BAN_NOTFOUND,"character",name.c_str());
+        return true;
+    }
+    fields = result->Fetch();
+    uint32 accId = fields->GetUInt32();
+    delete result;
+
+    std::string oldreason;
+    uint32 bandate, unbandate;
+    int32 bandiff;
+    uint32 max_banid = 0;
+    uint32 counted_extra_bans = 0;
+    result = loginDatabase.PQuery("SELECT bandate,unbandate,banreason FROM account_banned WHERE id=%u", accId);
+    if(result)
+    {
+        do
+        {
+            fields = result->Fetch();
+            bandate = fields[0].GetUInt32();
+            unbandate = fields[1].GetUInt32();
+            oldreason = fields[2].GetCppString();
+            bandiff = unbandate - bandate;
+            if(oldreason.size() > 10 && !memicmp(oldreason.c_str(), "[AutoBan #", 10))
+            {
+                uint32 banid = atoi(oldreason.c_str() + 10);
+                max_banid = std::max(max_banid, banid);
+            }
+            else if(bandiff >= sWorld.getConfig(CONFIG_AUTOBAN_MIN_COUNTED_BANTIME) || bandiff == 0)
+            {
+                ++counted_extra_bans;
+            }
+        }
+        while (result->NextRow());
+        delete result;
+    }
+    max_banid = std::max(max_banid, counted_extra_bans);
+    std::string duration = sWorld.GetAutoBanTime(max_banid);
+    std::stringstream reason;
+    reason << "[AutoBan #" << (max_banid + 1) << "; " << duration << "] " << banreason; 
+
+    switch(sWorld.BanAccount(BAN_CHARACTER, name, duration.c_str(), reason.str().c_str(), m_session ? m_session->GetPlayerName() : ""))
+    {
+    case BAN_SUCCESS:
+        if(atoi(duration.c_str())>0)
+            PSendSysMessage(LANG_BAN_YOUBANNED,name.c_str(),secsToTimeString(TimeStringToSecs(duration),true).c_str(),reason.str().c_str());
+        else
+            PSendSysMessage(LANG_BAN_YOUPERMBANNED,name.c_str(),reason.str().c_str());
+        break;
+    case BAN_SYNTAX_ERROR:
+        return false;
+    case BAN_NOTFOUND:
+        PSendSysMessage(LANG_BAN_NOTFOUND,"character",name.c_str());
+        SetSentErrorMessage(true);
+        return false;  
+    }
+
+    return true;
+}

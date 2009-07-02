@@ -1045,6 +1045,14 @@ void World::LoadConfigSettings(bool reload)
         m_nonInstanceMaps.push_back(t_map);
         sLog.outString("FG: Map %u marked as non-instanceable", t_map);
     }
+    std::string autoBanTimes = sConfig.GetStringDefault("AutoBan.Times","-1");
+    tok = StrSplit(autoBanTimes,",");
+    for(uint32 ti = 0; ti < tok.size(); ti++)
+    {
+        m_autoBanTimes.push_back(tok[ti]);
+        sLog.outString("FG: AutoBan Time %u: '%s'", ti, tok[ti].c_str());
+    }
+    m_configs[CONFIG_AUTOBAN_MIN_COUNTED_BANTIME] = sConfig.GetIntDefault("AutoBan.MinCountedTime", DAY);
     sVPlayerMgr.SetEnabled( sConfig.GetBoolDefault("VP.Enabled", false) );
     sVPlayerMgr.SetMaxLevel( sConfig.GetIntDefault("VP.Maxlevel",70) );
     sVPlayerMgr.SetOnlineSpread( sConfig.GetFloatDefault("VP.OnlineSpread",0.12f) );
