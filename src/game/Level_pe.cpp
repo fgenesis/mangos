@@ -899,7 +899,7 @@ bool ChatHandler::HandleBanAutoCommand(const char *args)
             unbandate = fields[1].GetUInt32();
             oldreason = fields[2].GetCppString();
             bandiff = unbandate - bandate;
-            if(oldreason.size() > 10 && !memicmp(oldreason.c_str(), "[AutoBan #", 10))
+            if(oldreason.size() > 10 && oldreason.substr(0,10) == "[AutoBan #")
             {
                 uint32 banid = atoi(oldreason.c_str() + 10);
                 max_banid = std::max(max_banid, banid);
