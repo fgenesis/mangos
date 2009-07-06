@@ -1037,6 +1037,7 @@ void World::LoadConfigSettings(bool reload)
     m_configs[CONFIG_DIPLOMACY_GROUP_MODE_LEVELMULTI] = sConfig.GetIntDefault("GroupMode.Diplomacy.Levelmulti",2);
     m_configs[CONFIG_DIPLOMACY_GROUP_MODE_MINLEVEL] = sConfig.GetIntDefault("GroupMode.Diplomacy.Minlevel",2);
     m_configs[CONFIG_DIPLOMACY_GROUP_MODE_MAXDIST] = sConfig.GetIntDefault("GroupMode.Diplomacy.Maxdist",60);
+    m_nonInstanceMaps.clear();
     std::string nonInstMaps = sConfig.GetStringDefault("NonInstanceMaps","");
     Tokens tok = StrSplit(nonInstMaps,",");
     for(uint32 ti = 0; ti < tok.size(); ti++)
@@ -1045,6 +1046,7 @@ void World::LoadConfigSettings(bool reload)
         m_nonInstanceMaps.push_back(t_map);
         sLog.outString("FG: Map %u marked as non-instanceable", t_map);
     }
+    m_autoBanTimes.clear();
     std::string autoBanTimes = sConfig.GetStringDefault("AutoBan.Times","-1");
     tok = StrSplit(autoBanTimes,",");
     for(uint32 ti = 0; ti < tok.size(); ti++)
