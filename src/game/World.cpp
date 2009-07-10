@@ -1061,6 +1061,9 @@ void World::LoadConfigSettings(bool reload)
     sVPlayerMgr.SetOnlineSpreadUpdateTime( sConfig.GetIntDefault("VP.OnlineSpreadUpdateTime",240) );
     sVPlayerMgr.SetHourOffset( sConfig.GetIntDefault("VP.HourOffset", 0) );
     sVPlayerMgr.SetLoginCheckInterval( sConfig.GetIntDefault("VP.LoginCheckInterval", 5) );
+
+    rate_values[MULTI_SPELL_BASE_HEALING_BONUS] = sConfig.GetFloatDefault("Multi.Spell.BaseHealingBonus", 1.0);
+
     // FG: ACH related
     m_configs[CONFIG_ACH_NOTIFY_IMPACT_1]                  = sConfig.GetIntDefault("ACH.Notify.Impact.1",2000);
     m_configs[CONFIG_ACH_NOTIFY_IMPACT_2]                  = sConfig.GetIntDefault("ACH.Notify.Impact.2",5000);
@@ -1078,7 +1081,6 @@ void World::LoadConfigSettings(bool reload)
     m_configs[CONFIG_ACH_IMPACT_WATERWALK]                 = sConfig.GetIntDefault("ACH.Impact.Waterwalk",200);
     m_configs[CONFIG_ACH_IMPACT_TELEPORT_TO_PLANE_FLAT]    = sConfig.GetIntDefault("ACH.Impact.Plane.Flat",100);
     m_configs[CONFIG_ACH_IMPACT_TELEPORT_TO_PLANE_MULTI]   = sConfig.GetIntDefault("ACH.Impact.Plane.Multi",50);
-
     // FG: -end-
 
 }

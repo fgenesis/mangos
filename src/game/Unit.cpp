@@ -8503,7 +8503,7 @@ int32 Unit::SpellBaseHealingBonus(SpellSchoolMask schoolMask)
             if ((*i)->GetModifier()->m_miscvalue & schoolMask)
                 AdvertisedBenefit += int32(GetTotalAttackPowerValue(BASE_ATTACK) * (*i)->GetModifier()->m_amount / 100.0f);
     }
-    return AdvertisedBenefit;
+    return AdvertisedBenefit * sWorld.getRate(MULTI_SPELL_BASE_HEALING_BONUS);
 }
 
 int32 Unit::SpellBaseHealingBonusForVictim(SpellSchoolMask schoolMask, Unit *pVictim)
