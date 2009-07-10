@@ -3710,6 +3710,25 @@ SpellCastResult Spell::CheckCast(bool strict)
 
     if(Unit *target = m_targets.getUnitTarget())
     {
+        // FG: hackfix for exorcism not castable on players
+        if(target->GetTypeId() == TYPEID_PLAYER)
+        {
+            switch(m_spellInfo->Id)
+            {
+            case 879:
+            case 5614:
+            case 5615:
+            case 10312:
+            case 10313:
+            case 10314:
+            case 27138:
+            case 48800:
+            case 48801:
+                return SPELL_FAILED_TARGET_IS_PLAYER;
+            }
+        }
+        // FG: end hackfix
+
         // target state requirements (not allowed state), apply to self also
         if(m_spellInfo->TargetAuraStateNot && target->HasAuraState(AuraState(m_spellInfo->TargetAuraStateNot)))
             return SPELL_FAILED_TARGET_AURASTATE;
