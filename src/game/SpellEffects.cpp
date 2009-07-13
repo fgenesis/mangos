@@ -4388,11 +4388,11 @@ void Spell::EffectWeaponDmg(uint32 i)
                 if(((Player*)m_caster)->GetWeaponForAttack(OFF_ATTACK,true))
                     spell_bonus += m_caster->CalculateDamage (OFF_ATTACK, normalized, true);
             }
-            // Devastate bonus
-            else if(m_spellInfo->SpellFamilyFlags & 0x0000004000000000LL)
+            // Devastate bonus and sunder armor refresh
+            else if(m_spellInfo->SpellVisual[0] == 671 && m_spellInfo->SpellIconID == 1508)
             {
                 uint32 stack = 0;
-                // find "Sunder Armor"
+                // Need refresh all Sunder Armor auras from this caster
                 Unit::AuraMap& suAuras = unitTarget->GetAuras();
                 for(Unit::AuraMap::iterator itr = suAuras.begin(); itr != suAuras.end(); ++itr)
                 {
@@ -4401,6 +4401,7 @@ void Spell::EffectWeaponDmg(uint32 i)
                         (spellInfo->SpellFamilyFlags & UI64LIT(0x0000000000004000)) &&
                         (*itr).second->GetCasterGUID() == m_caster->GetGUID())
                     {
+                        (*itr).second->RefreshAura();
                         stack = (*itr).second->GetStackAmount();
                     }
                 }
@@ -4586,10 +4587,6 @@ void Spell::EffectThreat(uint32 /*i*/)
 
     if(!unitTarget->CanHaveThreatList())
         return;
-
-	// Sunder Armor (including Devastate)
-	if( m_spellInfo->SpellFamilyFlags & 0x4000 )
-		damage+= m_caster->GetTotalAttackPowerValue(BASE_ATTACK)*0.05f;
 
     unitTarget->AddThreat(m_caster, float(damage));
 }
