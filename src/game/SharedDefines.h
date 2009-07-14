@@ -435,7 +435,7 @@ enum ItemQualities
 #define SPELL_ATTR_EX6_UNK23                      0x00800000            // 23 not set in 3.0.3
 #define SPELL_ATTR_EX6_UNK24                      0x01000000            // 24 not set in 3.0.3
 #define SPELL_ATTR_EX6_UNK25                      0x02000000            // 25 not set in 3.0.3
-#define SPELL_ATTR_EX6_UNK26                      0x04000000            // 26 not set in 3.0.3
+#define SPELL_ATTR_EX6_UNK26                      0x04000000            // 26 May also have something to do with spell with special healing coefficient calculation
 #define SPELL_ATTR_EX6_UNK27                      0x08000000            // 27 not set in 3.0.3
 #define SPELL_ATTR_EX6_UNK28                      0x10000000            // 28 not set in 3.0.3
 #define SPELL_ATTR_EX6_UNK29                      0x20000000            // 29 not set in 3.0.3
