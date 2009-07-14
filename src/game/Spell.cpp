@@ -3708,25 +3708,6 @@ SpellCastResult Spell::CheckCast(bool strict)
 
     if(Unit *target = m_targets.getUnitTarget())
     {
-        // FG: hackfix for exorcism not castable on players
-        if(target->GetTypeId() == TYPEID_PLAYER)
-        {
-            switch(m_spellInfo->Id)
-            {
-            case 879:
-            case 5614:
-            case 5615:
-            case 10312:
-            case 10313:
-            case 10314:
-            case 27138:
-            case 48800:
-            case 48801:
-                return SPELL_FAILED_TARGET_IS_PLAYER;
-            }
-        }
-        // FG: end hackfix
-
         // target state requirements (not allowed state), apply to self also
         if(m_spellInfo->TargetAuraStateNot && target->HasAuraState(AuraState(m_spellInfo->TargetAuraStateNot)))
             return SPELL_FAILED_TARGET_AURASTATE;
@@ -5470,8 +5451,9 @@ bool Spell::CheckTargetCreatureType(Unit* target) const
 {
     uint32 spellCreatureTargetMask = m_spellInfo->TargetCreatureType;
 
-    // Curse of Doom : not find another way to fix spell target check :/
-    if(m_spellInfo->SpellFamilyName==SPELLFAMILY_WARLOCK && m_spellInfo->SpellFamilyFlags == UI64LIT(0x0200000000))
+    // Curse of Doom / Exorcism : not find another way to fix spell target check :/
+    if((m_spellInfo->SpellFamilyName==SPELLFAMILY_WARLOCK || m_spellInfo->SpellFamilyName==SPELLFAMILY_PALADIN)
+        && m_spellInfo->SpellFamilyFlags == UI64LIT(0x0200000000))
     {
         // not allow cast at player
         if(target->GetTypeId()==TYPEID_PLAYER)
