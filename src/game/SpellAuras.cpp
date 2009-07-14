@@ -5913,11 +5913,24 @@ void Aura::HandleSchoolAbsorb(bool apply, bool Real)
                     break;
                 }
                 break;
+            case SPELLFAMILY_PALADIN:
+                // Sacred Shield
+                // +75% from spell power
+                DoneActualBenefit = caster->SpellBaseHealingBonus(GetSpellSchoolMask(m_spellProto)) * 0.75f;
+                break;
+            case SPELLFAMILY_DRUID:
+                if(m_spellProto->SpellIconID == 50)
+                {
+                    // Savage Defense
+                    // +25% from attack power
+                    m_modifier.m_amount = 0;
+                    DoneActualBenefit = caster->GetTotalAttackPowerValue(BASE_ATTACK) * 0.25f;
+                    break;
+                }
+                break;
             default:
                 break;
         }
-
-        DoneActualBenefit *= caster->CalculateLevelPenalty(GetSpellProto());
 
         m_modifier.m_amount += (int32)DoneActualBenefit;
     }

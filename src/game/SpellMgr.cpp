@@ -1378,6 +1378,10 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                 // Survival Instincts and Survival Instincts
                 if( spellInfo_1->Id == 61336 && spellInfo_2->Id == 50322 || spellInfo_2->Id == 61336 && spellInfo_1->Id == 50322 )
                     return false;
+
+                // Frenzied Regeneration and Savage Defense
+                if( spellInfo_1->Id == 22842 && spellInfo_2->Id == 62606 || spellInfo_2->Id == 22842 && spellInfo_1->Id == 62606 )
+                    return false;
             }
 
             // Leader of the Pack and Scroll of Stamina (multi-family check)
