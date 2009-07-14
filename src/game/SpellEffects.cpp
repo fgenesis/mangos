@@ -503,16 +503,6 @@ void Spell::EffectSchoolDMG(uint32 effect_idx)
                 {
                     damage += int32(m_caster->GetTotalAttackPowerValue(BASE_ATTACK)*0.21f);
                 }
-                // Instant Poison
-                else if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x0000000000002000))
-                {
-                    damage += int32(m_caster->GetTotalAttackPowerValue(BASE_ATTACK)*0.10f);
-                }
-                // Wound Poison
-                else if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x0000000010000000))
-                {
-                    damage += int32(m_caster->GetTotalAttackPowerValue(BASE_ATTACK)*0.04f);
-                }
                 break;
             }
             case SPELLFAMILY_HUNTER:
@@ -2454,7 +2444,7 @@ void Spell::EffectPowerBurn(uint32 i)
     m_damage += new_damage;
 }
 
-void Spell::EffectHeal( uint32 /*i*/ )
+void Spell::EffectHeal( uint32 i )
 {
     if( unitTarget && unitTarget->isAlive() && damage >= 0)
     {
@@ -2485,9 +2475,9 @@ void Spell::EffectHeal( uint32 /*i*/ )
             // Amount of heal - depends from stacked Holy Energy
             int damageAmount = 0;
             Unit::AuraList const& mDummyAuras = m_caster->GetAurasByType(SPELL_AURA_DUMMY);
-            for(Unit::AuraList::const_iterator i = mDummyAuras.begin(); i != mDummyAuras.end(); ++i)
-                if((*i)->GetId() == 45062)
-                    damageAmount+=(*i)->GetModifier()->m_amount;
+            for(Unit::AuraList::const_iterator itr = mDummyAuras.begin(); itr != mDummyAuras.end(); ++itr)
+                if((*itr)->GetId() == 45062)
+                    damageAmount+=(*itr)->GetModifier()->m_amount;
             if (damageAmount)
                 m_caster->RemoveAurasDueToSpell(45062);
 
@@ -2499,13 +2489,13 @@ void Spell::EffectHeal( uint32 /*i*/ )
             Unit::AuraList const& RejorRegr = unitTarget->GetAurasByType(SPELL_AURA_PERIODIC_HEAL);
             // find most short by duration
             Aura *targetAura = NULL;
-            for(Unit::AuraList::const_iterator i = RejorRegr.begin(); i != RejorRegr.end(); ++i)
+            for(Unit::AuraList::const_iterator itr = RejorRegr.begin(); itr != RejorRegr.end(); ++itr)
             {
-                if((*i)->GetSpellProto()->SpellFamilyName == SPELLFAMILY_DRUID
-                    && ((*i)->GetSpellProto()->SpellFamilyFlags == 0x40 || (*i)->GetSpellProto()->SpellFamilyFlags == 0x10) )
+                if((*itr)->GetSpellProto()->SpellFamilyName == SPELLFAMILY_DRUID
+                    && ((*itr)->GetSpellProto()->SpellFamilyFlags == 0x40 || (*itr)->GetSpellProto()->SpellFamilyFlags == 0x10) )
                 {
-                    if(!targetAura || (*i)->GetAuraDuration() < targetAura->GetAuraDuration())
-                        targetAura = *i;
+                    if(!targetAura || (*itr)->GetAuraDuration() < targetAura->GetAuraDuration())
+                        targetAura = *itr;
                 }
             }
 
@@ -2527,6 +2517,30 @@ void Spell::EffectHeal( uint32 /*i*/ )
             unitTarget->RemoveAurasDueToSpell(targetAura->GetId());
 
             addhealth += tickheal * tickcount;
+        }
+        // Chain Heal - multiplier
+        else if (m_spellInfo->SpellFamilyName == SPELLFAMILY_SHAMAN && m_spellInfo->SpellFamilyFlags == UI64LIT(0x100))
+        {
+            // The " / " here should be considered a hack (Chain heal decreases 50% per jump, and damage has already been multiplied once)
+            addhealth = m_damageMultipliers[i] * caster->SpellHealingBonus(unitTarget, m_spellInfo, addhealth / m_damageMultipliers[i], HEAL);
+        }
+        // Nourish - 20% bonus if target has one of Druid's HoTs
+        else if (m_spellInfo->SpellFamilyName == SPELLFAMILY_DRUID && m_spellInfo->SpellFamilyFlags == UI64LIT(0x0200000000000000))
+        {
+            float totalPct = 1.0f;
+            Unit::AuraList const& targetAuras = unitTarget->GetAurasByType(SPELL_AURA_PERIODIC_HEAL);
+            for (Unit::AuraList::const_iterator itr = targetAuras.begin(); itr != targetAuras.end(); ++itr)
+            {
+                if ((*itr)->GetCasterGUID() != caster->GetGUID())
+                    continue;
+                SpellEntry const* m_spell = (*itr)->GetSpellProto();
+                if ( (m_spell->SpellFamilyName != SPELLFAMILY_DRUID) &&
+                    !(m_spell->SpellFamilyFlags & UI64LIT(0x0400001000000050)))
+                    continue;
+                totalPct = 1.2f;
+                break;
+            }
+            addhealth = totalPct * caster->SpellHealingBonus(unitTarget, m_spellInfo, addhealth, HEAL);
         }
         else
             addhealth = caster->SpellHealingBonus(unitTarget, m_spellInfo, addhealth, HEAL);

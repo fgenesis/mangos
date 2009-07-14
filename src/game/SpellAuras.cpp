@@ -2167,15 +2167,6 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                     ((Player*)m_target)->RemoveAmmo();      // not use ammo and not allow use
                 return;
         }
-
-        // Earth Shield
-        if ( caster && GetSpellProto()->SpellFamilyName == SPELLFAMILY_SHAMAN && (GetSpellProto()->SpellFamilyFlags & UI64LIT(0x40000000000)))
-        {
-            // prevent double apply bonuses
-            if(m_target->GetTypeId() != TYPEID_PLAYER || !((Player*)m_target)->GetSession()->PlayerLoading())
-                m_modifier.m_amount = caster->SpellHealingBonus(m_target, GetSpellProto(), m_modifier.m_amount, SPELL_DIRECT_DAMAGE);
-            return;
-        }
     }
     // AT REMOVE
     else
@@ -2441,6 +2432,19 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
             }
             break;
         }
+        case SPELLFAMILY_PALADIN:
+        {
+            // Beacon of Light
+            if (GetId() == 53563)
+            {
+                if(apply)
+                    caster->CastSpell(m_target,53651,true,NULL,this,GetCasterGUID());
+                else
+                    m_target->RemoveAurasDueToSpell(53651);
+                return;
+            }
+            break;
+        }
         case SPELLFAMILY_DRUID:
         {
             switch(GetId())
@@ -2491,7 +2495,7 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                     if ( caster )
                         // prevent double apply bonuses
                         if(m_target->GetTypeId()!=TYPEID_PLAYER || !((Player*)m_target)->GetSession()->PlayerLoading())
-                            m_modifier.m_amount = caster->SpellHealingBonus(m_target, GetSpellProto(), m_modifier.m_amount, SPELL_DIRECT_DAMAGE);
+                            m_modifier.m_amount = caster->SpellHealingBonus(m_target, GetSpellProto(), m_modifier.m_amount / m_stackAmount, SPELL_DIRECT_DAMAGE);
                 }
                 else
                 {
@@ -2509,7 +2513,7 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                     // final heal
                     if(m_target->IsInWorld() && m_stackAmount > 0)
                     {
-                        int32 amount = m_modifier.m_amount / m_stackAmount;
+                        int32 amount = m_modifier.m_amount * m_stackAmount;
                         m_target->CastCustomSpell(m_target, 33778, &amount, NULL, NULL, true, NULL, this, GetCasterGUID());
 
                         if (caster)

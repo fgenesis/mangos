@@ -1406,6 +1406,9 @@ void Spell::SetTargetMap(uint32 i,uint32 cur,UnitList& TagUnitMap)
             // Starfall
             if (m_spellInfo->SpellFamilyFlags2 & UI64LIT(0x00000100))
                 unMaxTargets = 2;
+            // Wild Growth
+            else if (m_spellInfo->SpellFamilyFlags == UI64LIT(0x0400000000000000))
+                unMaxTargets = 5;
             break;
         default:
             break;
@@ -2526,7 +2529,31 @@ void Spell::_handle_immediate_phase()
         m_damageMultipliers[j] = 1.0f;
         if( (m_spellInfo->EffectImplicitTargetA[j] == TARGET_CHAIN_DAMAGE || m_spellInfo->EffectImplicitTargetA[j] == TARGET_CHAIN_HEAL) &&
             (EffectChainTarget > 1) )
+        {
+            // Chain Heal - if first target has riptide, remove it and add 25% bonus
+            if (m_spellInfo->SpellFamilyName == SPELLFAMILY_SHAMAN && m_spellInfo->SpellFamilyFlags == UI64LIT(0x100) && m_originalCaster)
+            {
+                if(!m_UniqueTargetInfo.empty())
+                {
+                    Unit* firstTarget = ObjectAccessor::GetUnit(*m_caster, m_UniqueTargetInfo.front().targetGUID);
+                    if(firstTarget)
+                    {
+                        Unit::AuraList const& Riptide = firstTarget->GetAurasByType(SPELL_AURA_PERIODIC_HEAL);
+                        for(Unit::AuraList::const_iterator i = Riptide.begin(); i != Riptide.end(); ++i)
+                        {
+                            if((*i)->GetSpellProto()->SpellFamilyName == SPELLFAMILY_SHAMAN
+                                && (*i)->GetSpellProto()->SpellIconID == 3786 && (*i)->GetCaster()->GetGUID() == m_originalCaster->GetGUID())
+                            {
+                                m_damageMultipliers[j] = 1.25f;
+                                firstTarget->RemoveAurasDueToSpell((*i)->GetId());
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
             m_applyMultiplierMask |= 1 << j;
+        }
     }
 
     // initialize Diminishing Returns Data

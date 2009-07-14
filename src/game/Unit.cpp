@@ -5760,6 +5760,45 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                         return true;
                     break;
                 }
+                // Light's Beacon
+                case 53651:
+                {
+                    // pVictim is the person who has casted a heal. caster is the person who casted Beacon of Light.
+                    Unit* caster = triggeredByAura->GetCaster();
+
+                    if (caster)
+                    {
+                        if(!pVictim || pVictim->GetGUID() != caster->GetGUID())
+                            return false;
+
+                        // Find the Beacon of Light dummy aura
+                        Aura * dummy = NULL;
+                        AuraList& scAuras = caster->GetSingleCastAuras();
+                        for(AuraList::const_iterator itr = scAuras.begin(); itr != scAuras.end(); ++itr)
+                        {
+                            if((*itr)->GetId() == 53563)
+                            {
+                                dummy = (*itr);
+                                break;
+                            }
+                        }
+
+                        if(dummy)
+                        {
+                            if(dummy->GetCasterGUID() == caster->GetGUID())
+                            {
+                                // Nothing triggered when Beacon of Light is healed directly
+                                if (dummy->GetTarget()->GetGUID() == GetGUID())
+                                    return false;
+
+                                triggered_spell_id = 53652;
+                                basepoints0 = triggeredByAura->GetModifier()->m_amount*damage/100;
+                                target = dummy->GetTarget();
+                            }
+                        }
+                    }
+                    break;
+                }
                 // Seal of the Martyr do damage trigger
                 case 53720:
                 {
@@ -8079,7 +8118,6 @@ uint32 Unit::SpellDamageBonus(Unit *pVictim, SpellEntry const *spellProto, uint3
     if (GetTypeId() == TYPEID_UNIT && ((Creature*)this)->isPet())
         DoneAdvertisedBenefit += ((Pet*)this)->GetBonusDamage();
 
-    float LvlPenalty = CalculateLevelPenalty(spellProto);
     // Spellmod SpellDamage
     float SpellModSpellDamage = 100.0f;
     if(Player* modOwner = GetSpellModOwner())
@@ -8092,9 +8130,9 @@ uint32 Unit::SpellDamageBonus(Unit *pVictim, SpellEntry const *spellProto, uint3
     {
         float coeff;
         if (damagetype == DOT)
-            coeff = bonus->dot_damage * LvlPenalty * stack;
+            coeff = bonus->dot_damage * stack;
         else
-            coeff = bonus->direct_damage * LvlPenalty * stack;
+            coeff = bonus->direct_damage * stack;
 
         if (bonus->ap_bonus)
             DoneTotal += int32(bonus->ap_bonus * GetTotalAttackPowerValue(BASE_ATTACK) * stack);
@@ -8150,8 +8188,8 @@ uint32 Unit::SpellDamageBonus(Unit *pVictim, SpellEntry const *spellProto, uint3
                 break;
             }
         }
-        DoneTotal += int32(DoneAdvertisedBenefit * (CastingTime / 3500.0f) * DotFactor * LvlPenalty * SpellModSpellDamage);
-        TakenTotal+= int32(TakenAdvertisedBenefit * (CastingTime / 3500.0f) * DotFactor * LvlPenalty);
+        DoneTotal += int32(DoneAdvertisedBenefit * (CastingTime / 3500.0f) * DotFactor * SpellModSpellDamage);
+        TakenTotal+= int32(TakenAdvertisedBenefit * (CastingTime / 3500.0f) * DotFactor);
     }
 
     float tmpDamage = (pdamage + DoneTotal) * DoneTotalMod;
@@ -8389,8 +8427,11 @@ uint32 Unit::SpellCriticalHealingBonus(SpellEntry const *spellProto, uint32 dama
 
 uint32 Unit::SpellHealingBonus(Unit *pVictim, SpellEntry const *spellProto, uint32 healamount, DamageEffectType damagetype, uint32 stack)
 {
+    // Check for table values earlier so SPELL_DAMAGE_CLASS_NONE can be overridden
+    SpellBonusEntry const* bonus = spellmgr.GetSpellBonusData(spellProto->Id);
+
     // No heal amount for this class spells
-    if (spellProto->DmgClass == SPELL_DAMAGE_CLASS_NONE)
+    if (spellProto->DmgClass == SPELL_DAMAGE_CLASS_NONE && !bonus)
         return healamount;
 
     // For totems get healing bonus from owner (statue isn't totem in fact)
@@ -8453,7 +8494,7 @@ uint32 Unit::SpellHealingBonus(Unit *pVictim, SpellEntry const *spellProto, uint
                         continue;
                     SpellEntry const* m_spell = itr->second->GetSpellProto();
                     if (m_spell->SpellFamilyName != SPELLFAMILY_DRUID ||
-                        !(m_spell->SpellFamilyFlags & UI64LIT(0x0000001000000050)))
+                        !(m_spell->SpellFamilyFlags & UI64LIT(0x0400001000000050)))
                         continue;
                     modPercent += stepPercent * itr->second->GetStackAmount();
                 }
@@ -8475,22 +8516,19 @@ uint32 Unit::SpellHealingBonus(Unit *pVictim, SpellEntry const *spellProto, uint
     int32 DoneAdvertisedBenefit  = SpellBaseHealingBonus(GetSpellSchoolMask(spellProto));
     int32 TakenAdvertisedBenefit = SpellBaseHealingBonusForVictim(GetSpellSchoolMask(spellProto), pVictim);
 
-    float LvlPenalty = CalculateLevelPenalty(spellProto);
     // Spellmod SpellDamage
     float SpellModSpellDamage = 100.0f;
     if(Player* modOwner = GetSpellModOwner())
         modOwner->ApplySpellMod(spellProto->Id, SPELLMOD_SPELL_BONUS_DAMAGE, SpellModSpellDamage);
     SpellModSpellDamage /= 100.0f;
 
-    // Check for table values
-    SpellBonusEntry const* bonus = spellmgr.GetSpellBonusData(spellProto->Id);
     if (bonus)
     {
         float coeff;
         if (damagetype == DOT)
-            coeff = bonus->dot_damage * LvlPenalty * stack;
+            coeff = bonus->dot_damage  * stack;
         else
-            coeff = bonus->direct_damage * LvlPenalty * stack;
+            coeff = bonus->direct_damage * stack;
 
         if (bonus->ap_bonus)
             DoneTotal += int32(bonus->ap_bonus * GetTotalAttackPowerValue(BASE_ATTACK) * stack);
@@ -8546,8 +8584,8 @@ uint32 Unit::SpellHealingBonus(Unit *pVictim, SpellEntry const *spellProto, uint
                 break;
             }
         }
-        DoneTotal  += int32(DoneAdvertisedBenefit * (CastingTime / 3500.0f) * DotFactor * LvlPenalty * SpellModSpellDamage * 1.88f);
-        TakenTotal += int32(TakenAdvertisedBenefit * (CastingTime / 3500.0f) * DotFactor * LvlPenalty * 1.88f);
+        DoneTotal  += int32(DoneAdvertisedBenefit * (CastingTime / 3500.0f) * DotFactor * SpellModSpellDamage * 1.88f);
+        TakenTotal += int32(TakenAdvertisedBenefit * (CastingTime / 3500.0f) * DotFactor * 1.88f);
     }
 
     // use float as more appropriate for negative values and percent applying
