@@ -422,8 +422,8 @@ void Pet::SavePetToDB(PetSaveMode mode)
         // save only spell slots from action bar
         for(uint32 i = ACTION_BAR_INDEX_PET_SPELL_START; i < ACTION_BAR_INDEX_PET_SPELL_END; ++i)
         {
-            ss << uint32(m_charmInfo->GetActionBarEntry(i)->Type) << " "
-               << uint32(m_charmInfo->GetActionBarEntry(i)->SpellOrAction) << " ";
+            ss << uint32(m_charmInfo->GetActionBarEntry(i)->GetType()) << " "
+               << uint32(m_charmInfo->GetActionBarEntry(i)->GetAction()) << " ";
         };
 
         ss  << "', "
@@ -680,7 +680,6 @@ void Pet::Remove(PetSaveMode mode, bool returnreagent)
             owner->SetPet(0);
     }
 
-    CleanupsBeforeDelete();
     AddObjectToRemoveList();
     m_removed = true;
 }
@@ -799,16 +798,19 @@ bool Pet::CreateBaseAtCreature(Creature* creature)
     return true;
 }
 
-bool Pet::InitStatsForLevel(uint32 petlevel)
+bool Pet::InitStatsForLevel(uint32 petlevel, Unit* owner)
 {
     CreatureInfo const *cinfo = GetCreatureInfo();
     assert(cinfo);
 
-    Unit* owner = GetOwner();
     if(!owner)
     {
-        sLog.outError("attempt to summon pet (Entry %u) without owner! Attempt terminated.", cinfo->Entry);
-        return false;
+        owner = GetOwner();
+        if(!owner)
+        {
+            sLog.outError("attempt to summon pet (Entry %u) without owner! Attempt terminated.", cinfo->Entry);
+            return false;
+        }
     }
 
     uint32 creature_ID = (getPetType() == HUNTER_PET) ? 1 : cinfo->Entry;
@@ -1102,7 +1104,7 @@ void Pet::_LoadSpells()
         {
             Field *fields = result->Fetch();
 
-            addSpell(fields[0].GetUInt32(), ActiveStates(fields[1].GetUInt16()), PETSPELL_UNCHANGED);
+            addSpell(fields[0].GetUInt32(), ActiveStates(fields[1].GetUInt8()), PETSPELL_UNCHANGED);
         }
         while( result->NextRow() );
 
@@ -1404,8 +1406,8 @@ bool Pet::learnSpell(uint32 spell_id)
         Unit* owner = GetOwner();
         if(owner && owner->GetTypeId() == TYPEID_PLAYER)
         {
-            WorldPacket data(SMSG_PET_LEARNED_SPELL, 2);
-            data << uint16(spell_id);
+            WorldPacket data(SMSG_PET_LEARNED_SPELL, 4);
+            data << uint32(spell_id);
             ((Player*)owner)->GetSession()->SendPacket(&data);
 
             ((Player*)owner)->PetSpellInitialize();
@@ -1457,13 +1459,16 @@ bool Pet::unlearnSpell(uint32 spell_id, bool learn_prev, bool clear_ab)
 {
     if(removeSpell(spell_id,learn_prev,clear_ab))
     {
-        if(GetOwner()->GetTypeId() == TYPEID_PLAYER)
+        if(!m_loading)
         {
-            if(!m_loading)
+            if (Unit* owner = GetOwner())
             {
-                WorldPacket data(SMSG_PET_REMOVED_SPELL, 2);
-                data << uint16(spell_id);
-                ((Player*)GetOwner())->GetSession()->SendPacket(&data);
+                if(owner->GetTypeId() == TYPEID_PLAYER)
+                {
+                    WorldPacket data(SMSG_PET_REMOVED_SPELL, 4);
+                    data << uint32(spell_id);
+                    ((Player*)owner)->GetSession()->SendPacket(&data);
+                }
             }
         }
         return true;
@@ -1527,8 +1532,9 @@ void Pet::CleanupActionBar()
 {
     for(int i = 0; i < MAX_UNIT_ACTION_BAR_INDEX; ++i)
         if(UnitActionBarEntry const* ab = m_charmInfo->GetActionBarEntry(i))
-            if(ab->SpellOrAction && ab->IsActionBarForSpell() && !HasSpell(ab->SpellOrAction))
-                m_charmInfo->SetActionBar(i,0,ACT_DISABLED);
+            if(uint32 action = ab->GetAction())
+                if(ab->IsActionBarForSpell() && !HasSpell(action))
+                    m_charmInfo->SetActionBar(i,0,ACT_DISABLED);
 }
 
 void Pet::InitPetCreateSpells()
@@ -1903,7 +1909,7 @@ void Pet::CastPetAuras(bool current)
 
 void Pet::CastPetAura(PetAura const* aura)
 {
-    uint16 auraId = aura->GetAura(GetEntry());
+    uint32 auraId = aura->GetAura(GetEntry());
     if(!auraId)
         return;
 

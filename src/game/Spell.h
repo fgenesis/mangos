@@ -288,6 +288,7 @@ class Spell
         void EffectSelfResurrect(uint32 i);
         void EffectSkinning(uint32 i);
         void EffectCharge(uint32 i);
+        void EffectCharge2(uint32 i);
         void EffectProspecting(uint32 i);
         void EffectMilling(uint32 i);
         void EffectRenamePet(uint32 i);
@@ -398,7 +399,6 @@ class Spell
         Item* m_CastItem;
         uint8 m_cast_count;
         uint32 m_glyphIndex;
-        uint32 m_preCastSpell;
         SpellCastTargets m_targets;
 
         int32 GetCastTime() const { return m_casttime; }
@@ -439,6 +439,7 @@ class Spell
         bool CheckTargetCreatureType(Unit* target) const;
 
         void AddTriggeredSpell(SpellEntry const* spell) { m_TriggerSpells.push_back(spell); }
+        void AddPrecastSpell(uint32 spellId) { m_preCastSpells.push_back(spellId); }
 
         void CleanupTargetList();
     protected:
@@ -558,7 +559,9 @@ class Spell
 
         //List For Triggered Spells
         typedef std::list<SpellEntry const*> TriggerSpells;
+        typedef std::list<uint32>            SpellPrecasts;
         TriggerSpells m_TriggerSpells;
+        SpellPrecasts m_preCastSpells;
 
         uint32 m_spellState;
         uint32 m_timer;
