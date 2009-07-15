@@ -6569,7 +6569,7 @@ void Aura::PeriodicDummyTick()
                     if ((*i)->GetId() == GetId())
                     {
                         (*i)->GetModifier()->m_amount = m_modifier.m_amount;
-                        ((Player*)m_target)->UpdateManaRegen();
+                        m_target->HandleStatModifier(UNIT_MOD_MANA_REGEN, TOTAL_VALUE, float((*i)->GetModifier()->m_amount), true);
                         // Disable continue
                         m_isPeriodic = false;
                         return;
