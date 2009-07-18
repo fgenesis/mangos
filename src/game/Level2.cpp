@@ -75,6 +75,12 @@ bool ChatHandler::HandleMuteCommand(const char* args)
 
     uint32 notspeaktime = (uint32) atoi(delayStr);
 
+    // FG: limit mutetime if set in conf
+    if(uint32 maxtime = sWorld.getConfig(CONFIG_MAX_MUTETIME))
+    {
+        notspeaktime = std::min(maxtime,notspeaktime);
+    }
+
     // must have strong lesser security level
     if(HasLowerSecurity (target,target_guid,true))
         return false;
@@ -2202,6 +2208,7 @@ bool ChatHandler::HandlePInfoCommand(const char* args)
     uint32 silv = (money % GOLD) / SILVER;
     uint32 copp = (money % GOLD) % SILVER;
     PSendSysMessage(LANG_PINFO_LEVEL,  timeStr.c_str(), level, gold,silv,copp );
+    PSendSysMessage("[[ %s ]]", ss_ch.str().c_str());
 
     return true;
 }

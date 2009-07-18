@@ -1054,6 +1054,7 @@ void World::LoadConfigSettings(bool reload)
     // FG: custom stuffs
     m_configs[CONFIG_AUTOBROADCAST_INTERVAL] = sConfig.GetIntDefault("AutoBroadcastInterval",0);
     m_configs[CONFIG_ALLOW_CITY_DUELING] = sConfig.GetIntDefault("AllowCityDueling",0);
+    m_configs[CONFIG_MAX_MUTETIME] = sConfig.GetIntDefault("MaxMuteTime",0);
     m_configs[CONFIG_DIPLOMACY_GROUP_MODE_ENABLE] = sConfig.GetIntDefault("GroupMode.Diplomacy.Enable",0);
     m_configs[CONFIG_DIPLOMACY_GROUP_MODE_LEVELMULTI] = sConfig.GetIntDefault("GroupMode.Diplomacy.Levelmulti",2);
     m_configs[CONFIG_DIPLOMACY_GROUP_MODE_MINLEVEL] = sConfig.GetIntDefault("GroupMode.Diplomacy.Minlevel",2);
