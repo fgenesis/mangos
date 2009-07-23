@@ -285,11 +285,7 @@ void WorldSession::LogoutPlayer(bool Save)
             //_player->BuildPlayerRepop();
             // FG: disabled above; we want to login back with 1 hp...
             _player->SetAtLoginFlag(AT_LOGIN_LOW_HP);
-            // FG: but we want *dead* players repop at graveyard always, as ghosts!
-            if(_player->isDead())
-                _player->BuildPlayerRepop();
             _player->RepopAtGraveyard();
-            
 
             // give honor to all attackers from set like group case
             for(std::set<Player*>::const_iterator itr = aset.begin(); itr != aset.end(); ++itr)
