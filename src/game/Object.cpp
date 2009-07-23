@@ -240,13 +240,13 @@ void Object::BuildOutOfRangeUpdateBlock(UpdateData * data) const
     data->AddOutOfRangeGUID(GetGUID());
 }
 
-void Object::DestroyForPlayer(Player *target) const
+void Object::DestroyForPlayer( Player *target, bool anim ) const
 {
     ASSERT(target);
 
     WorldPacket data(SMSG_DESTROY_OBJECT, 8);
     data << uint64(GetGUID());
-    data << uint8(0);                                       // WotLK (bool)
+    data << uint8(anim ? 1 : 0);                            // WotLK (bool), may be despawn animation
     target->GetSession()->SendPacket( &data );
 }
 
@@ -314,7 +314,14 @@ void Object::_BuildMovementUpdate(ByteBuffer * data, uint16 flags, uint32 flags2
                 *data << (uint32)((Player*)this)->GetTransTime();
                 *data << (int8)((Player*)this)->GetTransSeat();
             }
-            //MaNGOS currently not have support for other than player on transport
+            else
+            {
+                //MaNGOS currently not have support for other than player on transport
+                *data << uint8(0);
+                *data << float(0) << float(0) << float(0) << float(0);
+                *data << uint32(0);
+                *data << uint8(-1);
+            }
         }
 
         // 0x02200000
@@ -579,6 +586,7 @@ void Object::_BuildValuesUpdate(uint8 updatetype, ByteBuffer * data, UpdateMask 
         return;
 
     bool IsActivateToQuest = false;
+    bool IsPerCasterAuraState = false;
     if (updatetype == UPDATETYPE_CREATE_OBJECT || updatetype == UPDATETYPE_CREATE_OBJECT2)
     {
         if (isType(TYPEMASK_GAMEOBJECT) && !((GameObject*)this)->IsTransport())
@@ -587,6 +595,14 @@ void Object::_BuildValuesUpdate(uint8 updatetype, ByteBuffer * data, UpdateMask 
             {
                 IsActivateToQuest = true;
                 updateMask->SetBit(GAMEOBJECT_DYNAMIC);
+            }
+        }
+        else if (isType(TYPEMASK_UNIT))
+        {
+            if( ((Unit*)this)->HasAuraState(AURA_STATE_CONFLAGRATE))
+            {
+                IsPerCasterAuraState = true;
+                updateMask->SetBit(UNIT_FIELD_AURASTATE);
             }
         }
     }
@@ -600,6 +616,14 @@ void Object::_BuildValuesUpdate(uint8 updatetype, ByteBuffer * data, UpdateMask 
             }
             updateMask->SetBit(GAMEOBJECT_DYNAMIC);
             updateMask->SetBit(GAMEOBJECT_BYTES_1);
+        }
+        else if (isType(TYPEMASK_UNIT))
+        {
+            if( ((Unit*)this)->HasAuraState(AURA_STATE_CONFLAGRATE))
+            {
+                IsPerCasterAuraState = true;
+                updateMask->SetBit(UNIT_FIELD_AURASTATE);
+            }
         }
     }
 
@@ -624,6 +648,19 @@ void Object::_BuildValuesUpdate(uint8 updatetype, ByteBuffer * data, UpdateMask 
                         appendValue &= ~UNIT_NPC_FLAG_SPELLCLICK;
 
                     *data << uint32(appendValue);
+                }
+                else if (index == UNIT_FIELD_AURASTATE)
+                {
+                    if(IsPerCasterAuraState)
+                    {
+                        // IsPerCasterAuraState set if related pet caster aura state set already
+                        if (((Unit*)this)->HasAuraStateForCaster(AURA_STATE_CONFLAGRATE,target->GetGUID()))
+                            *data << m_uint32Values[ index ];
+                        else
+                            *data << (m_uint32Values[ index ] & ~(1 << (AURA_STATE_CONFLAGRATE-1)));
+                    }
+                    else
+                        *data << m_uint32Values[ index ];
                 }
                 // FIXME: Some values at server stored in float format but must be sent to client in uint32 format
                 else if(index >= UNIT_FIELD_BASEATTACKTIME && index <= UNIT_FIELD_RANGEDATTACKTIME)
@@ -806,7 +843,7 @@ void Object::_SetCreateBits(UpdateMask *updateMask, Player* /*target*/) const
 
 void Object::SetInt32Value( uint16 index, int32 value )
 {
-    ASSERT( index < m_valuesCount || PrintIndexError( index , true ) );
+    ASSERT( index < m_valuesCount || PrintIndexError( index, true ) );
 
     if(m_int32Values[ index ] != value)
     {
@@ -825,7 +862,7 @@ void Object::SetInt32Value( uint16 index, int32 value )
 
 void Object::SetUInt32Value( uint16 index, uint32 value )
 {
-    ASSERT( index < m_valuesCount || PrintIndexError( index , true ) );
+    ASSERT( index < m_valuesCount || PrintIndexError( index, true ) );
 
     if(m_uint32Values[ index ] != value)
     {
@@ -844,7 +881,7 @@ void Object::SetUInt32Value( uint16 index, uint32 value )
 
 void Object::SetUInt64Value( uint16 index, const uint64 &value )
 {
-    ASSERT( index + 1 < m_valuesCount || PrintIndexError( index , true ) );
+    ASSERT( index + 1 < m_valuesCount || PrintIndexError( index, true ) );
     if(*((uint64*)&(m_uint32Values[ index ])) != value)
     {
         m_uint32Values[ index ] = *((uint32*)&value);
@@ -863,7 +900,7 @@ void Object::SetUInt64Value( uint16 index, const uint64 &value )
 
 void Object::SetFloatValue( uint16 index, float value )
 {
-    ASSERT( index < m_valuesCount || PrintIndexError( index , true ) );
+    ASSERT( index < m_valuesCount || PrintIndexError( index, true ) );
 
     if(m_floatValues[ index ] != value)
     {
@@ -882,7 +919,7 @@ void Object::SetFloatValue( uint16 index, float value )
 
 void Object::SetByteValue( uint16 index, uint8 offset, uint8 value )
 {
-    ASSERT( index < m_valuesCount || PrintIndexError( index , true ) );
+    ASSERT( index < m_valuesCount || PrintIndexError( index, true ) );
 
     if(offset > 4)
     {
@@ -908,7 +945,7 @@ void Object::SetByteValue( uint16 index, uint8 offset, uint8 value )
 
 void Object::SetUInt16Value( uint16 index, uint8 offset, uint16 value )
 {
-    ASSERT( index < m_valuesCount || PrintIndexError( index , true ) );
+    ASSERT( index < m_valuesCount || PrintIndexError( index, true ) );
 
     if(offset > 2)
     {
@@ -982,7 +1019,7 @@ void Object::ApplyModPositiveFloatValue(uint16 index, float  val, bool apply)
 
 void Object::SetFlag( uint16 index, uint32 newFlag )
 {
-    ASSERT( index < m_valuesCount || PrintIndexError( index , true ) );
+    ASSERT( index < m_valuesCount || PrintIndexError( index, true ) );
     uint32 oldval = m_uint32Values[ index ];
     uint32 newval = oldval | newFlag;
 
@@ -1003,7 +1040,7 @@ void Object::SetFlag( uint16 index, uint32 newFlag )
 
 void Object::RemoveFlag( uint16 index, uint32 oldFlag )
 {
-    ASSERT( index < m_valuesCount || PrintIndexError( index , true ) );
+    ASSERT( index < m_valuesCount || PrintIndexError( index, true ) );
     uint32 oldval = m_uint32Values[ index ];
     uint32 newval = oldval & ~oldFlag;
 
@@ -1024,7 +1061,7 @@ void Object::RemoveFlag( uint16 index, uint32 oldFlag )
 
 void Object::SetByteFlag( uint16 index, uint8 offset, uint8 newFlag )
 {
-    ASSERT( index < m_valuesCount || PrintIndexError( index , true ) );
+    ASSERT( index < m_valuesCount || PrintIndexError( index, true ) );
 
     if(offset > 4)
     {
@@ -1049,7 +1086,7 @@ void Object::SetByteFlag( uint16 index, uint8 offset, uint8 newFlag )
 
 void Object::RemoveByteFlag( uint16 index, uint8 offset, uint8 oldFlag )
 {
-    ASSERT( index < m_valuesCount || PrintIndexError( index , true ) );
+    ASSERT( index < m_valuesCount || PrintIndexError( index, true ) );
 
     if(offset > 4)
     {
@@ -1082,7 +1119,7 @@ bool Object::PrintIndexError(uint32 index, bool set) const
 
 WorldObject::WorldObject()
     : m_mapId(0), m_InstanceId(0), m_phaseMask(PHASEMASK_NORMAL),
-    m_positionX(0.0f), m_positionY(0.0f), m_positionZ(0.0f), m_orientation(0.0f)
+    m_positionX(0.0f), m_positionY(0.0f), m_positionZ(0.0f), m_orientation(0.0f), m_currMap(NULL)
 {
 }
 
@@ -1090,11 +1127,9 @@ void WorldObject::CleanupsBeforeDelete()
 {
 }
 
-void WorldObject::_Create( uint32 guidlow, HighGuid guidhigh, uint32 mapid, uint32 phaseMask )
+void WorldObject::_Create( uint32 guidlow, HighGuid guidhigh, uint32 phaseMask )
 {
     Object::_Create(guidlow, 0, guidhigh);
-
-    m_mapId = mapid;
     m_phaseMask = phaseMask;
 }
 
@@ -1359,7 +1394,7 @@ bool WorldObject::HasInArc(const float arcangle, const WorldObject* obj) const
 
 void WorldObject::GetRandomPoint( float x, float y, float z, float distance, float &rand_x, float &rand_y, float &rand_z) const
 {
-    if(distance==0)
+    if(distance == 0)
     {
         rand_x = x;
         rand_y = y;
@@ -1527,8 +1562,6 @@ void WorldObject::MonsterWhisper(int32 textId, uint64 receiver, bool IsBossWhisp
 
 void WorldObject::BuildMonsterChat(WorldPacket *data, uint8 msgtype, char const* text, uint32 language, char const* name, uint64 targetGuid) const
 {
-    bool pre = (msgtype==CHAT_MSG_MONSTER_EMOTE || msgtype==CHAT_MSG_RAID_BOSS_EMOTE);
-
     *data << (uint8)msgtype;
     *data << (uint32)language;
     *data << (uint64)GetGUID();
@@ -1541,9 +1574,7 @@ void WorldObject::BuildMonsterChat(WorldPacket *data, uint8 msgtype, char const*
         *data << (uint32)1;                                 // target name length
         *data << (uint8)0;                                  // target name
     }
-    *data << (uint32)(strlen(text)+1+(pre?3:0));
-    if(pre)
-        data->append("%s ",3);
+    *data << (uint32)(strlen(text)+1);
     *data << text;
     *data << (uint8)0;                                      // ChatTag
 }
@@ -1567,18 +1598,23 @@ void WorldObject::SendMessageToSetInRange(WorldPacket *data, float dist, bool /*
 void WorldObject::SendObjectDeSpawnAnim(uint64 guid)
 {
     WorldPacket data(SMSG_GAMEOBJECT_DESPAWN_ANIM, 8);
-    data << guid;
+    data << uint64(guid);
     SendMessageToSet(&data, true);
 }
 
-Map* WorldObject::GetMap() const
+void WorldObject::SetMap(Map * map)
 {
-    return MapManager::Instance().GetMap(GetMapId(), this);
+    ASSERT(map);
+    m_currMap = map;
+    //lets save current map's Id/instanceId
+    m_mapId = map->GetId();
+    m_InstanceId = map->GetInstanceId();
 }
 
 Map const* WorldObject::GetBaseMap() const
 {
-    return MapManager::Instance().CreateBaseMap(GetMapId());
+    ASSERT(m_currMap);
+    return m_currMap->GetParent();
 }
 
 void WorldObject::AddObjectToRemoveList()
@@ -1590,7 +1626,6 @@ Creature* WorldObject::SummonCreature(uint32 id, float x, float y, float z, floa
 {
     TemporarySummon* pCreature = new TemporarySummon(GetGUID());
 
-    pCreature->SetInstanceId(GetInstanceId());
     uint32 team = 0;
     if (GetTypeId()==TYPEID_PLAYER)
         team = ((Player*)this)->GetTeam();
@@ -1626,24 +1661,42 @@ Creature* WorldObject::SummonCreature(uint32 id, float x, float y, float z, floa
 Creature* WorldObject::SummonCreatureCustom(uint32 id, float x, float y, float z, float ang,TempSummonType spwtype,uint32 despwtime)
 {
     static uint32 extraguid = 0;
+
     TemporarySummon* pCreature = new TemporarySummon(GetGUID());
 
-    pCreature->SetInstanceId(GetInstanceId());
+    uint32 team = 0;
+    if (GetTypeId()==TYPEID_PLAYER)
+        team = ((Player*)this)->GetTeam();
 
     // uh oh evil hack! this should avoid GUID conflicts by not really letting the core know we generated objects with
     // this guid. the problem is: by using massive emitters, creature guids could reach the overflow limit and crash server!
-    if (!pCreature->Create(0x00FFFBFE + extraguid, GetMap(),-1 , id, 0))
+    if (!pCreature->Create(0x00FFFBFE + extraguid, GetMap(), GetPhaseMask(), id, team))
     {
         delete pCreature;
         return NULL;
     }
 
-    pCreature->Relocate(x,y,z,ang);
+    if (x == 0.0f && y == 0.0f && z == 0.0f)
+        GetClosePoint(x, y, z, pCreature->GetObjectSize());
+
+    pCreature->Relocate(x, y, z, ang);
+
+    if(!pCreature->IsPositionValid())
+    {
+        sLog.outError("Creature (guidlow %d, entry %d) not summoned. Suggested coordinates isn't valid (X: %f Y: %f)",pCreature->GetGUIDLow(),pCreature->GetEntry(),pCreature->GetPositionX(),pCreature->GetPositionY());
+        delete pCreature;
+        return NULL;
+    }
+
     extraguid++;
     extraguid %= 0x400;
 
     pCreature->Summon(spwtype, despwtime);
 
+    if(GetTypeId()==TYPEID_UNIT && ((Creature*)this)->AI())
+        ((Creature*)this)->AI()->JustSummoned(pCreature);
+
+    // return the creature therewith the summoner has access to it
     return pCreature;
 }
 

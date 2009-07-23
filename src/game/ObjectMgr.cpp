@@ -574,7 +574,7 @@ void ObjectMgr::LoadCreatureTemplates()
 
         // used later for scale
         CreatureDisplayInfoEntry const* displayScaleEntry = NULL;
-        
+
         if (cInfo->DisplayID_A[0])
         {
             CreatureDisplayInfoEntry const* displayEntry = sCreatureDisplayInfoStore.LookupEntry(cInfo->DisplayID_A[0]);
@@ -641,6 +641,18 @@ void ObjectMgr::LoadCreatureTemplates()
 
         if (!displayScaleEntry)
             sLog.outErrorDb("Creature (Entry: %u) not has any existed display id in DisplayID_A/DisplayID_A2/DisplayID_H/DisplayID_H2", cInfo->Entry);
+
+        for(int k = 0; k < MAX_KILL_CREDIT; ++k)
+        {
+            if(cInfo->KillCredit[k])
+            {
+                if(!GetCreatureTemplate(cInfo->KillCredit[k]))
+                {
+                    sLog.outErrorDb("Creature (Entry: %u) has not existed creature entry in `KillCredit%d` (%u)",cInfo->Entry,k+1,cInfo->KillCredit[k]);
+                    const_cast<CreatureInfo*>(cInfo)->KillCredit[k] = 0;
+                }
+            }
+        }
 
         if (cInfo->unit_class && ((1 << (cInfo->unit_class-1)) & CLASSMASK_ALL_CREATURES) == 0)
             sLog.outErrorDb("Creature (Entry: %u) has invalid unit_class(%u) for creature_template", cInfo->Entry, cInfo->unit_class);
@@ -1232,6 +1244,12 @@ void ObjectMgr::LoadGameobjects()
         data.rotation2      = fields[ 9].GetFloat();
         data.rotation3      = fields[10].GetFloat();
         data.spawntimesecs  = fields[11].GetInt32();
+
+        if (data.spawntimesecs==0 && gInfo->IsDespawnAtAction())
+        {
+            sLog.outErrorDb("Table `gameobject` have gameobject (GUID: %u Entry: %u) with `spawntimesecs` (0) value, but gameobejct marked as despawnable at action.",guid,data.id);
+        }
+
         data.animprogress   = fields[12].GetUInt32();
 
         uint32 go_state     = fields[13].GetUInt32();
@@ -5719,6 +5737,16 @@ inline void CheckGONoDamageImmuneId(GameObjectInfo const* goInfo,uint32 dataN,ui
         goInfo->id,goInfo->type,N,dataN);
 }
 
+inline void CheckGOConsumable(GameObjectInfo const* goInfo,uint32 dataN,uint32 N)
+{
+    // 0/1 correct values
+    if (dataN <= 1)
+        return;
+
+    sLog.outErrorDb("Gameobject (Entry: %u GoType: %u) have data%d=%u but expected boolean (0/1) consumable field value.",
+        goInfo->id,goInfo->type,N,dataN);
+}
+
 void ObjectMgr::LoadGameobjectInfo()
 {
     SQLGameObjectLoader loader;
@@ -5761,6 +5789,8 @@ void ObjectMgr::LoadGameobjectInfo()
                 if (goInfo->chest.lockId)
                     CheckGOLockId(goInfo,goInfo->chest.lockId,0);
 
+                CheckGOConsumable(goInfo,goInfo->chest.consumable,3);
+
                 if (goInfo->chest.linkedTrapId)              // linked trap
                     CheckGOLinkedTrapId(goInfo,goInfo->chest.linkedTrapId,7);
                 break;
@@ -5795,6 +5825,8 @@ void ObjectMgr::LoadGameobjectInfo()
             {
                 if (goInfo->goober.lockId)
                     CheckGOLockId(goInfo,goInfo->goober.lockId,0);
+
+                CheckGOConsumable(goInfo,goInfo->goober.consumable,3);
 
                 if (goInfo->goober.pageId)                  // pageId
                 {
@@ -6655,7 +6687,7 @@ uint8 ObjectMgr::CheckPlayerName( const std::string& name, bool create )
     uint32 strictMask = sWorld.getConfig(CONFIG_STRICT_PLAYER_NAMES);
     if(!isValidString(wname,strictMask,false,create))
         return CHAR_NAME_MIXED_LANGUAGES;
-    
+
     return CHAR_NAME_SUCCESS;
 }
 
@@ -6759,7 +6791,7 @@ void ObjectMgr::LoadGameObjectForQuests()
             // scan GO chest with loot including quest items
             case GAMEOBJECT_TYPE_CHEST:
             {
-                uint32 loot_id = GameObject::GetLootId(goInfo);
+                uint32 loot_id = goInfo->GetLootId();
 
                 // find quest loot for GO
                 if(LootTemplates_Gameobject.HaveQuestLootFor(loot_id))
@@ -7954,7 +7986,7 @@ void ObjectMgr::LoadSpecialChannels(void)
 {
     sLog.outString("FG: Loading Special Channels...");
     mSpecialChannels.clear();
-    QueryResult *result = CharacterDatabase.PQuery("SELECT id,name FROM channels_special");
+    QueryResult *result = CharacterDatabase.PQuery("SELECT name,no_notify,unowned FROM channels_special");
     uint32 count = 0;
     if(result)
     {
@@ -7962,18 +7994,19 @@ void ObjectMgr::LoadSpecialChannels(void)
         do
         {
             Field *fields = result->Fetch();
-            uint32 id = fields[0].GetUInt32();
-            std::string ch = fields[1].GetCppString();
-            if(id <= 32)
+            std::string name = fields[0].GetCppString();
+            bool no_notify = fields[1].GetBool();
+            bool unowned = fields[2].GetBool();
+            if(name.length())
             {
-                mSpecialChannels[id] = ch;
-                sLog.outString("Special Channel #%u: %s",id,ch.c_str());
+                SpecialChannel ch;
+                ch.name = name;
+                ch.no_notify = no_notify;
+                ch.unowned = unowned;
+
+                mSpecialChannels[name] = ch;
+                sLog.outString("Special Channel '%s'",ch.name.c_str());
             }
-            else
-            {
-                sLog.outError("Special Channel #%u: %s: ID must be < 32",id,ch.c_str());
-            }
-            
             bar.step();
             count++;
         }
@@ -7986,14 +8019,13 @@ void ObjectMgr::LoadSpecialChannels(void)
         sLog.outError("FG: Can't load special channels!");
 }
 
-int32 ObjectMgr::GetSpecialChanID(std::string ch)
+SpecialChannel ObjectMgr::GetSpecialChan(std::string name)
 {
-    for(std::map<uint32,std::string>::iterator it = mSpecialChannels.begin(); it != mSpecialChannels.end(); it++)
-    {
-        if(it->second == ch)
-            return it->first;
-    }
-    return -1;
+    std::map<std::string,SpecialChannel>::iterator it = mSpecialChannels.find(name);
+    if(it != mSpecialChannels.end())
+        return it->second;
+
+    return SpecialChannel(); // invalid special channel
 }
 
 CreatureInfo const* GetCreatureTemplateStore(uint32 entry)

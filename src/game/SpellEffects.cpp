@@ -189,7 +189,7 @@ pEffect SpellEffects[TOTAL_SPELL_EFFECTS]=
     &Spell::EffectApplyAreaAura,                            //129 SPELL_EFFECT_APPLY_AREA_AURA_ENEMY
     &Spell::EffectNULL,                                     //130 SPELL_EFFECT_REDIRECT_THREAT
     &Spell::EffectUnused,                                   //131 SPELL_EFFECT_131                      used in some test spells
-    &Spell::EffectNULL,                                     //132 SPELL_EFFECT_PLAY_MUSIC               sound id in misc value (SoundEntries.dbc)
+    &Spell::EffectPlayMusic,                                //132 SPELL_EFFECT_PLAY_MUSIC               sound id in misc value (SoundEntries.dbc)
     &Spell::EffectUnlearnSpecialization,                    //133 SPELL_EFFECT_UNLEARN_SPECIALIZATION   unlearn profession specialization
     &Spell::EffectKillCredit,                               //134 SPELL_EFFECT_KILL_CREDIT              misc value is creature entry
     &Spell::EffectNULL,                                     //135 SPELL_EFFECT_CALL_PET
@@ -411,9 +411,72 @@ void Spell::EffectSchoolDMG(uint32 effect_idx)
                 // Incinerate Rank 1 & 2
                 if ((m_spellInfo->SpellFamilyFlags & UI64LIT(0x00004000000000)) && m_spellInfo->SpellIconID==2128)
                 {
-                    // Incinerate does more dmg (dmg*0.25) if the target is Immolated.
-                    if(unitTarget->HasAuraState(AURA_STATE_IMMOLATE))
-                        damage += int32(damage*0.25f);
+                    // Incinerate does more dmg (dmg*0.25) if the target have Immolate debuff.
+                    // Check aura state for speed but aura state set not only for Immolate spell
+                    if(unitTarget->HasAuraState(AURA_STATE_CONFLAGRATE))
+                    {
+                        Unit::AuraList const& RejorRegr = unitTarget->GetAurasByType(SPELL_AURA_PERIODIC_DAMAGE);
+                        for(Unit::AuraList::const_iterator i = RejorRegr.begin(); i != RejorRegr.end(); ++i)
+                        {
+                            // Immolate
+                            if((*i)->GetSpellProto()->SpellFamilyName == SPELLFAMILY_WARLOCK &&
+                                ((*i)->GetSpellProto()->SpellFamilyFlags & UI64LIT(0x00000000000004)))
+                            {
+                                damage += damage/4;
+                                break;
+                            }
+                        }
+                    }
+                }
+                // Shadowflame
+                else if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x0001000000000000))
+                {
+                    // Apply DOT part
+                    switch(m_spellInfo->Id)
+                    {
+                        case 47897: m_caster->CastSpell(unitTarget, 47960, true); break;
+                        case 61290: m_caster->CastSpell(unitTarget, 61291, true); break;
+                        default:
+                            sLog.outError("Spell::EffectDummy: Unhandeled Shadowflame spell rank %u",m_spellInfo->Id);
+                        break;
+                    }
+                }
+                // Conflagrate - consumes Immolate or Shadowflame
+                else if (m_spellInfo->TargetAuraState == AURA_STATE_CONFLAGRATE)
+                {
+                    Aura const* aura = NULL;                // found req. aura for damage calculation
+
+                    Unit::AuraList const &mPeriodic = unitTarget->GetAurasByType(SPELL_AURA_PERIODIC_DAMAGE);
+                    for(Unit::AuraList::const_iterator i = mPeriodic.begin(); i != mPeriodic.end(); ++i)
+                    {
+                        // for caster applied auras only
+                        if ((*i)->GetSpellProto()->SpellFamilyName != SPELLFAMILY_WARLOCK ||
+                            (*i)->GetCasterGUID()!=m_caster->GetGUID())
+                            continue;
+
+                        // Immolate
+                        if ((*i)->GetSpellProto()->SpellFamilyFlags & UI64LIT(0x0000000000000004))
+                        {
+                            aura = *i;                      // it selected always if exist
+                            break;
+                        }
+
+                        // Shadowflame
+                        if ((*i)->GetSpellProto()->SpellFamilyFlags2 & 0x00000002)
+                            aura = *i;                      // remember but wait possible Immolate as primary priority
+                    }
+
+                    // found Immolate or Shadowflame
+                    if (aura)
+                    {
+                        int32 damagetick = m_caster->SpellDamageBonus(unitTarget, aura->GetSpellProto(), aura->GetModifier()->m_amount, DOT);
+                        damage += damagetick * 4;
+
+                        // Glyph of Conflagrate
+                        if (!m_caster->HasAura(56235))
+                            unitTarget->RemoveAurasByCasterSpell(aura->GetId(), m_caster->GetGUID());
+                        break;
+                    }
                 }
                 break;
             }
@@ -849,7 +912,7 @@ void Spell::EffectDummy(uint32 i)
                 case 23448:                                 // Transporter Arrival - Ultrasafe Transporter: Gadgetzan - backfires
                 {
                     int32 r = irand(0, 119);
-                    if ( r < 20 )                           // Transporter Malfunction - 1/6 polymorph 
+                    if ( r < 20 )                           // Transporter Malfunction - 1/6 polymorph
                         m_caster->CastSpell(m_caster, 23444, true);
                     else if ( r < 100 )                     // Evil Twin               - 4/6 evil twin
                         m_caster->CastSpell(m_caster, 23445, true);
@@ -1074,13 +1137,13 @@ void Spell::EffectDummy(uint32 i)
                     m_caster->CastSpell(m_caster, 45088, true);
                     return;
                 }
-                case 55004:                                 // Nitro Boosts 
-                    if(!m_CastItem) return; 
-                    if(roll_chance_i(95))                   // Nitro Boosts - success 
-                        m_caster->CastSpell(m_caster, 54861, true, m_CastItem); 
-                    else                                    // Knocked Up   - backfire 5% 
-                        m_caster->CastSpell(m_caster, 46014, true, m_CastItem); 
-                    return; 
+                case 55004:                                 // Nitro Boosts
+                    if(!m_CastItem) return;
+                    if(roll_chance_i(95))                   // Nitro Boosts - success
+                        m_caster->CastSpell(m_caster, 54861, true, m_CastItem);
+                    else                                    // Knocked Up   - backfire 5%
+                        m_caster->CastSpell(m_caster, 46014, true, m_CastItem);
+                    return;
                 case 50243:                                 // Teach Language
                 {
                     if(m_caster->GetTypeId() != TYPEID_PLAYER)
@@ -1157,6 +1220,21 @@ void Spell::EffectDummy(uint32 i)
                 case 58418:                                 // Portal to Orgrimmar
                 case 58420:                                 // Portal to Stormwind
                     return;                                 // implemented in EffectScript[0]
+                case 59640:                                 // Underbelly Elixir
+                {
+                    if(m_caster->GetTypeId() != TYPEID_PLAYER)
+                        return;
+
+                    uint32 spell_id = 0;
+                    switch(urand(1,3))
+                    {
+                        case 1: spell_id = 59645; break;
+                        case 2: spell_id = 59831; break;
+                        case 3: spell_id = 59843; break;
+                    }
+                    m_caster->CastSpell(m_caster,spell_id,true,NULL);
+                    return;
+                }
             }
 
             //All IconID Check in there
@@ -1209,12 +1287,19 @@ void Spell::EffectDummy(uint32 i)
                     }
                     return;
                 }
-                case 32826:
+                case 32826:                                 // Polymorph Cast Visual
                 {
                     if ( unitTarget && unitTarget->GetTypeId() == TYPEID_UNIT )
                     {
                         //Polymorph Cast Visual Rank 1
-                        const uint32 spell_list[6] = {32813, 32816, 32817, 32818, 32819, 32820};
+                        const uint32 spell_list[6] = {
+                            32813,                          // Squirrel Form
+                            32816,                          // Giraffe Form
+                            32817,                          // Serpent Form
+                            32818,                          // Dragonhawk Form
+                            32819,                          // Worgen Form
+                            32820                           // Sheep Form
+                        };
                         unitTarget->CastSpell( unitTarget, spell_list[urand(0, 5)], true);
                     }
                     return;
@@ -1434,7 +1519,7 @@ void Spell::EffectDummy(uint32 i)
                     m_caster->CastSpell(unitTarget, 5940, true);
                     return;
                 }
-                case 14185:                                 // Preparation Rogue
+                case 14185:                                 // Preparation
                 {
                     if(m_caster->GetTypeId()!=TYPEID_PLAYER)
                         return;
@@ -1486,7 +1571,7 @@ void Spell::EffectDummy(uint32 i)
 
             switch(m_spellInfo->Id)
             {
-                case 23989:                                 //Readiness talent
+                case 23989:                                 // Readiness talent
                 {
                     if(m_caster->GetTypeId()!=TYPEID_PLAYER)
                         return;
@@ -1648,8 +1733,8 @@ void Spell::EffectDummy(uint32 i)
             }
             break;
         case SPELLFAMILY_SHAMAN:
-            //Shaman Rockbiter Weapon
-            if (m_spellInfo->SpellFamilyFlags == 0x400000)
+            // Rockbiter Weapon
+            if (m_spellInfo->SpellFamilyFlags & 0x400000)
             {
                 // TODO: use expect spell for enchant (if exist talent)
                 // In 3.0.3 no mods present for rockbiter
@@ -1722,8 +1807,7 @@ void Spell::EffectDummy(uint32 i)
                 if(!unitTarget || unitTarget->getPowerType() != POWER_MANA)
                     return;
                 // Glyph of Mana Tide
-                Unit *owner = m_caster->GetOwner();
-                if (owner)
+                if(Unit *owner = m_caster->GetOwner())
                     if (Aura *dummy = owner->GetDummyAura(55441))
                         damage+=dummy->GetModifier()->m_amount;
                 // Regenerate 6% of Total Mana Every 3 secs
@@ -1757,7 +1841,7 @@ void Spell::EffectDummy(uint32 i)
             break;
         case SPELLFAMILY_DEATHKNIGHT:
             // Death Coil
-            if(m_spellInfo->SpellFamilyFlags & UI64LIT(0x002000))
+            if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x002000))
             {
                 if(m_caster->IsFriendlyTo(unitTarget))
                 {
@@ -1772,6 +1856,12 @@ void Spell::EffectDummy(uint32 i)
                     int32 bp = damage;
                     m_caster->CastCustomSpell(unitTarget, 47632, &bp, NULL, NULL, true);
                 }
+                return;
+            }
+            // Hungering Cold
+            else if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x0000100000000000))
+            {
+                m_caster->CastSpell(m_caster, 51209, true);
                 return;
             }
             break;
@@ -2025,7 +2115,7 @@ void Spell::EffectTriggerSpell(uint32 i)
             m_caster->CastSpell(unitTarget,spellInfo,true,m_CastItem,NULL,m_originalCasterGUID);
     }
     else
-        m_TriggerSpells.push_back(spellInfo);
+        AddTriggeredSpell(spellInfo);
 }
 
 void Spell::EffectTriggerMissileSpell(uint32 effect_idx)
@@ -3042,7 +3132,7 @@ void Spell::EffectOpenLock(uint32 effIndex)
                 return;
             }
         }
-        lockId = gameObjTarget->GetLockId();
+        lockId = goInfo->GetLockId();
         guid = gameObjTarget->GetGUID();
     }
     else if(itemTarget)
@@ -4156,7 +4246,6 @@ void Spell::EffectSummonPet(uint32 i)
                 return;
 
             OldSummon->GetMap()->Remove((Creature*)OldSummon,false);
-            OldSummon->SetMapId(m_caster->GetMapId());
 
             float px, py, pz;
             m_caster->GetClosePoint(px, py, pz, OldSummon->GetObjectSize());
@@ -4713,7 +4802,7 @@ void Spell::EffectSummonObjectWild(uint32 i)
         }
     }
 
-    if(uint32 linkedEntry = pGameObj->GetLinkedGameObjectEntry())
+    if(uint32 linkedEntry = pGameObj->GetGOInfo()->GetLinkedGameObjectEntry())
     {
         GameObject* linkedGO = new GameObject;
         if(linkedGO->Create(objmgr.GenerateLowGuid(HIGHGUID_GAMEOBJECT), linkedEntry, map,
@@ -5755,14 +5844,10 @@ void Spell::EffectSummonObject(uint32 i)
         default: return;
     }
 
-    uint64 guid = m_caster->m_ObjectSlot[slot];
-    if(guid != 0)
+    if(uint64 guid = m_caster->m_ObjectSlot[slot])
     {
-        GameObject* obj = NULL;
-        if( m_caster )
-            obj = m_caster->GetMap()->GetGameObject(guid);
-
-        if(obj) obj->SetLootState(GO_JUST_DEACTIVATED);
+        if(GameObject* obj = m_caster ? m_caster->GetMap()->GetGameObject(guid) : NULL)
+            obj->SetLootState(GO_JUST_DEACTIVATED);
         m_caster->m_ObjectSlot[slot] = 0;
     }
 
@@ -6409,16 +6494,14 @@ void Spell::EffectTransmitted(uint32 effIndex)
         case GAMEOBJECT_TYPE_FISHINGHOLE:
         case GAMEOBJECT_TYPE_CHEST:
         default:
-        {
             break;
-        }
     }
 
     pGameObj->SetRespawnTime(duration > 0 ? duration/IN_MILISECONDS : 0);
 
-    pGameObj->SetOwnerGUID(m_caster->GetGUID() );
+    pGameObj->SetOwnerGUID(m_caster->GetGUID());
 
-    pGameObj->SetUInt32Value(GAMEOBJECT_LEVEL, m_caster->getLevel() );
+    pGameObj->SetUInt32Value(GAMEOBJECT_LEVEL, m_caster->getLevel());
     pGameObj->SetSpellId(m_spellInfo->Id);
 
     DEBUG_LOG("AddObject at SpellEfects.cpp EffectTransmitted");
@@ -6431,16 +6514,16 @@ void Spell::EffectTransmitted(uint32 effIndex)
     data << uint64(pGameObj->GetGUID());
     m_caster->SendMessageToSet(&data,true);
 
-    if(uint32 linkedEntry = pGameObj->GetLinkedGameObjectEntry())
+    if(uint32 linkedEntry = pGameObj->GetGOInfo()->GetLinkedGameObjectEntry())
     {
         GameObject* linkedGO = new GameObject;
         if(linkedGO->Create(objmgr.GenerateLowGuid(HIGHGUID_GAMEOBJECT), linkedEntry, cMap,
             m_caster->GetPhaseMask(), fx, fy, fz, m_caster->GetOrientation(), 0.0f, 0.0f, 0.0f, 0.0f, 100, GO_STATE_READY))
         {
             linkedGO->SetRespawnTime(duration > 0 ? duration/IN_MILISECONDS : 0);
-            linkedGO->SetUInt32Value(GAMEOBJECT_LEVEL, m_caster->getLevel() );
+            linkedGO->SetUInt32Value(GAMEOBJECT_LEVEL, m_caster->getLevel());
             linkedGO->SetSpellId(m_spellInfo->Id);
-            linkedGO->SetOwnerGUID(m_caster->GetGUID() );
+            linkedGO->SetOwnerGUID(m_caster->GetGUID());
 
             linkedGO->GetMap()->Add(linkedGO);
         }
@@ -6705,4 +6788,22 @@ void Spell::EffectRenamePet(uint32 /*eff_idx*/)
         return;
 
     unitTarget->SetByteValue(UNIT_FIELD_BYTES_2, 2, UNIT_RENAME_ALLOWED);
+}
+
+void Spell::EffectPlayMusic(uint32 i)
+{
+    if(!unitTarget || unitTarget->GetTypeId() != TYPEID_PLAYER)
+        return;
+
+    uint32 soundid = m_spellInfo->EffectMiscValue[i];
+
+    if (!sSoundEntriesStore.LookupEntry(soundid))
+    {
+        sLog.outError("EffectPlayMusic: Sound (Id: %u) not exist in spell %u.",soundid,m_spellInfo->Id);
+        return;
+    }
+
+    WorldPacket data(SMSG_PLAY_MUSIC, 4);
+    data << uint32(soundid);
+    ((Player*)unitTarget)->GetSession()->SendPacket(&data);
 }

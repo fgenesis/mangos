@@ -157,7 +157,7 @@ class Channel
     uint64      m_ownerGUID;
 
     // FG: extra vars
-    int32 m_specialId;
+    bool m_unowned;
 
     private:
         // initial packet data (notify type and channel name)
@@ -246,7 +246,7 @@ class Channel
         Channel(const std::string& name, uint32 channel_id);
         std::string GetName() const { return m_name; }
         uint32 GetChannelId() const { return m_channelId; }
-        bool IsConstant() const { return m_channelId != 0; }
+        bool IsConstant() const { return m_channelId != 0 || m_unowned; }
         bool IsAnnounce() const { return m_announce; }
         bool IsLFG() const { return GetFlags() & CHANNEL_FLAG_LFG; }
         std::string GetPassword() const { return m_password; }
@@ -280,8 +280,5 @@ class Channel
         void DeVoice(uint64 guid1, uint64 guid2);
         void JoinNotify(uint64 guid);                                           // invisible notify
         void LeaveNotify(uint64 guid);                                          // invisible notify
-
-        // FG:
-        inline int32 GetSpecialID(void) { return m_specialId; }
 };
 #endif

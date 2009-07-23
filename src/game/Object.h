@@ -151,7 +151,7 @@ class MANGOS_DLL_SPEC Object
         void BuildMovementUpdateBlock( UpdateData * data, uint32 flags = 0 ) const;
         void BuildUpdate(UpdateDataMapType &);
 
-        virtual void DestroyForPlayer( Player *target ) const;
+        virtual void DestroyForPlayer( Player *target, bool anim = false ) const;
 
         const int32& GetInt32Value( uint16 index ) const
         {
@@ -351,7 +351,7 @@ class MANGOS_DLL_SPEC WorldObject : public Object
 
         virtual void Update ( uint32 /*time_diff*/ ) { }
 
-        void _Create( uint32 guidlow, HighGuid guidhigh, uint32 mapid, uint32 phaseMask);
+        void _Create( uint32 guidlow, HighGuid guidhigh, uint32 phaseMask);
 
         void Relocate(float x, float y, float z, float orientation)
         {
@@ -400,8 +400,8 @@ class MANGOS_DLL_SPEC WorldObject : public Object
 
         void GetRandomPoint( float x, float y, float z, float distance, float &rand_x, float &rand_y, float &rand_z ) const;
 
-        void SetMapId(uint32 newMap) { m_mapId = newMap; }
         uint32 GetMapId() const { return m_mapId; }
+        uint32 GetInstanceId() const { return m_InstanceId; }
 
         virtual void SetPhaseMask(uint32 newPhaseMask, bool update);
         uint32 GetPhaseMask() const { return m_phaseMask; }
@@ -426,8 +426,7 @@ class MANGOS_DLL_SPEC WorldObject : public Object
         float GetDistanceZ(const WorldObject* obj) const;
         bool IsInMap(const WorldObject* obj) const
         {
-            return IsInWorld() && obj->IsInWorld() && GetMapId()==obj->GetMapId() &&
-                GetInstanceId()==obj->GetInstanceId() && InSamePhase(obj);
+            return IsInWorld() && obj->IsInWorld() && (GetMap() == obj->GetMap()) && InSamePhase(obj);
         }
         bool IsWithinDist3d(float x, float y, float z, float dist2compare) const;
         bool IsWithinDist2d(float x, float y, float dist2compare) const;
@@ -474,10 +473,6 @@ class MANGOS_DLL_SPEC WorldObject : public Object
         void SendObjectDeSpawnAnim(uint64 guid);
 
         virtual void SaveRespawnTime() {}
-
-        uint32 GetInstanceId() const { return m_InstanceId; }
-        void SetInstanceId(uint32 val) { m_InstanceId = val; }
-
         void AddObjectToRemoveList();
 
         // main visibility check function in normal case (ignore grey zone distance check)
@@ -486,8 +481,14 @@ class MANGOS_DLL_SPEC WorldObject : public Object
         // low level function for visibility change code, must be define in all main world object subclasses
         virtual bool isVisibleForInState(Player const* u, bool inVisibleList) const = 0;
 
-        Map      * GetMap() const;
+        void SetMap(Map * map);
+        Map * GetMap() const { ASSERT(m_currMap); return m_currMap; }
+        //used to check all object's GetMap() calls when object is not in world!
+        void ResetMap() { m_currMap = NULL; }
+
+        //this function should be removed in nearest time...
         Map const* GetBaseMap() const;
+
         Creature* SummonCreature(uint32 id, float x, float y, float z, float ang,TempSummonType spwtype,uint32 despwtime);
         Creature* SummonCreatureCustom(uint32 id, float x, float y, float z, float ang,TempSummonType spwtype,uint32 despwtime);
 
@@ -495,7 +496,15 @@ class MANGOS_DLL_SPEC WorldObject : public Object
         explicit WorldObject();
         std::string m_name;
 
+        //these functions are used mostly for Relocate() and Corpse/Player specific stuff...
+        //use them ONLY in LoadFromDB()/Create() funcs and nowhere else!
+        //mapId/instanceId should be set in SetMap() function!
+        void SetLocationMapId(uint32 _mapId) { m_mapId = _mapId; }
+        void SetLocationInstanceId(uint32 _instanceId) { m_InstanceId = _instanceId; }
+
     private:
+        Map * m_currMap;                                    //current object's Map location
+
         uint32 m_mapId;                                     // object at map with map_id
         uint32 m_InstanceId;                                // in map copy with instance id
         uint32 m_phaseMask;                                 // in area phase state

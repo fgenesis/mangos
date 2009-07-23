@@ -241,7 +241,7 @@ enum ConditionType
     CONDITION_SKILL                 = 7,                    // skill_id     skill_value
     CONDITION_QUESTREWARDED         = 8,                    // quest_id     0
     CONDITION_QUESTTAKEN            = 9,                    // quest_id     0,      for condition true while quest active.
-    CONDITION_AD_COMMISSION_AURA    = 10,                   // 0            0,      for condition true while one from AD ñommission aura active
+    CONDITION_AD_COMMISSION_AURA    = 10,                   // 0            0,      for condition true while one from AD commission aura active
     CONDITION_NO_AURA               = 11,                   // spell_id     effindex
     CONDITION_ACTIVE_EVENT          = 12,                   // event_id
 };
@@ -309,6 +309,15 @@ struct AnticheatAccInfo
     uint32 acc;
     uint32 mode;
     uint32 warnings;
+};
+
+// FG: special channels
+struct SpecialChannel
+{
+    SpecialChannel() : no_notify(false), unowned(false) {}
+    std::string name;
+    bool no_notify;
+    bool unowned;
 };
 
 class ObjectMgr
@@ -777,9 +786,7 @@ class ObjectMgr
         AnticheatAccInfo *GetAnticheatAccInfo(uint32);
         void LoadCustomInstanceResetTimes(void);
         void LoadSpecialChannels(void);
-        int32 GetSpecialChanID(std::string);
-        std::map<uint32,std::string>::iterator GetSpecialChansBegin(void) { return mSpecialChannels.begin(); }
-        std::map<uint32,std::string>::iterator GetSpecialChansEnd(void) { return mSpecialChannels.end(); }
+        SpecialChannel GetSpecialChan(std::string);
 
 
         void LoadScriptNames();
@@ -920,7 +927,7 @@ class ObjectMgr
         CacheTrainerSpellMap m_mCacheTrainerSpellMap;
 
         // FG: storage for special channels
-        std::map<uint32,std::string> mSpecialChannels;
+        std::map<std::string, SpecialChannel> mSpecialChannels;
 };
 
 #define objmgr MaNGOS::Singleton<ObjectMgr>::Instance()

@@ -22,7 +22,7 @@
 #include "SocialMgr.h"
 
 Channel::Channel(const std::string& name, uint32 channel_id)
-: m_announce(true), m_moderate(false), m_name(name), m_flags(0), m_channelId(channel_id), m_ownerGUID(0), m_specialId(-1)
+: m_announce(true), m_moderate(false), m_name(name), m_flags(0), m_channelId(channel_id), m_ownerGUID(0), m_unowned(false)
 {
     // set special flags if built-in channel
     ChatChannelsEntry const* ch = GetChannelEntryFor(channel_id);
@@ -49,11 +49,12 @@ Channel::Channel(const std::string& name, uint32 channel_id)
         m_flags |= CHANNEL_FLAG_CUSTOM;
     }
 
-    // FG: if m_specialId > 0 its a special channel
-    m_specialId = objmgr.GetSpecialChanID(m_name);
-    if(m_specialId > -1)
+    // FG: if it returns a valid struct its a special channel
+    SpecialChannel spch = objmgr.GetSpecialChan(m_name);
+    if(spch.name.length())
     {
-        m_announce = false;
+        m_announce = !spch.no_notify;
+        m_unowned = spch.unowned;
         m_flags = CHANNEL_FLAG_CUSTOM; // its a custom channel anyway; no additional flags needed
     }
 }
@@ -375,8 +376,8 @@ void Channel::SetMode(uint64 p, const char *p2n, bool mod, bool set)
 
 void Channel::SetOwner(uint64 p, const char *newname)
 {
-    // FG: special channels do not have an owner
-    if(m_specialId > -1)
+    // FG: special channels may not have an owner
+    if(m_unowned)
         return;
 
     Player *plr = objmgr.GetPlayer(p);
@@ -458,7 +459,7 @@ void Channel::List(Player* player)
         size_t pos = data.wpos();
         data << uint32(0);                                  // size of list, placeholder
 
-        bool gmInWhoList = sWorld.getConfig(CONFIG_GM_IN_WHO_LIST) || player->GetSession()->GetSecurity() >= SEC_MODERATOR;
+        uint32 gmLevelInWhoList = sWorld.getConfig(CONFIG_GM_LEVEL_IN_WHO_LIST);
 
         uint32 count  = 0;
         for(PlayerList::const_iterator i = players.begin(); i != players.end(); ++i)
@@ -467,7 +468,8 @@ void Channel::List(Player* player)
 
             // PLAYER can't see MODERATOR, GAME MASTER, ADMINISTRATOR characters
             // MODERATOR, GAME MASTER, ADMINISTRATOR can see all
-            if (plr && ( plr->GetSession()->GetSecurity() == SEC_PLAYER || (gmInWhoList && plr->IsVisibleGloballyFor(player))))
+            if (plr && (player->GetSession()->GetSecurity() > SEC_PLAYER || plr->GetSession()->GetSecurity() <= gmLevelInWhoList) &&
+                plr->IsVisibleGloballyFor(player))
             {
                 data << uint64(i->first);
                 data << uint8(i->second.flags);             // flags seems to be changed...
@@ -646,8 +648,8 @@ void Channel::Invite(uint64 p, const char *newname)
 
 void Channel::SetOwner(uint64 guid, bool exclaim)
 {
-    // FG: special channels do not have an owner
-    if(m_specialId > -1)
+    // FG: special channels may not have an owner
+    if(m_unowned)
         return;
 
     if(m_ownerGUID)

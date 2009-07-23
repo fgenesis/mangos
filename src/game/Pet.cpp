@@ -146,7 +146,7 @@ bool Pet::LoadPetFromDB( Player* owner, uint32 petentry, uint32 petnumber, bool 
     }
 
     uint32 pet_number = fields[0].GetUInt32();
-    
+
     if (current && owner->IsPetNeedBeTemporaryUnsummoned())
     {
         owner->SetTemporaryUnsummonedPetNumber(pet_number);
@@ -743,9 +743,6 @@ bool Pet::CreateBaseAtCreature(Creature* creature)
         return false;
     }
     uint32 guid=objmgr.GenerateLowGuid(HIGHGUID_PET);
-
-    sLog.outBasic("SetInstanceID()");
-    SetInstanceId(creature->GetInstanceId());
 
     sLog.outBasic("Create pet");
     uint32 pet_number = objmgr.GeneratePetNumber();
@@ -1841,8 +1838,7 @@ bool Pet::IsPermanentPetFor(Player* owner)
 
 bool Pet::Create(uint32 guidlow, Map *map, uint32 phaseMask, uint32 Entry, uint32 pet_number)
 {
-    SetMapId(map->GetId());
-    SetInstanceId(map->GetInstanceId());
+    SetMap(map);
     SetPhaseMask(phaseMask,false);
 
     Object::_Create(guidlow, pet_number, HIGHGUID_PET);
