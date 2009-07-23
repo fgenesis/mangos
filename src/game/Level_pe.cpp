@@ -430,6 +430,7 @@ bool ChatHandler::HandleReloadPECommand(const char *args)
     HandleReloadPlayerDropTemplateCommand("");
     //objmgr.LoadAnticheatAccInfo();
     sVPlayerMgr.Reload();
+    objmgr.LoadSpecialChannels();
 
     return true;
 }
