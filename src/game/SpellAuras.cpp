@@ -4907,8 +4907,8 @@ void Aura::HandleModPowerRegen(bool apply, bool Real)       // drinking
 
     m_periodicTimer = 5000;
 
-    if (m_modifier.m_miscvalue == POWER_MANA)
-        m_target->CheckAuraStackingAndApply(this, UNIT_MOD_MANA_REGEN, TOTAL_VALUE, float(m_modifier.m_amount), apply);
+    if (m_target->GetTypeId() == TYPEID_PLAYER && m_modifier.m_miscvalue == POWER_MANA)
+        ((Player*)m_target)->UpdateManaRegen();
 
     m_isPeriodic = apply;
 }
@@ -4924,7 +4924,7 @@ void Aura::HandleModPowerRegenPCT(bool apply, bool Real)
 
     // Update manaregen value
     if (m_modifier.m_miscvalue == POWER_MANA)
-        m_target->CheckAuraStackingAndApply(this, UNIT_MOD_MANA_REGEN, TOTAL_PCT, float(m_modifier.m_amount), apply);
+        ((Player*)m_target)->UpdateManaRegen();
 }
 
 void Aura::HandleModManaRegen(bool apply, bool Real)
@@ -4937,7 +4937,7 @@ void Aura::HandleModManaRegen(bool apply, bool Real)
         return;
 
     //Note: an increase in regen does NOT cause threat.
-    m_target->CheckAuraStackingAndApply(this, UNIT_MOD_MANA_REGEN, TOTAL_VALUE, float(m_modifier.m_amount), apply);
+    ((Player*)m_target)->UpdateManaRegen();
 }
 
 void Aura::HandleComprehendLanguage(bool apply, bool /*Real*/)
@@ -6698,7 +6698,7 @@ void Aura::PeriodicDummyTick()
                     if ((*i)->GetId() == GetId())
                     {
                         (*i)->GetModifier()->m_amount = m_modifier.m_amount;
-                        m_target->HandleStatModifier(UNIT_MOD_MANA_REGEN, TOTAL_VALUE, float((*i)->GetModifier()->m_amount), true);
+                        ((Player*)m_target)->UpdateManaRegen();
                         // Disable continue
                         m_isPeriodic = false;
                         return;

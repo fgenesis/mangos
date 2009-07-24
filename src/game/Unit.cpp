@@ -3443,29 +3443,51 @@ int32 Unit::GetMaxNegativeAuraModifierByMiscMask(AuraType auratype, uint32 misc_
 int32 Unit::GetTotalAuraModifierByMiscValue(AuraType auratype, int32 misc_value) const
 {
     int32 modifier = 0;
+    int32 nonStackingPos = 0;
 
     AuraList const& mTotalAuraList = GetAurasByType(auratype);
     for(AuraList::const_iterator i = mTotalAuraList.begin();i != mTotalAuraList.end(); ++i)
     {
         Modifier* mod = (*i)->GetModifier();
+
         if (mod->m_miscvalue == misc_value)
-            modifier += mod->m_amount;
+        {
+            if((*i)->IsStacking())
+                modifier += mod->m_amount;
+            else
+            {
+                if(mod->m_amount > nonStackingPos)
+                    nonStackingPos = mod->m_amount;
+            }
+        }
     }
-    return modifier;
+
+    return modifier + nonStackingPos;
 }
 
 float Unit::GetTotalAuraMultiplierByMiscValue(AuraType auratype, int32 misc_value) const
 {
     float multiplier = 1.0f;
+    float nonStackingPos = 0.0f;
 
     AuraList const& mTotalAuraList = GetAurasByType(auratype);
     for(AuraList::const_iterator i = mTotalAuraList.begin();i != mTotalAuraList.end(); ++i)
     {
         Modifier* mod = (*i)->GetModifier();
+
         if (mod->m_miscvalue == misc_value)
-            multiplier *= (100.0f + mod->m_amount)/100.0f;
+        {
+            if((*i)->IsStacking())
+                multiplier *= (100.0f + mod->m_amount)/100.0f;
+            else
+            {
+                if(mod->m_amount > nonStackingPos)
+                    nonStackingPos = mod->m_amount;
+            }
+        }
     }
-    return multiplier;
+
+    return multiplier * (100.0f + nonStackingPos)/100.0f;
 }
 
 int32 Unit::GetMaxPositiveAuraModifierByMiscValue(AuraType auratype, int32 misc_value, bool nonStackingOnly) const
@@ -10275,10 +10297,6 @@ bool Unit::HandleStatModifier(UnitMods unitMod, UnitModifierType modifierType, f
         case UNIT_MOD_HAPPINESS:
         case UNIT_MOD_RUNE:
         case UNIT_MOD_RUNIC_POWER:         UpdateMaxPower(GetPowerTypeByAuraGroup(unitMod));           break;
-
-        case UNIT_MOD_MANA_REGEN:
-        case UNIT_MOD_MANA_REGEN_PCT:      if(GetTypeId() == TYPEID_PLAYER)
-                                                ((Player*)this)->UpdateManaRegen();                    break;
 
         case UNIT_MOD_RESISTANCE_HOLY:
         case UNIT_MOD_RESISTANCE_FIRE:
