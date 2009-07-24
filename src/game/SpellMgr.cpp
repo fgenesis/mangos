@@ -774,6 +774,16 @@ void SpellMgr::LoadSpellProcEvents()
         sLog.outString( ">> Loaded %u extra spell proc event conditions", count );
 }
 
+void SpellMgr::LoadSpellProcItemEnchant()
+{
+    sSpellProcItemEnchantStore.Free();                               // for reload
+
+    sSpellProcItemEnchantStore.Load();
+
+    sLog.outString( ">> Loaded %u extra spell proc enchant item",  sSpellProcItemEnchantStore.RecordCount );
+    sLog.outString();
+}
+
 void SpellMgr::LoadSpellBonusess()
 {
     mSpellBonusMap.clear();                             // need for reload case
