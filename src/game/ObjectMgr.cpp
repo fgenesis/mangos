@@ -7901,6 +7901,7 @@ ObjectMgr::ScriptNameMap & GetScriptNames()
 
 void ObjectMgr::LoadCreaturesExtended(void)
 {
+    sCreatureExtendedStorage.Free();
     sCreatureExtendedStorage.Load();
     sLog.outString( ">> Loaded %u creature extended data", sCreatureExtendedStorage.RecordCount );
     sLog.outString();

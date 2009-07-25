@@ -1032,6 +1032,17 @@ void Unit::CalculateSpellDamage(SpellNonMeleeDamage *damageInfo, int32 damage, S
     if(!this->isAlive() || !pVictim->isAlive())
         return;
 
+    // FG: custom spell damage multipliers, must calculate before mods/absorb/resist
+    if(GetTypeId() == TYPEID_UNIT)
+    {
+        const CreatureExtendedInfo *exinfo = sCreatureExtendedStorage.LookupEntry<CreatureExtendedInfo>(GetEntry());
+        if(exinfo)
+        {
+            sLog.outDebug("-- CalculateSpellDamage: multi %f applied to dmg %u",exinfo->SpellDmgMulti, damage);
+            damage *= exinfo->SpellDmgMulti;
+        }
+    }
+
     uint32 crTypeMask = pVictim->GetCreatureTypeMask();
     // Check spell crit chance
     bool crit = isSpellCrit(pVictim, spellInfo, damageSchoolMask, attackType);
@@ -1167,17 +1178,6 @@ void Unit::DealSpellDamage(SpellNonMeleeDamage *damageInfo, bool durabilityLoss)
         const AreaTableEntry *area = GetAreaEntryByAreaID(pVictim->GetAreaId());
         if(area && area->flags & AREA_FLAG_SANCTUARY)       // sanctuary
             return;
-    }
-
-    // FG: custom spell damage multipliers
-    if(GetTypeId() == TYPEID_UNIT)
-    {
-        const CreatureExtendedInfo *exinfo = sCreatureExtendedStorage.LookupEntry<CreatureExtendedInfo>(GetEntry());
-        if(exinfo)
-        {
-            sLog.outDebug("-- SpellNonMeleeDamageLog: multi %f applied to dmg %u",exinfo->SpellDmgMulti, damageInfo->damage);
-            damageInfo->damage *= exinfo->SpellDmgMulti;
-        }
     }
 
     // Call default DealDamage

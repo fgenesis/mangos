@@ -1657,11 +1657,11 @@ Creature* WorldObject::SummonCreature(uint32 id, float x, float y, float z, floa
     return pCreature;
 }
 
+
 // FG: used for mass emitters
+static uint32 extraguid = 0;
 Creature* WorldObject::SummonCreatureCustom(uint32 id, float x, float y, float z, float ang,TempSummonType spwtype,uint32 despwtime)
 {
-    static uint32 extraguid = 0;
-
     TemporarySummon* pCreature = new TemporarySummon(GetGUID());
 
     uint32 team = 0;
@@ -1670,8 +1670,9 @@ Creature* WorldObject::SummonCreatureCustom(uint32 id, float x, float y, float z
 
     // uh oh evil hack! this should avoid GUID conflicts by not really letting the core know we generated objects with
     // this guid. the problem is: by using massive emitters, creature guids could reach the overflow limit and crash server!
-    if (!pCreature->Create(0x00FFFBFE + extraguid, GetMap(), GetPhaseMask(), id, team))
+    if (!pCreature->Create(0x00FFF7FE + extraguid, GetMap(), GetPhaseMask(), id, team))
     {
+        sLog.outError("-- FG: SummonCreatureCustom() failed!");
         delete pCreature;
         return NULL;
     }
@@ -1689,7 +1690,7 @@ Creature* WorldObject::SummonCreatureCustom(uint32 id, float x, float y, float z
     }
 
     extraguid++;
-    extraguid %= 0x400;
+    extraguid %= 0x800;
 
     pCreature->Summon(spwtype, despwtime);
 

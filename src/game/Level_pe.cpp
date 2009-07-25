@@ -437,7 +437,7 @@ bool ChatHandler::HandleReloadPECommand(const char *args)
 
 bool ChatHandler::HandleReloadCreatureExtendedCommand(const char *args)
 {
-    sCreatureExtendedStorage.Load();
+    objmgr.LoadCreaturesExtended();
     //SendGlobalSysMessage("DB table creature_extended reloaded.");
     return true;
 }
