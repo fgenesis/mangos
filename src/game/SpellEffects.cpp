@@ -2590,7 +2590,10 @@ void Spell::EffectHeal( uint32 i )
 
             int32 tickheal = caster->SpellHealingBonus(unitTarget, targetAura->GetSpellProto(), targetAura->GetModifier()->m_amount, DOT);
             int32 tickcount = GetSpellDuration(targetAura->GetSpellProto()) / targetAura->GetSpellProto()->EffectAmplitude[idx];
-            unitTarget->RemoveAurasDueToSpell(targetAura->GetId());
+
+            // Glyph of Swiftmend
+            if(!caster->HasAura(54824))
+                unitTarget->RemoveAurasDueToSpell(targetAura->GetId());
 
             addhealth += tickheal * tickcount;
         }
