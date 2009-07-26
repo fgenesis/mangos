@@ -928,13 +928,12 @@ GM.AllowAchievementGain  = 1
 #                 1 (raid members 100% auto detect invisible player from same raid)
 #                 2 (players from same team can 100% auto detect invisible player)
 #
-#    Visibility.Distance.Continents
-#    Visibility.Distance.Instances
-#    Visibility.Distance.BGArenas
-#        Visibility distance for different ingame object in different maps.
-#		 Visibility on continents on offy ~90 yards. In BG/Arenas ~180. For instances default ~120.
+#    Visibility.Distance.Creature
+#    Visibility.Distance.Player
+#        Visibility distance for different in game object
 #        Max limited by active player zone: ~ 333
-#        Default: 90 (visibility on continents)
+#        Min limit dependent from objects
+#        Default: 132 (cell size)
 #        Min limit is max aggro radius (45) * Rate.Creature.Aggro
 #
 #    Visibility.Distance.Object
@@ -960,9 +959,8 @@ GM.AllowAchievementGain  = 1
 ###################################################################################################################
 
 Visibility.GroupMode = 0
-Visibility.Distance.Continents    = 90
-Visibility.Distance.Instances     = 120
-Visibility.Distance.BGArenas	  = 180
+Visibility.Distance.Creature      = 100
+Visibility.Distance.Player        = 100
 Visibility.Distance.Object        = 100
 Visibility.Distance.InFlight      = 100
 Visibility.Distance.Grey.Unit   = 1
