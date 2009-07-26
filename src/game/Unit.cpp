@@ -9115,7 +9115,7 @@ float Unit::GetPPMProcChance(uint32 WeaponSpeed, float PPM) const
 {
     // proc per minute chance calculation
     if (PPM <= 0) return 0.0f;
-    float result = (WeaponSpeed * PPM) / 600.0f;            // result is chance in percents (probability = Speed_in_sec * (PPM / 60))
+    uint32 result = uint32((WeaponSpeed * PPM) / 600.0f);   // result is chance in percents (probability = Speed_in_sec * (PPM / 60))
     return result;
 }
 
@@ -11945,10 +11945,7 @@ bool Unit::IsTriggeredAtSpellProcEvent(Unit *pVictim, Aura* aura, SpellEntry con
     }
     // Apply chance modifer aura
     if(Player* modOwner = GetSpellModOwner())
-    {
         modOwner->ApplySpellMod(spellProto->Id,SPELLMOD_CHANCE_OF_SUCCESS,chance);
-        modOwner->ApplySpellMod(spellProto->Id,SPELLMOD_FREQUENCY_OF_SUCCESS,chance);
-    }
 
     return roll_chance_f(chance);
 }

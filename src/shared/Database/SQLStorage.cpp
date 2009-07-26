@@ -37,7 +37,6 @@ const char ItemPrototypesrcfmt[]="iiiisiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii
 const char ItemPrototypedstfmt[]="iiiisiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiffiffiiiiiiiiiifiiifiiiiiifiiiiiifiiiiiifiiiiiifiiiisiiiiiiiiiiiiiiiiiiiiiiiiifiiiiiiii";
 const char PageTextfmt[]="isi";
 const char SpellThreatfmt[]="ii";
-const char SpellProcItemEnchantfmt[]="if";
 const char InstanceTemplatesrcfmt[]="iiiiiiiffffs";
 const char InstanceTemplatedstfmt[]="iiiiiiiffffi";
 
@@ -50,7 +49,6 @@ SQLStorage sGOStorage(GameObjectInfosrcfmt, GameObjectInfodstfmt, "entry","gameo
 SQLStorage sItemStorage(ItemPrototypesrcfmt, ItemPrototypedstfmt, "entry","item_template");
 SQLStorage sPageTextStore(PageTextfmt,"entry","page_text");
 SQLStorage sSpellThreatStore(SpellThreatfmt,"entry","spell_threat");
-SQLStorage sSpellProcItemEnchantStore(SpellProcItemEnchantfmt,"entry","spell_proc_item_enchant");
 SQLStorage sInstanceTemplate(InstanceTemplatesrcfmt, InstanceTemplatedstfmt, "map","instance_template");
 
 // FG

@@ -37,7 +37,6 @@ class Spell;
 struct SpellModifier;
 
 extern SQLStorage sSpellThreatStore;
-extern SQLStorage sSpellProcItemEnchantStore;
 
 // only used in code
 enum SpellCategories
@@ -432,12 +431,6 @@ struct SpellProcEventEntry
     float       ppmRate;                                    // for melee (ranged?) damage spells - proc rate per minute. if zero, falls back to flat chance from Spell.dbc
     float       customChance;                               // Owerride chance (in most cases for debug only)
     uint32      cooldown;                                   // hidden cooldown used for some spell proc events, applied to _triggered_spell_
-};
-
-struct SpellProcItemEnchantEntry
-{
-    uint32 entry;
-    float ppmRate;
 };
 
 struct SpellBonusEntry
@@ -909,7 +902,6 @@ class SpellMgr
         void LoadSpellBonusess();
         void LoadSpellTargetPositions();
         void LoadSpellThreats();
-        void LoadSpellProcItemEnchant();
         void LoadSkillLineAbilityMap();
         void LoadSpellPetAuras();
         void LoadPetLevelupSpellMap();
