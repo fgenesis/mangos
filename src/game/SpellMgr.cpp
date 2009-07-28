@@ -304,8 +304,9 @@ bool IsPositiveEffect(uint32 spellId, uint32 effIndex)
         case 37675:                                         // Chaos Blast
             return false;
             // FG: temp fix, that they are not cancelable
-        case 36810:
-        case 36809:
+        case 36810: // rotting puterescence
+        case 36809: // overpowering sickness
+        case 48323: // indisposed
             return false;
     }
 

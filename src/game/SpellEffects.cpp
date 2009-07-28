@@ -5142,6 +5142,19 @@ void Spell::EffectScriptEffect(uint32 effIndex)
                         ((Player*)m_caster)->learnSpell(discoveredSpell, false);
                     return;
                 }
+                // Outhouse Groans
+                case 48382:
+                {
+                    if(m_caster->GetTypeId() != TYPEID_PLAYER)
+                        return;
+
+                    if(m_caster->getGender() == GENDER_MALE)
+                        m_caster->PlayDirectSound(12670);
+                    else
+                        m_caster->PlayDirectSound(12671);
+                    return;
+                }
+
             }
             break;
         }
