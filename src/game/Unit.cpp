@@ -5731,7 +5731,6 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                 case 31877:
                 case 31878:
                     target = this;
-                    basepoints0 = GetCreatePowers(POWER_MANA) * 25 / 100;
                     triggered_spell_id = 31930;
 
                     // Replenishment
@@ -7107,10 +7106,6 @@ bool Unit::HandleProcTriggerSpell(Unit *pVictim, uint32 damage, Aura* triggeredB
                 return false;
             break;
         }
-        // Improved Stormstrike
-        case 63375:
-            basepoints0 = int32(GetCreateMana() * triggerAmount / 100);
-            break;
     }
 
     if( cooldown && GetTypeId()==TYPEID_PLAYER && ((Player*)this)->HasSpellCooldown(trigger_spell_id))

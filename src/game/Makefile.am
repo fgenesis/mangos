@@ -301,14 +301,6 @@ libmangosgame_a_SOURCES = \
 	VirtualPlayerMgr.cpp \
 	VirtualPlayerMgr.h
 
-## Link against shared library
-libmangosgame_a_LIBADD = \
-	../shared/libmangosshared.a \
-	../shared/Auth/libmangosauth.a \
-	../shared/Config/libmangosconfig.a \
-	../shared/Database/libmangosdatabase.a \
-	../shared/vmap/libmangosvmaps.a
-
 ## Additional files to include when running 'make dist'
 #  Precompiled Headers for WIN
 EXTRA_DIST = \

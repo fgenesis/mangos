@@ -453,7 +453,7 @@ namespace VMAP
 
     //=========================================================
     /**
-    get height or INVALID_HEIGHT if to hight was calculated
+    get height or INVALID_HEIGHT if to height was calculated
     */
 
     //int gGetHeightCounter = 0;
