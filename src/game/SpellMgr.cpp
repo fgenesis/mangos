@@ -151,9 +151,6 @@ SpellSpecific GetSpellSpecific(uint32 spellId)
             if (spellInfo->SpellFamilyFlags & UI64LIT(0x00008000010000))
                 return SPELL_POSITIVE_SHOUT;
 
-            if (spellInfo->SpellFamilyFlags & UI64LIT(0x0000001000000020))
-                return SPELL_WARRIOR_BLEED;
-
             break;
         }
         case SPELLFAMILY_WARLOCK:
@@ -175,7 +172,7 @@ SpellSpecific GetSpellSpecific(uint32 spellId)
                 return SPELL_STING;
 
             // only hunter aspects have this (but not all aspects in hunter family)
-            if( spellInfo->SpellFamilyFlags & UI64LIT(0x0044000000380000) || spellInfo->SpellFamilyFlags2 & 0x00001010)
+            if( spellInfo->SpellFamilyFlags & UI64LIT(0x0044000000380000) || spellInfo->SpellFamilyFlags2 & 0x00003010)
                 return SPELL_ASPECT;
 
             if( spellInfo->SpellFamilyFlags2 & 0x00000002 )
@@ -194,10 +191,12 @@ SpellSpecific GetSpellSpecific(uint32 spellId)
             if ((spellInfo->SpellFamilyFlags & UI64LIT(0x00000820180400)) && (spellInfo->AttributesEx3 & 0x200))
                 return SPELL_JUDGEMENT;
 
-            // only paladin auras have this (for palaldin class family)
-            if( spellInfo->SpellFamilyFlags2 & 0x00000020 )
-                return SPELL_AURA;
-
+            for (int i = 0; i < 3; ++i)
+            {
+                // only paladin auras have this (for palaldin class family)
+                if (spellInfo->Effect[i] == SPELL_EFFECT_APPLY_AREA_AURA_RAID)
+                    return SPELL_AURA;
+            }
             break;
         }
         case SPELLFAMILY_SHAMAN:
@@ -212,7 +211,7 @@ SpellSpecific GetSpellSpecific(uint32 spellId)
             return spellmgr.GetSpellElixirSpecific(spellInfo->Id);
 
         case SPELLFAMILY_DEATHKNIGHT:
-            if (spellInfo->Category == 47)
+            if ((spellInfo->Attributes & 0x10) && (spellInfo->AttributesEx2 & 0x10) && (spellInfo->AttributesEx4 & 0x200000))
                 return SPELL_PRESENCE;
             break;
     }
@@ -1477,13 +1476,7 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                 // Paladin Seals
                 if( IsSealSpell(spellInfo_1) && IsSealSpell(spellInfo_2) )
                     return true;
-
-                // Swift Retribution / Improved Devotion Aura (talents) and Paladin Auras
-                if( (spellInfo_1->SpellFamilyFlags2 & 0x00000020 || spellInfo_2->SpellFamilyFlags2 & 0x00000020) &&
-                   (spellInfo_1->SpellFamilyFlags2 !=  spellInfo_2->SpellFamilyFlags2) )
-                    return false;
             }
-
             // Combustion and Fire Protection Aura (multi-family check)
             if( spellInfo_2->Id == 11129 && spellInfo_1->SpellIconID == 33 && spellInfo_1->SpellVisual[0] == 321 )
                 return false;
@@ -1510,11 +1503,6 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
             }
             // Bloodlust and Bloodthirst (multi-family check)
             if( spellInfo_1->Id == 2825 && spellInfo_2->SpellIconID == 38 && spellInfo_2->SpellVisual[0] == 0 )
-                return false;
-            break;
-        case SPELLFAMILY_DEATHKNIGHT:
-            // Presences and triggered effects
-            if( spellInfo_1->Category == 47 || spellInfo_2->Category == 47 )
                 return false;
             break;
         default:

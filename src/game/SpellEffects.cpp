@@ -2401,9 +2401,6 @@ void Spell::EffectApplyAura(uint32 i)
     // Prayer of Mending (jump animation), we need formal caster instead original for correct animation
     if( m_spellInfo->SpellFamilyName == SPELLFAMILY_PRIEST && (m_spellInfo->SpellFamilyFlags & UI64LIT(0x00002000000000)))
         m_caster->CastSpell(unitTarget, 41637, true, NULL, Aur, m_originalCasterGUID);
-
-    if(i==0)
-        Aur->HandleSpellSpecificBoosts(true);
 }
 
 void Spell::EffectUnlearnSpecialization( uint32 i )
@@ -3295,9 +3292,6 @@ void Spell::EffectApplyAreaAura(uint32 i)
 
     AreaAura* Aur = new AreaAura(m_spellInfo, i, &m_currentBasePoints[i], unitTarget, m_caster, m_CastItem);
     unitTarget->AddAura(Aur);
-
-    if(i==0)
-        Aur->HandleSpellSpecificBoosts(true);
 }
 
 void Spell::EffectSummonType(uint32 i)
