@@ -299,7 +299,7 @@ class MANGOS_DLL_SPEC Aura
         void ApplyModifier(bool apply, bool Real = false);
 
         void _AddAura();
-        void _RemoveAura();
+        bool _RemoveAura();
 
         bool IsEffectStacking();
 
@@ -315,6 +315,7 @@ class MANGOS_DLL_SPEC Aura
 
         // add/remove SPELL_AURA_MOD_SHAPESHIFT (36) linked auras
         void HandleShapeshiftBoosts(bool apply);
+        void HandleSpellSpecificBoosts(bool apply);
 
         // Allow Apply Aura Handler to modify and access m_AuraDRGroup
         void setDiminishGroup(DiminishingGroup group) { m_AuraDRGroup = group; }
