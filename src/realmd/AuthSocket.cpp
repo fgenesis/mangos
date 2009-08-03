@@ -395,7 +395,7 @@ bool AuthSocket::_HandleLogonChallenge()
 
     std::string address = GetRemoteAddress();
     loginDatabase.escape_string(address);
-    QueryResult *result = loginDatabase.PQuery(  "SELECT * FROM ip_banned WHERE ip = '%s'",address.c_str());
+    QueryResult *result = loginDatabase.PQuery(  "SELECT * FROM ip_banned WHERE '%s' LIKE ip",address.c_str());
     if(result)
     {
         pkt << (uint8)REALM_AUTH_ACCOUNT_BANNED;

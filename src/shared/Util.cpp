@@ -181,9 +181,32 @@ bool IsIPAddress(char const* ipaddress)
     if(!ipaddress)
         return false;
 
+    // FG: support IP ranges to be valid IP addresses, e.g. 192.168.0.%, 127.%.%.%, 1.2.3.4
+    Tokens tok = StrSplit(ipaddress, ".");
+    if(tok.size() < 4)
+        return false;
+
+    for(Tokens::iterator it = tok.begin(); it != tok.end(); it++)
+    {
+        // must not be empty and not more then 3 chars per part
+        if(it->empty() || it->size() > 3)
+            return false;
+        // must contain digits only or % (mysql wildcard)
+        for(uint32 pos = 0; pos < it->size(); ++pos)
+            if( !(isdigit((*it)[pos]) ||(*it)[pos] == '%') )
+                return false;
+        // if its a number, it must be < 255 to be valid ip part
+        if(atoi(it->c_str()) >= 255)
+            return false;
+    }
+
+    return true;
+    // -end-
+
+
     // Let the big boys do it.
     // Drawback: all valid ip address formats are recognized e.g.: 12.23,121234,0xABCD)
-    return inet_addr(ipaddress) != INADDR_NONE;
+    //return inet_addr(ipaddress) != INADDR_NONE;
 }
 
 /// create PID file
