@@ -1973,18 +1973,6 @@ void AchievementGlobalMgr::LoadAchievementCriteriaData()
             default:                                        // type not use DB data, ignore
                 continue;
             break;
-        case ACHIEVEMENT_CRITERIA_TYPE_DO_EMOTE:        // need skip generic cases
-            if(criteria->do_emote.count==0)
-                continue;
-            break;
-        case ACHIEVEMENT_CRITERIA_TYPE_CAST_SPELL2:     // any cases
-            break;
-        case ACHIEVEMENT_CRITERIA_TYPE_LOOT_TYPE:       // need skip generic cases
-            if(criteria->loot_type.lootTypeCount!=1)
-                continue;
-            break;
-        default:                                        // type not use DB data, ignore
-            continue;
         }
 
         if(!GetCriteriaDataSet(criteria))
