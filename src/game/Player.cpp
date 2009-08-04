@@ -9490,7 +9490,7 @@ uint8 Player::_CanStoreItem( uint8 bag, uint8 slot, ItemPosCountVec &dest, uint3
     }
 
     // search free slot - special bag case
-    if (pProto->BagFamily)
+    if (pProto->BagFamily && pProto->InventoryType != INVTYPE_BAG)
     {
         if (pProto->BagFamily & BAG_FAMILY_MASK_KEYS)
         {
