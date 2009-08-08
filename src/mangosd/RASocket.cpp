@@ -195,7 +195,7 @@ void RASocket::OnRead()
                     loginDatabase.escape_string(pw);
 
                     QueryResult *check = loginDatabase.PQuery(
-                        "SELECT 1 FROM account WHERE username = '%s' AND sha_pass_hash=SHA1(CONCAT(username,':','%s'))",
+                        "SELECT 1 FROM account WHERE username = '%s' AND sha_pass_hash=SHA1(CONCAT(UPPER('%s'),':',UPPER('%s')))",
                         login.c_str(), pw.c_str());
 
                     if(check)
