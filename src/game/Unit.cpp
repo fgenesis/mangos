@@ -104,7 +104,7 @@ Unit::Unit()
     //m_Aura = NULL;
     //m_AurasCheck = 2000;
     //m_removeAuraTimer = 4;
-    //tmpAura = NULL;
+    m_AurasUpdateIterator = m_Auras.end();
 
     m_Visibility = VISIBILITY_ON;
 
@@ -152,7 +152,6 @@ Unit::Unit()
     for (int i = 0; i < MAX_MOVE_TYPE; ++i)
         m_speed_rate[i] = 1.0f;
 
-    m_removedAuras = 0;
     m_charmInfo = NULL;
 
     // remove aurastates allowing special moves
@@ -195,6 +194,11 @@ void Unit::Update( uint32 p_time )
     // Or else we may have some SPELL_STATE_FINISHED spells stalled in pointers, that is bad.
     m_Events.Update( p_time );
     _UpdateSpells( p_time );
+
+    // really delete auras "deleted" while processing its ApplyModify code
+    for(AuraList::const_iterator itr = m_deletedAuras.begin(); itr != m_deletedAuras.begin(); ++itr)
+        delete *itr;
+    m_deletedAuras.clear();
 
     if (CanHaveThreatList() && getThreatManager().isNeedUpdateToClient(p_time))
         SendThreatListUpdate();
@@ -1539,11 +1543,9 @@ void Unit::DealMeleeDamage(CalcDamageInfo *damageInfo, bool durabilityLoss)
 
         // victim's damage shield
         std::set<Aura*> alreadyDone;
-        uint32 removedAuras = pVictim->m_removedAuras;
         AuraList const& vDamageShields = pVictim->GetAurasByType(SPELL_AURA_DAMAGE_SHIELD);
-        for(AuraList::const_iterator i = vDamageShields.begin(), next = vDamageShields.begin(); i != vDamageShields.end(); i = next)
+        for(AuraList::const_iterator i = vDamageShields.begin(); i != vDamageShields.end();)
         {
-           next++;
            if (alreadyDone.find(*i) == alreadyDone.end())
            {
                alreadyDone.insert(*i);
@@ -1570,12 +1572,10 @@ void Unit::DealMeleeDamage(CalcDamageInfo *damageInfo, bool durabilityLoss)
 
                pVictim->DealDamage(this, damage, 0, SPELL_DIRECT_DAMAGE, GetSpellSchoolMask(spellProto), spellProto, true);
 
-               if (pVictim->m_removedAuras > removedAuras)
-               {
-                   removedAuras = pVictim->m_removedAuras;
-                   next = vDamageShields.begin();
-               }
+               i = vDamageShields.begin();
            }
+           else
+                ++i;
         }
     }
 }
@@ -3007,50 +3007,27 @@ void Unit::_UpdateSpells( uint32 time )
         }
     }
 
-    // TODO: Find a better way to prevent crash when multiple auras are removed.
-    m_removedAuras = 0;
-    for (AuraMap::iterator i = m_Auras.begin(); i != m_Auras.end(); ++i)
-        if ((*i).second)
-            (*i).second->SetUpdated(false);
-
-    for (AuraMap::iterator i = m_Auras.begin(), next; i != m_Auras.end(); i = next)
+    // update auras
+    // m_AurasUpdateIterator can be updated in inderect called code at aura remove to skip next planned to update but removed auras
+    for (m_AurasUpdateIterator = m_Auras.begin(); m_AurasUpdateIterator != m_Auras.end();)
     {
-        next = i;
-        ++next;
-        if ((*i).second)
-        {
-            // prevent double update
-            if ((*i).second->IsUpdated())
-                continue;
-            (*i).second->SetUpdated(true);
-            (*i).second->Update( time );
-            // several auras can be deleted due to update
-            if (m_removedAuras)
-            {
-                if (m_Auras.empty()) break;
-                next = m_Auras.begin();
-                m_removedAuras = 0;
-            }
-        }
+        Aura* i_aura = m_AurasUpdateIterator->second;
+        ++m_AurasUpdateIterator;                            // need shift to next for allow update if need into aura update
+        i_aura->UpdateAura(time);
     }
 
+    // remove expired auras
     for (AuraMap::iterator i = m_Auras.begin(); i != m_Auras.end();)
     {
         if ((*i).second)
         {
             if ( !(*i).second->GetAuraDuration() && !((*i).second->IsPermanent() || ((*i).second->IsPassive())) )
-            {
                 RemoveAura(i);
-            }
             else
-            {
                 ++i;
-            }
         }
         else
-        {
             ++i;
-        }
     }
 
     if(!m_gameObj.empty())
@@ -3657,6 +3634,11 @@ bool Unit::AddAura(Aura *Aur)
     Aur->ApplyModifier(true,true);
     sLog.outDebug("Aura %u now is in use", aurName);
 
+    // if aura deleted before boosts apply ignore
+    // this can be possible it it removed indirectly by triggered spell effect at ApplyModifier
+    if (Aur->IsDeleted())
+        return false;
+
     if(IsSpellLastAuraEffect(aurSpellInfo,Aur->GetEffIndex()))
         Aur->HandleSpellSpecificBoosts(true);
 
@@ -4117,10 +4099,16 @@ void Unit::RemoveAura(AuraMap::iterator &i, AuraRemoveMode mode)
 
     // Set remove mode
     Aur->SetRemoveMode(mode);
+
+    // if unit currently update aura list then make safe update iterator shift to next
+    if (m_AurasUpdateIterator == i)
+        ++m_AurasUpdateIterator;
+
     // some ShapeshiftBoosts at remove trigger removing other auras including parent Shapeshift aura
     // remove aura from list before to prevent deleting it before
     m_Auras.erase(i);
-    ++m_removedAuras;                                       // internal count used by unit update
+
+    // now aura removed from from list and can't be deleted by indirect call but can be referenced from callers
 
     // Statue unsummoned at aura remove
     Totem* statue = NULL;
@@ -4148,7 +4136,12 @@ void Unit::RemoveAura(AuraMap::iterator &i, AuraRemoveMode mode)
             Aur->HandleSpellSpecificBoosts(false);
     }
 
-    delete Aur;
+    // If aura in use (removed from code that plan access to it data after return)
+    // store it in aura list with delayed deletion
+    if (Aur->IsInUse())
+        m_deletedAuras.push_back(Aur);
+    else
+        delete Aur;
 
     if(caster_channeled)
         RemoveAurasAtChanneledTarget (AurSpellInfo);
@@ -11167,6 +11160,7 @@ void Unit::ProcDamageAndSpellFor( bool isVictim, Unit * pTarget, uint32 procFlag
         if(!IsTriggeredAtSpellProcEvent(pTarget, itr->second, procSpell, procFlag, procExtra, attType, isVictim, (damage > 0), spellProcEvent))
            continue;
 
+        itr->second->SetInUse(true);                        // prevent aura deletion
         procTriggered.push_back( ProcTriggeredData(spellProcEvent, itr->second) );
     }
 
@@ -11178,33 +11172,11 @@ void Unit::ProcDamageAndSpellFor( bool isVictim, Unit * pTarget, uint32 procFlag
     for(ProcTriggeredList::const_iterator i = procTriggered.begin(); i != procTriggered.end(); ++i)
     {
         // Some auras can be deleted in function called in this loop (except first, ofc)
-        // Until storing auars in std::multimap to hard check deleting by another way
-        if(i != procTriggered.begin())
-        {
-            bool found = false;
-            AuraMap::const_iterator lower = GetAuras().lower_bound(i->triggeredByAura_SpellPair);
-            AuraMap::const_iterator upper = GetAuras().upper_bound(i->triggeredByAura_SpellPair);
-            for(AuraMap::const_iterator itr = lower; itr!= upper; ++itr)
-            {
-                if(itr->second==i->triggeredByAura)
-                {
-                    found = true;
-                    break;
-                }
-            }
-            if(!found)
-            {
-//                sLog.outDebug("Spell aura %u (id:%u effect:%u) has been deleted before call spell proc event handler", i->triggeredByAura->GetModifier()->m_auraname, i->triggeredByAura_SpellPair.first, i->triggeredByAura_SpellPair.second);
-//                sLog.outDebug("It can be deleted one from early proccesed auras:");
-//                for(ProcTriggeredList::const_iterator i2 = procTriggered.begin(); i != i2; ++i2)
-//                    sLog.outDebug("     Spell aura %u (id:%u effect:%u)", i->triggeredByAura->GetModifier()->m_auraname,i2->triggeredByAura_SpellPair.first,i2->triggeredByAura_SpellPair.second);
-//                    sLog.outDebug("     <end of list>");
-                continue;
-            }
-        }
+        Aura *triggeredByAura = i->triggeredByAura;
+        if(triggeredByAura->IsDeleted())
+            continue;
 
         SpellProcEventEntry const *spellProcEvent = i->spellProcEvent;
-        Aura *triggeredByAura = i->triggeredByAura;
         Modifier *auraModifier = triggeredByAura->GetModifier();
         SpellEntry const *spellInfo = triggeredByAura->GetSpellProto();
         bool useCharges = triggeredByAura->GetAuraCharges() > 0;
@@ -11220,7 +11192,10 @@ void Unit::ProcDamageAndSpellFor( bool isVictim, Unit * pTarget, uint32 procFlag
                 sLog.outDebug("ProcDamageAndSpell: casting spell %u (triggered by %s aura of spell %u)", spellInfo->Id,(isVictim?"a victim's":"an attacker's"), triggeredByAura->GetId());
                 // Don`t drop charge or add cooldown for not started trigger
                 if (!HandleProcTriggerSpell(pTarget, damage, triggeredByAura, procSpell, procFlag, procExtra, cooldown))
+                {
+                    triggeredByAura->SetInUse(false);
                     continue;
+                }
                 break;
             }
             case SPELL_AURA_PROC_TRIGGER_DAMAGE:
@@ -11240,21 +11215,30 @@ void Unit::ProcDamageAndSpellFor( bool isVictim, Unit * pTarget, uint32 procFlag
             {
                 sLog.outDebug("ProcDamageAndSpell: casting spell id %u (triggered by %s dummy aura of spell %u)", spellInfo->Id,(isVictim?"a victim's":"an attacker's"), triggeredByAura->GetId());
                 if (!HandleDummyAuraProc(pTarget, damage, triggeredByAura, procSpell, procFlag, procExtra, cooldown))
+                {
+                    triggeredByAura->SetInUse(false);
                     continue;
+                }
                 break;
             }
             case SPELL_AURA_MOD_MELEE_HASTE:
             {
                 sLog.outDebug("ProcDamageAndSpell: casting spell id %u (triggered by %s haste aura of spell %u)", spellInfo->Id,(isVictim?"a victim's":"an attacker's"), triggeredByAura->GetId());
                 if (!HandleHasteAuraProc(pTarget, damage, triggeredByAura, procSpell, procFlag, procExtra, cooldown))
+                {
+                    triggeredByAura->SetInUse(false);
                     continue;
+                }
                 break;
             }
             case SPELL_AURA_OVERRIDE_CLASS_SCRIPTS:
             {
                 sLog.outDebug("ProcDamageAndSpell: casting spell id %u (triggered by %s aura of spell %u)", spellInfo->Id,(isVictim?"a victim's":"an attacker's"), triggeredByAura->GetId());
                 if (!HandleOverrideClassScriptAuraProc(pTarget, damage, triggeredByAura, procSpell, cooldown))
+                {
+                    triggeredByAura->SetInUse(false);
                     continue;
+                }
                 break;
             }
             case SPELL_AURA_PRAYER_OF_MENDING:
@@ -11270,18 +11254,27 @@ void Unit::ProcDamageAndSpellFor( bool isVictim, Unit * pTarget, uint32 procFlag
                 sLog.outDebug("ProcDamageAndSpell: casting spell %u (triggered with value by %s aura of spell %u)", spellInfo->Id,(isVictim?"a victim's":"an attacker's"), triggeredByAura->GetId());
 
                 if (!HandleProcTriggerSpell(pTarget, damage, triggeredByAura, procSpell, procFlag, procExtra, cooldown))
+                {
+                    triggeredByAura->SetInUse(false);
                     continue;
+                }
                 break;
             }
             case SPELL_AURA_MOD_CASTING_SPEED_NOT_STACK:
                 // Skip melee hits or instant cast spells
                 if (procSpell == NULL || GetSpellCastTime(procSpell) == 0)
+                {
+                    triggeredByAura->SetInUse(false);
                     continue;
+                }
                 break;
             case SPELL_AURA_REFLECT_SPELLS_SCHOOL:
                 // Skip Melee hits and spells ws wrong school
                 if (procSpell == NULL || (auraModifier->m_miscvalue & procSpell->SchoolMask) == 0)
+                {
+                    triggeredByAura->SetInUse(false);
                     continue;
+                }
                 break;
             case SPELL_AURA_MOD_POWER_COST_SCHOOL_PCT:
             case SPELL_AURA_MOD_POWER_COST_SCHOOL:
@@ -11289,47 +11282,56 @@ void Unit::ProcDamageAndSpellFor( bool isVictim, Unit * pTarget, uint32 procFlag
                 if (procSpell == NULL ||
                     (procSpell->manaCost == 0 && procSpell->ManaCostPercentage == 0) || // Cost check
                     (auraModifier->m_miscvalue & procSpell->SchoolMask) == 0)         // School check
+                {
+                    triggeredByAura->SetInUse(false);
                     continue;
+                }
                 break;
             case SPELL_AURA_MECHANIC_IMMUNITY:
                 // Compare mechanic
                 if (procSpell==NULL || procSpell->Mechanic != auraModifier->m_miscvalue)
+                {
+                    triggeredByAura->SetInUse(false);
                     continue;
+                }
                 break;
             case SPELL_AURA_MOD_MECHANIC_RESISTANCE:
                 // Compare mechanic
                 if (procSpell==NULL || procSpell->Mechanic != auraModifier->m_miscvalue)
+                {
+                    triggeredByAura->SetInUse(false);
                     continue;
+                }
                 break;
             case SPELL_AURA_MOD_DAMAGE_FROM_CASTER:
                 // Compare casters
                 if (triggeredByAura->GetCasterGUID() != pTarget->GetGUID())
+                {
+                    triggeredByAura->SetInUse(false);
                     continue;
+                }
                 break;
             case SPELL_AURA_MOD_SPELL_CRIT_CHANCE:
                 if (!procSpell)
+                {
+                    triggeredByAura->SetInUse(false);
                     continue;
+                }
                 break;
             default:
                 // nothing do, just charges counter
                 break;
         }
+
         // Remove charge (aura can be removed by triggers)
-        if(useCharges)
+        if(useCharges && !triggeredByAura->IsDeleted())
         {
-            // need found aura on drop (can be dropped by triggers)
-            AuraMap::const_iterator lower = GetAuras().lower_bound(i->triggeredByAura_SpellPair);
-            AuraMap::const_iterator upper = GetAuras().upper_bound(i->triggeredByAura_SpellPair);
-            for(AuraMap::const_iterator itr = lower; itr!= upper; ++itr)
-            {
-                // If last charge dropped add spell to remove list
-                if(itr->second == i->triggeredByAura && triggeredByAura->DropAuraCharge())
-                {
-                    removedSpells.push_back(triggeredByAura->GetId());
-                    break;
-                }
-            }
+            // If last charge dropped add spell to remove list
+            if(triggeredByAura->DropAuraCharge())
+                removedSpells.push_back(triggeredByAura->GetId());
         }
+
+        triggeredByAura->SetInUse(false);
     }
     if (!removedSpells.empty())
     {
