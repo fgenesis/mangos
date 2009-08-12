@@ -8042,3 +8042,8 @@ Quest const* GetQuestTemplateStore(uint32 entry)
     return objmgr.GetQuestTemplate(entry);
 }
 
+ItemPrototype const* GetItemStore(uint32 entry)
+{
+    return objmgr.GetItemPrototype(entry);
+}
+

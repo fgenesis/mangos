@@ -939,5 +939,6 @@ MANGOS_DLL_SPEC uint32 GetScriptId(const char *name);
 MANGOS_DLL_SPEC ObjectMgr::ScriptNameMap& GetScriptNames();
 MANGOS_DLL_SPEC CreatureInfo const* GetCreatureTemplateStore(uint32 entry);
 MANGOS_DLL_SPEC Quest const* GetQuestTemplateStore(uint32 entry);
+MANGOS_DLL_SPEC ItemPrototype const* GetItemStore(uint32 entry);
 
 #endif
