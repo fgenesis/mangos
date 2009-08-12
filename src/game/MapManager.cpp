@@ -265,7 +265,7 @@ MapManager::Update(uint32 diff)
 */
     // Parallelize map updates.
     #pragma omp parallel for schedule(dynamic) private(i) shared(update_queue)
-    for(int i = 0; i < i_maps.size(); ++i)
+    for(i = 0; i < i_maps.size(); ++i)
     {
         checkAndCorrectGridStatesArray();                   // debugging code, should be deleted some day
         update_queue[i]->Update(i_timer.GetCurrent());
