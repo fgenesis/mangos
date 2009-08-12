@@ -315,6 +315,15 @@ bool IsPositiveEffect(uint32 spellId, uint32 effIndex)
 
     switch(spellproto->Effect[effIndex])
     {
+        case SPELL_EFFECT_DUMMY:
+            // some explicitly required dummy effect sets
+            switch(spellId)
+            {
+                case 28441: return false;                   // AB Effect 000
+                default:
+                    break;
+            }
+            break;
         // always positive effects (check before target checks that provided non-positive result in some case for positive effects)
         case SPELL_EFFECT_HEAL:
         case SPELL_EFFECT_LEARN_SPELL:
@@ -354,15 +363,21 @@ bool IsPositiveEffect(uint32 spellId, uint32 effIndex)
                             break;
                     }
                 }   break;
-                case SPELL_AURA_MOD_STAT:
                 case SPELL_AURA_MOD_DAMAGE_DONE:            // dependent from bas point sign (negative -> negative)
+                case SPELL_AURA_MOD_STAT:
+                case SPELL_AURA_MOD_SKILL:
+                case SPELL_AURA_MOD_HEALING_PCT:
                 case SPELL_AURA_MOD_HEALING_DONE:
                     if(spellproto->CalculateSimpleValue(effIndex) < 0)
                         return false;
                     break;
+                case SPELL_AURA_MOD_DAMAGE_TAKEN:           // dependent from bas point sign (positive -> negative)
+                    if(spellproto->CalculateSimpleValue(effIndex) > 0)
+                        return false;
+                    break;
                 case SPELL_AURA_MOD_SPELL_CRIT_CHANCE:
                     if(spellproto->CalculateSimpleValue(effIndex) > 0)
-                        return true;                        // some expected possitive spells have SPELL_ATTR_EX_NEGATIVE
+                        return true;                        // some expected positive spells have SPELL_ATTR_EX_NEGATIVE
                     break;
                 case SPELL_AURA_ADD_TARGET_TRIGGER:
                     return true;
@@ -465,14 +480,6 @@ bool IsPositiveEffect(uint32 spellId, uint32 effIndex)
                             break;
                     }
                 }   break;
-                case SPELL_AURA_MOD_HEALING_PCT:
-                    if(spellproto->CalculateSimpleValue(effIndex) < 0)
-                        return false;
-                    break;
-                case SPELL_AURA_MOD_SKILL:
-                    if(spellproto->CalculateSimpleValue(effIndex) < 0)
-                        return false;
-                    break;
                 case SPELL_AURA_FORCE_REACTION:
                     if(spellproto->Id==42792)               // Recently Dropped Flag (prevent cancel)
                         return false;
@@ -2499,17 +2506,17 @@ void SpellMgr::LoadSpellAreas()
             SpellAreaMapBounds sa_bounds = GetSpellAreaMapBounds(spellArea.spellId);
             for(SpellAreaMap::const_iterator itr = sa_bounds.first; itr != sa_bounds.second; ++itr)
             {
-                if(spellArea.spellId && itr->second.spellId && spellArea.spellId != itr->second.spellId)
+                if (spellArea.spellId != itr->second.spellId)
                     continue;
-                if(spellArea.areaId && itr->second.areaId && spellArea.areaId!= itr->second.areaId)
+                if (spellArea.areaId != itr->second.areaId)
                     continue;
-                if(spellArea.questStart && itr->second.questStart && spellArea.questStart!= itr->second.questStart)
+                if (spellArea.questStart != itr->second.questStart)
                     continue;
-                if(spellArea.auraSpell && itr->second.auraSpell && spellArea.auraSpell!= itr->second.auraSpell)
+                if (spellArea.auraSpell != itr->second.auraSpell)
                     continue;
-                if(spellArea.raceMask && itr->second.raceMask && (spellArea.raceMask & itr->second.raceMask)==0)
+                if ((spellArea.raceMask & itr->second.raceMask) == 0)
                     continue;
-                if(spellArea.gender != GENDER_NONE && itr->second.gender != GENDER_NONE && spellArea.gender!= itr->second.gender)
+                if (spellArea.gender != itr->second.gender)
                     continue;
 
                 // duplicate by requirements

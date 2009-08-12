@@ -1,3 +1,5 @@
+ALTER TABLE character_db_version CHANGE COLUMN required_8339_01_characters_characters required_8339_02_characters_character_battleground_data bit;
+
 DROP TABLE IF EXISTS `character_battleground_data`;
 CREATE TABLE `character_battleground_data` (
   `guid` int(11) unsigned NOT NULL default '0' COMMENT 'Global Unique Identifier',

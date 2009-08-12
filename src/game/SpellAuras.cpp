@@ -2841,10 +2841,12 @@ void Aura::HandleAuraModShapeshift(bool apply, bool Real)
             {
                 SpellEntry const* aurSpellInfo = (*iter)->GetSpellProto();
 
+                uint32 aurMechMask = GetAllSpellMechanicMask(aurSpellInfo);
+
                 // If spell that caused this aura has Croud Control or Daze effect
-                if((GetAllSpellMechanicMask(aurSpellInfo) & MECHANIC_NOT_REMOVED_BY_SHAPESHIFT) ||
-                    // some Daze spells have these parameters instead of MECHANIC_DAZE
-                    (aurSpellInfo->SpellIconID == 15 && aurSpellInfo->Dispel == 0))
+                if((aurMechMask & MECHANIC_NOT_REMOVED_BY_SHAPESHIFT) ||
+                    // some Daze spells have these parameters instead of MECHANIC_DAZE (skip snare spells)
+                    aurSpellInfo->SpellIconID == 15 && aurSpellInfo->Dispel == 0 && (aurMechMask & (1 << MECHANIC_SNARE))==0)
                 {
                     ++iter;
                     continue;
@@ -4164,7 +4166,7 @@ void Aura::HandleModMechanicImmunity(bool apply, bool /*Real*/)
 
     if(apply && GetSpellProto()->AttributesEx & SPELL_ATTR_EX_DISPEL_AURAS_ON_IMMUNITY)
     {
-        uint32 mechanic = 1 << m_modifier.m_miscvalue;
+        uint32 mechanic = 1 << misc;
 
         //immune movement impairment and loss of control
         if(GetId()==42292 || GetId()==59752)
@@ -5746,23 +5748,19 @@ void Aura::HandleSpellSpecificBoosts(bool apply)
         }
         case SPELLFAMILY_HUNTER:
         {
-            if(GetSpellSpecific(m_spellProto->Id) != SPELL_ASPECT)
-                return;
-
-            // Aspect of the Dragonhawk dodge
-            if (GetSpellProto()->SpellFamilyFlags2 & 0x00001000)
-                spellId1 = 61848;
             // The Beast Within and Bestial Wrath - immunity
-            else if (GetId() == 19574 || GetId() == 34471)
+            if (GetId() == 19574 || GetId() == 34471)
             {
                 spellId1 = 24395;
                 spellId2 = 24396;
                 spellId3 = 24397;
                 spellId4 = 26592;
             }
+            // Aspect of the Dragonhawk dodge
+            else if(GetSpellProto()->SpellFamilyFlags2 & 0x00001000)
+                spellId1 = 61848;
             else
                 return;
-
             break;
         }
         case SPELLFAMILY_PALADIN:
@@ -5804,15 +5802,18 @@ void Aura::HandleSpellSpecificBoosts(bool apply)
             return;
     }
 
+    // prevent aura deletion, specially in multi-boost case
+    SetInUse(true);
+
     if (apply)
     {
         if (spellId1)
             m_target->CastSpell(m_target, spellId1, true, NULL, this);
-        if (spellId2)
+        if (spellId2 && !IsDeleted())
             m_target->CastSpell(m_target, spellId2, true, NULL, this);
-        if (spellId3)
+        if (spellId3 && !IsDeleted())
             m_target->CastSpell(m_target, spellId3, true, NULL, this);
-        if (spellId4)
+        if (spellId4 && !IsDeleted())
             m_target->CastSpell(m_target, spellId4, true, NULL, this);
     }
     else
@@ -5826,6 +5827,8 @@ void Aura::HandleSpellSpecificBoosts(bool apply)
         if (spellId4)
             m_target->RemoveAurasByCasterSpell(spellId4, GetCasterGUID());
     }
+
+    SetInUse(false);
 }
 
 void Aura::HandleAuraEmpathy(bool apply, bool /*Real*/)
@@ -6059,32 +6062,26 @@ void Aura::HandleSchoolAbsorb(bool apply, bool Real)
         switch(m_spellProto->SpellFamilyName)
         {
             case SPELLFAMILY_PRIEST:
-                if(m_spellProto->SpellFamilyFlags == 0x1) //PW:S
-                {
-                    //+30% from +healing bonus
-                    DoneActualBenefit = caster->SpellBaseHealingBonus(GetSpellSchoolMask(m_spellProto)) * 0.3f;
-                    break;
-                }
+                // Power Word: Shield
+                if (m_spellProto->SpellFamilyFlags & UI64LIT(0x0000000000000001))
+                    //+80.68% from +spell bonus
+                    DoneActualBenefit = caster->SpellBaseHealingBonus(GetSpellSchoolMask(m_spellProto)) * 0.8068f;
                 break;
             case SPELLFAMILY_MAGE:
-                if (m_spellProto->SpellFamilyFlags == UI64LIT(0x80100) ||
-                    m_spellProto->SpellFamilyFlags == UI64LIT(0x8) ||
-                    m_spellProto->SpellFamilyFlags == UI64LIT(0x100000000))
-                {
-                    //frost ward, fire ward, ice barrier
-                    //+10% from +spd bonus
+                // Frost Ward, Fire Ward
+                if (m_spellProto->SpellFamilyFlags & UI64LIT(0x0000000000000108))
+                    //+10% from +spell bonus
                     DoneActualBenefit = caster->SpellBaseDamageBonus(GetSpellSchoolMask(m_spellProto)) * 0.1f;
-                    break;
-                }
+                // Ice Barrier
+                else if (m_spellProto->SpellFamilyFlags & UI64LIT(0x0000000100000000))
+                    //+80.67% from +spell bonus
+                    DoneActualBenefit = caster->SpellBaseDamageBonus(GetSpellSchoolMask(m_spellProto)) * 0.8067f;
                 break;
             case SPELLFAMILY_WARLOCK:
-                if(m_spellProto->SpellFamilyFlags == 0x00)
-                {
-                    //shadow ward
-                    //+10% from +spd bonus
-                    DoneActualBenefit = caster->SpellBaseDamageBonus(GetSpellSchoolMask(m_spellProto)) * 0.1f;
-                    break;
-                }
+                // Shadow Ward
+                if (m_spellProto->SpellFamilyFlags2 & 0x00000040)
+                    //+30% from +spell bonus
+                    DoneActualBenefit = caster->SpellBaseDamageBonus(GetSpellSchoolMask(m_spellProto)) * 0.30f;
                 break;
             case SPELLFAMILY_PALADIN:
                 // Sacred Shield
