@@ -2271,6 +2271,8 @@ class MANGOS_DLL_SPEC Player : public Unit
         clock_t m_anti_NotificationTime;   // last notification time
         // ACH end
 
+        uint32 m_grid_update_timer;
+
 
     protected:
         

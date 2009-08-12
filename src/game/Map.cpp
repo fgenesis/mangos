@@ -840,6 +840,13 @@ Map::PlayerRelocation(Player *player, float x, float y, float z, float orientati
             EnsureGridLoadedAtEnter(new_cell, player);
     }
 
+    // FG: attempt to use less CPU, reduce calling interval of CPU-intensive grid search to min. 500 ms
+    uint32 timems = getMSTime();
+    if(getMSTimeDiff(player->m_grid_update_timer, timems) >= 500)
+        player->m_grid_update_timer = timems;
+    else
+        return;
+
     // if move then update what player see and who seen
     UpdatePlayerVisibility(player,new_cell,new_val);
     UpdateObjectsVisibilityFor(player,new_cell,new_val);
