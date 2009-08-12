@@ -238,8 +238,8 @@ AC_CHECK_HEADERS([ace/Stack_Trace.h])
 
 ## Unify all additional includes/libs in one variable.
 # TODO this looks kinda ugly, but when we add m4 folder I will make it look very pritey ( by Derex ).
-MANGOS_INCLUDES="$POSTGRE_INCLUDES $MYSQL_INCLUDES $MANGOS_INCLUDES"
-MANGOS_LIBS="$POSTGRE_LIBS $MYSQL_LIBS $ZLIB $COMPATLIB $SSLLIB $MANGOS_LIBS"
+MANGOS_INCLUDES="$POSTGRE_INCLUDES $MYSQL_INCLUDES $MANGOS_INCLUDES -fopenmp"
+MANGOS_LIBS="$POSTGRE_LIBS $MYSQL_LIBS $ZLIB $COMPATLIB $SSLLIB $MANGOS_LIBS -lgomp"
 
 ## Export defined variables
 AC_SUBST(DOXYGEN)

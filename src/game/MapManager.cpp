@@ -16,6 +16,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <omp.h>
 #include "MapManager.h"
 #include "InstanceSaveMgr.h"
 #include "Policies/SingletonImp.h"
@@ -250,10 +251,24 @@ MapManager::Update(uint32 diff)
     if( !i_timer.Passed() )
         return;
 
-    for(MapMapType::iterator iter=i_maps.begin(); iter != i_maps.end(); ++iter)
+    int i = 0;
+    MapMapType::iterator iter;
+    std::vector<Map*> update_queue(i_maps.size());
+
+    omp_set_num_threads(sWorld.getConfig(CONFIG_NUMTHREADS));
+
+    for(iter = i_maps.begin(), i = 0; iter != i_maps.end(); ++iter, ++i)
+        update_queue[i] = iter->second;
+/*
+	gomp in gcc <4.4 version cannot parallelise loops using random access iterators
+	so until gcc 4.4 isnt standard, we need the update_queue workaround
+*/
+    // Parallelize map updates.
+    #pragma omp parallel for schedule(dynamic) private(i) shared(update_queue)
+    for(int i = 0; i < i_maps.size(); ++i)
     {
         checkAndCorrectGridStatesArray();                   // debugging code, should be deleted some day
-        iter->second->Update(i_timer.GetCurrent());
+        update_queue[i]->Update(i_timer.GetCurrent());
     }
 
     ObjectAccessor::Instance().Update(i_timer.GetCurrent());
@@ -265,8 +280,21 @@ MapManager::Update(uint32 diff)
 
 void MapManager::DoDelayedMovesAndRemoves()
 {
-    for(MapMapType::iterator iter=i_maps.begin(); iter != i_maps.end(); ++iter)
-        iter->second->DoDelayedMovesAndRemoves();
+    int i = 0;
+    std::vector<Map*> update_queue(i_maps.size());
+    MapMapType::iterator iter;
+
+    for(iter = i_maps.begin(); iter != i_maps.end(); ++iter, ++i)
+        update_queue[i] = iter->second;
+
+    int omp_set_num_threads(sWorld.getConfig(CONFIG_NUMTHREADS));
+
+    // Parallelize map updates.
+    #pragma omp parallel for schedule(dynamic) private(i) shared(update_queue)
+    for(i = 0 ; i < i_maps.size() ; ++i)
+    {
+         update_queue[i]->DoDelayedMovesAndRemoves();
+    }
 }
 
 bool MapManager::ExistMapAndVMap(uint32 mapid, float x,float y)

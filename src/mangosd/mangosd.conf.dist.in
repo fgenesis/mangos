@@ -184,6 +184,20 @@ MaxCoreStuckTime = 0
 AddonChannel = 1
 
 ###################################################################################################################
+# OpenMP Config
+#
+#    OpenMP
+#    MapUpdate.Threads
+#        Number of threads to run if the binary was compiled with OpenMP support.
+#        Default: 8 (recommend)
+#        For stable work 4 (if online ~1000)
+#        1 (minimum, normal behavior (single-threaded updates)
+#
+###################################################################################################################
+
+MapUpdate.Threads = 8
+
+###################################################################################################################
 # SERVER LOGGING
 #
 #    LogSQL
