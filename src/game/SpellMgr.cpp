@@ -1430,6 +1430,10 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                 // Frenzied Regeneration and Savage Defense
                 if( spellInfo_1->Id == 22842 && spellInfo_2->Id == 62606 || spellInfo_2->Id == 22842 && spellInfo_1->Id == 62606 )
                     return false;
+
+                // Savage Roar and Savage Roar (triggered)
+                if (spellInfo_1->SpellIconID == 2865 && spellInfo_2->SpellIconID == 2865)
+                    return false;
             }
 
             // Leader of the Pack and Scroll of Stamina (multi-family check)
