@@ -2261,12 +2261,13 @@ class MANGOS_DLL_SPEC Player : public Unit
         uint32 m_anti_JustTeleported;     //seted when player was teleported
         uint32 m_anti_TeleToPlane_Count;  //Teleport To Plane alarm counter
 
-        uint64 m_anti_AlarmCount;         //alarm counter
+        uint32 m_anti_AlarmCount;         //alarm counter
 
         uint32 m_anti_JustJumped;         //Jump already began, anti air jump check
         float  m_anti_JumpBaseZ;           //Z coord before jump
         uint8  m_anti_NotificationCount;  // how many notification were broadcasted to GMs already
         clock_t m_anti_NotificationTime;   // last notification time
+        uint32 m_anti_TypeFlags;          // what types of hax were detected
         // ACH end
 
         uint32 m_grid_update_timer;

@@ -37,6 +37,20 @@
 #include "Language.h"
 #include "Chat.h"
 
+enum AnticheatTypeFlags
+{
+    ACH_TYPE_NOTHING = 0x0000,
+    ACH_TYPE_SPEED = 0x0001,
+    ACH_TYPE_TELEPORT = 0x0002,
+    ACH_TYPE_MOUNTAIN = 0x0004,
+    ACH_TYPE_GRAVITY = 0x0008,
+    ACH_TYPE_MULTIJUMP = 0x0010,
+    ACH_TYPE_FLY = 0x0020,
+    ACH_TYPE_PLANE = 0x0040,
+    ACH_TYPE_WATERWALK = 0x0080,
+    ACH_TYPE_MISTIMING = 0x0100
+};
+
 void WorldSession::HandleMoveWorldportAckOpcode( WorldPacket & /*recv_data*/ )
 {
     sLog.outDebug( "WORLD: got MSG_MOVE_WORLDPORT_ACK." );
@@ -346,9 +360,18 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
              || plMover->m_anti_AlarmCount >= sWorld.getConfig(CONFIG_ACH_NOTIFY_IMPACT_1) && plMover->m_anti_NotificationCount == 0
                 )
             {
-                std::stringstream nameLink;
+                std::stringstream nameLink, cheatTypes;
                 nameLink << "|cffffffff|Hplayer:" << plMover->GetName() << "|h[" <<  plMover->GetName() << "]|h|r";
-                sWorld.SendHaxNotification(LANG_GM_HAX_MESSAGE, plMover->GetSession()->GetAccountId(), nameLink.str().c_str(), plMover->m_anti_AlarmCount);
+                if(plMover->m_anti_TypeFlags & ACH_TYPE_SPEED) cheatTypes << "speed ";
+                if(plMover->m_anti_TypeFlags & ACH_TYPE_TELEPORT) cheatTypes << "teleport ";
+                if(plMover->m_anti_TypeFlags & ACH_TYPE_MOUNTAIN) cheatTypes << "mountain ";
+                if(plMover->m_anti_TypeFlags & ACH_TYPE_GRAVITY) cheatTypes << "gravity ";
+                if(plMover->m_anti_TypeFlags & ACH_TYPE_MULTIJUMP) cheatTypes << "multijump ";
+                if(plMover->m_anti_TypeFlags & ACH_TYPE_FLY) cheatTypes << "fly ";
+                if(plMover->m_anti_TypeFlags & ACH_TYPE_PLANE) cheatTypes << "plane ";
+                if(plMover->m_anti_TypeFlags & ACH_TYPE_WATERWALK) cheatTypes << "waterwalk ";
+                if(plMover->m_anti_TypeFlags & ACH_TYPE_MISTIMING) cheatTypes << "mistiming ";
+                sWorld.SendHaxNotification(LANG_GM_HAX_MESSAGE, plMover->GetSession()->GetAccountId(), nameLink.str().c_str(), plMover->m_anti_AlarmCount, cheatTypes.str().c_str());
                 plMover->m_anti_NotificationCount++;
                 plMover->m_anti_NotificationTime = curclock;
             }
@@ -358,6 +381,7 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
         {
             sLog.outError("MA-%s produced total alarm level %u",plMover->GetName(),plMover->m_anti_AlarmCount);
             plMover->m_anti_AlarmCount = 0;
+            plMover->m_anti_TypeFlags = ACH_TYPE_NOTHING;
         }
     }
     // ACH end
@@ -663,8 +687,10 @@ uint32 WorldSession::ACH_CheckMoveInfo(uint32 opcode, MovementInfo& movementInfo
         cClientTimeDelta = cServerTimeDelta;
         plMover->m_anti_MistimingCount++;
 
-        sLog.outError("MA-%s, mistiming exception. #:%d, mistiming: %dms ",
-            plMover->GetName(), plMover->m_anti_MistimingCount, sync_time);
+        /*sLog.outError("MA-%s, mistiming exception. #:%d, mistiming: %dms ",
+            plMover->GetName(), plMover->m_anti_MistimingCount, sync_time);*/
+
+        plMover->m_anti_TypeFlags |= ACH_TYPE_MISTIMING;
 
         alarm_level += (sWorld.getConfig(CONFIG_ACH_IMPACT_MISTIMING_FLAT) +
             (plMover->m_anti_MistimingCount * sWorld.getConfig(CONFIG_ACH_IMPACT_MISTIMING_MULTI)));
@@ -739,6 +765,8 @@ uint32 WorldSession::ACH_CheckMoveInfo(uint32 opcode, MovementInfo& movementInfo
             sLog.outError("MA-%s, GraviJump exception. JumpHeight = %f, Allowed Veritcal Speed = %f",
                 plMover->GetName(), JumpHeight, plMover->m_anti_Last_VSpeed);
 
+            plMover->m_anti_TypeFlags |= ACH_TYPE_GRAVITY;
+
             //plMover->GetSession()->ACH_HandleGravity()
 
             alarm_level += sWorld.getConfig(CONFIG_ACH_IMPACT_GRAVITY);
@@ -751,6 +779,7 @@ uint32 WorldSession::ACH_CheckMoveInfo(uint32 opcode, MovementInfo& movementInfo
             {
                 alarm_level += sWorld.getConfig(CONFIG_ACH_IMPACT_MULTIJUMP);
                 sLog.outError("MA-%s, MultiJump exception. Jumps = %u", plMover->GetName(), plMover->m_anti_JustJumped);
+                plMover->m_anti_TypeFlags |= ACH_TYPE_MULTIJUMP;
                 //plMover->GetSession()->ACH_HandleMultiJump()
             }
             else
@@ -769,6 +798,7 @@ uint32 WorldSession::ACH_CheckMoveInfo(uint32 opcode, MovementInfo& movementInfo
         {
             sLog.outError("MA-%s, speed exception | cDelta=%f aDelta=%f | cSpeed=%f lSpeed=%f deltaTime=%f",
                 plMover->GetName(), real_delta, allowed_delta, current_speed, plMover->m_anti_Last_HSpeed,time_delta);
+            plMover->m_anti_TypeFlags |= ACH_TYPE_SPEED;
             //plMover->GetSession()->ACH_HandleSpeed()
 
             alarm_level += (sWorld.getConfig(CONFIG_ACH_IMPACT_SPEED_FLAT) + 
@@ -777,9 +807,9 @@ uint32 WorldSession::ACH_CheckMoveInfo(uint32 opcode, MovementInfo& movementInfo
         //teleport hack checks
         if ((real_delta>4900.0f) && !(real_delta < allowed_delta))
         {
-
             sLog.outError("MA-%s, is teleport exception | cDelta=%f aDelta=%f | cSpeed=%f lSpeed=%f deltaToime=%f",
                 plMover->GetName(),real_delta, allowed_delta, current_speed, plMover->m_anti_Last_HSpeed,time_delta);
+            plMover->m_anti_TypeFlags |= ACH_TYPE_TELEPORT;
             //plMover->GetSession()->ACH_HandleTeleport()
             // TODO: add more code if necessary. most of it should be covered above anyway
             //check_passed = false;
@@ -789,6 +819,7 @@ uint32 WorldSession::ACH_CheckMoveInfo(uint32 opcode, MovementInfo& movementInfo
         if ((delta_z < plMover->m_anti_Last_VSpeed) && (plMover->m_anti_JustJumped == 0) && (tg_z > 2.37f))
         {
             sLog.outError("MA-%s, mountain exception | tg_z=%f", plMover->GetName(),tg_z);
+            plMover->m_anti_TypeFlags |= ACH_TYPE_MOUNTAIN;
             //plMover->GetSession()->ACH_HandleMountain()
 
             alarm_level += sWorld.getConfig(CONFIG_ACH_IMPACT_MOUNTAIN);
@@ -799,6 +830,7 @@ uint32 WorldSession::ACH_CheckMoveInfo(uint32 opcode, MovementInfo& movementInfo
             && !(plMover->HasAuraType(SPELL_AURA_FLY) || plMover->HasAuraType(SPELL_AURA_MOD_INCREASE_FLIGHT_SPEED)))
         {
             sLog.outError("MA-%s, flight exception.",plMover->GetName());
+            plMover->m_anti_TypeFlags |= ACH_TYPE_FLY;
             //plMover->GetSession()->ACH_HandleFly()
 
             alarm_level += sWorld.getConfig(CONFIG_ACH_IMPACT_FLY);
@@ -810,6 +842,7 @@ uint32 WorldSession::ACH_CheckMoveInfo(uint32 opcode, MovementInfo& movementInfo
         {
             sLog.outError("MA-%s, water-walk exception. [%X]{SPELL_AURA_WATER_WALK=[%X]}",
                 plMover->GetName(), movementInfo.flags, plMover->HasAuraType(SPELL_AURA_WATER_WALK));
+            plMover->m_anti_TypeFlags |= ACH_TYPE_WATERWALK;
             //plMover->GetSession()->ACH_HandleWaterwalk()
 
             alarm_level += sWorld.getConfig(CONFIG_ACH_IMPACT_WATERWALK);
@@ -832,6 +865,8 @@ uint32 WorldSession::ACH_CheckMoveInfo(uint32 opcode, MovementInfo& movementInfo
 
                     sLog.outDebug("MA-%s, teleport to plane exception. plane_z: %f count=%u",
                         plMover->GetName(), plane_z, plMover->m_anti_TeleToPlane_Count);
+
+                    plMover->m_anti_TypeFlags |= ACH_TYPE_PLANE;
 
                     //plMover->GetSession()->ACH_HandlePlaneTeleport()
 

@@ -499,6 +499,7 @@ Player::Player (WorldSession *session): Unit(), m_achievementMgr(this), m_reputa
     m_anti_JumpBaseZ = 0;          //Z coord before jump (AntiGrav)
     m_anti_NotificationCount = 0;
     m_anti_NotificationTime = 0;
+    m_anti_TypeFlags = 0;
     // << movement anticheat
 
     m_grid_update_timer = 0;
