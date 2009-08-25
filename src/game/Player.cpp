@@ -14732,7 +14732,7 @@ bool Player::LoadFromDB( uint32 guid, SqlQueryHolder *holder )
     outDebugValues();
 
     // GM state
-    if(GetSession()->GetSecurity() > SEC_PLAYER)
+    if(GetSession()->GetSecurity() >= SEC_MODERATOR)
     {
         switch(sWorld.getConfig(CONFIG_GM_LOGIN_STATE))
         {
@@ -16171,7 +16171,7 @@ void Player::outDebugValues() const
 void Player::UpdateSpeakTime()
 {
     // ignore chat spam protection for GMs in any mode
-    if(GetSession()->GetSecurity() > SEC_PLAYER)
+    if(GetSession()->GetSecurity() >= SEC_MODERATOR)
         return;
 
     time_t current = time (NULL);
@@ -18159,7 +18159,7 @@ bool Player::IsVisibleGloballyFor( Player* u ) const
         return true;
 
     // GMs are visible for higher gms (or players are visible for gms)
-    if (u->GetSession()->GetSecurity() > SEC_PLAYER)
+    if (u->GetSession()->GetSecurity() >= SEC_MODERATOR)
         return GetSession()->GetSecurity() <= u->GetSession()->GetSecurity();
 
     // non faction visibility non-breakable for non-GMs

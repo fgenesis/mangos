@@ -99,14 +99,14 @@ void AuctionHouseMgr::SendAuctionWonMail( AuctionEntry *auction )
             bidder_accId = objmgr.GetPlayerAccountIdByGUID(bidder_guid);
             bidder_security = accmgr.GetSecurity(bidder_accId);
 
-            if(bidder_security > SEC_PLAYER )               // not do redundant DB requests
+            if(bidder_security >= SEC_MODERATOR )               // not do redundant DB requests
             {
                 if(!objmgr.GetPlayerNameByGUID(bidder_guid,bidder_name))
                     bidder_name = objmgr.GetMangosStringForDBCLocale(LANG_UNKNOWN);
             }
         }
 
-        if( bidder_security > SEC_PLAYER )
+        if( bidder_security >= SEC_MODERATOR )
         {
             std::string owner_name;
             if(!objmgr.GetPlayerNameByGUID(auction->owner,owner_name))

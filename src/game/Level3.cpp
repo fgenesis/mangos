@@ -6033,7 +6033,7 @@ bool ChatHandler::HandleServerPLimitCommand(const char *args)
         }
 
         // kick all low security level players
-        if(sWorld.GetPlayerAmountLimit() > SEC_PLAYER)
+        if(sWorld.GetPlayerAmountLimit() >= SEC_MODERATOR)
             sWorld.KickAllLess(sWorld.GetPlayerSecurityLimit());
     }
 
