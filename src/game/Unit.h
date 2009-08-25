@@ -1529,6 +1529,8 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
 
         // FG
         bool ApplySpellAura(uint32 spellID);
+        inline void SetSpoofSamePlayerFaction(bool b) { m_spoofSamePlayerFaction = b; }
+        inline bool IsSpoofSamePlayerFaction(void) {return m_spoofSamePlayerFaction; }
 
     protected:
         explicit Unit ();
@@ -1579,6 +1581,9 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         uint32 m_reactiveTimer[MAX_REACTIVE];
         uint32 m_regenTimer;
         uint32 m_lastRegenerate;                            // msecs
+
+        // FG:
+        bool m_spoofSamePlayerFaction : 1;
 
     private:
         bool IsTriggeredAtSpellProcEvent(Unit *pVictim, Aura* aura, SpellEntry const* procSpell, uint32 procFlag, uint32 procExtra, WeaponAttackType attType, bool isVictim, bool active, SpellProcEventEntry const*& spellProcEvent );

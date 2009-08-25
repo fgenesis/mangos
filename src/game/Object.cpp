@@ -693,25 +693,26 @@ void Object::_BuildValuesUpdate(uint8 updatetype, ByteBuffer * data, UpdateMask 
                 else if(index == UNIT_FIELD_BYTES_2 || index == UNIT_FIELD_FACTIONTEMPLATE)
                 {
                     bool ch = false;
-                    if(target->GetTypeId() == TYPEID_PLAYER && GetTypeId() == TYPEID_PLAYER && target != this)
+                    if((GetTypeId() == TYPEID_PLAYER || GetTypeId() == TYPEID_UNIT) && target != this)
                     {
-                        if(target->IsInSameGroupWith((Player*)this) || target->IsInSameRaidWith((Player*)this))
+                        if(((Unit*)this)->IsSpoofSamePlayerFaction() ||
+                            (target->GetTypeId() == TYPEID_PLAYER && GetTypeId() == TYPEID_PLAYER && (target->IsInSameGroupWith((Player*)this) || target->IsInSameRaidWith((Player*)this))))
                         {
                             if(index == UNIT_FIELD_BYTES_2)
                             {
-                                DEBUG_LOG("-- VALUES_UPDATE: Sending '%s' the blue-group-fix from '%s' (flag)", target->GetName(), ((Player*)this)->GetName());
+                                DEBUG_LOG("-- VALUES_UPDATE: Sending '%s' the blue-group-fix from '%s' (flag)", target->GetName(), ((Unit*)this)->GetName());
                                 *data << ( m_uint32Values[ index ] & (UNIT_BYTE2_FLAG_SANCTUARY << 8) ); // this flag is at uint8 offset 1 !!
                                 ch = true;
                             }
                             else if(index == UNIT_FIELD_FACTIONTEMPLATE)
                             {
                                 FactionTemplateEntry const *ft1, *ft2;
-                                ft1 = ((Player*)this)->getFactionTemplateEntry();
-                                ft2 = ((Player*)target)->getFactionTemplateEntry();
-                                if(ft1 && ft2 && !ft1->IsFriendlyTo(*ft2))
+                                ft1 = ((Unit*)this)->getFactionTemplateEntry();
+                                ft2 = ((Unit*)target)->getFactionTemplateEntry();
+                                if(ft1 && ft2 && (!ft1->IsFriendlyTo(*ft2) || ((Unit*)this)->IsSpoofSamePlayerFaction()))
                                 {
                                     uint32 faction = ((Player*)target)->getFaction(); // pretend that all other HOSTILE players have own faction, to allow follow, heal, rezz (trade wont work)
-                                    DEBUG_LOG("-- VALUES_UPDATE: Sending '%s' the blue-group-fix from '%s' (faction %u)", target->GetName(), ((Player*)this)->GetName(), faction);
+                                    DEBUG_LOG("-- VALUES_UPDATE: Sending '%s' the blue-group-fix from '%s' (faction %u)", target->GetName(), ((Unit*)this)->GetName(), faction);
                                     *data << uint32(faction);
                                     ch = true;
                                 }
