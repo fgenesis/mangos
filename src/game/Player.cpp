@@ -17012,8 +17012,8 @@ void Player::HandleStealthedUnitsDetection()
     TypeContainerVisitor<MaNGOS::UnitListSearcher<MaNGOS::AnyStealthedCheck >, GridTypeMapContainer >  grid_unit_searcher(searcher);
 
     CellLock<GridReadGuard> cell_lock(cell, p);
-    cell_lock->Visit(cell_lock, world_unit_searcher, *GetMap());
-    cell_lock->Visit(cell_lock, grid_unit_searcher, *GetMap());
+    cell_lock->Visit(cell_lock, world_unit_searcher, *GetMap(), *this, (MAX_PLAYER_STEALTH_DETECT_RANGE * sWorld.getRate(RATE_CREATURE_AGGRO)));
+    cell_lock->Visit(cell_lock, grid_unit_searcher, *GetMap(), *this, (MAX_PLAYER_STEALTH_DETECT_RANGE * sWorld.getRate(RATE_CREATURE_AGGRO)));
 
     for (std::list<Unit*>::const_iterator i = stealthedUnits.begin(); i != stealthedUnits.end(); ++i)
     {
