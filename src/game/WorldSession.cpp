@@ -725,6 +725,11 @@ void WorldSession::SetXPMultiQuest(float m)
     m_XPMultiQuest = m;
 }
 
+std::string WorldSession::GetIP(void)
+{
+    return m_Socket->GetRemoteAddress();
+}
+
 void WorldSession::ReadAddonsInfo(WorldPacket &data)
 {
     if (data.rpos() + 4 > data.size())

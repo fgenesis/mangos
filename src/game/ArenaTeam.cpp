@@ -21,6 +21,9 @@
 #include "ArenaTeam.h"
 #include "World.h"
 
+// FG: need that
+#include "Chat.h"
+
 ArenaTeam::ArenaTeam()
 {
     m_TeamId              = 0;
@@ -622,6 +625,19 @@ void ArenaTeam::MemberWon(Player * plr, uint32 againstRating)
     {
         if(itr->guid == plr->GetGUID())
         {
+            // FG: attempt to prevent "win trading" - dont give reward to winner if player with same IP is in opposite team
+            Map::PlayerList const& plist = plr->GetMap()->GetPlayers();
+            for(Map::PlayerList::const_iterator pit = plist.begin(); pit != plist.end(); ++pit)
+            {
+                Player *pp = pit->getSource();
+                if(pp->GetSession()->GetIP() == plr->GetSession()->GetIP() && pp->IsHostileTo(plr))
+                {
+                    ChatHandler(plr).PSendSysMessage(11110, pp->GetName());
+                    return;
+                }
+            }
+            // FG: -end-
+
             // update personal rating
             float chance = GetChanceAgainst(itr->personal_rating, againstRating);
             int32 mod = (int32)floor(32.0f * (1.0f - chance));
