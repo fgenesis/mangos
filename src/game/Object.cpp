@@ -695,8 +695,17 @@ void Object::_BuildValuesUpdate(uint8 updatetype, ByteBuffer * data, UpdateMask 
                     bool ch = false;
                     if((GetTypeId() == TYPEID_PLAYER || GetTypeId() == TYPEID_UNIT) && target != this)
                     {
-                        if(((Unit*)this)->IsSpoofSamePlayerFaction() ||
-                            (target->GetTypeId() == TYPEID_PLAYER && GetTypeId() == TYPEID_PLAYER && (target->IsInSameGroupWith((Player*)this) || target->IsInSameRaidWith((Player*)this))))
+                        bool forcefriendly = false; // bool for pets/totems to offload more code from the big if below
+                        if(GetTypeId() == TYPEID_UNIT)
+                        {
+                            forcefriendly = (((Creature*)this)->isTotem() || ((Creature*)this)->isPet())
+                                && ((Creature*)this)->GetOwner()->GetTypeId() == TYPEID_PLAYER
+                                && ((Creature*)this)->GetOwner() != target // no need to send hackfix to pet owner
+                                && (target->IsInSameGroupWith((Player*)((Creature*)this)->GetOwner()) || target->IsInSameRaidWith((Player*)((Creature*)this)->GetOwner()));
+                        }
+
+                        if(((Unit*)this)->IsSpoofSamePlayerFaction() || forcefriendly
+                            || (target->GetTypeId() == TYPEID_PLAYER && GetTypeId() == TYPEID_PLAYER && (target->IsInSameGroupWith((Player*)this) || target->IsInSameRaidWith((Player*)this))))
                         {
                             if(index == UNIT_FIELD_BYTES_2)
                             {

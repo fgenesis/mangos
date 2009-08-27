@@ -1622,6 +1622,21 @@ void Group::BroadcastGroupUpdate(void)
             pp->ForceValuesUpdateAtIndex(UNIT_FIELD_BYTES_2);
             pp->ForceValuesUpdateAtIndex(UNIT_FIELD_FACTIONTEMPLATE);
             DEBUG_LOG("-- Forced group value update for '%s'", pp->GetName());
+            if(pp->GetPet())
+            {
+                pp->GetPet()->ForceValuesUpdateAtIndex(UNIT_FIELD_BYTES_2);
+                pp->GetPet()->ForceValuesUpdateAtIndex(UNIT_FIELD_FACTIONTEMPLATE);
+                DEBUG_LOG("-- Forced group value update for '%s' pet '%s'", pp->GetName(), pp->GetPet()->GetName());
+            }
+            for(uint32 i = 0; i < MAX_TOTEM; ++i)
+            {
+                if(Unit *totem = Unit::GetUnit(*pp, pp->m_TotemSlot[i]))
+                {
+                    totem->ForceValuesUpdateAtIndex(UNIT_FIELD_BYTES_2);
+                    totem->ForceValuesUpdateAtIndex(UNIT_FIELD_FACTIONTEMPLATE);
+                    DEBUG_LOG("-- Forced group value update for '%s' totem #%u", pp->GetName(), i);
+                }
+            }
         }
     }
 }
