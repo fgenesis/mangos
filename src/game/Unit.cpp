@@ -7441,6 +7441,31 @@ bool Unit::HandleOverrideClassScriptAuraProc(Unit *pVictim, uint32 damage, Aura 
         case 5497:                                          // Improved Mana Gems (Serpent-Coil Braid)
             triggered_spell_id = 37445;                     // Mana Surge
             break;
+        case 7010:                                          // Revitalize
+        case 7011:
+        case 7012:
+        {
+            switch(pVictim->getPowerType())
+            {
+                case POWER_RUNIC_POWER:
+                    pVictim->CastSpell(pVictim, 48543, true, NULL, triggeredByAura);
+                    break;
+                case POWER_RAGE:
+                    pVictim->CastSpell(pVictim, 48541, true, NULL, triggeredByAura);
+                    break;
+                case POWER_MANA:
+                {
+                    int32 basepoints0 = pVictim->GetMaxPower(POWER_MANA) / 100;
+                    pVictim->CastCustomSpell(pVictim, 48542, &basepoints0, NULL, NULL, true, NULL, triggeredByAura);
+                    break;
+                }
+                case POWER_ENERGY:
+                    pVictim->CastSpell(pVictim, 48540, true, NULL, triggeredByAura);
+                    break;
+                default:
+                    break;
+            }
+        }
         case 8152:                                          // Serendipity
         {
             // if heal your target over maximum health
