@@ -120,8 +120,9 @@ World::~World()
 
     m_weathers.clear();
 
-    while (!cliCmdQueue.empty())
-        delete cliCmdQueue.next();
+    CliCommandHolder* command;
+    while (cliCmdQueue.next(command))
+        delete command;
 
     VMAP::VMapFactory::clear();
 
@@ -257,7 +258,7 @@ World::AddSession_ (WorldSession* s)
     // Updates the population
     if (pLimit > 0)
     {
-        float popu = GetActiveSessionCount ();              //updated number of users on the server
+        float popu = GetActiveSessionCount ();              // updated number of users on the server
         popu /= pLimit;
         popu *= 2;
         loginDatabase.PExecute ("UPDATE realmlist SET population = '%f' WHERE id = '%d'", popu, realmID);
@@ -928,6 +929,8 @@ void World::LoadConfigSettings(bool reload)
 
     m_configs[CONFIG_TALENTS_INSPECTING]           = sConfig.GetBoolDefault("TalentsInspecting", true);
     m_configs[CONFIG_CHAT_FAKE_MESSAGE_PREVENTING] = sConfig.GetBoolDefault("ChatFakeMessagePreventing", false);
+    m_configs[CONFIG_CHAT_STRICT_LINK_CHECKING_SEVERITY] = sConfig.GetIntDefault("ChatStrictLinkChecking.Severity", 0);
+    m_configs[CONFIG_CHAT_STRICT_LINK_CHECKING_KICK] = sConfig.GetIntDefault("ChatStrictLinkChecking.Kick", 0);
 
     m_configs[CONFIG_CORPSE_DECAY_NORMAL]    = sConfig.GetIntDefault("Corpse.Decay.NORMAL", 60);
     m_configs[CONFIG_CORPSE_DECAY_RARE]      = sConfig.GetIntDefault("Corpse.Decay.RARE", 300);
@@ -1091,6 +1094,7 @@ void World::LoadConfigSettings(bool reload)
     m_configs[CONFIG_AUTOBROADCAST_INTERVAL] = sConfig.GetIntDefault("AutoBroadcastInterval",0);
     m_configs[CONFIG_ALLOW_CITY_DUELING] = sConfig.GetIntDefault("AllowCityDueling",0);
     m_configs[CONFIG_MAX_MUTETIME] = sConfig.GetIntDefault("MaxMuteTime",0);
+    m_configs[CONFIG_LIMIT_GM_ACCOUNTS] = sConfig.GetBoolDefault("LimitGMAccounts", false);
     m_configs[CONFIG_DIPLOMACY_GROUP_MODE_ENABLE] = sConfig.GetIntDefault("GroupMode.Diplomacy.Enable",0);
     m_configs[CONFIG_DIPLOMACY_GROUP_MODE_LEVELMULTI] = sConfig.GetIntDefault("GroupMode.Diplomacy.Levelmulti",2);
     m_configs[CONFIG_DIPLOMACY_GROUP_MODE_MINLEVEL] = sConfig.GetIntDefault("GroupMode.Diplomacy.Minlevel",2);
@@ -1585,6 +1589,7 @@ void World::SetInitialWorldSettings()
     sVPlayerMgr.ClearOnlineBots();
 
     objmgr.LoadSpecialChannels();
+    objmgr.LoadAllowedGMAccounts();
     // FG: -end-
 
     sLog.outString( "WORLD: World initialized" );
@@ -2146,11 +2151,9 @@ void World::SendServerMessage(ServerMessageType type, const char *text, Player* 
 void World::UpdateSessions( uint32 diff )
 {
     ///- Add new sessions
-    while(!addSessQueue.empty())
-    {
-        WorldSession* sess = addSessQueue.next ();
+    WorldSession* sess;
+    while(addSessQueue.next(sess))
         AddSession_ (sess);
-    }
 
     ///- Then send an update signal to remaining ones
     for (SessionMap::iterator itr = m_sessions.begin(), next; itr != m_sessions.end(); itr = next)
@@ -2174,25 +2177,20 @@ void World::UpdateSessions( uint32 diff )
 // This handles the issued and queued CLI commands
 void World::ProcessCliCommands()
 {
-    if (cliCmdQueue.empty())
-        return;
+    CliCommandHolder::Print* zprint = NULL;
 
-    CliCommandHolder::Print* zprint;
-
-    while (!cliCmdQueue.empty())
+    CliCommandHolder* command;
+    while (cliCmdQueue.next(command))
     {
         sLog.outDebug("CLI command under processing...");
-        CliCommandHolder *command = cliCmdQueue.next();
-
         zprint = command->m_print;
-
         CliHandler(zprint).ParseCommands(command->m_command);
-
         delete command;
     }
 
     // print the console message here so it looks right
-    zprint("mangos>");
+    if (zprint)
+        zprint("mangos>");
 }
 
 void World::InitResultQueue()

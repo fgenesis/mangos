@@ -330,7 +330,7 @@ pAuraHandler AuraHandler[TOTAL_AURAS]=
     &Aura::HandleNoImmediateEffect,                         //277 SPELL_AURA_MOD_MAX_AFFECTED_TARGETS Use SpellClassMask for spell select
     &Aura::HandleNULL,                                      //278 SPELL_AURA_MOD_DISARM_RANGED disarm ranged weapon
     &Aura::HandleNULL,                                      //279 visual effects? 58836 and 57507
-    &Aura::HandleNULL,                                      //280 SPELL_AURA_MOD_TARGET_ARMOR_PCT
+    &Aura::HandleModTargetArmorPct,                         //280 SPELL_AURA_MOD_TARGET_ARMOR_PCT
     &Aura::HandleNULL,                                      //281 SPELL_AURA_MOD_HONOR_GAIN
     &Aura::HandleAuraIncreaseBaseHealthPercent,             //282 SPELL_AURA_INCREASE_BASE_HEALTH_PERCENT
     &Aura::HandleNoImmediateEffect,                         //283 SPELL_AURA_MOD_HEALING_RECEIVED       implemented in Unit::SpellHealingBonus
@@ -1263,73 +1263,97 @@ bool Aura::IsEffectStacking()
     {
         // case SPELL_AURA_MOD_DAMAGE_DONE:
         // case SPELL_AURA_MOD_HEALING_DONE:
-            // break;
-        case SPELL_AURA_MOD_STAT:
-            // Horn of Winter / Arcane Intellect / Divine Spirit
-            if (GetSpellProto()->AttributesEx6 & SPELL_ATTR_EX6_UNK26 &&
-                (GetSpellProto()->SpellFamilyName == SPELLFAMILY_DEATHKNIGHT ||
-                GetSpellProto()->SpellFamilyName == SPELLFAMILY_MAGE ||
-                GetSpellProto()->SpellFamilyName == SPELLFAMILY_PRIEST) )
-                return false;
-            break;
-        case SPELL_AURA_MOD_CRIT_PERCENT:
-            // Rampage
-            if (GetSpellProto()->SpellFamilyName == SPELLFAMILY_WARRIOR && GetSpellProto()->SpellIconID == 2006)
-                return false;
-            break;
-        case SPELL_AURA_MOD_SPELL_CRIT_CHANCE:
-            // Elemental Oath
-            if (GetSpellProto()->SpellFamilyName == SPELLFAMILY_SHAMAN && GetSpellProto()->AttributesEx6 & SPELL_ATTR_EX6_UNK26)
-                return false;
-            break;
-        case SPELL_AURA_MOD_POWER_REGEN:
-            // (Greater) Blessing of Wisdom
-            if (GetSpellProto()->AttributesEx6 & SPELL_ATTR_EX6_UNK26)
-                return false;
-            break;
-        case SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN:
-            // Renewed Hope / (Greater) Blessing of Sanctuary / Vigilance
-            // Glyph of Salvation / Pain Suppression / Safeguard ?
-            if (GetSpellProto()->AttributesEx6 & SPELL_ATTR_EX6_UNK26)
-                return false;
-            break;
-        case SPELL_AURA_MOD_ATTACK_POWER:
-        case SPELL_AURA_MOD_RANGED_ATTACK_POWER:
-            // (Greater) Blessing of Might / Battle Shout
-            if (GetSpellProto()->AttributesEx6 & SPELL_ATTR_EX6_UNK26)
-                return false;
-            break;
-        case SPELL_AURA_MOD_RESISTANCE_PCT:
-            // Ancestral Healing / Inspiration
-            if (GetSpellProto()->SpellFamilyName == SPELLFAMILY_SHAMAN ||
-                GetSpellProto()->SpellFamilyName == SPELLFAMILY_PRIEST)
-                return false;
-            break;
-        case SPELL_AURA_MOD_MELEE_HASTE:
-            // Improved Icy Talons
-            if (GetSpellProto()->AttributesEx6 & SPELL_ATTR_EX6_UNK26)
-                return false;
-            break;
+        // break;
+    case SPELL_AURA_MOD_STAT:
+        // Horn of Winter / Arcane Intellect / Divine Spirit
+        if (GetSpellProto()->AttributesEx6 & SPELL_ATTR_EX6_UNK26 &&
+            (GetSpellProto()->SpellFamilyName == SPELLFAMILY_DEATHKNIGHT ||
+            GetSpellProto()->SpellFamilyName == SPELLFAMILY_MAGE ||
+            GetSpellProto()->SpellFamilyName == SPELLFAMILY_PRIEST) )
+            return false;
+        break;
+    case SPELL_AURA_MOD_CRIT_PERCENT:
+        // Rampage
+        if (GetSpellProto()->SpellFamilyName == SPELLFAMILY_WARRIOR && GetSpellProto()->SpellIconID == 2006)
+            return false;
+        break;
+    case SPELL_AURA_MOD_SPELL_CRIT_CHANCE:
+        // Elemental Oath
+        if (GetSpellProto()->SpellFamilyName == SPELLFAMILY_SHAMAN && GetSpellProto()->AttributesEx6 & SPELL_ATTR_EX6_UNK26)
+            return false;
+        break;
+    case SPELL_AURA_MOD_POWER_REGEN:
+        // (Greater) Blessing of Wisdom
+        if (GetSpellProto()->AttributesEx6 & SPELL_ATTR_EX6_UNK26)
+            return false;
+        break;
+    case SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN:
+        // Renewed Hope / (Greater) Blessing of Sanctuary / Vigilance
+        // Glyph of Salvation / Pain Suppression / Safeguard ?
+        if (GetSpellProto()->AttributesEx6 & SPELL_ATTR_EX6_UNK26)
+            return false;
+        break;
+    case SPELL_AURA_MOD_ATTACK_POWER:
+    case SPELL_AURA_MOD_RANGED_ATTACK_POWER:
+        // (Greater) Blessing of Might / Battle Shout
+        if (GetSpellProto()->AttributesEx6 & SPELL_ATTR_EX6_UNK26)
+            return false;
+        break;
+    case SPELL_AURA_MOD_RESISTANCE_PCT:
+        // Ancestral Healing / Inspiration
+        if (GetSpellProto()->SpellFamilyName == SPELLFAMILY_SHAMAN ||
+            GetSpellProto()->SpellFamilyName == SPELLFAMILY_PRIEST)
+            return false;
+        break;
+    case SPELL_AURA_MOD_MELEE_HASTE:
+        // Improved Icy Talons
+        if (GetSpellProto()->AttributesEx6 & SPELL_ATTR_EX6_UNK26)
+            return false;
+        break;
         // case SPELL_AURA_MOD_HEALING_PCT:
-            // break;
-        case SPELL_AURA_MOD_RESISTANCE_EXCLUSIVE:
+        // break;
+    case SPELL_AURA_MOD_RESISTANCE_EXCLUSIVE:
+        return false;
+    case SPELL_AURA_MOD_ATTACK_POWER_PCT:
+    case SPELL_AURA_MOD_RANGED_ATTACK_POWER_PCT:
+        // Abomination's Might / Unleashed Rage
+        if (GetSpellProto()->AttributesEx6 & SPELL_ATTR_EX6_UNK26)
             return false;
-        case SPELL_AURA_MOD_ATTACK_POWER_PCT:
-        case SPELL_AURA_MOD_RANGED_ATTACK_POWER_PCT:
-            // Abomination's Might / Unleashed Rage
-            if (GetSpellProto()->AttributesEx6 & SPELL_ATTR_EX6_UNK26)
-                return false;
-            break;
+        break;
         // case SPELL_AURA_MELEE_SLOW:
-            // break;
-        case SPELL_AURA_MOD_PARTY_MAX_HEALTH:
-            // Commanding Shout
-            return false;
+        // break;
+    case SPELL_AURA_MOD_PARTY_MAX_HEALTH:
+        // Commanding Shout
+        return false;
 
-        default:
-            return true;
+    default:
+        return true;
     }
     return true;
+}
+
+void Aura::ReapplyAffectedPassiveAuras( Unit* target )
+{
+    std::set<uint32> affectedPassives;
+
+    for(Unit::AuraMap::const_iterator itr = target->GetAuras().begin(); itr != target->GetAuras().end(); ++itr)
+    {
+        // permanent passive
+        if (itr->second->IsPassive() && itr->second->IsPermanent() &&
+            // non deleted and not same aura (any with same spell id)
+            !itr->second->IsDeleted() && itr->second->GetId() != GetId() &&
+            // only applied by self and affected by aura
+            itr->second->GetCasterGUID() == target->GetGUID() && isAffectedOnSpell(itr->second->GetSpellProto()))
+        {
+            affectedPassives.insert(itr->second->GetId());
+        }
+    }
+
+    for(std::set<uint32>::const_iterator set_itr = affectedPassives.begin(); set_itr != affectedPassives.end(); ++set_itr)
+    {
+        target->RemoveAurasDueToSpell(*set_itr);
+        target->CastSpell(m_target, *set_itr, true);
+    }
 }
 
 /*********************************************************/
@@ -1384,18 +1408,19 @@ void Aura::HandleAddModifier(bool apply, bool Real)
         m_spellmod = mod;
     }
 
-    uint64 spellFamilyMask = m_spellmod->mask;
-
     ((Player*)m_target)->AddSpellMod(m_spellmod, apply);
 
-    // reapply some passive spells after add/remove related spellmods
-    if(m_spellProto->SpellFamilyName==SPELLFAMILY_WARRIOR && (spellFamilyMask & UI64LIT(0x0000100000000000)))
-    {
-        m_target->RemoveAurasDueToSpell(45471);
+    // reapply talents to own passive persistent auras
+    ReapplyAffectedPassiveAuras(m_target);
 
-        if(apply)
-            m_target->CastSpell(m_target, 45471, true);
-    }
+    // re-aplly talents and passives applied to pet (it affected by player spellmods)
+    if(Pet* pet = m_target->GetPet())
+        ReapplyAffectedPassiveAuras(pet);
+
+    for(int i = 0; i < MAX_TOTEM; ++i)
+        if(m_target->m_TotemSlot[i])
+            if(Creature* totem = m_target->GetMap()->GetCreature(m_target->m_TotemSlot[i]))
+                ReapplyAffectedPassiveAuras(totem);
 }
 void Aura::HandleAddTargetTrigger(bool apply, bool /*Real*/)
 {
@@ -5900,7 +5925,13 @@ void Aura::HandleSpellSpecificBoosts(bool apply)
             }
             // Aspect of the Dragonhawk dodge
             else if (GetSpellProto()->SpellFamilyFlags2 & 0x00001000)
+            {
                 spellId1 = 61848;
+
+                // triggered spell have same category as main spell and cooldown
+                if (apply && m_target->GetTypeId()==TYPEID_PLAYER)
+                    ((Player*)m_target)->RemoveSpellCooldown(61848);
+            }
             else
                 return;
             break;
@@ -6197,106 +6228,102 @@ void Aura::HandleSchoolAbsorb(bool apply, bool Real)
     if(!caster)
         return;
 
-    // prevent double apply bonuses
-    if(apply && (m_target->GetTypeId()!=TYPEID_PLAYER || !((Player*)m_target)->GetSession()->PlayerLoading()))
+    if (apply)
     {
-        float DoneActualBenefit = 0.0f;
-        switch(m_spellProto->SpellFamilyName)
+        // prevent double apply bonuses
+        if (m_target->GetTypeId()!=TYPEID_PLAYER || !((Player*)m_target)->GetSession()->PlayerLoading())
         {
-            case SPELLFAMILY_PRIEST:
-                // Power Word: Shield
-                if (m_spellProto->SpellFamilyFlags & UI64LIT(0x0000000000000001))
-                    //+80.68% from +spell bonus
-                    DoneActualBenefit = caster->SpellBaseHealingBonus(GetSpellSchoolMask(m_spellProto)) * 0.8068f;
-                break;
-            case SPELLFAMILY_MAGE:
-                // Frost Ward, Fire Ward
-                if (m_spellProto->SpellFamilyFlags & UI64LIT(0x0000000000000108))
-                    //+10% from +spell bonus
-                    DoneActualBenefit = caster->SpellBaseDamageBonus(GetSpellSchoolMask(m_spellProto)) * 0.1f;
-                // Ice Barrier
-                else if (m_spellProto->SpellFamilyFlags & UI64LIT(0x0000000100000000))
-                    //+80.67% from +spell bonus
-                    DoneActualBenefit = caster->SpellBaseDamageBonus(GetSpellSchoolMask(m_spellProto)) * 0.8067f;
-                break;
-            case SPELLFAMILY_WARLOCK:
-                // Shadow Ward
-                if (m_spellProto->SpellFamilyFlags2 & 0x00000040)
-                    //+30% from +spell bonus
-                    DoneActualBenefit = caster->SpellBaseDamageBonus(GetSpellSchoolMask(m_spellProto)) * 0.30f;
-                break;
-            case SPELLFAMILY_PALADIN:
-                // Sacred Shield
-                // +75% from spell power
-                DoneActualBenefit = caster->SpellBaseHealingBonus(GetSpellSchoolMask(m_spellProto)) * 0.75f;
-                break;
-            case SPELLFAMILY_DRUID:
-                if(m_spellProto->SpellIconID == 50)
-                {
-                    // Savage Defense
-                    // +25% from attack power
-                    m_modifier.m_amount = 0;
-                    DoneActualBenefit = caster->GetTotalAttackPowerValue(BASE_ATTACK) * 0.25f;
-                    break;
-                }
-                break;
-            default:
-                break;
-        }
-
-        m_modifier.m_amount += (int32)DoneActualBenefit;
-    }
-
-    // Ice Barrier (remove effect from Shattered Barrier)
-    if(!apply && m_spellProto->SpellIconID == 32 && m_spellProto->SpellFamilyName == SPELLFAMILY_MAGE)
-    {
-        if (!((m_removeMode == AURA_REMOVE_BY_DEFAULT && !m_modifier.m_amount) || m_removeMode == AURA_REMOVE_BY_DISPEL))
-            return;
-
-        if (m_target->HasAura(44745,0))                     // Shattered Barrier, rank 1
-        {
-            if(roll_chance_i(50))
-                m_target->CastSpell(m_target, 55080, true, NULL, this);
-        }
-        else if (m_target->HasAura(54787,0))                // Shattered Barrier, rank 2
-        {
-            m_target->CastSpell(m_target, 55080, true, NULL, this);
-        }
-    }
-
-    if (!apply && caster &&
-        // Power Word: Shield
-        m_spellProto->SpellFamilyName == SPELLFAMILY_PRIEST && m_spellProto->Mechanic == MECHANIC_SHIELD &&
-        (m_spellProto->SpellFamilyFlags & UI64LIT(0x0000000000000001)) &&
-        // completely absorbed or dispelled
-        ((m_removeMode == AURA_REMOVE_BY_DEFAULT && !m_modifier.m_amount) || m_removeMode == AURA_REMOVE_BY_DISPEL))
-    {
-        Unit::AuraList const& vDummyAuras = caster->GetAurasByType(SPELL_AURA_DUMMY);
-        for(Unit::AuraList::const_iterator itr = vDummyAuras.begin(); itr != vDummyAuras.end(); itr++)
-        {
-            SpellEntry const* vSpell = (*itr)->GetSpellProto();
-
-            // Rapture (main spell)
-            if(vSpell->SpellFamilyName == SPELLFAMILY_PRIEST && vSpell->SpellIconID == 2894 && vSpell->Effect[1])
+            float DoneActualBenefit = 0.0f;
+            switch(m_spellProto->SpellFamilyName)
             {
-                switch((*itr)->GetEffIndex())
-                {
-                    case 0:
-                    {
-                        // energize caster
-                        int32 manapct1000 = 5 * ((*itr)->GetModifier()->m_amount + spellmgr.GetSpellRank(vSpell->Id));
-                        int32 basepoints0 = caster->GetMaxPower(POWER_MANA) * manapct1000 / 1000;
-                        caster->CastCustomSpell(caster, 47755, &basepoints0, NULL, NULL, true);
-                        break;
-                    }
-                    case 1:
-                    {
-                        // energize target
-                        if (!roll_chance_i((*itr)->GetModifier()->m_amount) || caster->HasAura(63853))
-                            break;
+                case SPELLFAMILY_PRIEST:
+                    // Power Word: Shield
+                    if (m_spellProto->SpellFamilyFlags & UI64LIT(0x0000000000000001))
+                        //+80.68% from +spell bonus
+                        DoneActualBenefit = caster->SpellBaseHealingBonus(GetSpellSchoolMask(m_spellProto)) * 0.8068f;
+                    break;
+                case SPELLFAMILY_MAGE:
+                    // Frost Ward, Fire Ward
+                    if (m_spellProto->SpellFamilyFlags & UI64LIT(0x0000000000000108))
+                        //+10% from +spell bonus
+                        DoneActualBenefit = caster->SpellBaseDamageBonus(GetSpellSchoolMask(m_spellProto)) * 0.1f;
+                    // Ice Barrier
+                    else if (m_spellProto->SpellFamilyFlags & UI64LIT(0x0000000100000000))
+                        //+80.67% from +spell bonus
+                        DoneActualBenefit = caster->SpellBaseDamageBonus(GetSpellSchoolMask(m_spellProto)) * 0.8067f;
+                    break;
+                case SPELLFAMILY_WARLOCK:
+                    // Shadow Ward
+                    if (m_spellProto->SpellFamilyFlags2 & 0x00000040)
+                        //+30% from +spell bonus
+                        DoneActualBenefit = caster->SpellBaseDamageBonus(GetSpellSchoolMask(m_spellProto)) * 0.30f;
+                    break;
+                case SPELLFAMILY_DRUID:
+                    // Savage Defense (amount store original percent of attack power applied)
+                    if (m_spellProto->SpellIconID == 50)    // only spell with this aura fit
+                        m_modifier.m_amount = int32(m_modifier.m_amount * m_target->GetTotalAttackPowerValue(BASE_ATTACK) / 100);
+                    break;
+                default:
+                    break;
+            }
 
-                        switch(m_target->getPowerType())
+            DoneActualBenefit *= caster->CalculateLevelPenalty(GetSpellProto());
+
+            m_modifier.m_amount += (int32)DoneActualBenefit;
+        }
+    }
+    else
+    {
+        // Ice Barrier (remove effect from Shattered Barrier)
+        if (m_spellProto->SpellIconID == 32 && m_spellProto->SpellFamilyName == SPELLFAMILY_MAGE)
+        {
+            if (!((m_removeMode == AURA_REMOVE_BY_DEFAULT && !m_modifier.m_amount) || m_removeMode == AURA_REMOVE_BY_DISPEL))
+                return;
+
+            if (m_target->HasAura(44745,0))                     // Shattered Barrier, rank 1
+            {
+                if(roll_chance_i(50))
+                    m_target->CastSpell(m_target, 55080, true, NULL, this);
+            }
+            else if (m_target->HasAura(54787,0))                // Shattered Barrier, rank 2
+            {
+                m_target->CastSpell(m_target, 55080, true, NULL, this);
+            }
+        }
+
+        if (caster &&
+            // Power Word: Shield
+            m_spellProto->SpellFamilyName == SPELLFAMILY_PRIEST && m_spellProto->Mechanic == MECHANIC_SHIELD &&
+            (m_spellProto->SpellFamilyFlags & UI64LIT(0x0000000000000001)) &&
+            // completely absorbed or dispelled
+            ((m_removeMode == AURA_REMOVE_BY_DEFAULT && !m_modifier.m_amount) || m_removeMode == AURA_REMOVE_BY_DISPEL))
+        {
+            Unit::AuraList const& vDummyAuras = caster->GetAurasByType(SPELL_AURA_DUMMY);
+            for(Unit::AuraList::const_iterator itr = vDummyAuras.begin(); itr != vDummyAuras.end(); itr++)
+            {
+                SpellEntry const* vSpell = (*itr)->GetSpellProto();
+
+                // Rapture (main spell)
+                if(vSpell->SpellFamilyName == SPELLFAMILY_PRIEST && vSpell->SpellIconID == 2894 && vSpell->Effect[1])
+                {
+                    switch((*itr)->GetEffIndex())
+                    {
+                        case 0:
                         {
+                            // energize caster
+                            int32 manapct1000 = 5 * ((*itr)->GetModifier()->m_amount + spellmgr.GetSpellRank(vSpell->Id));
+                            int32 basepoints0 = caster->GetMaxPower(POWER_MANA) * manapct1000 / 1000;
+                            caster->CastCustomSpell(caster, 47755, &basepoints0, NULL, NULL, true);
+                            break;
+                        }
+                        case 1:
+                        {
+                            // energize target
+                            if (!roll_chance_i((*itr)->GetModifier()->m_amount) || caster->HasAura(63853))
+                                break;
+
+                            switch(m_target->getPowerType())
+                            {
                             case POWER_RUNIC_POWER:
                                 m_target->CastSpell(m_target, 63652, true, NULL, NULL, m_caster_guid);
                                 break;
@@ -6304,25 +6331,26 @@ void Aura::HandleSchoolAbsorb(bool apply, bool Real)
                                 m_target->CastSpell(m_target, 63653, true, NULL, NULL, m_caster_guid);
                                 break;
                             case POWER_MANA:
-                            {
-                                int32 basepoints0 = m_target->GetMaxPower(POWER_MANA) * 2 / 100;
-                                m_target->CastCustomSpell(m_target, 63654, &basepoints0, NULL, NULL, true);
-                                break;
-                            }
+                                {
+                                    int32 basepoints0 = m_target->GetMaxPower(POWER_MANA) * 2 / 100;
+                                    m_target->CastCustomSpell(m_target, 63654, &basepoints0, NULL, NULL, true);
+                                    break;
+                                }
                             case POWER_ENERGY:
                                 m_target->CastSpell(m_target, 63655, true, NULL, NULL, m_caster_guid);
                                 break;
                             default:
                                 break;
-                        }
+                            }
 
-                        //cooldwon aura
-                        caster->CastSpell(caster, 63853, true);
-                        break;
+                            //cooldwon aura
+                            caster->CastSpell(caster, 63853, true);
+                            break;
+                        }
+                        default:
+                            sLog.outError("Changes in R-dummy spell???: effect 3");
+                            break;
                     }
-                    default:
-                        sLog.outError("Changes in R-dummy spell???: effect 3");
-                        break;
                 }
             }
         }
@@ -7507,7 +7535,6 @@ bool Aura::IsCritFromAbilityAura(Unit* caster, uint32& damage)
     return false;
 }
 
-
 void Aura::HandleAuraAddCreatureImmunity(bool Apply, bool Real)
 {
     if (!Real)
@@ -7549,4 +7576,12 @@ void Aura::HandleAuraAddCreatureImmunity(bool Apply, bool Real)
     {
         m_target->ApplySpellImmune(GetId(),IMMUNITY_STATE,*iter,Apply);
     }
+}
+
+void Aura::HandleModTargetArmorPct(bool apply, bool Real)
+{
+    if(m_target->GetTypeId() != TYPEID_PLAYER)
+        return;
+
+    ((Player*)m_target)->UpdateArmorPenetration();
 }

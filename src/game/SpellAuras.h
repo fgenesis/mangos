@@ -211,8 +211,9 @@ class MANGOS_DLL_SPEC Aura
         void HandleAuraIncreaseBaseHealthPercent(bool Apply, bool Real);
         void HandleNoReagentUseAura(bool Apply, bool Real);
         void HandlePhase(bool Apply, bool Real);
-        void HandleAllowOnlyAbility(bool Apply, bool Real);
         void HandleAuraAddCreatureImmunity(bool Apply, bool Real);
+        void HandleModTargetArmorPct(bool Apply, bool Real);
+        void HandleAllowOnlyAbility(bool Apply, bool Real);
 
         virtual ~Aura();
 
@@ -314,6 +315,7 @@ class MANGOS_DLL_SPEC Aura
         bool _RemoveAura();
 
         bool IsEffectStacking();
+        bool IsStacking() { return m_stacking; }
 
         bool IsSingleTarget() {return m_isSingleTargetAura;}
         void SetIsSingleTarget(bool val) { m_isSingleTargetAura = val;}
@@ -346,6 +348,7 @@ class MANGOS_DLL_SPEC Aura
         void PeriodicDummyTick();
 
         bool IsCritFromAbilityAura(Unit* caster, uint32& damage);
+        void ReapplyAffectedPassiveAuras(Unit* target);
 
         Modifier m_modifier;
         SpellModifier *m_spellmod;
