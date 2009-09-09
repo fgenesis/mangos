@@ -358,7 +358,7 @@ bool StartDB(std::string &dbstring)
     }
 
     if(!loginDatabase.CheckRequiredField("realmd_db_version",REVISION_DB_REALMD))
-        return false;
+    {} //    return false; // FG: do nothing
 
     return true;
 }

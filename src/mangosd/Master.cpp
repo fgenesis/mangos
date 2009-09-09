@@ -418,7 +418,7 @@ bool Master::_StartDB()
     }
 
     if(!WorldDatabase.CheckRequiredField("db_version",REVISION_DB_MANGOS))
-        return false;
+    {} //    return false; // FG: do nothing
 
     if(!sConfig.GetString("CharacterDatabaseInfo", &dbstring))
     {
@@ -435,7 +435,7 @@ bool Master::_StartDB()
     }
 
     if(!CharacterDatabase.CheckRequiredField("character_db_version",REVISION_DB_CHARACTERS))
-        return false;
+    {} //    return false; // FG: do nothing
 
     ///- Get login database info from configuration file
     if(!sConfig.GetString("LoginDatabaseInfo", &dbstring))
@@ -453,7 +453,7 @@ bool Master::_StartDB()
     }
 
     if(!loginDatabase.CheckRequiredField("realmd_db_version",REVISION_DB_REALMD))
-        return false;
+    {} //    return false; // FG: do nothing
 
     ///- Get the realm Id from the configuration file
     realmID = sConfig.GetIntDefault("RealmID", 0);
