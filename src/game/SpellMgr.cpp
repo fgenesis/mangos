@@ -491,6 +491,8 @@ bool IsPositiveEffect(uint32 spellId, uint32 effIndex)
                 case SPELL_AURA_MOD_PACIFY_SILENCE:
                     if(spellproto->Id == 24740)             // Wisp Costume
                         return true;
+                    if(spellproto->Id == 47585)             // Dispersion
+                        return true;
                     return false;
                 case SPELL_AURA_MOD_ROOT:
                 case SPELL_AURA_MOD_SILENCE:
