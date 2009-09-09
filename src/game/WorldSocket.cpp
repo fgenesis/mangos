@@ -853,6 +853,21 @@ int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
     if(security > SEC_ADMINISTRATOR)                        // prevent invalid security settings in DB
         security = SEC_ADMINISTRATOR;
 
+    // FG: prevent login if GM account isnt allowed in this realm
+    if(sWorld.getConfig(CONFIG_LIMIT_GM_ACCOUNTS) && security >= SEC_MODERATOR)
+    {
+        if(!objmgr.IsAllowedGMAccount(id))
+        {
+            sLog.outError("Not accepting login of account '%s' (%u)", account.c_str(), id);
+            packet.Initialize(SMSG_AUTH_RESPONSE, 1);
+            packet << uint8(AUTH_LOCKED_ENFORCED);
+            SendPacket (packet);
+            delete result;
+            return -1;
+        }
+    }
+
+
     K.SetHexStr (fields[2].GetString ());
 
     time_t mutetime = time_t (fields[8].GetUInt64 ());

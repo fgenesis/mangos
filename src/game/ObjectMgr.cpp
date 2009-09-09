@@ -8045,6 +8045,36 @@ SpecialChannel ObjectMgr::GetSpecialChan(std::string name)
     return SpecialChannel(); // invalid special channel
 }
 
+void ObjectMgr::LoadAllowedGMAccounts(void)
+{
+    sLog.outString("FG: Loading allowed GM accounts...");
+    mAllowedGMAccs.clear();
+    QueryResult *result = CharacterDatabase.PQuery("SELECT id FROM allowed_gm_accounts");
+    uint32 count = 0;
+    if(result)
+    {
+        barGoLink bar(result->GetRowCount());
+        do
+        {
+            Field *fields = result->Fetch();
+            mAllowedGMAccs.insert(fields[0].GetUInt32());
+            bar.step();
+            count++;
+        }
+        while(result->NextRow());
+
+        sLog.outString(">> FG: Loaded %u allowed GM accounts", count);
+        delete result;
+    }
+    else
+        sLog.outError("FG: Can't load allowed GM accounts!");
+}
+
+bool ObjectMgr::IsAllowedGMAccount(uint32 id)
+{
+    return mAllowedGMAccs.find(id) != mAllowedGMAccs.end();
+}
+
 CreatureInfo const* GetCreatureTemplateStore(uint32 entry)
 {
     return sCreatureStorage.LookupEntry<CreatureInfo>(entry);

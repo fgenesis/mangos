@@ -787,6 +787,8 @@ class ObjectMgr
         void LoadCustomInstanceResetTimes(void);
         void LoadSpecialChannels(void);
         SpecialChannel GetSpecialChan(std::string);
+        void LoadAllowedGMAccounts(void);
+        bool IsAllowedGMAccount(uint32);
 
 
         void LoadScriptNames();
@@ -928,6 +930,8 @@ class ObjectMgr
 
         // FG: storage for special channels
         std::map<std::string, SpecialChannel> mSpecialChannels;
+        // FG: sotrage for all allowed GM accs
+        std::set<uint32> mAllowedGMAccs;
 };
 
 #define objmgr MaNGOS::Singleton<ObjectMgr>::Instance()
