@@ -6052,7 +6052,10 @@ void Spell::EffectSummonObject(uint32 i)
     if(uint64 guid = m_caster->m_ObjectSlot[slot])
     {
         if(GameObject* obj = m_caster ? m_caster->GetMap()->GetGameObject(guid) : NULL)
-            obj->SetLootState(GO_JUST_DEACTIVATED);
+            if (obj->GetSpellId() == 48018)
+                m_caster->RemoveGameObject(obj, true);
+            else
+                obj->SetLootState(GO_JUST_DEACTIVATED);
         m_caster->m_ObjectSlot[slot] = 0;
     }
 
