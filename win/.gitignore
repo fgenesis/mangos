@@ -15,5 +15,6 @@
 *.idb
 *.pdb
 *.sdf
+*.sln.cache
 ipch
 

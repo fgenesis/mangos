@@ -2602,7 +2602,8 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
             if (GetId() == 53563)
             {
                 if(apply)
-                    caster->CastSpell(m_target,53651,true,NULL,this,GetCasterGUID());
+                    // original caster must be target (beacon)
+                    m_target->CastSpell(m_target,53651,true,NULL,this,m_target->GetGUID());
                 else
                     m_target->RemoveAurasDueToSpell(53651);
                 return;
@@ -3236,22 +3237,28 @@ void Aura::HandleAuraTransform(bool apply, bool Real)
         }
         else
         {
+            uint32 model_id;
+
             CreatureInfo const * ci = objmgr.GetCreatureTemplate(m_modifier.m_miscvalue);
             if (!ci)
             {
-                                                            //pig pink ^_^
-                m_target->SetDisplayId(16358);
+                model_id = 16358;                           // pig pink ^_^
                 sLog.outError("Auras: unknown creature id = %d (only need its modelid) Form Spell Aura Transform in Spell ID = %d", m_modifier.m_miscvalue, GetId());
             }
             else
-            {
-                                                            // Will use the default model here
-                m_target->SetDisplayId(ci->DisplayID_A[0]);
+                model_id = ci->DisplayID_A[0];              // Will use the default model here
 
-                // Dragonmaw Illusion (set mount model also)
-                if(GetId()==42016 && m_target->GetMountID() && !m_target->GetAurasByType(SPELL_AURA_MOD_INCREASE_FLIGHT_SPEED).empty())
-                    m_target->SetUInt32Value(UNIT_FIELD_MOUNTDISPLAYID,16314);
-            }
+            // Polymorph (sheep/penguin case)
+            if (GetSpellProto()->SpellFamilyName == SPELLFAMILY_MAGE && GetSpellProto()->SpellIconID == 82)
+                if (Unit* caster = GetCaster())
+                    if (caster->HasAura(52648))             // Glyph of the Penguin
+                        model_id = 26452;
+
+            m_target->SetDisplayId(model_id);
+
+            // Dragonmaw Illusion (set mount model also)
+            if(GetId()==42016 && m_target->GetMountID() && !m_target->GetAurasByType(SPELL_AURA_MOD_INCREASE_FLIGHT_SPEED).empty())
+                m_target->SetUInt32Value(UNIT_FIELD_MOUNTDISPLAYID,16314);
         }
 
         // update active transform spell only not set or not overwriting negative by positive case
