@@ -3554,6 +3554,7 @@ bool Unit::AddAura(Aura *Aur)
         return false;
     }
 
+    // m_auraname can be modified to SPELL_AURA_NONE for area auras, this expected for this value
     AuraType aurName = Aur->GetModifier()->m_auraname;
 
     spellEffectPair spair = spellEffectPair(Aur->GetId(), Aur->GetEffIndex());
@@ -3582,10 +3583,15 @@ bool Unit::AddAura(Aura *Aur)
                 }
 
                 bool stop = false;
-                switch(aurName)
+
+                // m_auraname can be modified to SPELL_AURA_NONE for area auras, use original
+                AuraType aurNameReal = AuraType(aurSpellInfo->EffectApplyAuraName[Aur->GetEffIndex()]);
+
+                switch(aurNameReal)
                 {
                     // DoT/HoT/etc
-                    case SPELL_AURA_PERIODIC_DAMAGE:        // allow stack
+                    case SPELL_AURA_DUMMY:                  // allow stack
+                    case SPELL_AURA_PERIODIC_DAMAGE:
                     case SPELL_AURA_PERIODIC_DAMAGE_PERCENT:
                     case SPELL_AURA_PERIODIC_LEECH:
                     case SPELL_AURA_PERIODIC_HEAL:
@@ -3927,6 +3933,22 @@ void Unit::RemoveAurasByCasterSpell(uint32 spellId, uint64 casterGUID)
         Aura *aur = iter->second;
         if (aur->GetId() == spellId && aur->GetCasterGUID() == casterGUID)
             RemoveAura(iter);
+        else
+            ++iter;
+    }
+}
+
+void Unit::RemoveAurasByCasterSpell(uint32 spellId, uint32 effindex, uint64 casterGUID)
+{
+    spellEffectPair spair = spellEffectPair(spellId, effindex);
+    for(AuraMap::iterator iter = m_Auras.lower_bound(spair); iter != m_Auras.upper_bound(spair);)
+    {
+        Aura *aur = iter->second;
+        if (aur->GetId() == spellId && aur->GetCasterGUID() == casterGUID)
+        {
+            RemoveAura(iter);
+            iter = m_Auras.lower_bound(spair);
+        }
         else
             ++iter;
     }
@@ -5304,7 +5326,7 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                     }
 
                     CastSpell(this, 28682, true, castItem, triggeredByAura);
-                    return (procEx & PROC_EX_CRITICAL_HIT);// charge update only at crit hits, no hidden cooldowns
+                    return (procEx & PROC_EX_CRITICAL_HIT); // charge update only at crit hits, no hidden cooldowns
                 }
             }
             break;
@@ -6028,22 +6050,33 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                     if (GetGUID() == triggeredByAura->GetCasterGUID())
                         return false;
 
+                    // beacon
                     Unit* beacon = triggeredByAura->GetCaster();
                     if (!beacon)
                         return false;
 
-                    Aura* dummy = beacon->GetDummyAura(53563);
+                    // find caster main aura at beacon
+                    Aura* dummy = NULL;
+                    Unit::AuraList const& baa = beacon->GetAurasByType(SPELL_AURA_DUMMY);
+                    for(Unit::AuraList::const_iterator i = baa.begin(); i != baa.end(); ++i)
+                    {
+                        if ((*i)->GetId() == 53563 && (*i)->GetCasterGUID() == pVictim->GetGUID())
+                        {
+                            dummy = (*i);
+                            break;
+                        }
+                    }
+
+                    // original heal must be form beacon caster 
                     if (!dummy)
                         return false;
 
-                    // original heal must be form beacon caster 
-                    if (dummy->GetCasterGUID() != pVictim->GetGUID())
-                        return false;
-
-                    triggered_spell_id = 53652; // Beacon of Light
+                    triggered_spell_id = 53652;             // Beacon of Light
                     basepoints0 = triggeredByAura->GetModifier()->m_amount*damage/100;
-                    target = beacon;
-                    break;
+
+                    // cast with original caster set but beacon to beacon for apply caster mods and avoid LoS check
+                    beacon->CastCustomSpell(beacon,triggered_spell_id,&basepoints0,NULL,NULL,true,castItem,triggeredByAura,pVictim->GetGUID());
+                    return true;
                 }
                 // Seal of the Martyr do damage trigger
                 case 53720:
@@ -6891,6 +6924,13 @@ bool Unit::HandleProcTriggerSpell(Unit *pVictim, uint32 damage, Aura* triggeredB
                 break;
             }
             case SPELLFAMILY_HUNTER:
+                // Piercing Shots
+                if (auraSpellInfo->SpellIconID == 3247 && auraSpellInfo->SpellVisual[0] == 0)
+                {
+                    basepoints[0] = damage * triggerAmount / 100 / 8;
+                    trigger_spell_id = 63468;
+                    target = pVictim;
+                }
                 break;
             case SPELLFAMILY_PALADIN:
             {
