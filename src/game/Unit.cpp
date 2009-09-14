@@ -4804,6 +4804,10 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                 case 9799:
                 case 25988:
                 {
+                    // FG: fix for rank 2 - silly typo by blizz - DBC bug
+                    if(dummySpell->Id == 25988)
+                        triggerAmount = 10;
+
                     // return damage % to attacker but < 50% own total health
                     basepoints0 = triggerAmount*int32(damage)/100;
                     if(basepoints0 > GetMaxHealth()/2)
@@ -5859,6 +5863,8 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                 // Judgement of Light
                 case 20185:
                 {
+                    // FG: -- edit--
+                    /* // PRE- 3.2 formula
                     // Get judgement caster
                     Unit *caster = triggeredByAura->GetCaster();
                     if (!caster)
@@ -5867,6 +5873,11 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                     int32 holy = caster->SpellBaseDamageBonus(SPELL_SCHOOL_MASK_HOLY) +
                                  caster->SpellBaseDamageBonusForVictim(SPELL_SCHOOL_MASK_HOLY, this);
                     basepoints0 = int32(ap*0.10f + 0.10f*holy);
+                    */
+                    // FG: 3.2 formula
+                    basepoints0 = int32(pVictim->GetMaxHealth() * 0.02f);
+                    // FG: --edit-end--
+
                     pVictim->CastCustomSpell(pVictim, 20267, &basepoints0, NULL, NULL, true, NULL, triggeredByAura);
                     return true;
                 }
