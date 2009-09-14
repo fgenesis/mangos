@@ -696,9 +696,37 @@ class MANGOS_DLL_SPEC Creature : public Unit
         bool isActiveObject() const { return m_isActiveObject || HasAuraType(SPELL_AURA_BIND_SIGHT) || HasAuraType(SPELL_AURA_FAR_SIGHT); }
         void SetActiveObjectState(bool on);
 
+        
+        void IncrementReceivedDamage(Unit* pAttacker, uint32 unDamage) 
+        {
+            if(!pAttacker || !unDamage)
+                return;
+
+            if(pAttacker->GetCharmerOrOwnerPlayerOrPlayerItself())
+            {
+                m_unPlayerDamageDone += unDamage;
+                    return;
+            }
+            else if(pAttacker->GetTypeId() == TYPEID_UNIT)
+            {
+                //some conditions can be placed here
+                m_unUnitDamageDone += unDamage;
+                return;
+            }
+        }
+        bool AreLootAndRewardAllowed() { return (m_unPlayerDamageDone > m_unUnitDamageDone); }
+        void ResetObtainedDamage() 
+        {
+            m_unPlayerDamageDone = 0;
+            m_unUnitDamageDone = 0;
+        }
+
     protected:
         bool CreateFromProto(uint32 guidlow,uint32 Entry,uint32 team, const CreatureData *data = NULL);
         bool InitEntry(uint32 entry, uint32 team=ALLIANCE, const CreatureData* data=NULL);
+
+        uint32 m_unPlayerDamageDone;
+        uint32 m_unUnitDamageDone;
 
         // vendor items
         VendorItemCounts m_vendorItemCounts;
