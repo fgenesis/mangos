@@ -6589,8 +6589,9 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
             if (dummySpell->SpellIconID == 2797)
             {
                 // Don't remove stun aura at damage taken from diseases
-                if (!procSpell || GetAllSpellMechanicMask(procSpell) & (1 << MECHANIC_INFECTED))
+                if (procSpell && (GetAllSpellMechanicMask(procSpell) & (1 << MECHANIC_INFECTED)))
                     return false;
+
                 break;
             }
             break;
