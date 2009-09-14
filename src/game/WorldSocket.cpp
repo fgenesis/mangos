@@ -43,6 +43,9 @@
 #include "Log.h"
 #include "WorldLog.h"
 
+// FG
+#include "ObjectMgr.h"
+
 #if defined( __GNUC__ )
 #pragma pack(1)
 #else
