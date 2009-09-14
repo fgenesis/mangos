@@ -2694,6 +2694,11 @@ void Spell::EffectHealPct( uint32 /*i*/ )
         if (!caster)
             return;
 
+        // FG: HACKFIX for DK Glyph of Rune Tap: should only affect party, and not caster himself
+        if(m_spellInfo->Id == 59754 && unitTarget == caster)
+            return;
+
+
         uint32 addhealth = unitTarget->GetMaxHealth() * damage / 100;
         if (Player* modOwner = m_caster->GetSpellModOwner())
             modOwner->ApplySpellMod(m_spellInfo->Id, SPELLMOD_DAMAGE, addhealth, this);
