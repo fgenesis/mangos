@@ -5231,7 +5231,7 @@ void Aura::HandleComprehendLanguage(bool apply, bool /*Real*/)
 
 void Aura::HandleAuraModIncreaseHealth(bool apply, bool Real)
 {
-    UnitModifier value_or_pct = TOTAL_VALUE;
+    UnitModifierType value_or_pct = TOTAL_VALUE;
     // Special case with temporary increase max/current health
     switch(GetId())
     {
@@ -5268,6 +5268,7 @@ void Aura::HandleAuraModIncreaseHealth(bool apply, bool Real)
         }
         case 55233:                                         // Vampiric Blood
             value_or_pct = TOTAL_PCT;
+            break;
     }
 
     // generic case
