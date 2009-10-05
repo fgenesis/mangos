@@ -10333,6 +10333,9 @@ float Unit::ApplyTotalThreatModifier(float threat, SpellSchoolMask schoolMask)
 
 void Unit::AddThreat(Unit* pVictim, float threat, SpellSchoolMask schoolMask, SpellEntry const *threatSpell)
 {
+    if(!pVictim)
+        return;
+
     // Only mobs can manage threat lists
     if(CanHaveThreatList())
         m_ThreatManager.addThreat(pVictim, threat, schoolMask, threatSpell);
