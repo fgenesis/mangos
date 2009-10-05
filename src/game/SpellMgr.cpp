@@ -1599,6 +1599,11 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                 // Beacon of Light and Light's Beacon
                 if ((spellInfo_1->SpellIconID == 3032) && (spellInfo_2->SpellIconID == 3032))
                     return false;
+
+                // Concentration Aura & Improved Concentration Aura
+                if( (spellId_1 == 19746 && spellId_2 == 63510) || (spellId_1 == 63510 && spellId_2 == 19746) )
+                    return false;
+
             }
 
             // Combustion and Fire Protection Aura (multi-family check)
