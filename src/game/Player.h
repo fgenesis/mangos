@@ -1044,6 +1044,8 @@ class MANGOS_DLL_SPEC Player : public Unit
         bool CanInteractWithNPCs(bool alive = true) const;
         GameObject* GetGameObjectIfCanInteractWith(uint64 guid, GameobjectTypes type) const;
 
+        void UpdateVisibilityForPlayer();
+
         bool ToggleAFK();
         bool ToggleDND();
         bool isAFK() const { return HasFlag(PLAYER_FLAGS,PLAYER_FLAGS_AFK); };
@@ -1374,6 +1376,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         void SetInGameTime( uint32 time ) { m_ingametime = time; };
 
         void AddTimedQuest( uint32 quest_id ) { m_timedquests.insert(quest_id); }
+        void RemoveTimedQuest( uint32 quest_id ) { m_timedquests.erase(quest_id); }
 
         /*********************************************************/
         /***                   LOAD SYSTEM                     ***/
@@ -2217,17 +2220,21 @@ class MANGOS_DLL_SPEC Player : public Unit
         bool isAllowedToLoot(Creature* creature);
 
         DeclinedName const* GetDeclinedNames() const { return m_declinedname; }
+
+        // Rune functions, need check  getClass() == CLASS_DEATH_KNIGHT before access
         uint8 GetRunesState() const { return m_runes->runeState; }
-        uint8 GetBaseRune(uint8 index) const { return m_runes->runes[index].BaseRune; }
-        uint8 GetCurrentRune(uint8 index) const { return m_runes->runes[index].CurrentRune; }
+        RuneType GetBaseRune(uint8 index) const { return RuneType(m_runes->runes[index].BaseRune); }
+        RuneType GetCurrentRune(uint8 index) const { return RuneType(m_runes->runes[index].CurrentRune); }
         uint16 GetRuneCooldown(uint8 index) const { return m_runes->runes[index].Cooldown; }
-        void SetBaseRune(uint8 index, uint8 baseRune) { m_runes->runes[index].BaseRune = baseRune; }
-        void SetCurrentRune(uint8 index, uint8 currentRune) { m_runes->runes[index].CurrentRune = currentRune; }
+        bool IsBaseRuneSlotsOnCooldown(RuneType runeType) const;
+        void SetBaseRune(uint8 index, RuneType baseRune) { m_runes->runes[index].BaseRune = baseRune; }
+        void SetCurrentRune(uint8 index, RuneType currentRune) { m_runes->runes[index].CurrentRune = currentRune; }
         void SetRuneCooldown(uint8 index, uint16 cooldown) { m_runes->runes[index].Cooldown = cooldown; m_runes->SetRuneState(index, (cooldown == 0) ? true : false); }
-        void ConvertRune(uint8 index, uint8 newType);
+        void ConvertRune(uint8 index, RuneType newType);
         void ResyncRunes(uint8 count);
         void AddRunePower(uint8 index);
         void InitRunes();
+
         AchievementMgr& GetAchievementMgr() { return m_achievementMgr; }
         void UpdateAchievementCriteria(AchievementCriteriaTypes type, uint32 miscvalue1=0, uint32 miscvalue2=0, Unit *unit=NULL, uint32 time=0);
         bool HasTitle(uint32 bitIndex);
@@ -2302,6 +2309,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         /***                    QUEST SYSTEM                   ***/
         /*********************************************************/
 
+        //We allow only one timed quest active at the same time. Below can then be simple value instead of set.
         std::set<uint32> m_timedquests;
 
         uint64 m_divider;

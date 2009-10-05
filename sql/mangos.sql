@@ -24,7 +24,7 @@ CREATE TABLE `db_version` (
   `version` varchar(120) default NULL,
   `creature_ai_version` varchar(120) default NULL,
   `cache_id` int(10) default '0',
-  `required_8499_01_mangos_spell_elixir` bit(1) default NULL
+  `required_8573_01_mangos_mangos_string` bit(1) default NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=FIXED COMMENT='Used DB version notes';
 
 --
@@ -176,6 +176,87 @@ CREATE TABLE `areatrigger_teleport` (
 LOCK TABLES `areatrigger_teleport` WRITE;
 /*!40000 ALTER TABLE `areatrigger_teleport` DISABLE KEYS */;
 /*!40000 ALTER TABLE `areatrigger_teleport` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `battleground_events`
+--
+
+DROP TABLE IF EXISTS `battleground_events`;
+CREATE TABLE `battleground_events` (
+  `map` smallint(5) NOT NULL,
+  `event1` tinyint(3) unsigned NOT NULL,
+  `event2` tinyint(3) unsigned NOT NULL,
+  `description` varchar(255) NOT NULL,
+  PRIMARY KEY  (`map`,`event1`,`event2`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+--
+-- Dumping data for table `battleground_events`
+--
+
+LOCK TABLES `battleground_events` WRITE;
+/*!40000 ALTER TABLE `battleground_events` DISABLE KEYS */;
+INSERT INTO battleground_events (map, event1, event2, description) VALUES
+-- WS
+(489, 0, 0, 'Alliance Flag'),
+(489, 1, 0, 'Horde Flag'),
+(489, 2, 0, 'Spirit Guides'),
+(489, 254, 0, 'Doors'),
+-- AB
+(529, 0, 0, 'Stables - neutral'),
+(529, 0, 1, 'Stables - alliance contested'),
+(529, 0, 2, 'Stables - horde contested'),
+(529, 0, 3, 'Stables - alliance owned'),
+(529, 0, 4, 'Stables - horde owned'),
+(529, 1, 0, 'Blacksmith - neutral'),
+(529, 1, 1, 'Blacksmith - alliance contested'),
+(529, 1, 2, 'Blacksmith - horde contested'),
+(529, 1, 3, 'Blacksmith - alliance owned'),
+(529, 1, 4, 'Blacksmith - horde owned'),
+(529, 2, 0, 'Farm - neutral'),
+(529, 2, 1, 'Farm - alliance contested'),
+(529, 2, 2, 'Farm - horde contested'),
+(529, 2, 3, 'Farm - alliance owned'),
+(529, 2, 4, 'Farm - horde owned'),
+(529, 3, 0, 'Lumber Mill - neutral'),
+(529, 3, 1, 'Lumber Mill - alliance contested'),
+(529, 3, 2, 'Lumber Mill - horde contested'),
+(529, 3, 3, 'Lumber Mill - alliance owned'),
+(529, 3, 4, 'Lumber Mill - horde owned'),
+(529, 4, 0, 'Gold Mine - neutral'),
+(529, 4, 1, 'Gold Mine - alliance contested'),
+(529, 4, 2, 'Gold Mine - horde contested'),
+(529, 4, 3, 'Gold Mine - alliance owned'),
+(529, 4, 4, 'Gold Mine - horde owned'),
+(529, 254, 0, 'doors'),
+-- EY
+(566, 0, 0, 'Fel Reaver - alliance'),
+(566, 0, 1, 'Fel Reaver - horde'),
+(566, 0, 2, 'Fel Reaver - neutral'),
+(566, 1, 0, 'Blood Elf - alliance'),
+(566, 1, 1, 'Blood Elf - horde'),
+(566, 1, 2, 'Blood Elf - neutral'),
+(566, 2, 0, 'Draenei Ruins - alliance'),
+(566, 2, 1, 'Draenei Ruins - horde'),
+(566, 2, 2, 'Draenei Ruins - neutral'),
+(566, 3, 0, 'Mage Tower - alliance'),
+(566, 3, 1, 'Mage Tower - horde'),
+(566, 3, 2, 'Mage Tower - neutral'),
+(566, 4, 0, 'capture flag - Fel Reaver'),
+(566, 4, 1, 'capture flag - Blood Elf'),
+(566, 4, 2, 'capture flag - Draenei Ruins'),
+(566, 4, 3, 'capture flag - Mage Tower'),
+(566, 4, 4, 'capture flag - center'),
+(566, 254, 0, 'doors'),
+-- arenas
+(559, 253, 0, 'buffs'),
+(559, 254, 0, 'doors'),
+(572, 253, 0, 'buffs'),
+(572, 254, 0, 'doors'),
+(562, 253, 0, 'buffs'),
+(562, 254, 0, 'doors');
+/*!40000 ALTER TABLE `battleground_events` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -581,6 +662,27 @@ CREATE TABLE `creature_addon` (
 LOCK TABLES `creature_addon` WRITE;
 /*!40000 ALTER TABLE `creature_addon` DISABLE KEYS */;
 /*!40000 ALTER TABLE `creature_addon` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `creature_battleground`
+--
+
+DROP TABLE IF EXISTS `creature_battleground`;
+CREATE TABLE `creature_battleground` (
+    `guid` int(10) unsigned NOT NULL COMMENT 'Creature\'s GUID',
+    `event1` tinyint(3) unsigned NOT NULL COMMENT 'main event',
+    `event2` tinyint(3) unsigned NOT NULL COMMENT 'sub event',
+    PRIMARY KEY  (`guid`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='Creature battleground indexing system';
+
+--
+-- Dumping data for table `creature_battleground`
+--
+
+LOCK TABLES `creature_battleground` WRITE;
+/*!40000 ALTER TABLE `creature_battleground` DISABLE KEYS */;
+/*!40000 ALTER TABLE `creature_battleground` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -1420,6 +1522,27 @@ CREATE TABLE `gameobject` (
 LOCK TABLES `gameobject` WRITE;
 /*!40000 ALTER TABLE `gameobject` DISABLE KEYS */;
 /*!40000 ALTER TABLE `gameobject` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `gameobject_battleground`
+--
+
+DROP TABLE IF EXISTS `gameobject_battleground`;
+CREATE TABLE `gameobject_battleground` (
+    `guid` int(10) unsigned NOT NULL COMMENT 'GameObject\'s GUID',
+    `event1` tinyint(3) unsigned NOT NULL COMMENT 'main event',
+    `event2` tinyint(3) unsigned NOT NULL COMMENT 'sub event',
+    PRIMARY KEY  (`guid`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='GameObject battleground indexing system';
+
+--
+-- Dumping data for table `gameobject_battleground`
+--
+
+LOCK TABLES `gameobject_battleground` WRITE;
+/*!40000 ALTER TABLE `gameobject_battleground` DISABLE KEYS */;
+/*!40000 ALTER TABLE `gameobject_battleground` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -2893,8 +3016,6 @@ INSERT INTO `mangos_string` VALUES
 (570,'The uint32 value of %u in %u is: %u',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
 (571,'Get %u float Value:[OPCODE]:%u [VALUE]:%f',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
 (572,'The float of %u value in %u is: %f',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
-(573,'.Set32Bit:[OPCODE]:%u [VALUE]:%u',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
-(574,'You set Bit of Field:%u to Value: %u',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
 (575,'.Mod32Value:[OPCODE]:%u [VALUE]:%i',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
 (576,'You modified the value of Field:%u to Value: %u',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
 (577,'You are now invisible.',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
@@ -9746,7 +9867,7 @@ INSERT INTO `playercreateinfo_action` VALUES
 (1,1,96,6603,0),
 (1,1,108,6603,0),
 (1,2,0,6603,0),
-(1,2,1,20154,0),
+(1,2,1,21084,0),
 (1,2,2,635,0),
 (1,2,9,59752,0),
 (1,2,10,159,128),
@@ -9833,7 +9954,7 @@ INSERT INTO `playercreateinfo_action` VALUES
 (3,1,96,6603,0),
 (3,1,108,6603,0),
 (3,2,0,6603,0),
-(3,2,1,20154,0),
+(3,2,1,21084,0),
 (3,2,2,635,0),
 (3,2,3,20594,0),
 (3,2,4,2481,0),
@@ -10295,7 +10416,7 @@ INSERT INTO `playercreateinfo_spell` VALUES
 (1,2,9078,'Cloth'),
 (1,2,9116,'Shield'),
 (1,2,9125,'Generic'),
-(1,2,20154,'Seal of Righteousness'),
+(1,2,21084,'Seal of Righteousness'),
 (1,2,20597,'Sword Specialization'),
 (1,2,20598,'The Human Spirit'),
 (1,2,20599,'Diplomacy'),
@@ -10882,7 +11003,7 @@ INSERT INTO `playercreateinfo_spell` VALUES
 (3,2,9078,'Cloth'),
 (3,2,9116,'Shield'),
 (3,2,9125,'Generic'),
-(3,2,20154,'Seal of Righteousness'),
+(3,2,21084,'Seal of Righteousness'),
 (3,2,20594,'Stoneform'),
 (3,2,20595,'Gun Specialization'),
 (3,2,20596,'Frost Resistance'),
@@ -12451,7 +12572,6 @@ INSERT INTO `playercreateinfo_spell` VALUES
 (10,2,22810,'Opening - No Text'),
 (10,2,27762,'Libram'),
 (10,2,28730,'Arcane Torrent'),
-(10,2,28734,'Mana Tap'),
 (10,2,28877,'Arcane Affinity'),
 (10,3,75,'Auto Shot'),
 (10,3,81,'Dodge'),
@@ -12488,7 +12608,6 @@ INSERT INTO `playercreateinfo_spell` VALUES
 (10,3,22810,'Opening - No Text'),
 (10,3,24949,'Defensive State 2 (DND)'),
 (10,3,28730,'Arcane Torrent'),
-(10,3,28734,'Mana Tap'),
 (10,3,28877,'Arcane Affinity'),
 (10,3,34082,'Advantaged State (DND)'),
 (10,4,81,'Dodge'),
@@ -12527,7 +12646,6 @@ INSERT INTO `playercreateinfo_spell` VALUES
 (10,4,22027,'Remove Insignia'),
 (10,4,22810,'Opening - No Text'),
 (10,4,25046,'Arcane Torrent'),
-(10,4,28734,'Mana Tap'),
 (10,4,28877,'Arcane Affinity'),
 (10,5,81,'Dodge'),
 (10,5,198,'One-Handed Maces'),
@@ -12562,7 +12680,6 @@ INSERT INTO `playercreateinfo_spell` VALUES
 (10,5,22027,'Remove Insignia'),
 (10,5,22810,'Opening - No Text'),
 (10,5,28730,'Arcane Torrent'),
-(10,5,28734,'Mana Tap'),
 (10,5,28877,'Arcane Affinity'),
 (10,6,81,'Dodge'),
 (10,6,196,'One-Handed Axes'),
@@ -12664,7 +12781,6 @@ INSERT INTO `playercreateinfo_spell` VALUES
 (10,8,22027,'Remove Insignia'),
 (10,8,22810,'Opening - No Text'),
 (10,8,28730,'Arcane Torrent'),
-(10,8,28734,'Mana Tap'),
 (10,8,28877,'Arcane Affinity'),
 (10,9,81,'Dodge'),
 (10,9,203,'Unarmed'),
@@ -12699,7 +12815,6 @@ INSERT INTO `playercreateinfo_spell` VALUES
 (10,9,22027,'Remove Insignia'),
 (10,9,22810,'Opening - No Text'),
 (10,9,28730,'Arcane Torrent'),
-(10,9,28734,'Mana Tap'),
 (10,9,28877,'Arcane Affinity'),
 (10,9,58284,'Chaos Bolt Passive'),
 (11,1,78,'Heroic Strike'),
@@ -13659,6 +13774,7 @@ INSERT INTO `spell_bonus_data` VALUES
 (20925, 0.09,   0,       0.056, 'Paladin - Holy Shield'),
 (31803, 0,      0.0156,  0.03,  'Paladin - Holy Vengeance'),
 (2812,  0.07,   0,       0.07,  'Paladin - Holy Wrath'),
+(54158, 0.25,   0,       0,     'Paladin - Judgement'),
 (31898, 0.18,   0,       0.11,  'Paladin - Judgement of Blood Enemy'), 
 (32220, 0.0594, 0,       0.0363,'Paladin - Judgement of Blood Self'),
 (20467, 0.25,   0,       0.16,  'Paladin - Judgement of Command'),
@@ -17929,6 +18045,7 @@ INSERT INTO `spell_proc_event` VALUES
 (56344, 0x00000000,  9, 0x00004000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0.000000, 0.000000,  0),
 (56355, 0x00000000,  0, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000040, 0.000000, 0.000000,  0),
 (56364, 0x00000000,  3, 0x00000000, 0x01000000, 0x00000000, 0x00000000, 0x00000000, 0.000000, 0.000000,  0),
+(56372, 0x00000000,  3, 0x00000000, 0x00000080, 0x00000000, 0x00004000, 0x00000000, 0.000000, 0.000000,  0),
 (56451, 0x00000000,  0, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0.000000, 0.000000,  3),
 (56611, 0x00000000,  0, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000002, 0.000000, 0.000000,  0),
 (56612, 0x00000000,  0, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000002, 0.000000, 0.000000,  0),
@@ -17942,6 +18059,8 @@ INSERT INTO `spell_proc_event` VALUES
 (56834, 0x00000000, 15, 0x00440000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0.000000, 0.000000,  0),
 (56835, 0x00000000, 15, 0x00440000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0.000000, 0.000000,  0),
 (57352, 0x00000000,  0, 0x00000000, 0x00000000, 0x00000000, 0x00010154, 0x00000003, 0.000000, 0.000000, 45),
+(57470, 0x00000000,  6, 0x00000001, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0.000000, 0.000000,  0),
+(57472, 0x00000000,  6, 0x00000001, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0.000000, 0.000000,  0),
 (57878, 0x00000000,  0, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000010, 0.000000, 0.000000,  0),
 (57880, 0x00000000,  0, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000010, 0.000000, 0.000000,  0),
 (57881, 0x00000000,  0, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000010, 0.000000, 0.000000,  0),

@@ -156,7 +156,9 @@ inline bool IsSealSpell(SpellEntry const *spellInfo)
 {
     //Collection of all the seal family flags. No other paladin spell has any of those.
     return spellInfo->SpellFamilyName == SPELLFAMILY_PALADIN &&
-        ( spellInfo->SpellFamilyFlags & SPELLFAMILYFLAG_PALADIN_SEALS );
+        ( spellInfo->SpellFamilyFlags & SPELLFAMILYFLAG_PALADIN_SEALS ) &&
+        // avoid counting target triggered effect as seal for avoid remove it or seal by it.
+        spellInfo->EffectImplicitTargetA[0] == TARGET_SELF;
 }
 
 inline bool IsElementalShield(SpellEntry const *spellInfo)
@@ -196,6 +198,12 @@ inline bool IsPassiveSpellStackableWithRanks(SpellEntry const* spellProto)
     return !IsSpellHaveEffect(spellProto,SPELL_EFFECT_APPLY_AURA);
 }
 
+inline bool IsDeathOnlySpell(SpellEntry const *spellInfo)
+{
+    return spellInfo->AttributesEx & SPELL_ATTR_EX3_CAST_ON_DEAD
+        || spellInfo->Id == 2584
+        || spellInfo->Id == 22011;
+}
 
 inline bool IsDeathPersistentSpell(SpellEntry const *spellInfo)
 {

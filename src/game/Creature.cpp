@@ -37,6 +37,7 @@
 #include "WaypointMovementGenerator.h"
 #include "InstanceData.h"
 #include "BattleGroundMgr.h"
+#include "Spell.h"
 #include "Util.h"
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
@@ -159,9 +160,13 @@ void Creature::RemoveCorpse()
 
     m_deathTimer = 0;
     setDeathState(DEAD);
-    ObjectAccessor::UpdateObjectVisibility(this);
+    UpdateObjectVisibility();
     loot.clear();
-    m_respawnTime = time(NULL) + m_respawnDelay;
+    uint32 respawnDelay = m_respawnDelay;
+    if (AI())
+        AI()->CorpseRemoved(respawnDelay);
+
+    m_respawnTime = time(NULL) + respawnDelay;
 
     float x,y,z,o;
     GetRespawnCoord(x, y, z, &o);
@@ -336,6 +341,15 @@ void Creature::Update(uint32 diff)
             break;
         case DEAD:
         {
+            if (isSpiritService())
+            {
+                Unit::Update( diff );
+                // do not allow the AI to be changed during update
+                m_AI_locked = true;
+                i_AI->UpdateAI(diff);
+                m_AI_locked = false;
+                break;                                      // they don't should respawn
+            }
             if( m_respawnTime <= time(NULL) )
             {
                 DEBUG_LOG("Respawning...");
@@ -360,9 +374,6 @@ void Creature::Update(uint32 diff)
                 }
                 else
                     setDeathState( JUST_ALIVED );
-
-                if(GetMap()->IsBattleGround() && ((BattleGroundMap*)GetMap())->GetBG())
-                    ((BattleGroundMap*)GetMap())->GetBG()->OnCreatureRespawn(this); // for alterac valley needed to adjust the correct level again
 
                 //Call AI respawn virtual function
                 i_AI->JustRespawned();
@@ -1462,6 +1473,7 @@ void Creature::DeleteFromDB()
     WorldDatabase.PExecuteLog("DELETE FROM creature_movement WHERE id = '%u'", m_DBTableGuid);
     WorldDatabase.PExecuteLog("DELETE FROM game_event_creature WHERE guid = '%u'", m_DBTableGuid);
     WorldDatabase.PExecuteLog("DELETE FROM game_event_model_equip WHERE guid = '%u'", m_DBTableGuid);
+    WorldDatabase.PExecuteLog("DELETE FROM creature_battleground WHERE guid = '%u'", m_DBTableGuid);
     WorldDatabase.CommitTransaction();
 }
 
@@ -1541,12 +1553,15 @@ void Creature::setDeathState(DeathState s)
         SetHealth(GetMaxHealth());
         SetLootRecipient(NULL);
         ResetObtainedDamage();
-        Unit::setDeathState(ALIVE);
         CreatureInfo const *cinfo = GetCreatureInfo();
         SetUInt32Value(UNIT_DYNAMIC_FLAGS, 0);
         RemoveFlag (UNIT_FIELD_FLAGS, UNIT_FLAG_SKINNABLE);
         AddMonsterMoveFlag(MONSTER_MOVE_WALK);
         SetUInt32Value(UNIT_NPC_FLAGS, cinfo->npcflag);
+        if (!isSpiritService())
+            Unit::setDeathState(ALIVE);
+        else
+            Unit::setDeathState(DEAD);
         clearUnitState(UNIT_STAT_ALL_STATE);
         i_motionMaster.Clear();
         SetMeleeDamageSchool(SpellSchools(cinfo->dmgschool));
@@ -1580,9 +1595,9 @@ void Creature::Respawn()
     // forced recreate creature object at clients
     UnitVisibility currentVis = GetVisibility();
     SetVisibility(VISIBILITY_RESPAWN);
-    ObjectAccessor::UpdateObjectVisibility(this);
+    UpdateObjectVisibility();
     SetVisibility(currentVis);                              // restore visibility state
-    ObjectAccessor::UpdateObjectVisibility(this);
+    UpdateObjectVisibility();
 
     if(getDeathState()==DEAD)
     {
@@ -2324,4 +2339,14 @@ void Creature::SendMonsterMoveWithSpeed(float x, float y, float z, uint32 transi
     }
     //float orientation = (float)atan2((double)dy, (double)dx);
     SendMonsterMove(x, y, z, 0, GetMonsterMoveFlags(), transitTime, player);
+}
+
+void Creature::SendAreaSpiritHealerQueryOpcode(Player *pl)
+{
+    uint32 next_resurrect = 0;
+    if (Spell* pcurSpell = GetCurrentSpell(CURRENT_CHANNELED_SPELL))
+        next_resurrect = pcurSpell->GetCastedTime();
+    WorldPacket data(SMSG_AREA_SPIRIT_HEALER_TIME, 8 + 4);
+    data << GetGUID() << next_resurrect;
+    pl->SendDirectMessage(&data);
 }

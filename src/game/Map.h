@@ -45,6 +45,7 @@ class Group;
 class InstanceSave;
 struct ScriptInfo;
 struct ScriptAction;
+class BattleGround;
 
 
 typedef ACE_RW_Thread_Mutex GridRWLock;
@@ -566,7 +567,7 @@ class MANGOS_DLL_SPEC InstanceMap : public Map
         void SetResetSchedule(bool on);
         uint32 GetMaxPlayers() const;
 
-        void InitVisibilityDistance();
+        virtual void InitVisibilityDistance();
     private:
         bool m_resetAfterUnload;
         bool m_unloadWhenEmpty;
@@ -585,7 +586,8 @@ class MANGOS_DLL_SPEC BattleGroundMap : public Map
         bool CanEnter(Player* player);
         void SetUnload();
         void UnloadAll(bool pForce);
-        void InitVisibilityDistance();
+
+        virtual void InitVisibilityDistance();
         BattleGround* GetBG() { return m_bg; }
         void SetBG(BattleGround* bg) { m_bg = bg; }
     private:

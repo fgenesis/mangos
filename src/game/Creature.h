@@ -695,7 +695,6 @@ class MANGOS_DLL_SPEC Creature : public Unit
 
         bool isActiveObject() const { return m_isActiveObject || HasAuraType(SPELL_AURA_BIND_SIGHT) || HasAuraType(SPELL_AURA_FAR_SIGHT); }
         void SetActiveObjectState(bool on);
-
         
         void IncrementReceivedDamage(Unit* pAttacker, uint32 unDamage) 
         {
@@ -720,6 +719,8 @@ class MANGOS_DLL_SPEC Creature : public Unit
             m_unPlayerDamageDone = 0;
             m_unUnitDamageDone = 0;
         }
+
+        void SendAreaSpiritHealerQueryOpcode(Player *pl);
 
     protected:
         bool CreateFromProto(uint32 guidlow,uint32 Entry,uint32 team, const CreatureData *data = NULL);

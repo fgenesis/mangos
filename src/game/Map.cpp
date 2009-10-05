@@ -211,8 +211,9 @@ Map::Map(uint32 id, time_t expiry, uint32 InstanceId, uint8 SpawnMode, Map* _par
             setNGrid(NULL, idx, j);
         }
     }
+
     //lets initialize visibility distance for map
-    InitVisibilityDistance();
+    Map::InitVisibilityDistance();
 }
 
 void Map::InitVisibilityDistance()
@@ -1086,8 +1087,7 @@ bool Map::UnloadGrid(const uint32 &x, const uint32 &y, bool pForce)
                 GridMaps[gx][gy]->unloadData();
                 delete GridMaps[gx][gy];
             }
-            // x and y are swapped
-            VMAP::VMapFactory::createOrGetVMapManager()->unloadMap(GetId(), gy, gx);
+            VMAP::VMapFactory::createOrGetVMapManager()->unloadMap(GetId(), gx, gy);
         }
         else
             ((MapInstanced*)m_parentMap)->RemoveGridMapReference(GridPair(gx, gy));
@@ -2279,6 +2279,9 @@ InstanceMap::InstanceMap(uint32 id, time_t expiry, uint32 InstanceId, uint8 Spaw
     m_resetAfterUnload(false), m_unloadWhenEmpty(false),
     i_data(NULL), i_script_id(0)
 {
+    //lets initialize visibility distance for dungeons
+    InstanceMap::InitVisibilityDistance();
+
     // the timer is started by default, and stopped when the first player joins
     // this make sure it gets unloaded if for some reason no player joins
     m_unloadTimer = std::max(sWorld.getConfig(CONFIG_INSTANCE_UNLOAD_DELAY), (uint32)MIN_UNLOAD_DELAY);
@@ -2621,6 +2624,8 @@ uint32 InstanceMap::GetMaxPlayers() const
 BattleGroundMap::BattleGroundMap(uint32 id, time_t expiry, uint32 InstanceId, Map* _parent)
   : Map(id, expiry, InstanceId, DIFFICULTY_NORMAL, _parent)
 {
+    //lets initialize visibility distance for BG/Arenas
+    BattleGroundMap::InitVisibilityDistance();
 }
 
 BattleGroundMap::~BattleGroundMap()
