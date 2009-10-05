@@ -328,6 +328,8 @@ class Spell
         void EffectEnchantItemPrismatic(uint32 i);
         void EffectSummonVehicle(uint32 i);
         void EffectDamageBuilding(uint32 i);
+        void EffectSpecCount(uint32 i);
+        void EffectActivateSpec(uint32 i);
         void EffectPlayMusic(uint32 i);
 
         Spell( Unit* Caster, SpellEntry const *info, bool triggered, uint64 originalCasterGUID = 0, Spell** triggeringContainer = NULL );
