@@ -2504,17 +2504,6 @@ void Spell::EffectApplyAura(uint32 i)
     if(!unitTarget)
         return;
 
-    // FG: DEPRECATED ***
-    // FG: shadow of death (DK talent) hackfix -- kill effect #1
-    /*if(m_spellInfo->Id == 49157 && i == 0)
-        return;
-
-    SpellImmuneList const& list = unitTarget->m_spellImmune[IMMUNITY_STATE];
-    for(SpellImmuneList::const_iterator itr = list.begin(); itr != list.end(); ++itr)
-        if(itr->type == m_spellInfo->EffectApplyAuraName[i])
-            return;
-    */
-
     // ghost spell check, allow apply any auras at player loading in ghost mode (will be cleanup after load)
     if ( (!unitTarget->isAlive() && !(IsDeathOnlySpell(m_spellInfo) || IsDeathPersistentSpell(m_spellInfo))) &&
         (unitTarget->GetTypeId() != TYPEID_PLAYER || !((Player*)unitTarget)->GetSession()->PlayerLoading()) )
@@ -3069,6 +3058,7 @@ void Spell::EffectEnergize(uint32 i)
         case 31930:                                         // Judgements of the Wise
         case 63375:                                         // Improved Stormstrike
             damage = damage * unitTarget->GetCreateMana() / 100;
+            break;
         default:
             break;
     }
