@@ -1069,6 +1069,10 @@ void Aura::_AddAura()
             // Enrage aura state
             if(m_spellProto->Dispel == DISPEL_ENRAGE)
                 m_target->ModifyAuraState(AURA_STATE_ENRAGE, true);
+
+           // Mechanic bleed aura state
+           if(GetAllSpellMechanicMask(m_spellProto) & (1 << MECHANIC_BLEED))
+               m_target->ModifyAuraState(AURA_STATE_MECHANIC_BLEED, true);
         }
     }
 }
@@ -1184,6 +1188,11 @@ bool Aura::_RemoveAura()
             removeState = AURA_STATE_FAERIE_FIRE;   // Sting (hunter versions)
 
     }
+
+    // Mechanic bleed aura state
+    if(GetAllSpellMechanicMask(m_spellProto) & (1 << MECHANIC_BLEED))
+        m_target->ModifyAuraState(AURA_STATE_MECHANIC_BLEED, false);
+
     // Remove state (but need check other auras for it)
     if (removeState)
     {
