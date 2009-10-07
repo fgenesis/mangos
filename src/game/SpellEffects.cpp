@@ -56,6 +56,8 @@
 #include "Formulas.h"
 #include "Vehicle.h"
 #include "GridNotifiers.h"
+#include "GridNotifiersImpl.h"
+#include "CellImpl.h"
 
 pEffect SpellEffects[TOTAL_SPELL_EFFECTS]=
 {
@@ -1955,6 +1957,7 @@ void Spell::EffectDummy(uint32 i)
                 return;
             }
             // Pestilence
+            /*
             else if(m_spellInfo->SpellFamilyFlags & UI64LIT(0x0001000000000000))
             {
                 if (i != 0 || m_caster->GetTypeId() != TYPEID_PLAYER)
@@ -2011,6 +2014,7 @@ void Spell::EffectDummy(uint32 i)
                 return;
             }
             break;
+            */
     }
 
     // pet auras

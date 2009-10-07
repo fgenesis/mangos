@@ -2871,11 +2871,11 @@ bool Player::AddTalent(uint32 spell_id, uint8 spec, bool learning)
         // do character spell book cleanup (all characters)
         if(!IsInWorld() && !learning)                       // spell load case
         {
-            sLog.outError("Player::addSpell: Non-existed in SpellStore spell #%u request, deleting for all characters in `character_spell`.",spell_id);
+            sLog.outError("Player::addTalent: Non-existed in SpellStore spell #%u request, deleting for all characters in `character_talent`.",spell_id);
             CharacterDatabase.PExecute("DELETE FROM character_talent WHERE spell = '%u'",spell_id);
         }
         else
-            sLog.outError("Player::addSpell: Non-existed in SpellStore spell #%u request.",spell_id);
+            sLog.outError("Player::addTalent: Non-existed in SpellStore spell #%u request.",spell_id);
 
         return false;
     }
@@ -21279,7 +21279,7 @@ void Player::ActivateSpec(uint8 spec)
             {
                 if(talentInfo->RankID[rank] != 0 && HasTalent(talentInfo->RankID[rank], m_activeSpec))
                 {
-                    removeSpell(talentInfo->RankID[rank],true);
+                    removeSpell(talentInfo->RankID[rank],true,false);
                 }
             }
         }
