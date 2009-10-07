@@ -5545,6 +5545,22 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                 return true;                                // no hidden cooldown
             }
 
+            // Body And Soul - Abolish Disease part
+            if (dummySpell->SpellIconID == 2218)
+            {
+                if(procSpell->Id != 552)
+                    return false;
+
+                //self only
+                if(triggeredByAura->GetCasterGUID() != pVictim->GetGUID())
+                    return false;
+
+                if(!roll_chance_i(triggerAmount))
+                    return false;
+
+                triggered_spell_id = 64136;
+            }
+
             // Divine Aegis
             if (dummySpell->SpellIconID == 2820)
             {
@@ -7271,6 +7287,14 @@ bool Unit::HandleProcTriggerSpell(Unit *pVictim, uint32 damage, Aura* triggeredB
             if ((pVictim->GetHealth() * 100 / pVictim->GetMaxHealth()) > aur->GetModifier()->m_amount)
                 return false;
 
+            break;
+        }
+        // Body And Soul - prevent proc from any other except Power Word: Shield
+        case 64127:
+        case 64129:
+        {
+            if (!(procSpell->SpellFamilyFlags & UI64LIT(0x0000000000000001)))
+                return false;
             break;
         }
     }
@@ -12410,6 +12434,7 @@ bool Unit::IsTriggeredAtSpellProcEvent(Unit *pVictim, Aura* aura, SpellEntry con
                 return false;
         }
     }
+
     // Get chance from spell
     float chance = (float)spellProto->procChance;
     // If in spellProcEvent exist custom chance, chance = spellProcEvent->customChance;
