@@ -296,23 +296,6 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)
         return;
     }
 
-    //<< movement anticheat fix - disallow unmount from taxi
-    if(curloc != curDest){
-        // current source node for next destination
-        uint32 sourcenode = GetPlayer()->m_taxi.GetTaxiSource();
-        uint32 mountDisplayId = objmgr.GetTaxiMountDisplayId(sourcenode, GetPlayer()->GetTeam());
-
-        uint32 path, cost;
-        objmgr.GetTaxiPath( sourcenode, curDest, path, cost);
-
-        if(path && mountDisplayId)
-            SendDoFlight( mountDisplayId, path, 1 );               // skip start fly node
-        else
-            GetPlayer()->m_taxi.ClearTaxiDestinations();    // clear problematic path and next
-        return;
-    }
-    ///<< movement anticheat
-
     uint32 destinationnode = GetPlayer()->m_taxi.NextTaxiDestination();
     if ( destinationnode > 0 )                              // if more destinations to go
     {

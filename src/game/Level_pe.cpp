@@ -431,6 +431,7 @@ bool ChatHandler::HandleReloadPECommand(const char *args)
     //objmgr.LoadAnticheatAccInfo();
     sVPlayerMgr.Reload();
     objmgr.LoadSpecialChannels();
+    objmgr.LoadAllowedGMAccounts();
 
     return true;
 }

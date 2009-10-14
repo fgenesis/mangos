@@ -45,6 +45,7 @@ class Group;
 class InstanceSave;
 struct ScriptInfo;
 struct ScriptAction;
+class BattleGround;
 
 
 typedef ACE_RW_Thread_Mutex GridRWLock;
@@ -486,6 +487,8 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>, public MaNGOS::Obj
         ActiveNonPlayers m_activeNonPlayers;
         ActiveNonPlayers::iterator m_activeNonPlayersIter;
     private:
+        time_t i_gridExpiry;
+
         //used for fast base_map (e.g. MapInstanced class object) search for
         //InstanceMaps and BattleGroundMaps...
         Map* m_parentMap;
@@ -496,8 +499,6 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>, public MaNGOS::Obj
         NGridType* i_grids[MAX_NUMBER_OF_GRIDS][MAX_NUMBER_OF_GRIDS];
         GridMap *GridMaps[MAX_NUMBER_OF_GRIDS][MAX_NUMBER_OF_GRIDS];
         std::bitset<TOTAL_NUMBER_OF_CELLS_PER_MAP*TOTAL_NUMBER_OF_CELLS_PER_MAP> marked_cells;
-
-        time_t i_gridExpiry;
 
         std::set<WorldObject *> i_objectsToRemove;
         std::multimap<time_t, ScriptAction> m_scriptSchedule;
@@ -566,7 +567,7 @@ class MANGOS_DLL_SPEC InstanceMap : public Map
         void SetResetSchedule(bool on);
         uint32 GetMaxPlayers() const;
 
-        void InitVisibilityDistance();
+        virtual void InitVisibilityDistance();
     private:
         bool m_resetAfterUnload;
         bool m_unloadWhenEmpty;
@@ -585,7 +586,8 @@ class MANGOS_DLL_SPEC BattleGroundMap : public Map
         bool CanEnter(Player* player);
         void SetUnload();
         void UnloadAll(bool pForce);
-        void InitVisibilityDistance();
+
+        virtual void InitVisibilityDistance();
         BattleGround* GetBG() { return m_bg; }
         void SetBG(BattleGround* bg) { m_bg = bg; }
     private:

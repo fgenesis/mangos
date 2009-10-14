@@ -331,7 +331,8 @@ enum MangosStrings
     LANG_CUSTOMIZE_PLAYER               = 345,
     LANG_CUSTOMIZE_PLAYER_GUID          = 346,
     LANG_COMMAND_GOTAXINODENOTFOUND     = 347,
-    // Room for more level 2              348-399 not used
+    LANG_GAMEOBJECT_HAVE_INVALID_DATA   = 348,
+    // Room for more level 2              349-399 not used
 
     // level 3 chat
     LANG_SCRIPTS_RELOADED               = 400,
@@ -532,8 +533,8 @@ enum MangosStrings
     LANG_GET_UINT_FIELD                 = 570,
     LANG_GET_FLOAT                      = 571,              //log
     LANG_GET_FLOAT_FIELD                = 572,
-    LANG_SET_32BIT                      = 573,              //log
-    LANG_SET_32BIT_FIELD                = 574,
+    //                                    573,              //not used
+    //                                    574,              //not used
     LANG_CHANGE_32BIT                   = 575,              //log
     LANG_CHANGE_32BIT_FIELD             = 576,
 

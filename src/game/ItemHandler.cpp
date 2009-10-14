@@ -25,7 +25,6 @@
 #include "Player.h"
 #include "Item.h"
 #include "UpdateData.h"
-#include "ObjectAccessor.h"
 
 void WorldSession::HandleSplitItemOpcode( WorldPacket & recv_data )
 {
@@ -853,9 +852,10 @@ void WorldSession::HandleBuyBankSlotOpcode(WorldPacket& recvPacket)
     if (_player->GetMoney() < price)
         return;
 
-    _player->GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_BUY_BANK_SLOT, slot);
     _player->SetBankBagSlotCount(slot);
     _player->ModifyMoney(-int32(price));
+
+    _player->GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_BUY_BANK_SLOT);
 }
 
 void WorldSession::HandleAutoBankItemOpcode(WorldPacket& recvPacket)
@@ -1298,7 +1298,7 @@ void WorldSession::HandleSocketOpcode(WorldPacket& recv_data)
         _player->ApplyEnchantment(itemTarget,EnchantmentSlot(enchant_slot),true);
 
     bool SocketBonusToBeActivated = itemTarget->GemsFitSockets();//current socketbonus state
-    if(SocketBonusActivated ^ SocketBonusToBeActivated)     //if there was a change...
+    if(SocketBonusActivated != SocketBonusToBeActivated)    //if there was a change...
     {
         _player->ApplyEnchantment(itemTarget,BONUS_ENCHANTMENT_SLOT,false);
         itemTarget->SetEnchantment(BONUS_ENCHANTMENT_SLOT, (SocketBonusToBeActivated ? itemTarget->GetProto()->socketBonus : 0), 0, 0);

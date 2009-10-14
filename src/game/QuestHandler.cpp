@@ -352,6 +352,12 @@ void WorldSession::HandleQuestLogRemoveQuest(WorldPacket& recv_data)
             if(!_player->TakeQuestSourceItem( quest, true ))
                 return;                                     // can't un-equip some items, reject quest cancel
 
+            if (const Quest *pQuest = objmgr.GetQuestTemplate(quest))
+            {
+                if (pQuest->HasFlag(QUEST_MANGOS_FLAGS_TIMED))
+                    _player->RemoveTimedQuest(quest);
+            }
+
             _player->SetQuestStatus( quest, QUEST_STATUS_NONE);
         }
 
@@ -383,11 +389,6 @@ void WorldSession::HandleQuestgiverCompleteQuest(WorldPacket& recv_data)
     Quest const *pQuest = objmgr.GetQuestTemplate(quest);
     if( pQuest )
     {
-        if(GetPlayer()->InBattleGround())
-            if(BattleGround* bg = GetPlayer()->GetBattleGround())
-                if(bg->GetTypeID() == BATTLEGROUND_AV)
-                    ((BattleGroundAV*)bg)->HandleQuestComplete(quest, GetPlayer());
-
         if( _player->GetQuestStatus( quest ) != QUEST_STATUS_COMPLETE )
         {
             if( pQuest->IsRepeatable() )

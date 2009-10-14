@@ -302,6 +302,18 @@ extern LanguageDesc lang_description[LANGUAGES_COUNT];
 MANGOS_DLL_SPEC LanguageDesc const* GetLanguageDescByID(uint32 lang);
 
 class PlayerDumpReader;
+// vehicle system
+#define MAX_VEHICLE_SPELLS 10
+
+struct VehicleDataStructure
+{
+    uint32 v_flags;                                         // vehicle flags, see enum CustomVehicleFLags
+    uint32 v_spells[MAX_VEHICLE_SPELLS];                    // spells
+    uint32 req_aura;                                        // requieres aura on player to enter (eg. in wintergrasp)
+};
+
+typedef UNORDERED_MAP<uint32, VehicleDataStructure> VehicleDataMap;
+typedef std::map<uint32,uint32> VehicleSeatDataMap;
 
 // FG: anticheat related
 struct AnticheatAccInfo
@@ -571,6 +583,9 @@ class ObjectMgr
         void LoadVendors();
         void LoadTrainerSpell();
 
+        void LoadVehicleData();
+        void LoadVehicleSeatData();
+
         std::string GeneratePetName(uint32 entry);
         uint32 GetBaseXP(uint32 level);
         uint32 GetXPForLevel(uint32 level);
@@ -787,6 +802,8 @@ class ObjectMgr
         void LoadCustomInstanceResetTimes(void);
         void LoadSpecialChannels(void);
         SpecialChannel GetSpecialChan(std::string);
+        void LoadAllowedGMAccounts(void);
+        bool IsAllowedGMAccount(uint32);
 
 
         void LoadScriptNames();
@@ -795,6 +812,24 @@ class ObjectMgr
         uint32 GetScriptId(const char *name);
 
         int GetOrNewIndexForLocale(LocaleConstant loc);
+
+        VehicleDataMap mVehicleData;
+        VehicleSeatDataMap mVehicleSeatData;
+
+        uint32 GetSeatFlags(uint32 seatid)
+        {
+            VehicleSeatDataMap::iterator i = mVehicleSeatData.find(seatid);
+            if(i == mVehicleSeatData.end())
+                return NULL;
+            else
+                return i->second;
+        }
+        VehicleDataStructure const* GetVehicleData(uint32 entry) const
+        {
+            VehicleDataMap::const_iterator itr = mVehicleData.find(entry);
+            if(itr==mVehicleData.end()) return NULL;
+            return &itr->second;
+        }
 
         SpellClickInfoMapBounds GetSpellClickInfoMapBounds(uint32 creature_id) const
         {
@@ -878,6 +913,7 @@ class ObjectMgr
         void CheckScripts(ScriptMapMap const& scripts,std::set<int32>& ids);
         void LoadCreatureAddons(SQLStorage& creatureaddons, char const* entryName, char const* comment);
         void ConvertCreatureAddonAuras(CreatureDataAddon* addon, char const* table, char const* guidEntryStr);
+        void ConvertCreatureAddonPassengers(CreatureDataAddon* addon, char const* table, char const* guidEntryStr);
         void LoadQuestRelationsHelper(QuestRelations& map,char const* table);
 
         typedef std::map<uint32,PetLevelInfo*> PetLevelInfoMap;
@@ -928,6 +964,8 @@ class ObjectMgr
 
         // FG: storage for special channels
         std::map<std::string, SpecialChannel> mSpecialChannels;
+        // FG: sotrage for all allowed GM accs
+        std::set<uint32> mAllowedGMAccs;
 };
 
 #define objmgr MaNGOS::Singleton<ObjectMgr>::Instance()

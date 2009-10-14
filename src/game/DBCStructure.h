@@ -41,7 +41,7 @@ struct AchievementEntry
     uint32    factionFlag;                                  // 1 -1=all, 0=horde, 1=alliance
     uint32    mapID;                                        // 2 -1=none
     //uint32 parentAchievement;                             // 3 its Achievement parent (can`t start while parent uncomplete, use its Criteria if don`t have own, use its progress on begin)
-    //char *name[16];                                       // 4-19
+    char *name[16];                                         // 4-19
     //uint32 name_flags;                                    // 20
     //char *description[16];                                // 21-36
     //uint32 desc_flags;                                    // 37
@@ -1521,7 +1521,6 @@ struct StableSlotPricesEntry
     uint32 Price;
 };
 
-/* unused currently
 struct SummonPropertiesEntry
 {
     uint32  Id;                                             // 0
@@ -1531,7 +1530,6 @@ struct SummonPropertiesEntry
     uint32  Slot;                                           // 4,                        0-6
     uint32  Flags;                                          // 5, enum SummonPropFlags
 };
-*/
 
 #define MAX_TALENT_RANK 5
 #define MAX_PET_TALENT_RANK 3                               // use in calculations, expected <= MAX_TALENT_RANK

@@ -211,8 +211,10 @@ class MANGOS_DLL_SPEC Aura
         void HandleAuraIncreaseBaseHealthPercent(bool Apply, bool Real);
         void HandleNoReagentUseAura(bool Apply, bool Real);
         void HandlePhase(bool Apply, bool Real);
-        void HandleAllowOnlyAbility(bool Apply, bool Real);
         void HandleAuraAddCreatureImmunity(bool Apply, bool Real);
+        void HandleModTargetArmorPct(bool Apply, bool Real);
+        void HandleAllowOnlyAbility(bool Apply, bool Real);
+        void HandleAuraModAllCritChance(bool Apply, bool Real);
 
         virtual ~Aura();
 
@@ -263,7 +265,7 @@ class MANGOS_DLL_SPEC Aura
             m_procCharges = charges;
             SendAuraUpdate(false);
         }
-        bool DropAuraCharge() // return true if last charge dropped
+        bool DropAuraCharge()                               // return true if last charge dropped
         {
             if (m_procCharges == 0)
                 return false;
@@ -276,6 +278,7 @@ class MANGOS_DLL_SPEC Aura
 
         void SetAura(bool remove) { m_target->SetVisibleAura(m_auraSlot, remove ? 0 : GetId()); }
         void SendAuraUpdate(bool remove);
+        void SendFakeAuraUpdate(uint32 auraId, bool remove);
 
         int8 GetStackAmount() {return m_stackAmount;}
         void SetStackAmount(uint8 num);
@@ -314,6 +317,7 @@ class MANGOS_DLL_SPEC Aura
         bool _RemoveAura();
 
         bool IsEffectStacking();
+        bool IsStacking() { return m_stacking; }
 
         bool IsSingleTarget() {return m_isSingleTargetAura;}
         void SetIsSingleTarget(bool val) { m_isSingleTargetAura = val;}
@@ -346,6 +350,7 @@ class MANGOS_DLL_SPEC Aura
         void PeriodicDummyTick();
 
         bool IsCritFromAbilityAura(Unit* caster, uint32& damage);
+        void ReapplyAffectedPassiveAuras(Unit* target);
 
         Modifier m_modifier;
         SpellModifier *m_spellmod;
@@ -387,6 +392,7 @@ class MANGOS_DLL_SPEC Aura
         uint32 m_in_use;                                    // > 0 while in Aura::ApplyModifier call/Aura::Update/etc
     private:
         void CleanupTriggeredSpells();
+        bool IsNeedVisibleSlot(Unit const* caster) const;   // helper for check req. visibility slot
 };
 
 class MANGOS_DLL_SPEC AreaAura : public Aura

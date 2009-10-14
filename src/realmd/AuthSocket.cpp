@@ -306,6 +306,8 @@ void AuthSocket::OnRead()
 /// Make the SRP6 calculation from hash in dB
 void AuthSocket::_SetVSFields(const std::string& rI)
 {
+    s.SetRand(s_BYTE_SIZE * 8);
+
     BigNumber I;
     I.SetHexStr(rI.c_str());
 
@@ -407,7 +409,7 @@ bool AuthSocket::_HandleLogonChallenge()
         ///- Get the account details from the account table
         // No SQL injection (escaped user name)
 
-        result = loginDatabase.PQuery("SELECT sha_pass_hash,id,locked,last_ip,gmlevel FROM account WHERE username = '%s'",_safelogin.c_str ());
+        result = loginDatabase.PQuery("SELECT sha_pass_hash,id,locked,last_ip,gmlevel,v,s FROM account WHERE username = '%s'",_safelogin.c_str ());
         if( result )
         {
             ///- If the IP is 'locked', check that the player comes indeed from the correct IP address
@@ -457,7 +459,21 @@ bool AuthSocket::_HandleLogonChallenge()
                 {
                     ///- Get the password from the account table, upper it, and make the SRP6 calculation
                     std::string rI = (*result)[0].GetCppString();
-                    _SetVSFields(rI);
+
+                    ///- Don't calculate (v, s) if there are already some in the database
+                    std::string databaseV = (*result)[5].GetCppString();
+                    std::string databaseS = (*result)[6].GetCppString();
+
+                    sLog.outDebug("database authentication values: v='%s' s='%s'", databaseV.c_str(), databaseS.c_str());
+
+                    // multiply with 2, bytes are stored as hexstring
+                    if(databaseV.size() != s_BYTE_SIZE*2 || databaseS.size() != s_BYTE_SIZE*2)
+                        _SetVSFields(rI);
+                    else
+                    {
+                        s.SetHexStr(databaseS.c_str());
+                        v.SetHexStr(databaseV.c_str());
+                    }
 
                     b.SetRand(19 * 8);
                     BigNumber gmod = g.ModExp(b, N);
@@ -476,9 +492,9 @@ bool AuthSocket::_HandleLogonChallenge()
                     pkt << uint8(1);
                     pkt.append(g.AsByteArray(), 1);
                     pkt << uint8(32);
-                    pkt.append(N.AsByteArray(), 32);
+                    pkt.append(N.AsByteArray(32), 32);
                     pkt.append(s.AsByteArray(), s.GetNumBytes());// 32 bytes
-                    pkt.append(unk3.AsByteArray(), 16);
+                    pkt.append(unk3.AsByteArray(16), 16);
                     uint8 securityFlags = 0;
                     pkt << uint8(securityFlags);            // security flags (0x0...0x04)
 
@@ -602,7 +618,12 @@ bool AuthSocket::_HandleLogonProof()
 
     ///- Continue the SRP6 calculation based on data received from the client
     BigNumber A;
+
     A.SetBinary(lp.A, 32);
+
+    // SRP safeguard: abort if A==0
+    if (A.isZero())
+        return false;
 
     Sha1Hash sha;
     sha.UpdateBigNumbers(&A, &B, NULL);
@@ -614,7 +635,7 @@ bool AuthSocket::_HandleLogonProof()
     uint8 t[32];
     uint8 t1[16];
     uint8 vK[40];
-    memcpy(t, S.AsByteArray(), 32);
+    memcpy(t, S.AsByteArray(32), 32);
     for (int i = 0; i < 16; ++i)
     {
         t1[i] = t[i * 2];
@@ -798,7 +819,7 @@ bool AuthSocket::_HandleReconnectChallenge()
     pkt << (uint8)  AUTH_RECONNECT_CHALLENGE;
     pkt << (uint8)  0x00;
     _reconnectProof.SetRand(16 * 8);
-    pkt.append(_reconnectProof.AsByteBuffer());             // 16 bytes random
+    pkt.append(_reconnectProof.AsByteArray(16),16);         // 16 bytes random
     pkt << (uint64) 0x00 << (uint64) 0x00;                  // 16 bytes zeros
     SendBuf((char const*)pkt.contents(), pkt.size());
     return true;
@@ -916,8 +937,6 @@ bool AuthSocket::_HandleRealmList()
 
     SendBuf((char const*)hdr.contents(), hdr.size());
 
-    // Set check field before possible relogin to realm
-    _SetVSFields(rI);
     return true;
 }
 

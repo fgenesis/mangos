@@ -25,7 +25,6 @@
 #include "Utilities/UnorderedMap.h"
 #include "Policies/ThreadingModel.h"
 
-#include "ByteBuffer.h"
 #include "UpdateData.h"
 
 #include "GridDefines.h"
@@ -142,6 +141,7 @@ class MANGOS_DLL_DECL ObjectAccessor : public MaNGOS::Singleton<ObjectAccessor, 
             else return NULL;
         }
 
+        static WorldObject* GetWorldObject(WorldObject const &, uint64);
         static Object*   GetObjectByTypeMask(WorldObject const &, uint64, uint32 typemask);
         static Creature* GetCreatureOrPetOrVehicle(WorldObject const &, uint64);
         static Unit* GetUnit(WorldObject const &, uint64);
@@ -202,8 +202,6 @@ class MANGOS_DLL_DECL ObjectAccessor : public MaNGOS::Singleton<ObjectAccessor, 
         static void UpdateObject(Object* obj, Player* exceptPlayer);
         static void _buildUpdateObject(Object* obj, UpdateDataMapType &);
 
-        static void UpdateObjectVisibility(WorldObject* obj);
-        static void UpdateVisibilityForPlayer(Player* player);
     private:
         struct WorldObjectChangeAccumulator
         {

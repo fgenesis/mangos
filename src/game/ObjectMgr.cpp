@@ -113,7 +113,7 @@ bool SpellClickInfo::IsFitToRequirements(Player const* player) const
     if(questStart)
     {
         // not in expected required quest state
-        if(!player || (!questStartCanActive || !player->IsActiveQuest(questStart)) && !player->GetQuestRewardStatus(questStart))
+        if (!player || ((!questStartCanActive || !player->IsActiveQuest(questStart)) && !player->GetQuestRewardStatus(questStart)))
             return false;
     }
 
@@ -784,8 +784,8 @@ void ObjectMgr::ConvertCreatureAddonAuras(CreatureDataAddon* addon, char const* 
     // replace by new structures array
     const_cast<CreatureDataAddonAura*&>(addon->auras) = new CreatureDataAddonAura[val.size()/2+1];
 
-    int i=0;
-    for(int j=0;j<val.size()/2;++j)
+    uint32 i=0;
+    for(uint32 j = 0; j < val.size()/2; ++j)
     {
         CreatureDataAddonAura& cAura = const_cast<CreatureDataAddonAura&>(addon->auras[i]);
         cAura.spell_id = (uint32)val[2*j+0];
@@ -815,6 +815,93 @@ void ObjectMgr::ConvertCreatureAddonAuras(CreatureDataAddon* addon, char const* 
     CreatureDataAddonAura& endAura = const_cast<CreatureDataAddonAura&>(addon->auras[i]);
     endAura.spell_id   = 0;
     endAura.effect_idx = 0;
+}
+
+void ObjectMgr::ConvertCreatureAddonPassengers(CreatureDataAddon* addon, char const* table, char const* guidEntryStr)
+{
+    // Now add the passengers, format "creature_entry/guid seatindex creature_entry/guid seatindex..."
+    char *p,*s;
+    std::vector<int> val;
+    s=p=(char*)reinterpret_cast<char const*>(addon->passengers);
+    if(p)
+    {
+        while (p[0]!=0)
+        {
+            ++p;
+            if (p[0]==' ')
+            {
+                val.push_back(atoi(s));
+                s=++p;
+            }
+        }
+        if (p!=s)
+            val.push_back(atoi(s));
+
+        // free char* loaded memory
+        delete[] (char*)reinterpret_cast<char const*>(addon->passengers);
+
+        // wrong list
+        if (val.size()%2)
+        {
+            addon->auras = NULL;
+            sLog.outErrorDb("Creature (%s: %u) has wrong `passengers` data in `%s`.",guidEntryStr,addon->guidOrEntry,table);
+            return;
+        }
+    }
+
+    // empty list
+    if(val.empty())
+    {
+        addon->passengers = NULL;
+        return;
+    }
+
+    // replace by new structures array
+    const_cast<CreatureDataAddonPassengers*&>(addon->passengers) = new CreatureDataAddonPassengers[val.size()/2+1];
+
+    int i=0;
+    for(int j=0;j<val.size()/2;++j)
+    {
+        CreatureDataAddonPassengers& cPas = const_cast<CreatureDataAddonPassengers&>(addon->passengers[i]);
+        if(guidEntryStr == "Entry")
+            cPas.entry = (uint32)val[2*j+0];
+        else
+            cPas.guid = (uint32)val[2*j+0];
+        cPas.seat_idx = (int8)val[2*j+1];
+        if ( cPas.seat_idx > 7 )
+        {
+            sLog.outErrorDb("Creature (%s: %u) has wrong seat %u for creature %u in `passengers` field in `%s`.",guidEntryStr,addon->guidOrEntry,cPas.seat_idx,cPas.entry,table);
+            continue;
+        }
+        if(cPas.entry == 0 && cPas.guid == 0)
+        {
+            sLog.outErrorDb("Creature (%s: %u) has NULL creature entry/guid in `passengers` field in `%s`.",guidEntryStr,addon->guidOrEntry,table);
+            continue;
+        }
+        if(cPas.entry > 0)
+        {
+            if(!sCreatureStorage.LookupEntry<CreatureInfo>(cPas.entry))
+            {
+                sLog.outErrorDb("Creature (%s: %u) has wrong creature entry/guid %u `passengers` field in `%s`.",guidEntryStr,addon->guidOrEntry,cPas.entry,table);
+                continue;
+            }
+        }
+        else
+        {
+            if(mCreatureDataMap.find(cPas.guid)==mCreatureDataMap.end())
+            {
+                sLog.outErrorDb("Creature (%s: %u) has wrong creature entry/guid %u `passengers` field in `%s`.",guidEntryStr,addon->guidOrEntry,cPas.guid,table);
+                continue;
+            }
+        }
+        ++i;
+    }
+
+    // fill terminator element (after last added)
+    CreatureDataAddonPassengers& endPassenger = const_cast<CreatureDataAddonPassengers&>(addon->passengers[i]);
+    endPassenger.entry = 0;
+    endPassenger.guid = 0;
+    endPassenger.seat_idx = -1;
 }
 
 void ObjectMgr::LoadCreatureAddons(SQLStorage& creatureaddons, char const* entryName, char const* comment)
@@ -850,6 +937,7 @@ void ObjectMgr::LoadCreatureAddons(SQLStorage& creatureaddons, char const* entry
         }
 
         ConvertCreatureAddonAuras(const_cast<CreatureDataAddon*>(addon), creatureaddons.GetTableName(), entryName);
+        ConvertCreatureAddonPassengers(const_cast<CreatureDataAddon*>(addon), creatureaddons.GetTableName(), entryName);
     }
 }
 
@@ -1084,7 +1172,7 @@ void ObjectMgr::LoadCreatures()
 
         if(heroicCreatures.find(data.id)!=heroicCreatures.end())
         {
-            sLog.outErrorDb("Table `creature` have creature (GUID: %u) that listed as heroic template in `creature_template`, skipped.",guid,data.id );
+            sLog.outErrorDb("Table `creature` have creature (GUID: %u) that listed as heroic template (entry: %u) in `creature_template`, skipped.",guid, data.id );
             continue;
         }
 
@@ -1222,13 +1310,13 @@ void ObjectMgr::LoadGameobjects()
         uint32 entry        = fields[ 1].GetUInt32();
 
         GameObjectInfo const* gInfo = GetGameObjectInfo(entry);
-        if(!gInfo)
+        if (!gInfo)
         {
             sLog.outErrorDb("Table `gameobject` has gameobject (GUID: %u) with non existing gameobject entry %u, skipped.", guid, entry);
             continue;
         }
 
-        if(gInfo->displayId && !sGameObjectDisplayInfoStore.LookupEntry(gInfo->displayId))
+        if (gInfo->displayId && !sGameObjectDisplayInfoStore.LookupEntry(gInfo->displayId))
         {
             sLog.outErrorDb("Gameobject (GUID: %u Entry %u GoType: %u) have invalid displayId (%u), not loaded.",guid, entry, gInfo->type, gInfo->displayId);
             continue;
@@ -1268,25 +1356,25 @@ void ObjectMgr::LoadGameobjects()
         int16 gameEvent     = fields[16].GetInt16();
         int16 PoolId        = fields[17].GetInt16();
 
-        if(data.rotation2 < -1.0f || data.rotation2 > 1.0f)
+        if (data.rotation2 < -1.0f || data.rotation2 > 1.0f)
         {
             sLog.outErrorDb("Table `gameobject` have gameobject (GUID: %u Entry: %u) with invalid rotation2 (%f) value, skip",guid,data.id,data.rotation2 );
             continue;
         }
 
-        if(data.rotation3 < -1.0f || data.rotation3 > 1.0f)
+        if (data.rotation3 < -1.0f || data.rotation3 > 1.0f)
         {
             sLog.outErrorDb("Table `gameobject` have gameobject (GUID: %u Entry: %u) with invalid rotation3 (%f) value, skip",guid,data.id,data.rotation3 );
             continue;
         }
 
-        if(!MapManager::IsValidMapCoord(data.mapid,data.posX,data.posY,data.posZ,data.orientation))
+        if (!MapManager::IsValidMapCoord(data.mapid,data.posX,data.posY,data.posZ,data.orientation))
         {
             sLog.outErrorDb("Table `gameobject` have gameobject (GUID: %u Entry: %u) with invalid coordinates, skip",guid,data.id );
             continue;
         }
 
-        if(data.phaseMask==0)
+        if (data.phaseMask==0)
         {
             sLog.outErrorDb("Table `gameobject` have gameobject (GUID: %u Entry: %u) with `phaseMask`=0 (not visible for anyone), set to 1.",guid,data.id );
             data.phaseMask = 1;
@@ -1770,6 +1858,16 @@ void ObjectMgr::LoadItemPrototypes()
                 sLog.outErrorDb("Item (Entry: %u) has wrong stat_type%d (%u)",i,j+1,proto->ItemStat[j].ItemStatType);
                 const_cast<ItemPrototype*>(proto)->ItemStat[j].ItemStatType = 0;
             }
+
+            switch(proto->ItemStat[j].ItemStatType)
+            {
+                case ITEM_MOD_SPELL_HEALING_DONE:
+                case ITEM_MOD_SPELL_DAMAGE_DONE:
+                    sLog.outErrorDb("Item (Entry: %u) has deprecated stat_type%d (%u)",i,j+1,proto->ItemStat[j].ItemStatType);
+                    break;
+                default:
+                    break;
+            }
         }
 
         for (int j = 0; j < MAX_ITEM_PROTO_DAMAGES; ++j)
@@ -2030,10 +2128,8 @@ void ObjectMgr::LoadItemRequiredTarget()
                 if (pItemProto->Spells[i].SpellTrigger == ITEM_SPELLTRIGGER_ON_USE ||
                     pItemProto->Spells[i].SpellTrigger == ITEM_SPELLTRIGGER_ON_NO_DELAY_USE)
                 {
-                    SpellScriptTarget::const_iterator lower = spellmgr.GetBeginSpellScriptTarget(pSpellInfo->Id);
-                    SpellScriptTarget::const_iterator upper = spellmgr.GetEndSpellScriptTarget(pSpellInfo->Id);
-
-                    if (lower != upper)
+                    SpellScriptTargetBounds bounds = spellmgr.GetSpellScriptTargetBounds(pSpellInfo->Id);
+                    if (bounds.first != bounds.second)
                         break;
 
                     for (int j = 0; j < 3; ++j)
@@ -2849,10 +2945,14 @@ void ObjectMgr::BuildPlayerLevelInfo(uint8 race, uint8 _class, uint8 level, Play
 
 void ObjectMgr::LoadGuilds()
 {
-    Guild *newguild;
+    Guild *newGuild;
     uint32 count = 0;
 
-    QueryResult *result = CharacterDatabase.Query( "SELECT guildid FROM guild" );
+    //                                                    0             1          2          3           4           5           6
+    QueryResult *result = CharacterDatabase.Query("SELECT guild.guildid,guild.name,leaderguid,EmblemStyle,EmblemColor,BorderStyle,BorderColor,"
+    //   7               8    9    10         11        12
+        "BackgroundColor,info,motd,createdate,BankMoney,COUNT(guild_bank_tab.guildid) "
+        "FROM guild LEFT JOIN guild_bank_tab ON guild.guildid = guild_bank_tab.guildid GROUP BY guild.guildid ORDER BY guildid ASC");
 
     if( !result )
     {
@@ -2866,27 +2966,54 @@ void ObjectMgr::LoadGuilds()
         return;
     }
 
+    // load guild ranks
+    //                                                                0       1   2     3      4
+    QueryResult *guildRanksResult   = CharacterDatabase.Query("SELECT guildid,rid,rname,rights,BankMoneyPerDay FROM guild_rank ORDER BY guildid ASC, rid ASC");
+
+    // load guild members
+    //                                                                0       1                 2    3     4       5                  6
+    QueryResult *guildMembersResult = CharacterDatabase.Query("SELECT guildid,guild_member.guid,rank,pnote,offnote,BankResetTimeMoney,BankRemMoney,"
+    //   7                 8                9                 10               11                12
+        "BankResetTimeTab0,BankRemSlotsTab0,BankResetTimeTab1,BankRemSlotsTab1,BankResetTimeTab2,BankRemSlotsTab2,"
+    //   13                14               15                16               17                18
+        "BankResetTimeTab3,BankRemSlotsTab3,BankResetTimeTab4,BankRemSlotsTab4,BankResetTimeTab5,BankRemSlotsTab5,"
+    //   19               20                21                22               23
+        "characters.name, characters.level, characters.class, characters.zone, characters.logout_time "
+        "FROM guild_member LEFT JOIN characters ON characters.guid = guild_member.guid ORDER BY guildid ASC");
+
+    // load guild bank tab rights
+    //                                                                      0       1     2   3       4
+    QueryResult *guildBankTabRightsResult = CharacterDatabase.Query("SELECT guildid,TabId,rid,gbright,SlotPerDay FROM guild_bank_right ORDER BY guildid ASC, TabId ASC");
+
     barGoLink bar( result->GetRowCount() );
 
     do
     {
-        Field *fields = result->Fetch();
+        //Field *fields = result->Fetch();
 
         bar.step();
         ++count;
 
-        newguild = new Guild;
-        if(!newguild->LoadGuildFromDB(fields[0].GetUInt32()))
+        newGuild = new Guild;
+        if (!newGuild->LoadGuildFromDB(result) ||
+            !newGuild->LoadRanksFromDB(guildRanksResult) ||
+            !newGuild->LoadMembersFromDB(guildMembersResult) ||
+            !newGuild->LoadBankRightsFromDB(guildBankTabRightsResult) ||
+            !newGuild->CheckGuildStructure()
+            )
         {
-            newguild->Disband();
-            delete newguild;
+            newGuild->Disband();
+            delete newGuild;
             continue;
         }
-        AddGuild(newguild);
+        AddGuild(newGuild);
 
     }while( result->NextRow() );
 
     delete result;
+    delete guildRanksResult;
+    delete guildMembersResult;
+    delete guildBankTabRightsResult;
 
     //delete unused LogGuid records in guild_eventlog and guild_bank_eventlog table
     //you can comment these lines if you don't plan to change CONFIG_GUILD_EVENT_LOG_COUNT and CONFIG_GUILD_BANK_EVENT_LOG_COUNT
@@ -2901,7 +3028,11 @@ void ObjectMgr::LoadArenaTeams()
 {
     uint32 count = 0;
 
-    QueryResult *result = CharacterDatabase.Query( "SELECT arenateamid FROM arena_team" );
+    //                                                     0                      1    2           3    4               5
+    QueryResult *result = CharacterDatabase.Query( "SELECT arena_team.arenateamid,name,captainguid,type,BackgroundColor,EmblemStyle,"
+    //   6           7           8            9      10    11   12     13    14
+        "EmblemColor,BorderStyle,BorderColor, rating,games,wins,played,wins2,rank "
+        "FROM arena_team LEFT JOIN arena_team_stats ON arena_team.arenateamid = arena_team_stats.arenateamid ORDER BY arena_team.arenateamid ASC" );
 
     if( !result )
     {
@@ -2915,6 +3046,12 @@ void ObjectMgr::LoadArenaTeams()
         return;
     }
 
+    // load arena_team members
+    QueryResult *arenaTeamMembersResult = CharacterDatabase.Query(
+    //          0           1           2           3         4             5           6               7    8
+        "SELECT arenateamid,member.guid,played_week,wons_week,played_season,wons_season,personal_rating,name,class "
+        "FROM arena_team_member member LEFT JOIN characters chars on member.guid = chars.guid ORDER BY member.arenateamid ASC");
+
     barGoLink bar( result->GetRowCount() );
 
     do
@@ -2924,16 +3061,19 @@ void ObjectMgr::LoadArenaTeams()
         bar.step();
         ++count;
 
-        ArenaTeam *newarenateam = new ArenaTeam;
-        if(!newarenateam->LoadArenaTeamFromDB(fields[0].GetUInt32()))
+        ArenaTeam *newArenaTeam = new ArenaTeam;
+        if (!newArenaTeam->LoadArenaTeamFromDB(result) ||
+            !newArenaTeam->LoadMembersFromDB(arenaTeamMembersResult))
         {
-            delete newarenateam;
+            newArenaTeam->Disband(NULL);
+            delete newArenaTeam;
             continue;
         }
-        AddArenaTeam(newarenateam);
+        AddArenaTeam(newArenaTeam);
     }while( result->NextRow() );
 
     delete result;
+    delete arenaTeamMembersResult;
 
     sLog.outString();
     sLog.outString( ">> Loaded %u arenateam definitions", count );
@@ -3458,8 +3598,8 @@ void ObjectMgr::LoadQuests()
                     bool found = false;
                     for(int k = 0; k < 3; ++k)
                     {
-                        if( spellInfo->Effect[k]==SPELL_EFFECT_QUEST_COMPLETE && uint32(spellInfo->EffectMiscValue[k])==qinfo->QuestId ||
-                            spellInfo->Effect[k]==SPELL_EFFECT_SEND_EVENT)
+                        if ((spellInfo->Effect[k] == SPELL_EFFECT_QUEST_COMPLETE && uint32(spellInfo->EffectMiscValue[k]) == qinfo->QuestId) ||
+                            spellInfo->Effect[k] == SPELL_EFFECT_SEND_EVENT)
                         {
                             found = true;
                             break;
@@ -3614,20 +3754,17 @@ void ObjectMgr::LoadQuests()
                     qinfo->GetQuestId(),qinfo->RewSpell,qinfo->RewSpell);
                 qinfo->RewSpell = 0;                        // no spell reward will display for this quest
             }
-
-            if(!SpellMgr::IsSpellValid(spellInfo))
+            else if(!SpellMgr::IsSpellValid(spellInfo))
             {
                 sLog.outErrorDb("Quest %u has `RewSpell` = %u but spell %u is broken, quest will not have a spell reward.",
                     qinfo->GetQuestId(),qinfo->RewSpell,qinfo->RewSpell);
                 qinfo->RewSpell = 0;                        // no spell reward will display for this quest
             }
-
-            if(GetTalentSpellCost(qinfo->RewSpell))
+            else if(GetTalentSpellCost(qinfo->RewSpell))
             {
                 sLog.outErrorDb("Quest %u has `RewSpell` = %u but spell %u is talent, quest will not have a spell reward.",
                     qinfo->GetQuestId(),qinfo->RewSpell,qinfo->RewSpell);
                 qinfo->RewSpell = 0;                        // no spell reward will display for this quest
-                continue;
             }
         }
 
@@ -3641,20 +3778,17 @@ void ObjectMgr::LoadQuests()
                     qinfo->GetQuestId(),qinfo->RewSpellCast,qinfo->RewSpellCast);
                 qinfo->RewSpellCast = 0;                    // no spell will be casted on player
             }
-
-            if(!SpellMgr::IsSpellValid(spellInfo))
+            else if(!SpellMgr::IsSpellValid(spellInfo))
             {
                 sLog.outErrorDb("Quest %u has `RewSpellCast` = %u but spell %u is broken, quest will not have a spell reward.",
                     qinfo->GetQuestId(),qinfo->RewSpellCast,qinfo->RewSpellCast);
                 qinfo->RewSpellCast = 0;                    // no spell will be casted on player
             }
-
-            if(GetTalentSpellCost(qinfo->RewSpellCast))
+            else if(GetTalentSpellCost(qinfo->RewSpellCast))
             {
                 sLog.outErrorDb("Quest %u has `RewSpell` = %u but spell %u is talent, quest will not have a spell reward.",
                     qinfo->GetQuestId(),qinfo->RewSpellCast,qinfo->RewSpellCast);
                 qinfo->RewSpellCast = 0;                    // no spell will be casted on player
-                continue;
             }
         }
 
@@ -7074,7 +7208,7 @@ bool PlayerCondition::Meets(Player const * player) const
         case CONDITION_REPUTATION_RANK:
         {
             FactionEntry const* faction = sFactionStore.LookupEntry(value1);
-            return faction && player->GetReputationMgr().GetRank(faction) >= value2;
+            return faction && player->GetReputationMgr().GetRank(faction) >= int32(value2);
         }
         case CONDITION_TEAM:
             return player->GetTeam() == value1;
@@ -8037,9 +8171,159 @@ SpecialChannel ObjectMgr::GetSpecialChan(std::string name)
     return SpecialChannel(); // invalid special channel
 }
 
+void ObjectMgr::LoadAllowedGMAccounts(void)
+{
+    sLog.outString("FG: Loading allowed GM accounts...");
+    mAllowedGMAccs.clear();
+    QueryResult *result = CharacterDatabase.PQuery("SELECT id FROM allowed_gm_accounts");
+    uint32 count = 0;
+    if(result)
+    {
+        barGoLink bar(result->GetRowCount());
+        do
+        {
+            Field *fields = result->Fetch();
+            mAllowedGMAccs.insert(fields[0].GetUInt32());
+            bar.step();
+            count++;
+        }
+        while(result->NextRow());
+
+        sLog.outString(">> FG: Loaded %u allowed GM accounts", count);
+        delete result;
+    }
+    else
+        sLog.outError("FG: Can't load allowed GM accounts!");
+}
+
+bool ObjectMgr::IsAllowedGMAccount(uint32 id)
+{
+    return mAllowedGMAccs.find(id) != mAllowedGMAccs.end();
+}
+
 CreatureInfo const* GetCreatureTemplateStore(uint32 entry)
 {
     return sCreatureStorage.LookupEntry<CreatureInfo>(entry);
+}
+
+void ObjectMgr::LoadVehicleData()
+{
+    mVehicleData.clear();
+
+    QueryResult *result = WorldDatabase.Query("SELECT entry, flags, Spell1, Spell2, Spell3, Spell4, Spell5, Spell6, Spell7, Spell8, Spell9, Spell10, req_aura FROM vehicle_data");
+    if(!result)
+    {
+        barGoLink bar( 1 );
+        bar.step();
+
+        sLog.outString();
+        sLog.outString( ">> Loaded 0 vehicle data" );
+        sLog.outErrorDb("`vehicle_data` table is empty!");
+        return;
+    }
+
+    uint32 count = 0;
+
+    barGoLink bar( result->GetRowCount() );
+    do
+    {
+        bar.step();
+
+        Field* fields = result->Fetch();
+
+        VehicleDataStructure VDS;
+        // NOTE : we can use spellid or creature id
+        uint32 v_entry      = fields[0].GetUInt32();
+        VDS.v_flags         = fields[1].GetUInt32();
+        for(uint8 j = 0; j < MAX_VEHICLE_SPELLS; j++)
+        {
+            VDS.v_spells[j] = fields[j+2].GetUInt32();
+        }
+        VDS.req_aura        = fields[12].GetUInt32();
+
+        VehicleEntry const *vehicleInfo = sVehicleStore.LookupEntry(v_entry);
+        if(!vehicleInfo)
+        {
+            sLog.outErrorDb("Vehicle id %u listed in `vehicle_data` does not exist",v_entry);
+            continue;
+        }
+        for(uint8 j = 0; j < MAX_VEHICLE_SPELLS; j++)
+        {
+            if(VDS.v_spells[j])
+            {
+                SpellEntry const* j_spell = sSpellStore.LookupEntry(VDS.v_spells[j]);
+                if(!j_spell)
+                {
+                    sLog.outErrorDb("Spell %u listed in `vehicle_data` does not exist, skipped",VDS.v_spells[j]);
+                    VDS.v_spells[j] = 0;
+                }
+            }
+        }
+        if(VDS.req_aura)
+        {
+            SpellEntry const* i_spell = sSpellStore.LookupEntry(VDS.req_aura);
+            if(!i_spell)
+            {
+                sLog.outErrorDb("Spell %u listed in `vehicle_data` does not exist, skipped",VDS.req_aura);
+                VDS.req_aura = 0;
+            }
+        }
+
+        mVehicleData[v_entry] = VDS;
+        ++count;
+    }
+    while (result->NextRow());
+
+    delete result;
+
+    sLog.outString();
+    sLog.outString( ">> Loaded %u vehicle data", count );
+}
+
+void ObjectMgr::LoadVehicleSeatData()
+{
+    mVehicleSeatData.clear();
+
+    QueryResult *result = WorldDatabase.Query("SELECT seat,flags FROM vehicle_seat_data");
+
+    if( !result )
+    {
+        barGoLink bar( 1 );
+
+        bar.step();
+
+        sLog.outString();
+        sLog.outString( ">> Loaded 0 vehicle seat data" );
+        sLog.outErrorDb("`vehicle_seat_data` table is empty!");
+        return;
+    }
+    uint32 count = 0;
+
+    barGoLink bar( result->GetRowCount() );
+    do
+    {
+        bar.step();
+
+        Field *fields = result->Fetch();
+        uint32 entry  = fields[0].GetUInt32();
+        uint32 flag   = fields[1].GetUInt32();
+
+        VehicleSeatEntry const *vsInfo = sVehicleSeatStore.LookupEntry(entry);
+        if(!vsInfo)
+        {
+            sLog.outErrorDb("Vehicle seat %u listed in `vehicle_seat_data` does not exist",entry);
+            continue;
+        }
+
+        mVehicleSeatData[entry] = flag;
+        ++count;
+    }
+    while (result->NextRow());
+
+    delete result;
+
+    sLog.outString();
+    sLog.outString( ">> Loaded %u vehicle seat data", count );
 }
 
 Quest const* GetQuestTemplateStore(uint32 entry)
