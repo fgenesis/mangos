@@ -2010,6 +2010,16 @@ void Spell::EffectDummy(uint32 i)
 
                 return;
             }
+            // Death Grip
+            else if(m_spellInfo->Id == 49576)
+            {
+                if (!unitTarget)
+                    return;
+
+                unitTarget->KnockBackFrom(m_caster, -float(unitTarget->GetDistance2d(m_caster)), 10.0f);
+                m_caster->CastSpell(unitTarget, 49560, true);
+                return;
+            }
             break;
             */
     }
