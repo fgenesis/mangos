@@ -135,9 +135,10 @@ class ChatHandler
         bool HandleDebugGetItemStateCommand(const char * args);
         bool HandleDebugGetLootRecipientCommand(const char * args);
         bool HandleDebugGetValueCommand(const char* args);
+        bool HandleDebugGetItemValueCommand(const char* args);
         bool HandleDebugMod32ValueCommand(const char* args);
         bool HandleDebugSetAuraStateCommand(const char * args);
-        bool HandleDebugSetItemFlagCommand(const char * args);
+        bool HandleDebugSetItemValueCommand(const char * args);
         bool HandleDebugSetValueCommand(const char* args);
         bool HandleDebugSpawnVehicle(const char * args);
         bool HandleDebugSpellCheckCommand(const char* args);
@@ -161,7 +162,7 @@ class ChatHandler
         bool HandleDebugSendSetPhaseShiftCommand(const char * args);
         bool HandleDebugSendSpellFailCommand(const char* args);
 
-        bool HandleEventActiveListCommand(const char* args);
+        bool HandleEventListCommand(const char* args);
         bool HandleEventStartCommand(const char* args);
         bool HandleEventStopCommand(const char* args);
         bool HandleEventInfoCommand(const char* args);

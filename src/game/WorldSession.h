@@ -54,9 +54,8 @@ enum AccountDataType
     PER_CHARACTER_MACROS_CACHE      = 5,                    // 0x20 p
     PER_CHARACTER_LAYOUT_CACHE      = 6,                    // 0x40 p
     PER_CHARACTER_CHAT_CACHE        = 7,                    // 0x80 p
+    NUM_ACCOUNT_DATA_TYPES          = 8
 };
-
-#define NUM_ACCOUNT_DATA_TYPES        8
 
 #define GLOBAL_CACHE_MASK           0x15
 #define PER_CHARACTER_CACHE_MASK    0xEA
@@ -123,6 +122,7 @@ class MANGOS_DLL_SPEC WorldSession
         void SendAddonsInfo();
 
         void ReadMovementInfo(WorldPacket &data, MovementInfo *mi);
+        void WriteMovementInfo(WorldPacket *data, MovementInfo *mi);
 
         void SendPacket(WorldPacket const* packet);
         void SendNotification(const char *format,...) ATTR_PRINTF(2,3);
@@ -201,7 +201,7 @@ class MANGOS_DLL_SPEC WorldSession
         // Account Data
         AccountData *GetAccountData(AccountDataType type) { return &m_accountData[type]; }
         void SetAccountData(AccountDataType type, time_t time_, std::string data);
-        void SendAccountDataTimes();
+        void SendAccountDataTimes(uint32 mask);
         void LoadGlobalAccountData();
         void LoadAccountData(QueryResult* result, uint32 mask);
         void LoadTutorialsData();
@@ -576,6 +576,7 @@ class MANGOS_DLL_SPEC WorldSession
 
         void HandleReclaimCorpseOpcode( WorldPacket& recvPacket );
         void HandleCorpseQueryOpcode( WorldPacket& recvPacket );
+        void HandleCorpseMapPositionQuery( WorldPacket& recvPacket );
         void HandleResurrectResponseOpcode(WorldPacket& recvPacket);
         void HandleSummonResponseOpcode(WorldPacket& recv_data);
 
@@ -648,6 +649,7 @@ class MANGOS_DLL_SPEC WorldSession
         void HandleFarSightOpcode(WorldPacket& recv_data);
         void HandleSetLfgOpcode(WorldPacket& recv_data);
         void HandleSetDungeonDifficultyOpcode(WorldPacket& recv_data);
+        void HandleSetRaidDifficultyOpcode(WorldPacket& recv_data);
         void HandleMoveSetCanFlyAckOpcode(WorldPacket& recv_data);
         void HandleLfgSetAutoJoinOpcode(WorldPacket& recv_data);
         void HandleLfgClearAutoJoinOpcode(WorldPacket& recv_data);
@@ -687,6 +689,7 @@ class MANGOS_DLL_SPEC WorldSession
         void HandleSocketOpcode(WorldPacket& recv_data);
 
         void HandleCancelTempEnchantmentOpcode(WorldPacket& recv_data);
+        void HandleItemRefundInfoRequest(WorldPacket& recv_data);
 
         void HandleChannelVoiceOnOpcode(WorldPacket & recv_data);
         void HandleVoiceSessionEnableOpcode(WorldPacket& recv_data);
@@ -733,6 +736,7 @@ class MANGOS_DLL_SPEC WorldSession
         void HandleEquipmentSetSave(WorldPacket& recv_data);
         void HandleEquipmentSetDelete(WorldPacket& recv_data);
         void HandleEquipmentSetUse(WorldPacket& recv_data);
+        void HandleWorldStateUITimerUpdate(WorldPacket& recv_data);
 
 
         // FG: some decls
@@ -742,7 +746,6 @@ class MANGOS_DLL_SPEC WorldSession
         void SetXPMultiQuest(float m);
         uint32 ACH_CheckMoveInfo(uint32 opcode, MovementInfo& movementInfo, Player *plMover);
         std::string GetIP(void);
-
 
     private:
         // private trade methods

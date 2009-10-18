@@ -197,7 +197,7 @@ pAuraHandler AuraHandler[TOTAL_AURAS]=
     &Aura::HandleAuraSafeFall,                              //144 SPELL_AURA_SAFE_FALL                         implemented in WorldSession::HandleMovementOpcodes
     &Aura::HandleAuraModPetTalentsPoints,                   //145 SPELL_AURA_MOD_PET_TALENT_POINTS
     &Aura::HandleNoImmediateEffect,                         //146 SPELL_AURA_ALLOW_TAME_PET_TYPE
-    &Aura::HandleAuraAddCreatureImmunity,                   //147 SPELL_AURA_ADD_CREATURE_IMMUNITY
+    &Aura::HandleModMechanicImmunityMask,                   //147 SPELL_AURA_ADD_CREATURE_IMMUNITY             implemented in Unit::IsImmunedToSpell and Unit::IsImmunedToSpellEffect (check part)
     &Aura::HandleAuraRetainComboPoints,                     //148 SPELL_AURA_RETAIN_COMBO_POINTS
     &Aura::HandleNoImmediateEffect,                         //149 SPELL_AURA_REDUCE_PUSHBACK
     &Aura::HandleShieldBlockValue,                          //150 SPELL_AURA_MOD_SHIELD_BLOCKVALUE_PCT
@@ -233,7 +233,7 @@ pAuraHandler AuraHandler[TOTAL_AURAS]=
     &Aura::HandleNoImmediateEffect,                         //180 SPELL_AURA_MOD_FLAT_SPELL_DAMAGE_VERSUS   implemented in Unit::SpellDamageBonus
     &Aura::HandleUnused,                                    //181 unused (3.0.8a) old SPELL_AURA_MOD_FLAT_SPELL_CRIT_DAMAGE_VERSUS
     &Aura::HandleAuraModResistenceOfStatPercent,            //182 SPELL_AURA_MOD_RESISTANCE_OF_STAT_PERCENT
-    &Aura::HandleNULL,                                      //183 SPELL_AURA_MOD_CRITICAL_THREAT only used in 28746
+    &Aura::HandleNoImmediateEffect,                         //183 SPELL_AURA_MOD_CRITICAL_THREAT only used in 28746, implemented in ThreatCalcHelper::calcThreat
     &Aura::HandleNoImmediateEffect,                         //184 SPELL_AURA_MOD_ATTACKER_MELEE_HIT_CHANCE  implemented in Unit::RollMeleeOutcomeAgainst
     &Aura::HandleNoImmediateEffect,                         //185 SPELL_AURA_MOD_ATTACKER_RANGED_HIT_CHANCE implemented in Unit::RollMeleeOutcomeAgainst
     &Aura::HandleNoImmediateEffect,                         //186 SPELL_AURA_MOD_ATTACKER_SPELL_HIT_CHANCE  implemented in Unit::MagicSpellHitResult
@@ -311,8 +311,8 @@ pAuraHandler AuraHandler[TOTAL_AURAS]=
     &Aura::HandleNULL,                                      //258 SPELL_AURA_MOD_SPELL_VISUAL
     &Aura::HandleNULL,                                      //259 corrupt healing over time spell
     &Aura::HandleNoImmediateEffect,                         //260 SPELL_AURA_SCREEN_EFFECT (miscvalue = id in ScreenEffect.dbc) not required any code
-    &Aura::HandlePhase,                                     //261 SPELL_AURA_PHASE undetactable invisibility?     implemented in Unit::isVisibleForOrDetect
-    &Aura::HandleNULL,                                      //262
+    &Aura::HandlePhase,                                     //261 SPELL_AURA_PHASE undetectable invisibility?     implemented in Unit::isVisibleForOrDetect
+    &Aura::HandleNULL,                                      //262 ignore combat/aura state?
     &Aura::HandleAllowOnlyAbility,                          //263 SPELL_AURA_ALLOW_ONLY_ABILITY player can use only abilities set in SpellClassMask
     &Aura::HandleUnused,                                    //264 unused (3.0.8a)
     &Aura::HandleUnused,                                    //265 unused (3.0.8a)
@@ -323,7 +323,7 @@ pAuraHandler AuraHandler[TOTAL_AURAS]=
     &Aura::HandleNULL,                                      //270 SPELL_AURA_MOD_IGNORE_TARGET_RESIST
     &Aura::HandleNoImmediateEffect,                         //271 SPELL_AURA_MOD_DAMAGE_FROM_CASTER    implemented in Unit::SpellDamageBonus
     &Aura::HandleNULL,                                      //272 reduce spell cast time?
-    &Aura::HandleNULL,                                      //273
+    &Aura::HandleNULL,                                      //273 x-ray effect
     &Aura::HandleNULL,                                      //274 proc free shot?
     &Aura::HandleNoImmediateEffect,                         //275 SPELL_AURA_MOD_IGNORE_SHAPESHIFT Use SpellClassMask for spell select
     &Aura::HandleNULL,                                      //276 mod damage % mechanic?
@@ -331,20 +331,32 @@ pAuraHandler AuraHandler[TOTAL_AURAS]=
     &Aura::HandleNULL,                                      //278 SPELL_AURA_MOD_DISARM_RANGED disarm ranged weapon
     &Aura::HandleNULL,                                      //279 visual effects? 58836 and 57507
     &Aura::HandleModTargetArmorPct,                         //280 SPELL_AURA_MOD_TARGET_ARMOR_PCT
-    &Aura::HandleNULL,                                      //281 SPELL_AURA_MOD_HONOR_GAIN
+    &Aura::HandleNoImmediateEffect,                         //281 SPELL_AURA_MOD_HONOR_GAIN             implemented in Player::RewardHonor
     &Aura::HandleAuraIncreaseBaseHealthPercent,             //282 SPELL_AURA_INCREASE_BASE_HEALTH_PERCENT
     &Aura::HandleNoImmediateEffect,                         //283 SPELL_AURA_MOD_HEALING_RECEIVED       implemented in Unit::SpellHealingBonus
-    &Aura::HandleUnused,                                    //284 not used by any spells (3.08a)
+    &Aura::HandleUnused,                                    //284 51 spells
     &Aura::HandleAuraModAttackPowerOfArmor,                 //285 SPELL_AURA_MOD_ATTACK_POWER_OF_ARMOR  implemented in Player::UpdateAttackPowerAndDamage
     &Aura::HandleNoImmediateEffect,                         //286 SPELL_AURA_ABILITY_PERIODIC_CRIT      implemented in Aura::IsCritFromAbilityAura called from Aura::PeriodicTick
     &Aura::HandleNoImmediateEffect,                         //287 SPELL_AURA_DEFLECT_SPELLS             implemented in Unit::MagicSpellHitResult and Unit::MeleeSpellHitResult
-    &Aura::HandleUnused,                                    //288 not used by any spells (3.09) except 1 test spell.
+    &Aura::HandleUnused,                                    //288 increase parry/deflect, prevent attack
     &Aura::HandleUnused,                                    //289 unused
     &Aura::HandleAuraModAllCritChance,                      //290 SPELL_AURA_MOD_ALL_CRIT_CHANCE
-    &Aura::HandleUnused,                                    //291 unused
+    &Aura::HandleUnused,                                    //291 1 spell (+pct experience bonus)
     &Aura::HandleNULL,                                      //292 call stabled pet
-    &Aura::HandleNULL,                                      //293 2 test spells
-    &Aura::HandleNULL                                       //294 2 spells, possible prevent mana regen
+    &Aura::HandleNULL,                                      //293 3 spells
+    &Aura::HandleNULL,                                      //294 2 spells, possible prevent mana regen
+    &Aura::HandleNULL,                                      //295 unused
+    &Aura::HandleNULL,                                      //296 2 spells
+    &Aura::HandleNULL,                                      //297 1 spell (counter spell school?)
+    &Aura::HandleNULL,                                      //298 unused
+    &Aura::HandleNULL,                                      //299 unused
+    &Aura::HandleNULL,                                      //300 3 spells (share damage?)
+    &Aura::HandleNULL,                                      //301 5 spells
+    &Aura::HandleNULL,                                      //302 unused
+    &Aura::HandleNULL,                                      //303 17 spells
+    &Aura::HandleNULL,                                      //304 2 spells (alcohol effect?)
+    &Aura::HandleNULL,                                      //305 2 spells
+    &Aura::HandleNULL                                       //306 1 spell
 };
 
 static AuraType const frozenAuraTypes[] = { SPELL_AURA_MOD_ROOT, SPELL_AURA_MOD_STUN, SPELL_AURA_NONE };
@@ -531,7 +543,7 @@ SingleEnemyTargetAura::SingleEnemyTargetAura(SpellEntry const* spellproto, uint3
 Unit *caster, Item* castItem) : Aura(spellproto, eff, currentBasePoints, target, caster, castItem)
 {
     if (caster)
-        m_casters_target_guid = caster->GetTypeId()==TYPEID_PLAYER ? ((Player*)caster)->GetSelection() : caster->GetUInt64Value(UNIT_FIELD_TARGET);
+        m_casters_target_guid = caster->GetTypeId()==TYPEID_PLAYER ? ((Player*)caster)->GetSelection() : caster->GetTargetGUID();
     else
         m_casters_target_guid = 0;
 }
@@ -1696,8 +1708,13 @@ void Aura::TriggerSpell()
 //                    case 25041: break;
 //                    // Agro Drones
 //                    case 25152: break;
-//                    // Consume
-//                    case 25371: break;
+                    // Consume
+                    case 25371:
+                    {
+                        int32 bpDamage = target->GetMaxHealth()*10/100;
+                        caster->CastCustomSpell(target, 25373, &bpDamage, NULL, NULL, true, NULL, this);
+                        return;
+                    }
 //                    // Pain Spike
 //                    case 25572: break;
 //                    // Rotate 360
@@ -2266,6 +2283,11 @@ void Aura::TriggerSpell()
             case 33525:
                 target->CastSpell(target, trigger_spell_id, true);
                 return;
+            // Beacon of Light
+            case 53563:
+                // original caster must be target (beacon)
+                m_target->CastSpell(m_target,trigger_spell_id,true,NULL,this,m_target->GetGUID());
+                return;
         }
     }
 
@@ -2311,7 +2333,7 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
             case 1515:                                      // Tame beast
                 // FIX_ME: this is 2.0.12 threat effect replaced in 2.1.x by dummy aura, must be checked for correctness
                 if( caster && m_target->CanHaveThreatList())
-                    m_target->AddThreat(caster, 10.0f);
+                    m_target->AddThreat(caster, 10.0f, false, GetSpellSchoolMask(GetSpellProto()), GetSpellProto());
                 return;
             case 13139:                                     // net-o-matic
                 // root to self part of (root_target->charge->root_self sequence
@@ -2641,9 +2663,7 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
             break;
         }
         case SPELLFAMILY_MAGE:
-        {
             break;
-        }
         case SPELLFAMILY_PRIEST:
         {
             // Pain and Suffering
@@ -2667,19 +2687,7 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
             break;
         }
         case SPELLFAMILY_PALADIN:
-        {
-            // Beacon of Light
-            if (GetId() == 53563)
-            {
-                if(apply)
-                    // original caster must be target (beacon)
-                    m_target->CastSpell(m_target,53651,true,NULL,this,m_target->GetGUID());
-                else
-                    m_target->RemoveAurasByCasterSpell(53651,m_target->GetGUID());
-                return;
-            }
             break;
-        }
         case SPELLFAMILY_DRUID:
         {
             switch(GetId())
@@ -2752,8 +2760,8 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                         return;
 
                     // have a look if there is still some other Lifebloom dummy aura
-                    Unit::AuraList auras = m_target->GetAurasByType(SPELL_AURA_DUMMY);
-                    for(Unit::AuraList::iterator itr = auras.begin(); itr!=auras.end(); ++itr)
+                    Unit::AuraList const& auras = m_target->GetAurasByType(SPELL_AURA_DUMMY);
+                    for(Unit::AuraList::const_iterator itr = auras.begin(); itr!=auras.end(); ++itr)
                         if((*itr)->GetSpellProto()->SpellFamilyName == SPELLFAMILY_DRUID &&
                             ((*itr)->GetSpellProto()->SpellFamilyFlags & UI64LIT(0x1000000000)))
                             return;
@@ -3061,7 +3069,7 @@ void Aura::HandleAuraModShapeshift(bool apply, bool Real)
             modelid = 16031;
             break;
         default:
-            sLog.outError("Auras: Unknown Shapeshift Type: %u", m_modifier.m_miscvalue);
+            sLog.outError("Auras: Unknown Shapeshift Type: %u, SpellId %u.", m_modifier.m_miscvalue, GetId());
     }
 
     // remove polymorph before changing display id to keep new display id
@@ -3089,7 +3097,8 @@ void Aura::HandleAuraModShapeshift(bool apply, bool Real)
                 // If spell that caused this aura has Croud Control or Daze effect
                 if((aurMechMask & MECHANIC_NOT_REMOVED_BY_SHAPESHIFT) ||
                     // some Daze spells have these parameters instead of MECHANIC_DAZE (skip snare spells)
-                    aurSpellInfo->SpellIconID == 15 && aurSpellInfo->Dispel == 0 && (aurMechMask & (1 << MECHANIC_SNARE))==0)
+                    aurSpellInfo->SpellIconID == 15 && aurSpellInfo->Dispel == 0 &&
+                    (aurMechMask & (1 << (MECHANIC_SNARE-1)))==0)
                 {
                     ++iter;
                     continue;
@@ -3781,51 +3790,7 @@ void Aura::HandleFeignDeath(bool apply, bool Real)
     if(!Real)
         return;
 
-    if(m_target->GetTypeId() != TYPEID_PLAYER)
-        return;
-
-    if( apply )
-    {
-        /*
-        WorldPacket data(SMSG_FEIGN_DEATH_RESISTED, 9);
-        data<<m_target->GetGUID();
-        data<<uint8(0);
-        m_target->SendMessageToSet(&data,true);
-        */
-                                                            // blizz like 2.0.x
-        m_target->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_UNK_29);
-                                                            // blizz like 2.0.x
-        m_target->SetFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH);
-                                                            // blizz like 2.0.x
-        m_target->SetFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_DEAD);
-
-        m_target->addUnitState(UNIT_STAT_DIED);
-        m_target->CombatStop();
-        m_target->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_IMMUNE_OR_LOST_SELECTION);
-
-        // prevent interrupt message
-        if (m_caster_guid==m_target->GetGUID())
-            m_target->FinishSpell(CURRENT_GENERIC_SPELL,false);
-        m_target->InterruptNonMeleeSpells(true);
-        m_target->getHostilRefManager().deleteReferences();
-    }
-    else
-    {
-        /*
-        WorldPacket data(SMSG_FEIGN_DEATH_RESISTED, 9);
-        data<<m_target->GetGUID();
-        data<<uint8(1);
-        m_target->SendMessageToSet(&data,true);
-        */
-                                                            // blizz like 2.0.x
-        m_target->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_UNK_29);
-                                                            // blizz like 2.0.x
-        m_target->RemoveFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH);
-                                                            // blizz like 2.0.x
-        m_target->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_DEAD);
-
-        m_target->clearUnitState(UNIT_STAT_DIED);
-    }
+    m_target->SetFeignDeath(apply, GetCasterGUID(), GetId());
 }
 
 void Aura::HandleAuraModDisarm(bool apply, bool Real)
@@ -3870,7 +3835,7 @@ void Aura::HandleAuraModStun(bool apply, bool Real)
             m_target->ModifyAuraState(AURA_STATE_FROZEN, apply);
 
         m_target->addUnitState(UNIT_STAT_STUNNED);
-        m_target->SetUInt64Value(UNIT_FIELD_TARGET, 0);
+        m_target->SetTargetGUID(0);
 
         m_target->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_STUNNED);
         m_target->CastStop(m_target->GetGUID() == GetCasterGUID() ? GetId() : 0);
@@ -3943,7 +3908,7 @@ void Aura::HandleAuraModStun(bool apply, bool Real)
         if(!m_target->hasUnitState(UNIT_STAT_ROOT | UNIT_STAT_ON_VEHICLE))         // prevent allow move if have also root effect
         {
             if(m_target->getVictim() && m_target->isAlive())
-                m_target->SetUInt64Value(UNIT_FIELD_TARGET,m_target->getVictim()->GetGUID() );
+                m_target->SetTargetGUID(m_target->getVictim()->GetGUID());
 
             WorldPacket data(SMSG_FORCE_MOVE_UNROOT, 8+4);
             data.append(m_target->GetPackGUID());
@@ -4147,8 +4112,8 @@ void Aura::HandleAuraModRoot(bool apply, bool Real)
             m_target->ModifyAuraState(AURA_STATE_FROZEN, apply);
 
         m_target->addUnitState(UNIT_STAT_ROOT);
-        m_target->SetUInt64Value (UNIT_FIELD_TARGET, 0);
-        // probably wrong (this add skinable flag)
+        m_target->SetTargetGUID(0);
+        // probably wrong (this add skinnable flag)
         // TODO: find correct flag
         //m_target->SetFlag(UNIT_FIELD_FLAGS,(apply_stat<<16));
 
@@ -4202,14 +4167,14 @@ void Aura::HandleAuraModRoot(bool apply, bool Real)
             return;
 
         m_target->clearUnitState(UNIT_STAT_ROOT);
-        // probably wrong (this add skinable flag)
+        // probably wrong (this add skinnable flag)
         // TODO: find correct flag
         //m_target->RemoveFlag(UNIT_FIELD_FLAGS,(apply_stat<<16));
 
         if(!m_target->hasUnitState(UNIT_STAT_STUNNED | UNIT_STAT_ON_VEHICLE))      // prevent allow move if have also stun effect
         {
             if(m_target->getVictim() && m_target->isAlive())
-                m_target->SetUInt64Value (UNIT_FIELD_TARGET, m_target->getVictim()->GetGUID() );
+                m_target->SetTargetGUID(m_target->getVictim()->GetGUID());
 
             if(m_target->GetTypeId() == TYPEID_PLAYER)
             {
@@ -4303,7 +4268,7 @@ void Aura::HandleAuraModTotalThreat(bool apply, bool Real)
 
     float threatMod = apply ? float(m_modifier.m_amount) : float(-m_modifier.m_amount);
 
-    m_target->getHostilRefManager().threatAssist(caster, threatMod);
+    m_target->getHostileRefManager().threatAssist(caster, threatMod, GetSpellProto());
 }
 
 void Aura::HandleModTaunt(bool apply, bool Real)
@@ -4436,32 +4401,13 @@ void Aura::HandleModMechanicImmunity(bool apply, bool /*Real*/)
 
     if(apply && GetSpellProto()->AttributesEx & SPELL_ATTR_EX_DISPEL_AURAS_ON_IMMUNITY)
     {
-        uint32 mechanic = 1 << misc;
+        uint32 mechanic = 1 << (misc-1);
 
         //immune movement impairment and loss of control
         if(GetId()==42292 || GetId()==59752 || GetId()==53490)
             mechanic=IMMUNE_TO_MOVEMENT_IMPAIRMENT_AND_LOSS_CONTROL_MASK;
 
-        Unit::AuraMap& Auras = m_target->GetAuras();
-        for(Unit::AuraMap::iterator iter = Auras.begin(), next; iter != Auras.end(); iter = next)
-        {
-            next = iter;
-            ++next;
-            SpellEntry const *spell = iter->second->GetSpellProto();
-            if (!( spell->Attributes & SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY) && // spells unaffected by invulnerability
-                   spell->Id != GetId())
-            {
-                //check for mechanic mask
-                if(GetSpellMechanicMask(spell, iter->second->GetEffIndex()) & mechanic)
-                {
-                    m_target->RemoveAurasDueToSpell(spell->Id);
-                    if(Auras.empty())
-                        break;
-                    else
-                        next = Auras.begin();
-                }
-            }
-        }
+        m_target->RemoveAurasAtMechanicImmunity(mechanic,GetId());
     }
 
     m_target->ApplySpellImmune(GetId(),IMMUNITY_MECHANIC,misc,apply);
@@ -4499,6 +4445,16 @@ void Aura::HandleModMechanicImmunity(bool apply, bool /*Real*/)
             }
         }
     }
+}
+
+void Aura::HandleModMechanicImmunityMask(bool apply, bool /*Real*/)
+{
+    uint32 mechanic  = m_modifier.m_miscvalue;
+
+    if(apply && GetSpellProto()->AttributesEx & SPELL_ATTR_EX_DISPEL_AURAS_ON_IMMUNITY)
+        m_target->RemoveAurasAtMechanicImmunity(mechanic,GetId());
+
+    // check implemented in Unit::IsImmunedToSpell and Unit::IsImmunedToSpellEffect
 }
 
 //this method is called whenever we add / remove aura which gives m_target some imunity to some spell effect
@@ -5247,8 +5203,7 @@ void Aura::HandleAuraModIncreaseHealth(bool apply, bool Real)
         case 12976:                                         // Warrior Last Stand triggered spell
         case 28726:                                         // Nightmare Seed ( Nightmare Seed )
         case 34511:                                         // Valor (Bulwark of Kings, Bulwark of the Ancient Kings)
-        // FIXME: add case 67596: in 3.2.x 
-        case 44055: case 55915: case 55917:                 // Tremendous Fortitude (Battlemaster's Alacrity)
+        case 44055: case 55915: case 55917: case 67596:     // Tremendous Fortitude (Battlemaster's Alacrity)
         case 50322:                                         // Survival Instincts
         case 54443:                                         // Demonic Empowerment (Voidwalker)
         {
@@ -6656,17 +6611,25 @@ void Aura::PeriodicTick()
             {
                 pdamage = amount;
 
+                // SpellDamageBonus for magic spells
+                if(GetSpellProto()->DmgClass == SPELL_DAMAGE_CLASS_NONE || GetSpellProto()->DmgClass == SPELL_DAMAGE_CLASS_MAGIC)
+                    pdamage = pCaster->SpellDamageBonus(m_target, GetSpellProto(), pdamage, DOT, GetStackAmount());
+                // MeleeDamagebonus for weapon based spells
+                else
+                {
+                    WeaponAttackType attackType = GetWeaponAttackType(GetSpellProto());
+                    pdamage = pCaster->MeleeDamageBonus(m_target, pdamage, attackType, GetSpellProto(), DOT, GetStackAmount());
+                }
+
                 // Calculate armor mitigation if it is a physical spell
                 // But not for bleed mechanic spells
-                if ( GetSpellSchoolMask(GetSpellProto()) & SPELL_SCHOOL_MASK_NORMAL &&
-                     GetEffectMechanic(GetSpellProto(), m_effIndex) != MECHANIC_BLEED)
+                if (GetSpellSchoolMask(GetSpellProto()) & SPELL_SCHOOL_MASK_NORMAL &&
+                    GetEffectMechanic(GetSpellProto(), m_effIndex) != MECHANIC_BLEED)
                 {
                     uint32 pdamageReductedArmor = pCaster->CalcArmorReducedDamage(m_target, pdamage);
                     cleanDamage.damage += pdamage - pdamageReductedArmor;
                     pdamage = pdamageReductedArmor;
                 }
-
-                pdamage = pCaster->SpellDamageBonus(m_target, GetSpellProto(), pdamage, DOT, GetStackAmount());
 
                 // Curse of Agony damage-per-tick calculation
                 if (GetSpellProto()->SpellFamilyName==SPELLFAMILY_WARLOCK && (GetSpellProto()->SpellFamilyFlags & UI64LIT(0x0000000000000400)) && GetSpellProto()->SpellIconID==544)
@@ -6686,10 +6649,9 @@ void Aura::PeriodicTick()
             // This method can modify pdamage
             bool isCrit = IsCritFromAbilityAura(pCaster, pdamage);
 
-            // As of 2.2 resilience reduces damage from DoT ticks as much as the chance to not be critically hit
-            // Reduce dot damage from resilience for players
-            if (m_target->GetTypeId() == TYPEID_PLAYER)
-                pdamage-=((Player*)m_target)->GetDotDamageReduction(pdamage);
+            // send critical in hit info for threat calculation
+            if (isCrit)
+                cleanDamage.hitOutCome = MELEE_HIT_CRIT;
 
             // FG: spellmulti, periodic
             if(pCaster->GetTypeId() == TYPEID_UNIT)
@@ -6807,7 +6769,7 @@ void Aura::PeriodicTick()
             uint32 heal = pCaster->SpellHealingBonus(pCaster, GetSpellProto(), uint32(new_damage * multiplier), DOT, GetStackAmount());
 
             int32 gain = pCaster->DealHeal(pCaster, heal, GetSpellProto());
-            pCaster->getHostilRefManager().threatAssist(pCaster, gain * 0.5f, GetSpellProto());
+            pCaster->getHostileRefManager().threatAssist(pCaster, gain * 0.5f, GetSpellProto());
             break;
         }
         case SPELL_AURA_PERIODIC_HEAL:
@@ -6859,7 +6821,7 @@ void Aura::PeriodicTick()
                 if( BattleGround *bg = ((Player*)pCaster)->GetBattleGround() )
                     bg->UpdatePlayerScore(((Player*)pCaster), SCORE_HEALING_DONE, gain);
 
-            m_target->getHostilRefManager().threatAssist(pCaster, float(gain) * 0.5f, GetSpellProto());
+            m_target->getHostileRefManager().threatAssist(pCaster, float(gain) * 0.5f, GetSpellProto());
 
             SpellEntry const* spellProto = GetSpellProto();
 
@@ -6963,7 +6925,7 @@ void Aura::PeriodicTick()
             if(gain_amount)
             {
                 int32 gain = pCaster->ModifyPower(power, gain_amount);
-                m_target->AddThreat(pCaster, float(gain) * 0.5f, GetSpellSchoolMask(GetSpellProto()), GetSpellProto());
+                m_target->AddThreat(pCaster, float(gain) * 0.5f, pInfo.critical, GetSpellSchoolMask(GetSpellProto()), GetSpellProto());
             }
             break;
         }
@@ -6989,7 +6951,7 @@ void Aura::PeriodicTick()
             int32 gain = m_target->ModifyPower(power,pdamage);
 
             if(Unit* pCaster = GetCaster())
-                m_target->getHostilRefManager().threatAssist(pCaster, float(gain) * 0.5f, GetSpellProto());
+                m_target->getHostileRefManager().threatAssist(pCaster, float(gain) * 0.5f, GetSpellProto());
             break;
         }
         case SPELL_AURA_OBS_MOD_MANA:
@@ -7011,7 +6973,7 @@ void Aura::PeriodicTick()
             int32 gain = m_target->ModifyPower(POWER_MANA, pdamage);
 
             if(Unit* pCaster = GetCaster())
-                m_target->getHostilRefManager().threatAssist(pCaster, float(gain) * 0.5f, GetSpellProto());
+                m_target->getHostileRefManager().threatAssist(pCaster, float(gain) * 0.5f, GetSpellProto());
             break;
         }
         case SPELL_AURA_POWER_BURN_MANA:
@@ -7064,7 +7026,7 @@ void Aura::PeriodicTick()
         {
             int32 gain = m_target->ModifyHealth(m_modifier.m_amount);
             if (Unit *caster = GetCaster())
-                m_target->getHostilRefManager().threatAssist(caster, float(gain) * 0.5f, GetSpellProto());
+                m_target->getHostileRefManager().threatAssist(caster, float(gain) * 0.5f, GetSpellProto());
             break;
         }
         case SPELL_AURA_MOD_POWER_REGEN:

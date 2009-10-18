@@ -251,6 +251,8 @@ World::AddSession_ (WorldSession* s)
     pkt << uint32(sWorld.getConfig(CONFIG_CLIENTCACHE_VERSION));
     s->SendPacket(&pkt);
 
+    s->SendAccountDataTimes(GLOBAL_CACHE_MASK);
+
     s->SendTutorialsData();
 
     UpdateMaxSessionCounters ();
@@ -330,6 +332,15 @@ bool World::RemoveQueuedPlayer(WorldSession* sess)
         WorldSession* pop_sess = m_QueuedPlayer.front();
         pop_sess->SetInQueue(false);
         pop_sess->SendAuthWaitQue(0);
+        pop_sess->SendAddonsInfo();
+
+        WorldPacket pkt(SMSG_CLIENTCACHE_VERSION, 4);
+        pkt << uint32(sWorld.getConfig(CONFIG_CLIENTCACHE_VERSION));
+        pop_sess->SendPacket(&pkt);
+
+        pop_sess->SendAccountDataTimes(GLOBAL_CACHE_MASK);
+        pop_sess->SendTutorialsData();
+
         m_QueuedPlayer.pop_front();
 
         // update iter to point first queued socket or end() if queue is empty now
@@ -890,8 +901,6 @@ void World::LoadConfigSettings(bool reload)
     m_configs[CONFIG_SAVE_RESPAWN_TIME_IMMEDIATLY] = sConfig.GetBoolDefault("SaveRespawnTimeImmediately",true);
     m_configs[CONFIG_WEATHER] = sConfig.GetBoolDefault("ActivateWeather",true);
 
-    m_configs[CONFIG_DISABLE_BREATHING] = sConfig.GetIntDefault("DisableWaterBreath", SEC_CONSOLE);
-
     m_configs[CONFIG_ALWAYS_MAX_SKILL_FOR_LEVEL] = sConfig.GetBoolDefault("AlwaysMaxSkillForLevel", false);
 
     if(reload)
@@ -992,6 +1001,13 @@ void World::LoadConfigSettings(bool reload)
     m_configs[CONFIG_GUILD_BANK_EVENT_LOG_COUNT] = sConfig.GetIntDefault("Guild.BankEventLogRecordsCount", GUILD_BANK_MAX_LOGS);
     if (m_configs[CONFIG_GUILD_BANK_EVENT_LOG_COUNT] < GUILD_BANK_MAX_LOGS)
         m_configs[CONFIG_GUILD_BANK_EVENT_LOG_COUNT] = GUILD_BANK_MAX_LOGS;
+
+    m_configs[CONFIG_TIMERBAR_FATIGUE_GMLEVEL] = sConfig.GetIntDefault("TimerBar.Fatigue.GMLevel", SEC_CONSOLE);
+    m_configs[CONFIG_TIMERBAR_FATIGUE_MAX]     = sConfig.GetIntDefault("TimerBar.Fatigue.Max", 60);
+    m_configs[CONFIG_TIMERBAR_BREATH_GMLEVEL]  = sConfig.GetIntDefault("TimerBar.Breath.GMLevel", SEC_CONSOLE);
+    m_configs[CONFIG_TIMERBAR_BREATH_MAX]      = sConfig.GetIntDefault("TimerBar.Breath.Max", 180);
+    m_configs[CONFIG_TIMERBAR_FIRE_GMLEVEL]    = sConfig.GetIntDefault("TimerBar.Fire.GMLevel", SEC_CONSOLE);
+    m_configs[CONFIG_TIMERBAR_FIRE_MAX]        = sConfig.GetIntDefault("TimerBar.Fire.Max", 1);
 
     m_VisibleUnitGreyDistance = sConfig.GetFloatDefault("Visibility.Distance.Grey.Unit", 1);
     if(m_VisibleUnitGreyDistance >  MAX_VISIBILITY_DISTANCE)
@@ -1491,10 +1507,10 @@ void World::SetInitialWorldSettings()
     objmgr.LoadVehicleSeatData();
 
     sLog.outString( "Loading CreatureEventAI Texts...");
-    CreatureEAI_Mgr.LoadCreatureEventAI_Texts();
+    CreatureEAI_Mgr.LoadCreatureEventAI_Texts(false);       // false, will checked in LoadCreatureEventAI_Scripts
 
     sLog.outString( "Loading CreatureEventAI Summons...");
-    CreatureEAI_Mgr.LoadCreatureEventAI_Summons();
+    CreatureEAI_Mgr.LoadCreatureEventAI_Summons(false);     // false, will checked in LoadCreatureEventAI_Scripts
 
     sLog.outString( "Loading CreatureEventAI Scripts...");
     CreatureEAI_Mgr.LoadCreatureEventAI_Scripts();

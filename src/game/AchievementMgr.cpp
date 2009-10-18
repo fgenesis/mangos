@@ -171,59 +171,74 @@ bool AchievementCriteriaData::IsValid(AchievementCriteriaEntry const* criteria)
             }
             return true;
         }
-    case ACHIEVEMENT_CRITERIA_DATA_TYPE_S_AREA:
-        if (!GetAreaEntryByAreaID(area.id))
-        {
-            sLog.outErrorDb( "Table `achievement_criteria_data` (Entry: %u Type: %u) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_S_AREA (%u) have wrong area id in value1 (%u), ignore.",
-                criteria->ID, criteria->requiredType,dataType,area.id);
-            return false;
-        }
-        return true;
-    case ACHIEVEMENT_CRITERIA_DATA_TYPE_T_LEVEL:
-        if (level.minlevel < 0 || level.minlevel > STRONG_MAX_LEVEL)
-        {
-            sLog.outErrorDb( "Table `achievement_criteria_data` (Entry: %u Type: %u) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_T_LEVEL (%u) have wrong minlevel in value1 (%u), ignore.",
-                criteria->ID, criteria->requiredType,dataType,level.minlevel);
-            return false;
-        }
-        return true;
-    case ACHIEVEMENT_CRITERIA_DATA_TYPE_T_GENDER:
-        if (gender.gender > GENDER_NONE)
-        {
-            sLog.outErrorDb( "Table `achievement_criteria_data` (Entry: %u Type: %u) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_T_GENDER (%u) have wrong gender in value1 (%u), ignore.",
-                criteria->ID, criteria->requiredType,dataType,gender.gender);
-            return false;
-        }
-        return true;
-    case ACHIEVEMENT_CRITERIA_DATA_TYPE_MAP_DIFFICULTY:
-        if (difficalty.difficalty >= TOTAL_DIFFICULTIES)
-        {
-            sLog.outErrorDb( "Table `achievement_criteria_data` (Entry: %u Type: %u) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_MAP_DIFFICULTY (%u) have wrong difficulty in value1 (%u), ignore.",
-                criteria->ID, criteria->requiredType,dataType,difficalty.difficalty);
-            return false;
-        }
-        return true;
-    case ACHIEVEMENT_CRITERIA_DATA_TYPE_MAP_PLAYER_COUNT:
-        if (map_players.maxcount <= 0)
-        {
-            sLog.outErrorDb( "Table `achievement_criteria_data` (Entry: %u Type: %u) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_MAP_PLAYER_COUNT (%u) have wrong max players count in value1 (%u), ignore.",
-                criteria->ID, criteria->requiredType,dataType,map_players.maxcount);
-            return false;
-        }
-        return true;
-    case ACHIEVEMENT_CRITERIA_DATA_TYPE_T_TEAM:
-        if (team.team != ALLIANCE && team.team != HORDE)
-        {
-            sLog.outErrorDb( "Table `achievement_criteria_data` (Entry: %u Type: %u) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_T_TEAM (%u) have unknown team in value1 (%u), ignore.",
-                criteria->ID, criteria->requiredType,dataType,team.team);
-            return false;
-        }
-        return true;
-    case ACHIEVEMENT_CRITERIA_DATA_TYPE_S_DRUNK:
-        if(drunk.state >= MAX_DRUNKEN)
-        {
-            sLog.outErrorDb( "Table `achievement_criteria_data` (Entry: %u Type: %u) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_S_DRUNK (%u) have unknown drunken state in value1 (%u), ignore.",
-                criteria->ID, criteria->requiredType,dataType,drunk.state);
+        case ACHIEVEMENT_CRITERIA_DATA_TYPE_S_AREA:
+            if (!GetAreaEntryByAreaID(area.id))
+            {
+                sLog.outErrorDb( "Table `achievement_criteria_data` (Entry: %u Type: %u) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_S_AREA (%u) have wrong area id in value1 (%u), ignore.",
+                    criteria->ID, criteria->requiredType,dataType,area.id);
+                return false;
+            }
+            return true;
+        case ACHIEVEMENT_CRITERIA_DATA_TYPE_T_LEVEL:
+            if (level.minlevel < 0 || level.minlevel > STRONG_MAX_LEVEL)
+            {
+                sLog.outErrorDb( "Table `achievement_criteria_data` (Entry: %u Type: %u) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_T_LEVEL (%u) have wrong minlevel in value1 (%u), ignore.",
+                    criteria->ID, criteria->requiredType,dataType,level.minlevel);
+                return false;
+            }
+            return true;
+        case ACHIEVEMENT_CRITERIA_DATA_TYPE_T_GENDER:
+            if (gender.gender > GENDER_NONE)
+            {
+                sLog.outErrorDb( "Table `achievement_criteria_data` (Entry: %u Type: %u) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_T_GENDER (%u) have wrong gender in value1 (%u), ignore.",
+                    criteria->ID, criteria->requiredType,dataType,gender.gender);
+                return false;
+            }
+            return true;
+        case ACHIEVEMENT_CRITERIA_DATA_TYPE_MAP_DIFFICULTY:
+            if (difficulty.difficulty >= MAX_DIFFICULTY)
+            {
+                sLog.outErrorDb( "Table `achievement_criteria_data` (Entry: %u Type: %u) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_MAP_DIFFICULTY (%u) have wrong difficulty in value1 (%u), ignore.",
+                    criteria->ID, criteria->requiredType,dataType,difficulty.difficulty);
+                return false;
+            }
+            return true;
+        case ACHIEVEMENT_CRITERIA_DATA_TYPE_MAP_PLAYER_COUNT:
+            if (map_players.maxcount <= 0)
+            {
+                sLog.outErrorDb( "Table `achievement_criteria_data` (Entry: %u Type: %u) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_MAP_PLAYER_COUNT (%u) have wrong max players count in value1 (%u), ignore.",
+                    criteria->ID, criteria->requiredType,dataType,map_players.maxcount);
+                return false;
+            }
+            return true;
+        case ACHIEVEMENT_CRITERIA_DATA_TYPE_T_TEAM:
+            if (team.team != ALLIANCE && team.team != HORDE)
+            {
+                sLog.outErrorDb( "Table `achievement_criteria_data` (Entry: %u Type: %u) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_T_TEAM (%u) have unknown team in value1 (%u), ignore.",
+                    criteria->ID, criteria->requiredType,dataType,team.team);
+                return false;
+            }
+            return true;
+        case ACHIEVEMENT_CRITERIA_DATA_TYPE_S_DRUNK:
+            if(drunk.state >= MAX_DRUNKEN)
+            {
+                sLog.outErrorDb( "Table `achievement_criteria_data` (Entry: %u Type: %u) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_S_DRUNK (%u) have unknown drunken state in value1 (%u), ignore.",
+                    criteria->ID, criteria->requiredType,dataType,drunk.state);
+                return false;
+            }
+            return true;
+        case ACHIEVEMENT_CRITERIA_DATA_TYPE_HOLIDAY:
+            if (!sHolidaysStore.LookupEntry(holiday.id))
+            {
+                sLog.outErrorDb( "Table `achievement_criteria_data` (Entry: %u Type: %u) for data type ACHIEVEMENT_CRITERIA_DATA_TYPE_HOLIDAY (%u) have unknown holiday in value1 (%u), ignore.",
+                    criteria->ID, criteria->requiredType,dataType,holiday.id);
+                return false;
+            }
+            return true;
+        case ACHIEVEMENT_CRITERIA_DATA_TYPE_BG_LOSS_TEAM_SCORE:
+            return true;                                    // not check correctness node indexes
+        default:
+            sLog.outErrorDb( "Table `achievement_criteria_data` (Entry: %u Type: %u) have data for not supported data type (%u), ignore.", criteria->ID, criteria->requiredType,dataType);
             return false;
         }
         return true;
@@ -279,33 +294,33 @@ bool AchievementCriteriaData::Meets(Player const* source, Unit const* target, ui
             source->GetZoneAndAreaId(zone_id,area_id);
             return area.id==zone_id || area.id==area_id;
         }
-    case ACHIEVEMENT_CRITERIA_DATA_TYPE_T_AURA:
-        return target && target->HasAura(aura.spell_id,aura.effect_idx);
-    case ACHIEVEMENT_CRITERIA_DATA_TYPE_VALUE:
-        return miscvalue1 >= value.minvalue;
-    case ACHIEVEMENT_CRITERIA_DATA_TYPE_T_LEVEL:
-        if (!target)
-            return false;
-        return target->getLevel() >= level.minlevel;
-    case ACHIEVEMENT_CRITERIA_DATA_TYPE_T_GENDER:
-        if (!target)
-            return false;
-        return target->getGender() == gender.gender;
-    case ACHIEVEMENT_CRITERIA_DATA_TYPE_DISABLED:
-        return false;                                   // always fail
-    case ACHIEVEMENT_CRITERIA_DATA_TYPE_MAP_DIFFICULTY:
-        return source->GetMap()->GetSpawnMode()==difficalty.difficalty;
-    case ACHIEVEMENT_CRITERIA_DATA_TYPE_MAP_PLAYER_COUNT:
-        return source->GetMap()->GetPlayersCountExceptGMs() <= map_players.maxcount;
-    case ACHIEVEMENT_CRITERIA_DATA_TYPE_T_TEAM:
-        if (!target || target->GetTypeId() != TYPEID_PLAYER)
-            return false;
-        return ((Player*)target)->GetTeam() == team.team;
-    case ACHIEVEMENT_CRITERIA_DATA_TYPE_S_DRUNK:
-        return Player::GetDrunkenstateByValue(source->GetDrunkValue()) >= drunk.state;
-    case ACHIEVEMENT_CRITERIA_DATA_TYPE_HOLIDAY:
-        return IsHolidayActive(HolidayIds(holiday.id));
-    case ACHIEVEMENT_CRITERIA_DATA_TYPE_BG_LOSS_TEAM_SCORE:
+        case ACHIEVEMENT_CRITERIA_DATA_TYPE_T_AURA:
+            return target && target->HasAura(aura.spell_id,aura.effect_idx);
+        case ACHIEVEMENT_CRITERIA_DATA_TYPE_VALUE:
+            return miscvalue1 >= value.minvalue;
+        case ACHIEVEMENT_CRITERIA_DATA_TYPE_T_LEVEL:
+            if (!target)
+                return false;
+            return target->getLevel() >= level.minlevel;
+        case ACHIEVEMENT_CRITERIA_DATA_TYPE_T_GENDER:
+            if (!target)
+                return false;
+            return target->getGender() == gender.gender;
+        case ACHIEVEMENT_CRITERIA_DATA_TYPE_DISABLED:
+            return false;                                   // always fail
+        case ACHIEVEMENT_CRITERIA_DATA_TYPE_MAP_DIFFICULTY:
+            return source->GetMap()->GetSpawnMode()==difficulty.difficulty;
+        case ACHIEVEMENT_CRITERIA_DATA_TYPE_MAP_PLAYER_COUNT:
+            return source->GetMap()->GetPlayersCountExceptGMs() <= map_players.maxcount;
+        case ACHIEVEMENT_CRITERIA_DATA_TYPE_T_TEAM:
+            if (!target || target->GetTypeId() != TYPEID_PLAYER)
+                return false;
+            return ((Player*)target)->GetTeam() == team.team;
+        case ACHIEVEMENT_CRITERIA_DATA_TYPE_S_DRUNK:
+            return Player::GetDrunkenstateByValue(source->GetDrunkValue()) >= drunk.state;
+        case ACHIEVEMENT_CRITERIA_DATA_TYPE_HOLIDAY:
+            return IsHolidayActive(HolidayIds(holiday.id));
+        case ACHIEVEMENT_CRITERIA_DATA_TYPE_BG_LOSS_TEAM_SCORE:
         {
             BattleGround* bg = source->GetBattleGround();
             if(!bg)
@@ -902,7 +917,7 @@ void AchievementMgr::UpdateAchievementCriteria(AchievementCriteriaTypes type, ui
                             if(!achievIdForDangeon[j][2])
                                 break;                      // for
                         }
-                        else if(GetPlayer()->GetDifficulty()==DIFFICULTY_NORMAL)
+                        else if(GetPlayer()->GetDungeonDifficulty()==DUNGEON_DIFFICULTY_NORMAL)
                         {
                             // dungeon in normal mode accepted
                             if(!achievIdForDangeon[j][1])
@@ -1807,6 +1822,8 @@ void AchievementGlobalMgr::LoadAchievementCriteriaList()
         AchievementCriteriaEntry const* criteria = sAchievementCriteriaStore.LookupEntry(entryId);
         if(!criteria)
             continue;
+
+        assert(criteria->requiredType < ACHIEVEMENT_CRITERIA_TYPE_TOTAL && "Not updated ACHIEVEMENT_CRITERIA_TYPE_TOTAL?");
 
         m_AchievementCriteriasByType[criteria->requiredType].push_back(criteria);
         m_AchievementCriteriaListByAchievement[criteria->referredAchievement].push_back(criteria);

@@ -53,7 +53,8 @@ int m_ServiceStatus = -1;
 // FG: for getMSTime()
 #include "Timer.h"
 
-bool StartDB(std::string &dbstring);
+
+bool StartDB();
 void UnhookSignals();
 void HookSignals();
 
@@ -190,8 +191,7 @@ extern int main(int argc, char **argv)
     }
 
     ///- Initialize the database connection
-    std::string dbstring;
-    if(!StartDB(dbstring))
+    if(!StartDB())
         return 1;
 
     ///- Get the list of realms for the server
@@ -342,9 +342,10 @@ void OnSignal(int s)
 }
 
 /// Initialize connection to the database
-bool StartDB(std::string &dbstring)
+bool StartDB()
 {
-    if(!sConfig.GetString("LoginDatabaseInfo", &dbstring))
+    std::string dbstring = sConfig.GetStringDefault("LoginDatabaseInfo", "");
+    if(dbstring.empty())
     {
         sLog.outError("Database not specified");
         return false;

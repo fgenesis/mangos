@@ -26,6 +26,7 @@
 #include "Language.h"
 #include "Util.h"
 #include "WorldPacket.h"
+#include "MapManager.h"
 
 BattleGroundAB::BattleGroundAB()
 {
@@ -191,20 +192,17 @@ void BattleGroundAB::RemovePlayer(Player * /*plr*/, uint64 /*guid*/)
 
 void BattleGroundAB::HandleAreaTrigger(Player *Source, uint32 Trigger)
 {
-    if (GetStatus() != STATUS_IN_PROGRESS)
-        return;
-
     switch(Trigger)
     {
         case 3948:                                          // Arathi Basin Alliance Exit.
             if (Source->GetTeam() != ALLIANCE)
-                Source->GetSession()->SendAreaTriggerMessage("Only The Alliance can use that portal");
+                Source->GetSession()->SendNotification(LANG_BATTLEGROUND_ONLY_ALLIANCE_USE);
             else
                 Source->LeaveBattleground();
             break;
         case 3949:                                          // Arathi Basin Horde Exit.
             if (Source->GetTeam() != HORDE)
-                Source->GetSession()->SendAreaTriggerMessage("Only The Horde can use that portal");
+                Source->GetSession()->SendNotification(LANG_BATTLEGROUND_ONLY_HORDE_USE);
             else
                 Source->LeaveBattleground();
             break;

@@ -61,23 +61,26 @@ GameObject::GameObject() : WorldObject()
 
 GameObject::~GameObject()
 {
-    CleanupsBeforeDelete();
 }
 
-void GameObject::CleanupsBeforeDelete()
+void GameObject::AddToWorld()
 {
-    if(m_uint32Values)                                      // field array can be not exist if GameOBject not loaded
+    ///- Register the gameobject for guid lookup
+    if(!IsInWorld())
+        GetMap()->GetObjectsStore().insert<GameObject>(GetGUID(), (GameObject*)this);
+
+    Object::AddToWorld();
+}
+
+void GameObject::RemoveFromWorld()
+{
+    ///- Remove the gameobject from the accessor
+    if(IsInWorld())
     {
-        // Possible crash at access to deleted GO in Unit::m_gameobj
+        // Remove GO from owner
         if(uint64 owner_guid = GetOwnerGUID())
         {
-            Unit* owner = NULL;
-            if(IS_PLAYER_GUID(owner_guid))
-                owner = ObjectAccessor::GetObjectInWorld(owner_guid, (Player*)NULL);
-            else
-                owner = ObjectAccessor::GetUnit(*this,owner_guid);
-
-            if(owner)
+            if (Unit* owner = IS_PLAYER_GUID(owner_guid) ? ObjectAccessor::FindPlayer(owner_guid) : GetMap()->GetCreatureOrPet(owner_guid))
                 owner->RemoveGameObject(this,false);
             else
             {
@@ -91,20 +94,10 @@ void GameObject::CleanupsBeforeDelete()
                     GetGUIDLow(), GetGOInfo()->id, m_spellId, GetGOInfo()->GetLinkedGameObjectEntry(), GUID_LOPART(owner_guid), ownerType);
             }
         }
+
+        GetMap()->GetObjectsStore().erase<GameObject>(GetGUID(), (GameObject*)NULL);
     }
-}
 
-void GameObject::AddToWorld()
-{
-    ///- Register the gameobject for guid lookup
-    if(!IsInWorld()) ObjectAccessor::Instance().AddObject(this);
-    Object::AddToWorld();
-}
-
-void GameObject::RemoveFromWorld()
-{
-    ///- Remove the gameobject from the accessor
-    if(IsInWorld()) ObjectAccessor::Instance().RemoveObject(this);
     Object::RemoveFromWorld();
 }
 
@@ -712,6 +705,10 @@ bool GameObject::isVisibleForInState(Player const* u, WorldObject const* viewPoi
     if(!IsInWorld() || !u->IsInWorld())
         return false;
 
+    // invisible at client always
+    if(!GetGOInfo()->displayId)
+        return false;
+
     // Transport always visible at this step implementation
     if(IsTransport() && IsInMap(u))
         return true;
@@ -757,7 +754,14 @@ bool GameObject::ActivateToQuest( Player *pTarget)const
         case GAMEOBJECT_TYPE_CHEST:
         {
             if(LootTemplates_Gameobject.HaveQuestLootForPlayer(GetGOInfo()->GetLootId(), pTarget))
+            {
+                //look for battlegroundAV for some objects which are only activated after mine gots captured by own team
+                if (GetEntry() == BG_AV_OBJECTID_MINE_N || GetEntry() == BG_AV_OBJECTID_MINE_S)
+                    if (BattleGround *bg = pTarget->GetBattleGround())
+                        if (bg->GetTypeID() == BATTLEGROUND_AV && !(((BattleGroundAV*)bg)->PlayerCanDoMineQuest(GetEntry(),pTarget->GetTeam())))
+                            return false;
                 return true;
+            }
             break;
         }
         case GAMEOBJECT_TYPE_GOOBER:
