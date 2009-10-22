@@ -4675,6 +4675,16 @@ void Aura::HandlePeriodicDamage(bool apply, bool Real)
                 }
                 break;
             }
+           case SPELLFAMILY_WARLOCK:
+           {
+               if (m_spellProto->SpellIconID == 113)
+               {
+                   if (m_target->GetHealth() <= m_target->GetMaxHealth()*0.25f)
+                       m_modifier.m_amount *= 4;
+                   return;
+               }
+               break;
+           }
             case SPELLFAMILY_WARRIOR:
             {
                 // Rend
