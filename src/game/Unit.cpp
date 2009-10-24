@@ -122,8 +122,6 @@ Unit::Unit()
         m_auraModifiersGroup[i][BASE_PCT] = 1.0f;
         m_auraModifiersGroup[i][TOTAL_VALUE] = 0.0f;
         m_auraModifiersGroup[i][TOTAL_PCT] = 1.0f;
-        m_auraModifiersGroup[i][NONSTACKING_VALUE] = 0.0f;
-        m_auraModifiersGroup[i][NONSTACKING_PCT] = 0.0f;
     }
                                                             // implement 50% base damage from offhand
     m_auraModifiersGroup[UNIT_MOD_DAMAGE_OFFHAND][TOTAL_PCT] = 0.5f;
@@ -3304,68 +3302,44 @@ void Unit::DeMorph()
 int32 Unit::GetTotalAuraModifier(AuraType auratype) const
 {
     int32 modifier = 0;
-    int32 nonStackingPos = 0;
-    int32 nonStackingNeg = 0;
 
     AuraList const& mTotalAuraList = GetAurasByType(auratype);
     for(AuraList::const_iterator i = mTotalAuraList.begin();i != mTotalAuraList.end(); ++i)
-    {
-        if((*i)->IsStacking())
-            modifier += (*i)->GetModifier()->m_amount;
-        else
-        {
-            if((*i)->GetModifier()->m_amount > nonStackingPos)
-                nonStackingPos = (*i)->GetModifier()->m_amount;
-            else if((*i)->GetModifier()->m_amount < nonStackingNeg)
-                nonStackingNeg = (*i)->GetModifier()->m_amount;
-        }
-    }
+        modifier += (*i)->GetModifier()->m_amount;
 
-    return modifier + nonStackingPos + nonStackingNeg;
+    return modifier;
 }
 
 float Unit::GetTotalAuraMultiplier(AuraType auratype) const
 {
     float multiplier = 1.0f;
-    float nonStackingPos = 0.0f;
-    float nonStackingNeg = 0.0f;
 
     AuraList const& mTotalAuraList = GetAurasByType(auratype);
     for(AuraList::const_iterator i = mTotalAuraList.begin();i != mTotalAuraList.end(); ++i)
-    {
-        if((*i)->IsStacking())
-            multiplier *= (100.0f + (*i)->GetModifier()->m_amount)/100.0f;
-        else
-        {
-            if((*i)->GetModifier()->m_amount > nonStackingPos)
-                nonStackingPos = (*i)->GetModifier()->m_amount;
-            else if((*i)->GetModifier()->m_amount < nonStackingNeg)
-                nonStackingNeg = (*i)->GetModifier()->m_amount;
-        }
-    }
+        multiplier *= (100.0f + (*i)->GetModifier()->m_amount)/100.0f;
 
-    return multiplier * (100.0f + nonStackingPos)/100.0f * (100.0f + nonStackingNeg)/100.0f;
+    return multiplier;
 }
 
-int32 Unit::GetMaxPositiveAuraModifier(AuraType auratype, bool nonStackingOnly) const
+int32 Unit::GetMaxPositiveAuraModifier(AuraType auratype) const
 {
     int32 modifier = 0;
 
     AuraList const& mTotalAuraList = GetAurasByType(auratype);
     for(AuraList::const_iterator i = mTotalAuraList.begin();i != mTotalAuraList.end(); ++i)
-        if (!(nonStackingOnly && (*i)->IsStacking()) && (*i)->GetModifier()->m_amount > modifier)
+        if ((*i)->GetModifier()->m_amount > modifier)
             modifier = (*i)->GetModifier()->m_amount;
 
     return modifier;
 }
 
-int32 Unit::GetMaxNegativeAuraModifier(AuraType auratype, bool nonStackingOnly) const
+int32 Unit::GetMaxNegativeAuraModifier(AuraType auratype) const
 {
     int32 modifier = 0;
 
     AuraList const& mTotalAuraList = GetAurasByType(auratype);
     for(AuraList::const_iterator i = mTotalAuraList.begin();i != mTotalAuraList.end(); ++i)
-        if (!(nonStackingOnly && (*i)->IsStacking()) && (*i)->GetModifier()->m_amount < modifier)
+        if ((*i)->GetModifier()->m_amount < modifier)
             modifier = (*i)->GetModifier()->m_amount;
 
     return modifier;
@@ -3377,29 +3351,15 @@ int32 Unit::GetTotalAuraModifierByMiscMask(AuraType auratype, uint32 misc_mask) 
         return 0;
 
     int32 modifier = 0;
-    int32 nonStackingPos = 0;
-    int32 nonStackingNeg = 0;
 
     AuraList const& mTotalAuraList = GetAurasByType(auratype);
     for(AuraList::const_iterator i = mTotalAuraList.begin();i != mTotalAuraList.end(); ++i)
     {
         Modifier* mod = (*i)->GetModifier();
-
         if (mod->m_miscvalue & misc_mask)
-        {
-            if((*i)->IsStacking())
-                modifier += mod->m_amount;
-            else
-            {
-                if(mod->m_amount > nonStackingPos)
-                    nonStackingPos = mod->m_amount;
-                else if(mod->m_amount < nonStackingNeg)
-                    nonStackingNeg = mod->m_amount;
-            }
-        }
+            modifier += mod->m_amount;
     }
-
-    return modifier + nonStackingPos + nonStackingNeg;
+    return modifier;
 }
 
 float Unit::GetTotalAuraMultiplierByMiscMask(AuraType auratype, uint32 misc_mask) const
@@ -3408,32 +3368,18 @@ float Unit::GetTotalAuraMultiplierByMiscMask(AuraType auratype, uint32 misc_mask
         return 1.0f;
 
     float multiplier = 1.0f;
-    float nonStackingPos = 0.0f;
-    float nonStackingNeg = 0.0f;
 
     AuraList const& mTotalAuraList = GetAurasByType(auratype);
     for(AuraList::const_iterator i = mTotalAuraList.begin();i != mTotalAuraList.end(); ++i)
     {
         Modifier* mod = (*i)->GetModifier();
-
         if (mod->m_miscvalue & misc_mask)
-        {
-            if((*i)->IsStacking())
-                multiplier *= (100.0f + mod->m_amount)/100.0f;
-            else
-            {
-                if(mod->m_amount > nonStackingPos)
-                    nonStackingPos = mod->m_amount;
-                else if(mod->m_amount < nonStackingNeg)
-                    nonStackingNeg = mod->m_amount;
-            }
-        }
+            multiplier *= (100.0f + mod->m_amount)/100.0f;
     }
-
-    return multiplier * (100.0f + nonStackingPos)/100.0f * (100.0f + nonStackingNeg)/100.0f;
+    return multiplier;
 }
 
-int32 Unit::GetMaxPositiveAuraModifierByMiscMask(AuraType auratype, uint32 misc_mask, bool nonStackingOnly) const
+int32 Unit::GetMaxPositiveAuraModifierByMiscMask(AuraType auratype, uint32 misc_mask) const
 {
     if(!misc_mask)
         return 0;
@@ -3444,14 +3390,14 @@ int32 Unit::GetMaxPositiveAuraModifierByMiscMask(AuraType auratype, uint32 misc_
     for(AuraList::const_iterator i = mTotalAuraList.begin();i != mTotalAuraList.end(); ++i)
     {
         Modifier* mod = (*i)->GetModifier();
-        if (!(nonStackingOnly && (*i)->IsStacking()) && mod->m_miscvalue & misc_mask && mod->m_amount > modifier)
+        if (mod->m_miscvalue & misc_mask && mod->m_amount > modifier)
             modifier = mod->m_amount;
     }
 
     return modifier;
 }
 
-int32 Unit::GetMaxNegativeAuraModifierByMiscMask(AuraType auratype, uint32 misc_mask, bool nonStackingOnly) const
+int32 Unit::GetMaxNegativeAuraModifierByMiscMask(AuraType auratype, uint32 misc_mask) const
 {
     if(!misc_mask)
         return 0;
@@ -3462,7 +3408,7 @@ int32 Unit::GetMaxNegativeAuraModifierByMiscMask(AuraType auratype, uint32 misc_
     for(AuraList::const_iterator i = mTotalAuraList.begin();i != mTotalAuraList.end(); ++i)
     {
         Modifier* mod = (*i)->GetModifier();
-        if (!(nonStackingOnly && (*i)->IsStacking()) && mod->m_miscvalue & misc_mask && mod->m_amount < modifier)
+        if (mod->m_miscvalue & misc_mask && mod->m_amount < modifier)
             modifier = mod->m_amount;
     }
 
@@ -3472,54 +3418,32 @@ int32 Unit::GetMaxNegativeAuraModifierByMiscMask(AuraType auratype, uint32 misc_
 int32 Unit::GetTotalAuraModifierByMiscValue(AuraType auratype, int32 misc_value) const
 {
     int32 modifier = 0;
-    int32 nonStackingPos = 0;
 
     AuraList const& mTotalAuraList = GetAurasByType(auratype);
     for(AuraList::const_iterator i = mTotalAuraList.begin();i != mTotalAuraList.end(); ++i)
     {
         Modifier* mod = (*i)->GetModifier();
-
         if (mod->m_miscvalue == misc_value)
-        {
-            if((*i)->IsStacking())
-                modifier += mod->m_amount;
-            else
-            {
-                if(mod->m_amount > nonStackingPos)
-                    nonStackingPos = mod->m_amount;
-            }
-        }
+            modifier += mod->m_amount;
     }
-
-    return modifier + nonStackingPos;
+    return modifier;
 }
 
 float Unit::GetTotalAuraMultiplierByMiscValue(AuraType auratype, int32 misc_value) const
 {
     float multiplier = 1.0f;
-    float nonStackingPos = 0.0f;
 
     AuraList const& mTotalAuraList = GetAurasByType(auratype);
     for(AuraList::const_iterator i = mTotalAuraList.begin();i != mTotalAuraList.end(); ++i)
     {
         Modifier* mod = (*i)->GetModifier();
-
         if (mod->m_miscvalue == misc_value)
-        {
-            if((*i)->IsStacking())
-                multiplier *= (100.0f + mod->m_amount)/100.0f;
-            else
-            {
-                if(mod->m_amount > nonStackingPos)
-                    nonStackingPos = mod->m_amount;
-            }
-        }
+            multiplier *= (100.0f + mod->m_amount)/100.0f;
     }
-
-    return multiplier * (100.0f + nonStackingPos)/100.0f;
+    return multiplier;
 }
 
-int32 Unit::GetMaxPositiveAuraModifierByMiscValue(AuraType auratype, int32 misc_value, bool nonStackingOnly) const
+int32 Unit::GetMaxPositiveAuraModifierByMiscValue(AuraType auratype, int32 misc_value) const
 {
     int32 modifier = 0;
 
@@ -3527,14 +3451,14 @@ int32 Unit::GetMaxPositiveAuraModifierByMiscValue(AuraType auratype, int32 misc_
     for(AuraList::const_iterator i = mTotalAuraList.begin();i != mTotalAuraList.end(); ++i)
     {
         Modifier* mod = (*i)->GetModifier();
-        if (!(nonStackingOnly && (*i)->IsStacking()) && mod->m_miscvalue == misc_value && mod->m_amount > modifier)
+        if (mod->m_miscvalue == misc_value && mod->m_amount > modifier)
             modifier = mod->m_amount;
     }
 
     return modifier;
 }
 
-int32 Unit::GetMaxNegativeAuraModifierByMiscValue(AuraType auratype, int32 misc_value, bool nonStackingOnly) const
+int32 Unit::GetMaxNegativeAuraModifierByMiscValue(AuraType auratype, int32 misc_value) const
 {
     int32 modifier = 0;
 
@@ -3542,7 +3466,7 @@ int32 Unit::GetMaxNegativeAuraModifierByMiscValue(AuraType auratype, int32 misc_
     for(AuraList::const_iterator i = mTotalAuraList.begin();i != mTotalAuraList.end(); ++i)
     {
         Modifier* mod = (*i)->GetModifier();
-        if (!(nonStackingOnly && (*i)->IsStacking()) && mod->m_miscvalue == misc_value && mod->m_amount < modifier)
+        if (mod->m_miscvalue == misc_value && mod->m_amount < modifier)
             modifier = mod->m_amount;
     }
 
@@ -3632,7 +3556,7 @@ bool Unit::AddAura(Aura *Aur)
         }
     }
 
-    // passive auras not stackable with other ranks
+    // passive auras not stacable with other ranks
     if (!IsPassiveSpellStackableWithRanks(aurSpellInfo))
     {
         if (!RemoveNoStackAurasDueToAura(Aur))
@@ -3699,49 +3623,6 @@ bool Unit::AddAura(Aura *Aur)
         Aur->HandleSpellSpecificBoosts(true);
 
     return true;
-}
-
-float Unit::CheckAuraStackingAndApply(Aura *Aur, UnitMods unitMod, UnitModifierType modifierType, float amount, bool apply, int32 miscMask, int32 miscValue)
-{
-    if(!Aur->IsStacking())
-    {
-        if(modifierType == TOTAL_VALUE)
-            modifierType = NONSTACKING_VALUE;
-        else if(modifierType == TOTAL_PCT)
-            modifierType = NONSTACKING_PCT;
-        // need a sanity check here?
-
-        float current = GetModifierValue(unitMod, modifierType);
-
-        if(amount < current)                                // value does not change as a result of applying/removing this aura
-            return 0.0f;
-
-        if(!apply)                                          // aura removed is the aura that is currently in effect, must find second highest nonstacking aura's m_amount
-        {
-            if(miscMask)
-                amount = (float)GetMaxPositiveAuraModifierByMiscMask(Aur->GetModifier()->m_auraname, miscMask, true);
-            else if(miscValue)
-                amount = (float)GetMaxPositiveAuraModifierByMiscValue(Aur->GetModifier()->m_auraname, miscValue-1, true);
-            else
-                amount = (float)GetMaxPositiveAuraModifier(Aur->GetModifier()->m_auraname, true);
-        }
-
-        HandleStatModifier(unitMod, modifierType, amount, apply);
-
-        if(modifierType == NONSTACKING_VALUE)
-            amount -= current;
-        else
-        {
-            if(apply)
-                amount = ((100.0f + amount) / (100.0f + current) - 1.0f) * 100.0f;
-            else
-                amount = ((100.0f + current) / (100.0f + amount) - 1.0f) * 100.0f;
-        }
-    }
-    else
-        HandleStatModifier(unitMod, modifierType, amount, apply);
-
-    return amount;
 }
 
 void Unit::RemoveRankAurasDueToSpell(uint32 spellId)
@@ -5802,7 +5683,7 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
             {
                 // "refresh your Slice and Dice duration to its 5 combo point maximum"
                 // lookup Slice and Dice
-                AuraList const& sd = GetAurasByType(SPELL_AURA_MOD_MELEE_HASTE);
+                AuraList const& sd = GetAurasByType(SPELL_AURA_MOD_HASTE);
                 for(AuraList::const_iterator itr = sd.begin(); itr != sd.end(); ++itr)
                 {
                     SpellEntry const *spellProto = (*itr)->GetSpellProto();
@@ -8784,7 +8665,7 @@ int32 Unit::SpellBaseDamageBonus(SpellSchoolMask schoolMask)
         if (((*i)->GetModifier()->m_miscvalue & schoolMask) != 0 &&
             (*i)->GetSpellProto()->EquippedItemClass == -1 &&                   // -1 == any item class (not wand then)
             (*i)->GetSpellProto()->EquippedItemInventoryTypeMask == 0)          //  0 == any inventory type (not wand then)
-                DoneAdvertisedBenefit += (*i)->GetModifier()->m_amount;
+            DoneAdvertisedBenefit += (*i)->GetModifier()->m_amount;
     }
 
     if (GetTypeId() == TYPEID_PLAYER)
@@ -8814,6 +8695,7 @@ int32 Unit::SpellBaseDamageBonus(SpellSchoolMask schoolMask)
     }
     return DoneAdvertisedBenefit;
 }
+
 
 int32 Unit::SpellBaseDamageBonusForVictim(SpellSchoolMask schoolMask, Unit *pVictim)
 {
@@ -8996,13 +8878,13 @@ uint32 Unit::SpellCriticalDamageBonus(SpellEntry const *spellProto, uint32 damag
     int32 crit_bonus;
     switch(spellProto->DmgClass)
     {
-        case SPELL_DAMAGE_CLASS_MELEE:                      // for melee based spells is 100%
-        case SPELL_DAMAGE_CLASS_RANGED:
-            crit_bonus = damage;
-            break;
-        default:
-            crit_bonus = damage / 2;                        // for spells is 50%
-            break;
+    case SPELL_DAMAGE_CLASS_MELEE:                      // for melee based spells is 100%
+    case SPELL_DAMAGE_CLASS_RANGED:
+        crit_bonus = damage;
+        break;
+    default:
+        crit_bonus = damage / 2;                        // for spells is 50%
+        break;
     }
 
     // adds additional damage to crit_bonus (from talents)
@@ -9035,6 +8917,7 @@ uint32 Unit::SpellCriticalDamageBonus(SpellEntry const *spellProto, uint32 damag
     return damage;
 }
 
+
 uint32 Unit::SpellCriticalHealingBonus(SpellEntry const *spellProto, uint32 damage, Unit *pVictim)
 {
     // Calculate critical bonus
@@ -9049,6 +8932,12 @@ uint32 Unit::SpellCriticalHealingBonus(SpellEntry const *spellProto, uint32 dama
         default:
             crit_bonus = damage / 2;                        // for spells is 50%
             break;
+    }
+
+    if(pVictim)
+    {
+        uint32 creatureTypeMask = pVictim->GetCreatureTypeMask();
+        crit_bonus = int32(crit_bonus * GetTotalAuraMultiplierByMiscMask(SPELL_AURA_MOD_CRIT_PERCENT_VERSUS, creatureTypeMask));
     }
 
     if(crit_bonus > 0)
@@ -9221,7 +9110,13 @@ uint32 Unit::SpellHealingBonus(Unit *pVictim, SpellEntry const *spellProto, uint
     }
 
     // Healing taken percent
-    TakenTotalMod *= pVictim->GetTotalAuraMultiplier(SPELL_AURA_MOD_HEALING_PCT);
+    float minval = pVictim->GetMaxNegativeAuraModifier(SPELL_AURA_MOD_HEALING_PCT);
+    if(minval)
+        TakenTotalMod *= (100.0f + minval) / 100.0f;
+
+    float maxval = pVictim->GetMaxPositiveAuraModifier(SPELL_AURA_MOD_HEALING_PCT);
+    if(maxval)
+        TakenTotalMod *= (100.0f + maxval) / 100.0f;
 
     AuraList const& mHealingGet= pVictim->GetAurasByType(SPELL_AURA_MOD_HEALING_RECEIVED);
     for(AuraList::const_iterator i = mHealingGet.begin(); i != mHealingGet.end(); ++i)
@@ -9235,7 +9130,12 @@ uint32 Unit::SpellHealingBonus(Unit *pVictim, SpellEntry const *spellProto, uint
 
 int32 Unit::SpellBaseHealingBonus(SpellSchoolMask schoolMask)
 {
-    int32 AdvertisedBenefit = GetTotalAuraModifier(SPELL_AURA_MOD_HEALING_DONE);
+    int32 AdvertisedBenefit = 0;
+
+    AuraList const& mHealingDone = GetAurasByType(SPELL_AURA_MOD_HEALING_DONE);
+    for(AuraList::const_iterator i = mHealingDone.begin();i != mHealingDone.end(); ++i)
+        if(((*i)->GetModifier()->m_miscvalue & schoolMask) != 0)
+            AdvertisedBenefit += (*i)->GetModifier()->m_amount;
 
     // Healing bonus of spirit, intellect and strength
     if (GetTypeId() == TYPEID_PLAYER)
@@ -10949,10 +10849,6 @@ bool Unit::HandleStatModifier(UnitMods unitMod, UnitModifierType modifierType, f
             val = (100.0f + amount) / 100.0f;
             m_auraModifiersGroup[unitMod][modifierType] *= apply ? val : (1.0f/val);
             break;
-        case NONSTACKING_PCT:
-        case NONSTACKING_VALUE:
-            m_auraModifiersGroup[unitMod][modifierType] = amount;
-            break;
 
         default:
             break;
@@ -10979,7 +10875,6 @@ bool Unit::HandleStatModifier(UnitMods unitMod, UnitModifierType modifierType, f
         case UNIT_MOD_HAPPINESS:
         case UNIT_MOD_RUNE:
         case UNIT_MOD_RUNIC_POWER:         UpdateMaxPower(GetPowerTypeByAuraGroup(unitMod));           break;
-
         case UNIT_MOD_RESISTANCE_HOLY:
         case UNIT_MOD_RESISTANCE_FIRE:
         case UNIT_MOD_RESISTANCE_NATURE:
@@ -11009,23 +10904,10 @@ float Unit::GetModifierValue(UnitMods unitMod, UnitModifierType modifierType) co
         return 0.0f;
     }
 
-    if(modifierType == TOTAL_PCT)
-    {
-        if(m_auraModifiersGroup[unitMod][modifierType] <= 0.0f)
-        {
-            return 0.0f;
-        }
-        else
-        {
-            return m_auraModifiersGroup[unitMod][TOTAL_PCT] * (m_auraModifiersGroup[unitMod][NONSTACKING_PCT] + 100.0f) / 100.0f;
-        }
-    }
-    else if(modifierType == TOTAL_VALUE)
-    {
-        return m_auraModifiersGroup[unitMod][TOTAL_VALUE] + m_auraModifiersGroup[unitMod][NONSTACKING_VALUE];
-    }
-    else
-        return m_auraModifiersGroup[unitMod][modifierType];
+    if(modifierType == TOTAL_PCT && m_auraModifiersGroup[unitMod][modifierType] <= 0.0f)
+        return 0.0f;
+
+    return m_auraModifiersGroup[unitMod][modifierType];
 }
 
 float Unit::GetTotalStatValue(Stats stat) const
@@ -11038,8 +10920,8 @@ float Unit::GetTotalStatValue(Stats stat) const
     // value = ((base_value * base_pct) + total_value) * total_pct
     float value  = m_auraModifiersGroup[unitMod][BASE_VALUE] + GetCreateStat(stat);
     value *= m_auraModifiersGroup[unitMod][BASE_PCT];
-    value += (m_auraModifiersGroup[unitMod][TOTAL_VALUE] + m_auraModifiersGroup[unitMod][NONSTACKING_VALUE]);
-    value *= (m_auraModifiersGroup[unitMod][TOTAL_PCT] * (m_auraModifiersGroup[unitMod][NONSTACKING_PCT] + 100.0f) / 100.0f);
+    value += m_auraModifiersGroup[unitMod][TOTAL_VALUE];
+    value *= m_auraModifiersGroup[unitMod][TOTAL_PCT];
 
     return value;
 }
@@ -11057,8 +10939,8 @@ float Unit::GetTotalAuraModValue(UnitMods unitMod) const
 
     float value  = m_auraModifiersGroup[unitMod][BASE_VALUE];
     value *= m_auraModifiersGroup[unitMod][BASE_PCT];
-    value += (m_auraModifiersGroup[unitMod][TOTAL_VALUE] + m_auraModifiersGroup[unitMod][NONSTACKING_VALUE]);
-    value *= (m_auraModifiersGroup[unitMod][TOTAL_PCT] * (m_auraModifiersGroup[unitMod][NONSTACKING_PCT] + 100.0f) / 100.0f);
+    value += m_auraModifiersGroup[unitMod][TOTAL_VALUE];
+    value *= m_auraModifiersGroup[unitMod][TOTAL_PCT];
 
     return value;
 }
@@ -11621,7 +11503,7 @@ bool InitTriggerAuraData()
     isTriggerAura[SPELL_AURA_OVERRIDE_CLASS_SCRIPTS] = true;
     isTriggerAura[SPELL_AURA_MOD_MECHANIC_RESISTANCE] = true;
     isTriggerAura[SPELL_AURA_RANGED_ATTACK_POWER_ATTACKER_BONUS] = true;
-    isTriggerAura[SPELL_AURA_MOD_MELEE_HASTE] = true;
+    isTriggerAura[SPELL_AURA_MOD_HASTE] = true;
     isTriggerAura[SPELL_AURA_MOD_ATTACKER_MELEE_HIT_CHANCE]=true;
     isTriggerAura[SPELL_AURA_PRAYER_OF_MENDING] = true;
     isTriggerAura[SPELL_AURA_PROC_TRIGGER_SPELL_WITH_VALUE] = true;
@@ -11822,7 +11704,7 @@ void Unit::ProcDamageAndSpellFor( bool isVictim, Unit * pTarget, uint32 procFlag
                 }
                 break;
             }
-            case SPELL_AURA_MOD_MELEE_HASTE:
+            case SPELL_AURA_MOD_HASTE:
             {
                 sLog.outDebug("ProcDamageAndSpell: casting spell id %u (triggered by %s haste aura of spell %u)", spellInfo->Id,(isVictim?"a victim's":"an attacker's"), triggeredByAura->GetId());
                 if (!HandleHasteAuraProc(pTarget, damage, triggeredByAura, procSpell, procFlag, procExtra, cooldown))
