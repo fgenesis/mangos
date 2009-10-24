@@ -30,16 +30,14 @@
 #include "GridDefines.h"
 #include "Object.h"
 #include "Player.h"
+#include "Corpse.h"
 
 #include <set>
 #include <list>
 
 class Creature;
-class Corpse;
 class Unit;
 class GameObject;
-class DynamicObject;
-class Vehicle;
 class WorldObject;
 class Map;
 
@@ -89,112 +87,48 @@ class MANGOS_DLL_DECL ObjectAccessor : public MaNGOS::Singleton<ObjectAccessor, 
 
     public:
         typedef UNORDERED_MAP<uint64, Corpse* >      Player2CorpsesMapType;
-        typedef UNORDERED_MAP<Player*, UpdateData>::value_type UpdateDataValueType;
 
-        template<class T> static T* GetObjectInWorld(uint64 guid, T* /*fake*/)
-        {
-            return HashMapHolder<T>::Find(guid);
-        }
+        // global (obj used for map only location local guid objects (pets currently)
+        static Unit*   GetUnitInWorld(WorldObject const& obj, uint64 guid);
 
-        template<class T> static T* GetObjectInWorld(uint32 mapid, float x, float y, uint64 guid, T* /*fake*/)
-        {
-            T* obj = GetObjectInWorld(guid, (T*)NULL);
-            if(!obj || obj->GetMapId() != mapid) return NULL;
+        // FIXME: map local object with global search
+        static Creature*   GetCreatureInWorld(uint64 guid)   { return FindHelper<Creature>(guid); }
+        static GameObject* GetGameObjectInWorld(uint64 guid) { return FindHelper<GameObject>(guid); }
 
-            CellPair p = MaNGOS::ComputeCellPair(x,y);
-            if(p.x_coord >= TOTAL_NUMBER_OF_CELLS_PER_MAP || p.y_coord >= TOTAL_NUMBER_OF_CELLS_PER_MAP )
-            {
-                sLog.outError("ObjectAccessor::GetObjectInWorld: invalid coordinates supplied X:%f Y:%f grid cell [%u:%u]", x, y, p.x_coord, p.y_coord);
-                return NULL;
-            }
-
-            CellPair q = MaNGOS::ComputeCellPair(obj->GetPositionX(),obj->GetPositionY());
-            if(q.x_coord >= TOTAL_NUMBER_OF_CELLS_PER_MAP || q.y_coord >= TOTAL_NUMBER_OF_CELLS_PER_MAP )
-            {
-                sLog.outError("ObjectAccessor::GetObjecInWorld: object (GUID: %u TypeId: %u) has invalid coordinates X:%f Y:%f grid cell [%u:%u]", obj->GetGUIDLow(), obj->GetTypeId(), obj->GetPositionX(), obj->GetPositionY(), q.x_coord, q.y_coord);
-                return NULL;
-            }
-
-            int32 dx = int32(p.x_coord) - int32(q.x_coord);
-            int32 dy = int32(p.y_coord) - int32(q.y_coord);
-
-            if (dx > -2 && dx < 2 && dy > -2 && dy < 2) return obj;
-            else return NULL;
-        }
-
-        static WorldObject* GetWorldObject(WorldObject const &, uint64);
-        static Object*   GetObjectByTypeMask(WorldObject const &, uint64, uint32 typemask);
-        static Creature* GetCreatureOrPetOrVehicle(WorldObject const &, uint64);
+        // possible local search for specific object map
+        static Object* GetObjectByTypeMask(WorldObject const &, uint64, uint32 typemask);
         static Unit* GetUnit(WorldObject const &, uint64);
-        static Pet* GetPet(Unit const &, uint64 guid) { return GetPet(guid); }
-        static Player* GetPlayer(Unit const &, uint64 guid) { return FindPlayer(guid); }
-        static Corpse* GetCorpse(WorldObject const &u, uint64 guid);
-        static Pet* GetPet(uint64 guid);
-        static Vehicle* GetVehicle(uint64 guid);
-        static Player* FindPlayer(uint64);
 
-        Player* FindPlayerByName(const char *name) ;
+        // Player access
+        static Player* FindPlayer(uint64 guid);
+        static Player* FindPlayerByName(const char *name);
+        static void KickPlayer(uint64 guid);
 
         HashMapHolder<Player>::MapType& GetPlayers()
         {
             return HashMapHolder<Player>::GetContainer();
         }
 
-        template<class T> void AddObject(T *object)
-        {
-            HashMapHolder<T>::Insert(object);
-        }
-
-        template<class T> void RemoveObject(T *object)
-        {
-            HashMapHolder<T>::Remove(object);
-        }
-
-        void RemoveObject(Player *pl)
-        {
-            HashMapHolder<Player>::Remove(pl);
-
-            Guard guard(i_updateGuard);
-            i_objects.erase((Object *)pl);
-        }
-
         void SaveAllPlayers();
 
-        void AddUpdateObject(Object *obj)
-        {
-            Guard guard(i_updateGuard);
-            i_objects.insert(obj);
-        }
-
-        void RemoveUpdateObject(Object *obj)
-        {
-            Guard guard(i_updateGuard);
-            i_objects.erase( obj );
-        }
-
-        void Update(uint32 diff);
-
+        // Corpse access
         Corpse* GetCorpseForPlayerGUID(uint64 guid);
+        static Corpse* GetCorpseInMap(uint64 guid, uint32 mapid);
         void RemoveCorpse(Corpse *corpse);
         void AddCorpse(Corpse* corpse);
         void AddCorpsesToGrid(GridPair const& gridpair,GridType& grid,Map* map);
         Corpse* ConvertCorpseForPlayer(uint64 player_guid, bool insignia = false);
 
-        static void _buildUpdateObject(Object* obj, UpdateDataMapType &);
+        // For call from Player/Corpse AddToWorld/RemoveFromWorld only
+        void AddObject(Corpse *object) { HashMapHolder<Corpse>::Insert(object); }
+        void AddObject(Player *object) { HashMapHolder<Player>::Insert(object); }
+        void RemoveObject(Corpse *object) { HashMapHolder<Corpse>::Remove(object); }
+        void RemoveObject(Player *object) { HashMapHolder<Player>::Remove(object); }
 
         // TODO: This methods will need lock in MT environment
         static void LinkMap(Map* map)   { i_mapList.push_back(map); }
         static void DelinkMap(Map* map) { i_mapList.remove(map); }
     private:
-        struct WorldObjectChangeAccumulator
-        {
-            UpdateDataMapType &i_updateDatas;
-            WorldObject &i_object;
-            WorldObjectChangeAccumulator(WorldObject &obj, UpdateDataMapType &d) : i_updateDatas(d), i_object(obj) {}
-            void Visit(PlayerMapType &);
-            template<class SKIP> void Visit(GridRefManager<SKIP> &) {}
-        };
-
         // TODO: This methods will need lock in MT environment
         // Theoreticaly multiple threads can enter and search in this method but
         // in that case linking/delinking other map should be guarded
@@ -213,64 +147,27 @@ class MANGOS_DLL_DECL ObjectAccessor : public MaNGOS::Singleton<ObjectAccessor, 
 
         static std::list<Map*> i_mapList;
 
-        friend struct WorldObjectChangeAccumulator;
         Player2CorpsesMapType   i_player2corpse;
 
         typedef ACE_Thread_Mutex LockType;
         typedef MaNGOS::GeneralLock<LockType > Guard;
 
-        static void _buildChangeObjectForPlayer(WorldObject *, UpdateDataMapType &);
-        static void _buildPacket(Player *, Object *, UpdateDataMapType &);
-        std::set<Object *> i_objects;
         LockType i_playerGuard;
-        LockType i_updateGuard;
         LockType i_corpseGuard;
 };
 
-/// Out of class template specializations
-template <> inline Creature* ObjectAccessor::GetObjectInWorld(uint64 guid, Creature* /*fake*/)
-{
-    return FindHelper<Creature>(guid);
-}
-
-template <> inline GameObject* ObjectAccessor::GetObjectInWorld(uint64 guid, GameObject* /*fake*/)
-{
-    return FindHelper<GameObject>(guid);
-}
-
-template <> inline DynamicObject* ObjectAccessor::GetObjectInWorld(uint64 guid, DynamicObject* /*fake*/)
-{
-    return FindHelper<DynamicObject>(guid);
-}
-
-template <> inline Pet* ObjectAccessor::GetObjectInWorld(uint64 guid, Pet* /*fake*/)
-{
-    return FindHelper<Pet>(guid);
-}
-
-template <> inline Vehicle* ObjectAccessor::GetObjectInWorld(uint64 guid, Vehicle* /*fake*/)
-{
-    return FindHelper<Vehicle>(guid);
-}
-
-template <> inline Unit* ObjectAccessor::GetObjectInWorld(uint64 guid, Unit* /*fake*/)
+inline Unit* ObjectAccessor::GetUnitInWorld(WorldObject const& obj, uint64 guid)
 {
     if(!guid)
         return NULL;
 
     if (IS_PLAYER_GUID(guid))
-    {
-        Unit * u = (Unit*)HashMapHolder<Player>::Find(guid);
-        if(!u || !u->IsInWorld())
-            return NULL;
-
-        return u;
-    }
+        return FindPlayer(guid);
 
     if (IS_PET_GUID(guid))
-        return (Unit*)GetObjectInWorld<Pet>(guid, (Pet*)NULL);
+        return obj.IsInWorld() ? obj.GetMap()->GetPet(guid) : NULL;
 
-    return (Unit*)GetObjectInWorld<Creature>(guid, (Creature*)NULL);
+    return GetCreatureInWorld(guid);
 }
 
 #endif

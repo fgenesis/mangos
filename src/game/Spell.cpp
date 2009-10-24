@@ -2225,7 +2225,7 @@ void Spell::SetTargetMap(uint32 effIndex,uint32 targetMode,UnitList& TagUnitMap)
                         TagUnitMap.push_back(m_targets.getUnitTarget());
                     if (m_targets.getCorpseTargetGUID())
                     {
-                        Corpse *corpse = ObjectAccessor::GetCorpse(*m_caster, m_targets.getCorpseTargetGUID());
+                        Corpse *corpse = m_caster->GetMap()->GetCorpse(m_targets.getCorpseTargetGUID());
                         if(corpse)
                         {
                             Player* owner = ObjectAccessor::FindPlayer(corpse->GetOwnerGUID());
@@ -2290,7 +2290,7 @@ void Spell::SetTargetMap(uint32 effIndex,uint32 targetMode,UnitList& TagUnitMap)
                         TagUnitMap.push_back(m_targets.getUnitTarget());
                     else if (m_targets.getCorpseTargetGUID())
                     {
-                        if (Corpse *corpse = ObjectAccessor::GetCorpse(*m_caster,m_targets.getCorpseTargetGUID()))
+                        if (Corpse *corpse = m_caster->GetMap()->GetCorpse(m_targets.getCorpseTargetGUID()))
                             if (Player* owner = ObjectAccessor::FindPlayer(corpse->GetOwnerGUID()))
                                 TagUnitMap.push_back(owner);
                     }
@@ -3938,9 +3938,6 @@ SpellCastResult Spell::CheckCast(bool strict)
             return SPELL_FAILED_NOT_READY;
     }
 
-    if (IsDeathOnlySpell(m_spellInfo) && m_caster->isAlive())
-        return SPELL_FAILED_TARGET_NOT_DEAD;
-
     // only allow triggered spells if at an ended battleground
     if( !m_IsTriggeredSpell && m_caster->GetTypeId() == TYPEID_PLAYER)
         if(BattleGround * bg = ((Player*)m_caster)->GetBattleGround())
@@ -4012,6 +4009,9 @@ SpellCastResult Spell::CheckCast(bool strict)
         // target state requirements (not allowed state), apply to self also
         if(m_spellInfo->TargetAuraStateNot && target->HasAuraState(AuraState(m_spellInfo->TargetAuraStateNot)))
             return SPELL_FAILED_TARGET_AURASTATE;
+
+        if (!m_IsTriggeredSpell && IsDeathOnlySpell(m_spellInfo) && target->isAlive())
+            return SPELL_FAILED_TARGET_NOT_DEAD;
 
         // Target aura req check if need
         if(m_spellInfo->targetAuraSpell && !target->HasAura(m_spellInfo->targetAuraSpell))
@@ -4209,8 +4209,7 @@ SpellCastResult Spell::CheckCast(bool strict)
                (m_spellInfo->EffectImplicitTargetB[j] == TARGET_SCRIPT && m_spellInfo->EffectImplicitTargetA[j] != TARGET_SELF) ||
                m_spellInfo->EffectImplicitTargetA[j] == TARGET_SCRIPT_COORDINATES ||
                m_spellInfo->EffectImplicitTargetB[j] == TARGET_SCRIPT_COORDINATES ||
-               // Check possible in DB targets only for spells with no implicit spell focus
-               (m_spellInfo->EffectImplicitTargetA[j] == TARGET_FOCUS_OR_SCRIPTED_GAMEOBJECT && !m_spellInfo->RequiresSpellFocus))
+               m_spellInfo->EffectImplicitTargetA[j] == TARGET_FOCUS_OR_SCRIPTED_GAMEOBJECT)
             {
 
                 SpellScriptTargetBounds bounds = spellmgr.GetSpellScriptTargetBounds(m_spellInfo->Id);
@@ -4327,11 +4326,17 @@ SpellCastResult Spell::CheckCast(bool strict)
                 //Missing DB Entry or targets for this spellEffect.
                 else
                 {
-                    // not report target not existence for triggered spells
-                    if(m_triggeredByAuraSpell || m_IsTriggeredSpell)
-                        return SPELL_FAILED_DONT_REPORT;
-                    else
-                        return SPELL_FAILED_BAD_TARGETS;
+                    /* For TARGET_FOCUS_OR_SCRIPTED_GAMEOBJECT makes DB targets optional not required for now
+                     * TODO: Makes more research for this target type
+                     */
+                    if (m_spellInfo->EffectImplicitTargetA[j] != TARGET_FOCUS_OR_SCRIPTED_GAMEOBJECT)
+                    {
+                        // not report target not existence for triggered spells
+                        if(m_triggeredByAuraSpell || m_IsTriggeredSpell)
+                            return SPELL_FAILED_DONT_REPORT;
+                        else
+                            return SPELL_FAILED_BAD_TARGETS;
+                    }
                 }
             }
         }
@@ -4398,26 +4403,53 @@ SpellCastResult Spell::CheckCast(bool strict)
             }
             case SPELL_EFFECT_TAMECREATURE:
             {
-                if (m_caster->GetTypeId() != TYPEID_PLAYER)
+                // Spell can be triggered, we need to check original caster prior to caster
+                Unit* caster = m_originalCaster ? m_originalCaster : m_caster;
+
+                if (caster->GetTypeId() != TYPEID_PLAYER ||
+                    !m_targets.getUnitTarget() ||
+                    m_targets.getUnitTarget()->GetTypeId() == TYPEID_PLAYER)
                     return SPELL_FAILED_BAD_TARGETS;
 
-                if (!m_targets.getUnitTarget() || m_targets.getUnitTarget()->GetTypeId() == TYPEID_PLAYER)
-                    return SPELL_FAILED_BAD_IMPLICIT_TARGETS;
+                Player* plrCaster = (Player*)caster;
+
+                if(plrCaster->getClass() != CLASS_HUNTER)
+                {
+                    plrCaster->SendPetTameFailure(PETTAME_UNITSCANTTAME);
+                    return SPELL_FAILED_DONT_REPORT;
+                }
 
                 Creature* target = (Creature*)m_targets.getUnitTarget();
 
-                if (target->getLevel() > m_caster->getLevel())
-                    return SPELL_FAILED_HIGHLEVEL;
+                if(target->isPet() || target->isCharmed())
+                {
+                    plrCaster->SendPetTameFailure(PETTAME_CREATUREALREADYOWNED);
+                    return SPELL_FAILED_DONT_REPORT;
+                }
 
-                // use SMSG_PET_TAME_FAILURE?
-                if (!target->GetCreatureInfo()->isTameable (((Player*)m_caster)->CanTameExoticPets()))
-                    return SPELL_FAILED_BAD_TARGETS;
+                if (target->getLevel() > plrCaster->getLevel())
+                {
+                    plrCaster->SendPetTameFailure(PETTAME_TOOHIGHLEVEL);
+                    return SPELL_FAILED_DONT_REPORT;
+                }
 
-                if(m_caster->GetPetGUID())
-                    return SPELL_FAILED_ALREADY_HAVE_SUMMON;
+                if (target->GetCreatureInfo()->IsExotic() && !plrCaster->CanTameExoticPets())
+                {
+                    plrCaster->SendPetTameFailure(PETTAME_CANTCONTROLEXOTIC);
+                    return SPELL_FAILED_DONT_REPORT;
+                }
 
-                if(m_caster->GetCharmGUID())
-                    return SPELL_FAILED_ALREADY_HAVE_CHARM;
+                if (!target->GetCreatureInfo()->isTameable(plrCaster->CanTameExoticPets()))
+                {
+                    plrCaster->SendPetTameFailure(PETTAME_NOTTAMEABLE);
+                    return SPELL_FAILED_DONT_REPORT;
+                }
+
+                if(plrCaster->GetPetGUID() || plrCaster->GetCharmGUID())
+                {
+                    plrCaster->SendPetTameFailure(PETTAME_ANOTHERSUMMONACTIVE);
+                    return SPELL_FAILED_DONT_REPORT;
+                }
 
                 break;
             }
@@ -5905,7 +5937,7 @@ bool Spell::CheckTarget( Unit* target, uint32 eff )
                 if(!m_targets.getCorpseTargetGUID())
                     return false;
 
-                Corpse *corpse = ObjectAccessor::GetCorpse(*m_caster, m_targets.getCorpseTargetGUID());
+                Corpse *corpse = m_caster->GetMap()->GetCorpse(m_targets.getCorpseTargetGUID());
                 if(!corpse)
                     return false;
 

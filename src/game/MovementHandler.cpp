@@ -664,7 +664,8 @@ void WorldSession::HandleDismissControlledVehicle(WorldPacket &recv_data)
 
     _player->m_movementInfo = mi;
 
-    if(Vehicle *vehicle = ObjectAccessor::GetVehicle(vehicleGUID))
+    // using charm guid, because we don't have vehicle guid...
+    if(Vehicle *vehicle = _player->GetMap()->GetVehicle(vehicleGUID))
     {
         if(vehicle->GetVehicleFlags() & VF_DESPAWN_AT_LEAVE)
             vehicle->Dismiss();
