@@ -574,7 +574,7 @@ void WorldSession::HandlePetCastSpellOpcode( WorldPacket& recvPacket )
         return;
 
     SpellCastTargets targets;
-    if (!targets.read(&recvPacket,pet,spellInfo))
+    if (!targets.read(&recvPacket,pet))
         return;
 
     pet->clearUnitState(UNIT_STAT_FOLLOW);

@@ -646,7 +646,6 @@ bool ChatHandler::HandleDebugSpawnVehicle(const char* args)
     }
 
     map->Add((Creature*)v);
-    v->AIM_Initialize();
 
     return true;
 }

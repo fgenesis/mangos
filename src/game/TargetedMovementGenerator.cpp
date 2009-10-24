@@ -132,7 +132,7 @@ TargetedMovementGenerator<T>::Update(T &owner, const uint32 & time_diff)
     if (!owner.isAlive())
         return true;
 
-    if (owner.hasUnitState(UNIT_STAT_ROOT | UNIT_STAT_STUNNED | UNIT_STAT_FLEEING | UNIT_STAT_DISTRACTED | UNIT_STAT_DIED)) // FG: maybe also UNIT_STAT_ON_VEHICLE
+    if (owner.hasUnitState(UNIT_STAT_ROOT | UNIT_STAT_STUNNED | UNIT_STAT_FLEEING | UNIT_STAT_DISTRACTED | UNIT_STAT_DIED))
         return true;
 
     // prevent movement while casting spells with cast time or channel time
