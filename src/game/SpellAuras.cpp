@@ -4548,6 +4548,11 @@ void Aura::HandlePeriodicEnergize(bool apply, bool Real)
     {
         switch (GetId())
         {
+            case 29166: //Innervate
+                Player *caster = objmgr.GetPlayer(m_caster_guid);
+                if (caster)
+                    m_modifier.m_amount = caster->GetCreateMana() * 45 / 200;
+                break;
             case 48391:                                     // Owlkin Frenzy 2% base mana
                 m_modifier.m_amount = m_target->GetCreateMana() * 2 / 100;
                 break;
