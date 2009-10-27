@@ -730,7 +730,7 @@ uint32 WorldSession::ACH_CheckMoveInfo(uint32 opcode, MovementInfo& movementInfo
     }
 
     //resync times on client login (first 90 sec for heavy areas)
-    if (plMover->m_anti_DeltaServerTime < 90000 && plMover->m_anti_DeltaClientTime < 0000)
+    if (plMover->m_anti_DeltaServerTime < 90000 && plMover->m_anti_DeltaClientTime < 90000)
         plMover->m_anti_DeltaClientTime = plMover->m_anti_DeltaServerTime;
 
     int32 sync_time = plMover->m_anti_DeltaClientTime - plMover->m_anti_DeltaServerTime;

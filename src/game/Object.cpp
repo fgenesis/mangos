@@ -1749,7 +1749,7 @@ void Object::ForceValuesUpdateAtIndex(uint32 i)
     {
         if(!m_objectUpdated)
         {
-            ObjectAccessor::Instance().AddUpdateObject(this);
+            AddToClientUpdateList();
             m_objectUpdated = true;
         }
     }
