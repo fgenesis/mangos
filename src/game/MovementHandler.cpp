@@ -35,7 +35,6 @@
 // FG: req. for ACH
 #include "World.h"
 #include "Language.h"
-#include "Chat.h"
 
 enum AnticheatTypeFlags
 {
@@ -315,7 +314,7 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
         if(movementInfo.t_guid)
         {
             //Correct finding GO guid in DB (thanks to GriffonHeart)
-            GameObject *obj = HashMapHolder<GameObject>::Find(movementInfo.t_guid);
+            GameObject *obj = plMover ? plMover->GetMap()->GetGameObject(movementInfo.t_guid) : NULL;
             if(obj)
                 plMover->m_anti_TransportGUID = obj->GetDBTableGUIDLow();
             else

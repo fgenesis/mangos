@@ -1834,10 +1834,11 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
                 }
                 GetSession()->SendPacket( &data );
                 SendSavedInstances();
-
-                // remove from old map now
-                if(oldmap) oldmap->Remove(this, false);
             }
+
+            // remove from old map now
+            if(oldmap)
+                oldmap->Remove(this, false);
 
             // new final coordinates
             float final_x = x;
@@ -15064,9 +15065,7 @@ void Player::_LoadActions(QueryResult *result, bool startup)
 
 void Player::_LoadAuras(QueryResult *result, uint32 timediff)
 {
-    m_Auras.clear();
-    for (int i = 0; i < TOTAL_AURAS; ++i)
-        m_modAuras[i].clear();
+    RemoveAllAuras();
 
     //QueryResult *result = CharacterDatabase.PQuery("SELECT caster_guid,spell,effect_index,stackcount,amount,maxduration,remaintime,remaincharges FROM character_aura WHERE guid = '%u'",GetGUIDLow());
 
