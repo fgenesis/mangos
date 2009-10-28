@@ -6298,11 +6298,25 @@ void Aura::HandleSchoolAbsorb(bool apply, bool Real)
             switch(m_spellProto->SpellFamilyName)
             {
                 case SPELLFAMILY_PRIEST:
+                {
                     // Power Word: Shield
                     if (m_spellProto->SpellFamilyFlags & UI64LIT(0x0000000000000001))
                         //+80.68% from +spell bonus
                         DoneActualBenefit = caster->SpellBaseHealingBonus(GetSpellSchoolMask(m_spellProto)) * 0.8068f;
+
+                    // Borrowed Time
+                    if (caster->HasAura(52795))
+                        DoneActualBenefit = DoneActualBenefit + caster->SpellBaseHealingBonus(GetSpellSchoolMask(m_spellProto)) * 0.08f;
+                    if (caster->HasAura(52797))
+                        DoneActualBenefit = DoneActualBenefit + caster->SpellBaseHealingBonus(GetSpellSchoolMask(m_spellProto)) * 0.16f;
+                    if (caster->HasAura(52798))
+                        DoneActualBenefit = DoneActualBenefit + caster->SpellBaseHealingBonus(GetSpellSchoolMask(m_spellProto)) * 0.24f;
+                    if (caster->HasAura(52799))
+                        DoneActualBenefit = DoneActualBenefit + caster->SpellBaseHealingBonus(GetSpellSchoolMask(m_spellProto)) * 0.32f;
+                    if (caster->HasAura(52800))
+                        DoneActualBenefit = DoneActualBenefit + caster->SpellBaseHealingBonus(GetSpellSchoolMask(m_spellProto)) * 0.40f;
                     break;
+                }
                 case SPELLFAMILY_MAGE:
                     // Frost Ward, Fire Ward
                     if (m_spellProto->SpellFamilyFlags & UI64LIT(0x0000000000000108))
