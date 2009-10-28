@@ -1150,7 +1150,7 @@ void Unit::CalculateSpellDamage(SpellNonMeleeDamage *damageInfo, int32 damage, S
         }
 
         uint32 absorb_affected_damage = CalcNotIgnoreAbsorbDamage(damage,damageSchoolMask,spellInfo);
-        CalcAbsorbResist(pVictim, damageSchoolMask, SPELL_DIRECT_DAMAGE, absorb_affected_damage, &damageInfo->absorb, &damageInfo->resist);
+        CalcAbsorbResist(pVictim, damageSchoolMask, SPELL_DIRECT_DAMAGE, absorb_affected_damage, &damageInfo->absorb, &damageInfo->resist, !(spellInfo->AttributesEx2 & SPELL_ATTR_EX2_CANT_REFLECTED));
         damage-= damageInfo->absorb + damageInfo->resist;
     }
     else
@@ -1443,7 +1443,7 @@ void Unit::CalculateMeleeDamage(Unit *pVictim, uint32 damage, CalcDamageInfo *da
 
         // Calculate absorb & resists
         uint32 absorb_affected_damage = CalcNotIgnoreAbsorbDamage(damageInfo->damage,damageInfo->damageSchoolMask);
-        CalcAbsorbResist(damageInfo->target, damageInfo->damageSchoolMask, DIRECT_DAMAGE, absorb_affected_damage, &damageInfo->absorb, &damageInfo->resist);
+        CalcAbsorbResist(damageInfo->target, damageInfo->damageSchoolMask, DIRECT_DAMAGE, absorb_affected_damage, &damageInfo->absorb, &damageInfo->resist, true);
         damageInfo->damage-=damageInfo->absorb + damageInfo->resist;
         if (damageInfo->absorb)
         {
@@ -1663,7 +1663,7 @@ uint32 Unit::CalcArmorReducedDamage(Unit* pVictim, const uint32 damage)
     return (newdamage > 1) ? newdamage : 1;
 }
 
-void Unit::CalcAbsorbResist(Unit *pVictim,SpellSchoolMask schoolMask, DamageEffectType damagetype, const uint32 damage, uint32 *absorb, uint32 *resist)
+void Unit::CalcAbsorbResist(Unit *pVictim,SpellSchoolMask schoolMask, DamageEffectType damagetype, const uint32 damage, uint32 *absorb, uint32 *resist, bool canReflect)
 {
     if(!pVictim || !pVictim->isAlive() || !damage)
         return;
@@ -1947,7 +1947,7 @@ void Unit::CalcAbsorbResist(Unit *pVictim,SpellSchoolMask schoolMask, DamageEffe
     }
 
     // Cast back reflect damage spell
-    if (reflectSpell)
+    if (canReflect && reflectSpell)
         pVictim->CastCustomSpell(this,  reflectSpell, &reflectDamage, NULL, NULL, true, NULL, reflectTriggeredBy);
 
     // absorb by mana cost
