@@ -75,7 +75,8 @@ class TypeUnorderedMapContainer
             }
             else
             {
-                assert (i->second == obj && "Object with certain key already in but objects are different!");
+                // FG: temp. disabled assert as suggested on the forums
+                // assert (i->second == obj && "Object with certain key already in but objects are different!");
                 return false;
             }
         }
