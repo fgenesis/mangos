@@ -1068,8 +1068,8 @@ struct MailTemplateEntry
 {
     uint32      ID;                                         // 0
     //char*       subject[16];                              // 1-16
-    // 17 name flags, unused
-    //char*       content[16];                              // 18-33
+                                                            // 17 name flags, unused
+    char*       content[16];                                // 18-33
 };
 
 struct MapEntry

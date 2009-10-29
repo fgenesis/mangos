@@ -319,6 +319,7 @@ void WorldSession::HandleMailDelete(WorldPacket & recv_data )
     uint32 mailId;
     recv_data >> mailbox;
     recv_data >> mailId;
+    recv_data.read_skip<uint32>();                          // mailTemplateId
 
     if (!GetPlayer()->GetGameObjectIfCanInteractWith(mailbox, GAMEOBJECT_TYPE_MAILBOX))
         return;
@@ -721,7 +722,9 @@ void WorldSession::HandleMailCreateTextItem(WorldPacket & recv_data )
     uint64 mailbox;
     uint32 mailId;
 
-    recv_data >> mailbox >> mailId;
+    recv_data >> mailbox;
+    recv_data >> mailId;
+    recv_data.read_skip<uint32>();                          // mailTemplateId, non need, Mail store own 100% correct value anyway
 
     if (!GetPlayer()->GetGameObjectIfCanInteractWith(mailbox, GAMEOBJECT_TYPE_MAILBOX))
         return;
@@ -729,10 +732,25 @@ void WorldSession::HandleMailCreateTextItem(WorldPacket & recv_data )
     Player *pl = _player;
 
     Mail* m = pl->GetMail(mailId);
-    if(!m || !m->itemTextId || m->state == MAIL_STATE_DELETED || m->deliver_time > time(NULL))
+    if(!m || !m->itemTextId && !m->mailTemplateId || m->state == MAIL_STATE_DELETED || m->deliver_time > time(NULL))
     {
         pl->SendMailResult(mailId, MAIL_MADE_PERMANENT, MAIL_ERR_INTERNAL_ERROR);
         return;
+    }
+
+    uint32 itemTextId = m->itemTextId;
+
+    // in mail template case we need create new text id
+    if(!itemTextId)
+    {
+        MailTemplateEntry const* mailTemplateEntry = sMailTemplateStore.LookupEntry(m->mailTemplateId);
+        if(!mailTemplateEntry)
+        {
+            pl->SendMailResult(mailId, MAIL_MADE_PERMANENT, MAIL_ERR_INTERNAL_ERROR);
+            return;
+        }
+
+        itemTextId = objmgr.CreateItemText(mailTemplateEntry->content[GetSessionDbcLocale()]);
     }
 
     Item *bodyItem = new Item;                              // This is not bag and then can be used new Item.
@@ -742,7 +760,7 @@ void WorldSession::HandleMailCreateTextItem(WorldPacket & recv_data )
         return;
     }
 
-    bodyItem->SetUInt32Value( ITEM_FIELD_ITEM_TEXT_ID, m->itemTextId );
+    bodyItem->SetUInt32Value( ITEM_FIELD_ITEM_TEXT_ID, itemTextId );
     bodyItem->SetUInt32Value( ITEM_FIELD_CREATOR, m->sender);
 
     sLog.outDetail("HandleMailCreateTextItem mailid=%u",mailId);
@@ -918,4 +936,61 @@ void WorldSession::SendMailTo(Player* receiver, uint8 messageType, uint8 station
         }
     }
     CharacterDatabase.CommitTransaction();
+}
+
+void WorldSession::SendMailTo(Player* receiver, Object* sender, uint8 stationery, uint32 receiver_guidlow, std::string subject, uint32 itemTextId, MailItemsInfo* mi, uint32 money, uint32 COD, uint32 checked, uint32 deliver_delay, uint16 mailTemplateId)
+{
+    MailMessageType mailType;
+    uint32 senderGuidOrEntry;
+    switch(sender->GetTypeId())
+    {
+        case TYPEID_UNIT:
+            mailType = MAIL_CREATURE;
+            senderGuidOrEntry = sender->GetEntry();
+            break;
+        case TYPEID_GAMEOBJECT:
+            mailType = MAIL_GAMEOBJECT;
+            senderGuidOrEntry = sender->GetEntry();
+            break;
+        case TYPEID_ITEM:
+            mailType = MAIL_ITEM;
+            senderGuidOrEntry = sender->GetEntry();
+            break;
+        case TYPEID_PLAYER:
+            mailType = MAIL_NORMAL;
+            senderGuidOrEntry = sender->GetGUIDLow();
+            break;
+        default:
+            mailType = MAIL_NORMAL;
+            senderGuidOrEntry = receiver_guidlow;
+            sLog.outError( "WorldSession::SendMailTo - Mail have unexpected sender typeid (%u), sent from receiver to self", sender->GetTypeId());
+            break;
+    }
+
+    SendMailTo(receiver, mailType, stationery, senderGuidOrEntry, receiver_guidlow, subject, itemTextId, mi, money, COD, checked,deliver_delay,mailTemplateId);
+}
+
+void WorldSession::SendMailTemplateTo(Player* receiver, Object* sender, uint8 stationery, uint16 mailTemplateId, uint32 money, uint32 COD, uint32 checked, uint32 deliver_delay)
+{
+    Loot mailLoot;
+
+    mailLoot.FillLoot(mailTemplateId, LootTemplates_Mail, receiver,true);
+
+    // fill mail
+    MailItemsInfo mi;                                   // item list preparing
+
+    uint32 max_slot = mailLoot.GetMaxSlotInLootFor(receiver);
+    for(uint32 i = 0; mi.size() < MAX_MAIL_ITEMS && i < max_slot; ++i)
+    {
+        if (LootItem* lootitem = mailLoot.LootItemInSlot(i,receiver))
+        {
+            if (Item* item = Item::CreateItem(lootitem->itemid,lootitem->count,receiver))
+            {
+                item->SaveToDB();                       // save for prevent lost at next mail load, if send fail then item will deleted
+                mi.AddItem(item->GetGUIDLow(), item->GetEntry(), item);
+            }
+        }
+    }
+
+    WorldSession::SendMailTo(receiver, sender, stationery, receiver->GetGUIDLow(), "", 0, &mi, money, COD, checked,deliver_delay,mailTemplateId);
 }
