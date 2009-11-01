@@ -8910,12 +8910,7 @@ bool Unit::isSpellCrit(Unit *pVictim, SpellEntry const *spellProto, SpellSchoolM
                         if (spellProto->SpellFamilyFlags & UI64LIT(0x0000100000000000))
                         {
                             if (Aura *flameShock = pVictim->GetAura(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_SHAMAN, UI64LIT(0x0000000010000000), 0, GetGUID()))
-                            {
-                                // Consume shock aura if not have Glyph of Flame Shock
-                                if (!GetAura(55447, 0))
-                                    pVictim->RemoveAurasByCasterSpell(flameShock->GetId(), GetGUID());
                                 return true;
-                            }
                         }
                         break;
                 }
