@@ -2645,7 +2645,7 @@ uint32 InstanceMap::GetMaxPlayers() const
     InstanceTemplate const* iTemplate = objmgr.GetInstanceTemplate(GetId());
     if(!iTemplate)
         return 0;
-    return IsHeroic() ? iTemplate->maxPlayersHeroic : iTemplate->maxPlayers;
+    return IsRaid() && (i_spawnMode == RAID_DIFFICULTY_25MAN_NORMAL || i_spawnMode == RAID_DIFFICULTY_25MAN_HEROIC) ? iTemplate->maxPlayersHeroic : iTemplate->maxPlayers;
 }
 
 /* ******* Battleground Instance Maps ******* */
