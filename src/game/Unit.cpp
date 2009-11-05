@@ -9041,7 +9041,7 @@ uint32 Unit::SpellHealingBonus(Unit *pVictim, SpellEntry const *spellProto, uint
         TakenTotalMod *= (100.0f + maxval) / 100.0f;
 
     // No heal amount for this class spells
-    if (spellProto->DmgClass == SPELL_DAMAGE_CLASS_NONE)
+    if (spellProto->DmgClass == SPELL_DAMAGE_CLASS_NONE && spellProto->Id!=62892 && spellProto->Id!=62528)
     {
         healamount = healamount * TakenTotalMod;
         return healamount < 0 ? 0 : uint32(healamount);
