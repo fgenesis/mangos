@@ -6130,6 +6130,24 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
 
                     break;
                 }
+                // Heart of the Crusader (Rank 1)
+                case 20335:
+                {
+                    triggered_spell_id = 21183;
+                    break;
+                }
+                // Heart of the Crusader (Rank 2)
+                case 20336:
+                {
+                    triggered_spell_id = 54498;
+                    break;
+                }
+                // Heart of the Crusader (Rank 3)
+                case 20337:
+                {
+                    triggered_spell_id = 54499;
+                    break;
+                }
                 // Glyph of Divinity
                 case 54939:
                 {
