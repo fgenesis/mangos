@@ -7538,34 +7538,36 @@ void Aura::HandleAuraControlVehicle(bool apply, bool Real)
 
 void Aura::HandleAuraConvertRune(bool apply, bool Real)
 {
-    if(!Real)
+    if (!Real)
         return;
 
-    if(m_target->GetTypeId() != TYPEID_PLAYER)
+    if (m_target->GetTypeId() != TYPEID_PLAYER)
         return;
 
     Player *plr = (Player*)m_target;
 
-    if(plr->getClass() != CLASS_DEATH_KNIGHT)
+    if (plr->getClass() != CLASS_DEATH_KNIGHT)
         return;
 
-    // how to determine what rune need to be converted?
     for(uint32 i = 0; i < MAX_RUNES; ++i)
     {
-        if(apply)
+        if (m_modifier.m_amount == 0)
+            break;
+
+        if (apply)
         {
-            if(!plr->GetRuneCooldown(i))
+            if (!plr->GetRuneCooldown(i) && plr->GetCurrentRune(i) == RuneType(GetSpellProto()->EffectMiscValue[m_effIndex]) && plr->GetBaseRune(i) == plr->GetCurrentRune(i))
             {
                 plr->ConvertRune(i, RuneType(GetSpellProto()->EffectMiscValueB[m_effIndex]));
-                break;
+                --m_modifier.m_amount;
             }
         }
         else
         {
-            if(plr->GetCurrentRune(i) == RuneType(GetSpellProto()->EffectMiscValueB[m_effIndex]))
+            if(plr->GetCurrentRune(i) == RuneType(GetSpellProto()->EffectMiscValueB[m_effIndex]) && plr->GetBaseRune(i) != RuneType(GetSpellProto()->EffectMiscValueB[m_effIndex]))
             {
                 plr->ConvertRune(i, plr->GetBaseRune(i));
-                break;
+                --m_modifier.m_amount;
             }
         }
     }
