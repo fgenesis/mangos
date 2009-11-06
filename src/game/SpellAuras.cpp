@@ -4363,7 +4363,7 @@ void Aura::HandleModMechanicImmunity(bool apply, bool /*Real*/)
         if (Unit* owner = m_target->GetOwner())
         {
             // Search talent
-            Unit::AuraList const& dummyAuras = owner->GetAurasByType(SPELL_AURA_DUMMY);
+            Unit::AuraList const& dummyAuras = owner->GetAurasByType(SPELL_AURA_MOD_DAMAGE_PERCENT_DONE);
             for(Unit::AuraList::const_iterator i = dummyAuras.begin(); i != dummyAuras.end(); ++i)
             {
                 if ((*i)->GetSpellProto()->SpellIconID == 2229)
