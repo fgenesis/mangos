@@ -441,6 +441,7 @@ bool ChatHandler::HandleReloadAllCommand(const char*)
     HandleReloadAllItemCommand("");
     HandleReloadAllLocalesCommand("");
 
+    HandleReloadMailLevelRewardCommand("");
     HandleReloadCommandCommand("");
     HandleReloadReservedNameCommand("");
     HandleReloadMangosStringCommand("");
@@ -1197,6 +1198,14 @@ bool ChatHandler::HandleReloadLocalesQuestCommand(const char* /*arg*/)
     sLog.outString( "Re-Loading Locales Quest ... ");
     objmgr.LoadQuestLocales();
     SendGlobalSysMessage("DB table `locales_quest` reloaded.");
+    return true;
+}
+
+bool ChatHandler::HandleReloadMailLevelRewardCommand(const char* /*arg*/)
+{
+    sLog.outString( "Re-Loading Player level dependent mail rewards..." );
+    objmgr.LoadMailLevelRewards();
+    SendGlobalSysMessage("DB table `mail_level_reward` reloaded.");
     return true;
 }
 
@@ -6600,25 +6609,23 @@ bool ChatHandler::HandleSendItemsCommand(const char* args)
     }
 
     // from console show not existed sender
-    uint32 sender_guidlo = m_session ? m_session->GetPlayer()->GetGUIDLow() : 0;
+    MailSender sender(MAIL_NORMAL,m_session ? m_session->GetPlayer()->GetGUIDLow() : 0, MAIL_STATIONERY_GM);
 
-    uint32 messagetype = MAIL_NORMAL;
-    uint32 stationery = MAIL_STATIONERY_GM;
     uint32 itemTextId = !text.empty() ? objmgr.CreateItemText( text ) : 0;
 
     // fill mail
-    MailItemsInfo mi;                                       // item list preparing
+    MailDraft draft(subject, itemTextId);
 
     for(ItemPairs::const_iterator itr = items.begin(); itr != items.end(); ++itr)
     {
         if(Item* item = Item::CreateItem(itr->first,itr->second,m_session ? m_session->GetPlayer() : 0))
         {
             item->SaveToDB();                               // save for prevent lost at next mail load, if send fail then item will deleted
-            mi.AddItem(item->GetGUIDLow(), item->GetEntry(), item);
+            draft.AddItem(item);
         }
     }
 
-    WorldSession::SendMailTo(receiver,messagetype, stationery, sender_guidlo, GUID_LOPART(receiver_guid), subject, itemTextId, &mi, 0, 0, MAIL_CHECK_MASK_NONE);
+    draft.SendMailTo(MailReceiver(receiver,GUID_LOPART(receiver_guid)), sender);
 
     std::string nameLink = playerLink(receiver_name);
     PSendSysMessage(LANG_MAIL_SENT, nameLink.c_str());
@@ -6662,13 +6669,13 @@ bool ChatHandler::HandleSendMoneyCommand(const char* args)
     std::string text    = msgText;
 
     // from console show not existed sender
-    uint32 sender_guidlo = m_session ? m_session->GetPlayer()->GetGUIDLow() : 0;
+    MailSender sender(MAIL_NORMAL,m_session ? m_session->GetPlayer()->GetGUIDLow() : 0, MAIL_STATIONERY_GM);
 
-    uint32 messagetype = MAIL_NORMAL;
-    uint32 stationery = MAIL_STATIONERY_GM;
     uint32 itemTextId = !text.empty() ? objmgr.CreateItemText( text ) : 0;
 
-    WorldSession::SendMailTo(receiver,messagetype, stationery, sender_guidlo, GUID_LOPART(receiver_guid), subject, itemTextId, NULL, money, 0, MAIL_CHECK_MASK_NONE);
+    MailDraft(subject, itemTextId)
+        .AddMoney(money)
+        .SendMailTo(MailReceiver(receiver,GUID_LOPART(receiver_guid)),sender);
 
     std::string nameLink = playerLink(receiver_name);
     PSendSysMessage(LANG_MAIL_SENT, nameLink.c_str());

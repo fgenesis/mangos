@@ -9819,7 +9819,8 @@ bool Unit::isTargetableForAttack(bool inverseAlive /*=false*/) const
     if (HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_OOC_NOT_ATTACKABLE))
         return false;
 
-    if ((isAlive() && !isInvisibleForAlive()) == inverseAlive)
+    // inversealive is needed for some spells which need to be casted at dead targets (aoe)
+    if (isAlive() == inverseAlive)
         return false;
 
     return IsInWorld() && !hasUnitState(UNIT_STAT_DIED) && !isInFlight();
@@ -9981,8 +9982,11 @@ bool Unit::isVisibleForOrDetect(Unit const* u, WorldObject const* viewPoint, boo
             return false;
     }
 
-    if (u->isAlive() && isInvisibleForAlive())
-        if (u->GetTypeId() == TYPEID_PLAYER && !((Player *)u)->isGameMaster())
+    // isInvisibleForAlive() those units can only be seen by dead or if other
+    // unit is also invisible for alive.. if an isinvisibleforalive unit dies we
+    // should be able to see it too
+    if (u->isAlive() && isAlive() && isInvisibleForAlive() != u->isInvisibleForAlive())
+        if (u->GetTypeId() != TYPEID_PLAYER || !((Player *)u)->isGameMaster())
             return false;
 
     // Visible units, always are visible for all units, except for units under invisibility and phases
