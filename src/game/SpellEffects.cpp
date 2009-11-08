@@ -306,13 +306,6 @@ void Spell::EffectSchoolDMG(uint32 effect_idx)
 {
     if( unitTarget && unitTarget->isAlive())
     {
-        bool d1,d2,d3,d4;
-        d1 = m_caster->IsFriendlyTo(unitTarget);
-        d2 = m_caster->IsHostileTo(unitTarget);
-        d3 = m_caster->IsHostileToPlayers();
-        d4 = unitTarget->IsHostileToPlayers();
-        DEBUG_LOG("##> friendly:%u hostile:%u chtp:%u thtp:%u",d1,d2,d3,d4);
-
         switch(m_spellInfo->SpellFamilyName)
         {
             case SPELLFAMILY_GENERIC:
@@ -574,6 +567,16 @@ void Spell::EffectSchoolDMG(uint32 effect_idx)
                 else if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x0000000000000008))
                 {
                     damage += int32(m_caster->GetTotalAttackPowerValue(BASE_ATTACK)*0.21f);
+                }
+                // Instant Poison
+                else if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x0000000000002000))
+                {
+                    damage += int32(m_caster->GetTotalAttackPowerValue(BASE_ATTACK)*0.10f);
+                }
+                // Wound Poison
+                else if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x0000000010000000))
+                {
+                    damage += int32(m_caster->GetTotalAttackPowerValue(BASE_ATTACK)*0.04f);
                 }
                 break;
             }
@@ -4569,7 +4572,7 @@ void Spell::EffectWeaponDmg(uint32 i)
     // multiple weapon dmg effect workaround
     // execute only the last weapon damage
     // and handle all effects at once
-    for (int j = i + 1; j < 3; j++)
+    for (int j = 0; j < 3; ++j)
     {
         switch(m_spellInfo->Effect[j])
         {
@@ -4577,7 +4580,8 @@ void Spell::EffectWeaponDmg(uint32 i)
             case SPELL_EFFECT_WEAPON_DAMAGE_NOSCHOOL:
             case SPELL_EFFECT_NORMALIZED_WEAPON_DMG:
             case SPELL_EFFECT_WEAPON_PERCENT_DAMAGE:
-                return;                                     // we must calculate only at last weapon effect
+                if (j < i)                                  // we must calculate only at last weapon effect
+                    return;
             break;
         }
     }
