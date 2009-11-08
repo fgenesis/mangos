@@ -4395,7 +4395,8 @@ SpellCastResult Spell::CheckCast(bool strict)
 
                 if (caster->GetTypeId() != TYPEID_PLAYER ||
                     !m_targets.getUnitTarget() ||
-                    m_targets.getUnitTarget()->GetTypeId() == TYPEID_PLAYER)
+                    m_targets.getUnitTarget()->GetTypeId() == TYPEID_PLAYER ||
+                    ((Creature*)m_targets.getUnitTarget())->isPet())
                     return SPELL_FAILED_BAD_TARGETS;
 
                 Player* plrCaster = (Player*)caster;
