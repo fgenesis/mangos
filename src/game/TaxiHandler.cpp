@@ -198,9 +198,15 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)
     if (!plMover)
         return;
 
+    // FG: unk, added in 3.2.x
+    recv_data.read_skip<uint32>();
+
     MovementInfo movementInfo;
     ReadMovementInfo(recv_data, &movementInfo);
     //<< end movement anticheat
+
+    // FG: unk, added in 3.2.x
+    recv_data.read_skip<uint32>();
 
     uint32 curDest = GetPlayer()->m_taxi.GetTaxiDestination();
     if(!curDest)
