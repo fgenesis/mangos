@@ -5602,18 +5602,46 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
         {
             switch(dummySpell->Id)
             {
-                // Leader of the Pack
+                // Improved Leader of the Pack
                 case 24932:
                 {
-                    if (triggerAmount == 0)
-                        break;
-                    basepoints0 = triggerAmount * GetMaxHealth() / 100;
-                    triggered_spell_id = 34299;
-                    if (triggeredByAura->GetCaster() != this || ((Player*)this)->HasSpellCooldown(triggered_spell_id))
-                        break;
-                    int32 basepoints1 = 2*triggerAmount;
-                    CastCustomSpell(this,60889,&basepoints1,0,0,true,0 ,triggeredByAura);
-                    break;
+                    if(cooldown && ((Player*)this)->HasSpellCooldown(dummySpell->Id))
+                        return false;
+
+                    Unit *caster = triggeredByAura->GetCaster();
+                    if(!caster)
+                        return false;
+
+                    int32 amount = 0;
+
+                    if(Player* modOwner = caster->GetSpellModOwner())
+                        modOwner->ApplySpellMod(dummySpell->Id, SPELLMOD_EFFECT2, amount);
+
+                    amount = GetMaxHealth() * amount / 100;
+
+                    if(amount)
+                        CastCustomSpell(this, 34299, &amount, NULL, NULL, true, NULL, triggeredByAura);
+
+                    if(caster == this)
+                    {
+                        AuraList const& packAuras = GetAurasByType(SPELL_AURA_ADD_FLAT_MODIFIER);
+                        for(AuraList::const_iterator itr = packAuras.begin(); itr != packAuras.end(); ++itr)
+                        {
+                            SpellEntry const *spellProto = (*itr)->GetSpellProto();
+                            if (spellProto->Id == 34297 || spellProto->Id == 34300)
+                            {
+                                int32 manaAmount = GetMaxPower(POWER_MANA) * spellProto->EffectBasePoints[1] / 100;
+
+                                if(manaAmount)
+                                    CastCustomSpell(this, 68285, &manaAmount, NULL, NULL, true, NULL, triggeredByAura);
+
+                                break;
+                            }
+                        }
+                    }
+                    if(cooldown)
+                        ((Player*)this)->AddSpellCooldown(dummySpell->Id, 0, time(NULL) + cooldown);
+                    return true;
                 }
                 // Healing Touch (Dreamwalker Raiment set)
                 case 28719:
@@ -6954,14 +6982,6 @@ bool Unit::HandleProcTriggerSpell(Unit *pVictim, uint32 damage, Aura* triggeredB
                 }
                 //else if (auraSpellInfo->Id==40363)// Entangling Roots ()
                 //    trigger_spell_id = ????;
-                // Leader of the Pack
-                else if (auraSpellInfo->Id == 24932)
-                {
-                    if (triggerAmount == 0)
-                        return false;
-                    basepoints[0] = triggerAmount * GetMaxHealth() / 100;
-                    trigger_spell_id = 34299;
-                }
                 break;
             }
             case SPELLFAMILY_HUNTER:
