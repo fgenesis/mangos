@@ -4377,6 +4377,22 @@ void Aura::HandleModMechanicImmunity(bool apply, bool /*Real*/)
             }
         }
     }
+    // Heroic Fury
+    else if(GetSpellProto()->SpellFamilyName == SPELLFAMILY_WARRIOR && GetSpellProto()->SpellIconID == 3149)
+    {
+        if (m_target->GetTypeId() != TYPEID_PLAYER)
+            return;
+
+        ((Player*)m_target)->RemoveSpellCooldown(20252, true);
+    }
+    // Berserk
+    else if(m_spellProto->SpellFamilyName == SPELLFAMILY_DRUID && m_spellProto->SpellFamilyFlags2 & 0x40)
+    {
+        if (apply)
+            m_target->CastSpell(m_target, 58923, true, 0, this);
+        else
+            m_target->RemoveAurasDueToSpell(58923);
+    }
 }
 
 void Aura::HandleModMechanicImmunityMask(bool apply, bool /*Real*/)
