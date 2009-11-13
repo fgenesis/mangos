@@ -172,10 +172,8 @@ Unit::~Unit()
         }
     }
 
-    RemoveAllGameObjects();
-    RemoveAllDynObjects();
-
-    if(m_charmInfo) delete m_charmInfo;
+    if (m_charmInfo)
+        delete m_charmInfo;
 }
 
 void Unit::Update( uint32 p_time )
