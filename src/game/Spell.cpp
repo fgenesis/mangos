@@ -914,7 +914,8 @@ void Spell::AddItemTarget(Item* pitem, uint32 effIndex)
 
 void Spell::DoAllEffectOnTarget(TargetInfo *target)
 {
-    if (target->processed)                                  // Check target
+    // FG: check for target additionally, may prevent crash (http://getmangos.com/community/showthread.php?t=10998)
+    if ( (!target) || target->processed)                    // Check target
         return;
     target->processed = true;                               // Target checked in apply effects procedure
 
