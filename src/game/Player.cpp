@@ -19992,7 +19992,7 @@ void Player::GivePlayerDropReward(Player *victim)
             {
                 if(roll_chance_f(it->chance))
                 {
-                    const ItemPrototype *proto = objmgr.GetItemPrototype(it->item);
+                    const ItemPrototype *proto = sObjectMgr.GetItemPrototype(it->item);
                     if(proto)
                     {
                         uint32 itemcount = urand(it->mincount,it->maxcount);

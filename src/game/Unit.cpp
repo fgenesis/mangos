@@ -2397,7 +2397,7 @@ float Unit::CalculateLevelPenalty(SpellEntry const* spellProto) const
     if (spellProto->spellLevel <= 0)
         return 1.0f;
 
-    uint32 rank = spellmgr.GetSpellRank(spellProto->Id);
+    uint32 rank = sSpellMgr.GetSpellRank(spellProto->Id);
     if(rank < 1)
         return 1.0f;
 
@@ -5568,7 +5568,7 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                     case 0:
                     {
                         // energize caster
-                        int32 manapct1000 = 5 * (triggerAmount + spellmgr.GetSpellRank(dummySpell->Id));
+                        int32 manapct1000 = 5 * (triggerAmount + sSpellMgr.GetSpellRank(dummySpell->Id));
                         int32 basepoints0 = this->GetMaxPower(POWER_MANA) * manapct1000 / 1000;
                         CastCustomSpell(this, 47755, &basepoints0, NULL, NULL, true);
                         break;
@@ -9191,7 +9191,7 @@ uint32 Unit::SpellCriticalHealingBonus(SpellEntry const *spellProto, uint32 dama
 uint32 Unit::SpellHealingBonus(Unit *pVictim, SpellEntry const *spellProto, uint32 healamount, DamageEffectType damagetype, uint32 stack)
 {
     // Check for table values earlier so SPELL_DAMAGE_CLASS_NONE can be overridden
-    SpellBonusEntry const* bonus = spellmgr.GetSpellBonusData(spellProto->Id);
+    SpellBonusEntry const* bonus = sSpellMgr.GetSpellBonusData(spellProto->Id);
 
     // For totems get healing bonus from owner (statue isn't totem in fact)
     if( GetTypeId()==TYPEID_UNIT && ((Creature*)this)->isTotem() && ((Totem*)this)->GetTotemType()!=TOTEM_STATUE)
@@ -9299,7 +9299,6 @@ uint32 Unit::SpellHealingBonus(Unit *pVictim, SpellEntry const *spellProto, uint
     SpellModSpellDamage /= 100.0f;
 
     // Check for table values
-    SpellBonusEntry const* bonus = sSpellMgr.GetSpellBonusData(spellProto->Id);
     if (bonus)
     {
         float coeff;

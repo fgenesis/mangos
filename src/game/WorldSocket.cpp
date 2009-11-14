@@ -833,7 +833,7 @@ int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
     // FG: prevent login if GM account isnt allowed in this realm
     if(sWorld.getConfig(CONFIG_LIMIT_GM_ACCOUNTS) && security >= SEC_MODERATOR)
     {
-        if(!objmgr.IsAllowedGMAccount(id))
+        if(!sObjectMgr.IsAllowedGMAccount(id))
         {
             sLog.outError("Not accepting login of account '%s' (%u)", account.c_str(), id);
             packet.Initialize(SMSG_AUTH_RESPONSE, 1);

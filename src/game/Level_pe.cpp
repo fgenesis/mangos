@@ -146,7 +146,7 @@ bool ChatHandler::HandleTargetAndDeleteObjectCommand(const char *args)
     int mapid = fields[6].GetUInt16();
     delete result;
 
-    const GameObjectInfo *goI = objmgr.GetGameObjectInfo(id);
+    const GameObjectInfo *goI = sObjectMgr.GetGameObjectInfo(id);
 
     if (!goI)
     {
@@ -428,17 +428,17 @@ bool ChatHandler::HandleReloadPECommand(const char *args)
 {
     HandleReloadCreatureExtendedCommand("");
     HandleReloadPlayerDropTemplateCommand("");
-    //objmgr.LoadAnticheatAccInfo();
+    //sObjectMgr.LoadAnticheatAccInfo();
     sVPlayerMgr.Reload();
-    objmgr.LoadSpecialChannels();
-    objmgr.LoadAllowedGMAccounts();
+    sObjectMgr.LoadSpecialChannels();
+    sObjectMgr.LoadAllowedGMAccounts();
 
     return true;
 }
 
 bool ChatHandler::HandleReloadCreatureExtendedCommand(const char *args)
 {
-    objmgr.LoadCreaturesExtended();
+    sObjectMgr.LoadCreaturesExtended();
     //SendGlobalSysMessage("DB table creature_extended reloaded.");
     return true;
 }
@@ -485,7 +485,7 @@ bool ChatHandler::HandlePDropCommand(const char* args)
                 && (it->lvldiff <= int32(target->getLevel() - mylvl))
                 ))
             {
-                const ItemPrototype *proto = objmgr.GetItemPrototype(it->item);
+                const ItemPrototype *proto = sObjectMgr.GetItemPrototype(it->item);
                 if(proto)
                 {
                     items++;
@@ -547,7 +547,7 @@ bool ChatHandler::HandleBindObjectCommand(const char *args)
     int mapid = fields[6].GetUInt16();
     delete result;
 
-    const GameObjectInfo *goI = objmgr.GetGameObjectInfo(id);
+    const GameObjectInfo *goI = sObjectMgr.GetGameObjectInfo(id);
 
     if (!goI)
     {
@@ -823,7 +823,7 @@ bool ChatHandler::HandleCharacterDizintegrateNameCommand(const char *args)
         return false;
     }
 
-    return CharacterDizintegrateHelper(objmgr.GetPlayer(pname.c_str()), rest);
+    return CharacterDizintegrateHelper(sObjectMgr.GetPlayer(pname.c_str()), rest);
 }
 
 bool ChatHandler::HandleGMHaxCommand(const char* args)

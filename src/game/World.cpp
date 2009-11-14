@@ -1432,7 +1432,7 @@ void World::SetInitialWorldSettings()
 
     // FG: -- custom databases --
     sLog.outString( "[FG] Loading Creature extended data..." );
-    objmgr.LoadCreaturesExtended();
+    sObjectMgr.LoadCreaturesExtended();
 
     sLog.outString( "[FG] Loading Player Drops..." );
     LoadPlayerDrops();
@@ -1598,7 +1598,7 @@ void World::SetInitialWorldSettings()
 
     // FG: TODO: use conf timer interval here!!
     m_timers[WUPDATE_ANTICHEAT_ACC_INFO].SetInterval(1000 * 300);
-    //objmgr.LoadAnticheatAccInfo();
+    //sObjectMgr.LoadAnticheatAccInfo();
 
     // FG: load virtual players and related
     m_timers[WUPDATE_VPLAYERS].SetInterval(1000); // 1 sec update interval
@@ -1609,8 +1609,8 @@ void World::SetInitialWorldSettings()
     }
     sVPlayerMgr.ClearOnlineBots();
 
-    objmgr.LoadSpecialChannels();
-    objmgr.LoadAllowedGMAccounts();
+    sObjectMgr.LoadSpecialChannels();
+    sObjectMgr.LoadAllowedGMAccounts();
     // FG: -end-
 
     sLog.outString( "WORLD: World initialized" );
@@ -1790,7 +1790,7 @@ void World::Update(uint32 diff)
     if(m_timers[WUPDATE_ANTICHEAT_ACC_INFO].Passed())
     {
         m_timers[WUPDATE_ANTICHEAT_ACC_INFO].Reset();
-        objmgr.LoadAnticheatAccInfo();
+        sObjectMgr.LoadAnticheatAccInfo();
     }
     */
 

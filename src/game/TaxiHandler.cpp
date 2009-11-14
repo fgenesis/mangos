@@ -249,7 +249,7 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)
     }
 
     //movment anticheat
-    uint32 curloc = objmgr.GetNearestTaxiNode(movementInfo.x,movementInfo.y,movementInfo.z,GetPlayer()->GetMapId(),GetPlayer( )->GetTeam());
+    uint32 curloc = sObjectMgr.GetNearestTaxiNode(movementInfo.x,movementInfo.y,movementInfo.z,GetPlayer()->GetMapId(),GetPlayer( )->GetTeam());
     //end movement anticheat
 
     TaxiNodesEntry const* curDestNode = sTaxiNodesStore.LookupEntry(curDest);

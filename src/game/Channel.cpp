@@ -50,7 +50,7 @@ Channel::Channel(const std::string& name, uint32 channel_id)
     }
 
     // FG: if it returns a valid struct its a special channel
-    SpecialChannel spch = objmgr.GetSpecialChan(m_name);
+    SpecialChannel spch = sObjectMgr.GetSpecialChan(m_name);
     if(spch.name.length())
     {
         m_announce = !spch.no_notify;

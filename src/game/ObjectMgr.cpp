@@ -8309,6 +8309,6 @@ Quest const* GetQuestTemplateStore(uint32 entry)
 
 ItemPrototype const* GetItemStore(uint32 entry)
 {
-    return objmgr.GetItemPrototype(entry);
+    return sObjectMgr.GetItemPrototype(entry);
 }
 

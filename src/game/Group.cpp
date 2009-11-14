@@ -1707,7 +1707,7 @@ void Group::BroadcastGroupUpdate(void)
     // -- not very efficient but safe
     for(member_citerator citr = m_memberSlots.begin(); citr != m_memberSlots.end(); ++citr)
     {
-        Player *pp = objmgr.GetPlayer(citr->guid);
+        Player *pp = sObjectMgr.GetPlayer(citr->guid);
         if(pp && pp->IsInWorld())
         {
             pp->ForceValuesUpdateAtIndex(UNIT_FIELD_BYTES_2);
@@ -1742,7 +1742,7 @@ void Group::UpdateDiplomacyDistance(Player *p)
     uint32 lvlsum = 0; // sum of the levels all players usually HOSTILE to *p
     for(member_citerator citr = m_memberSlots.begin(); citr != m_memberSlots.end(); ++citr)
     {
-        Player *m = objmgr.GetPlayer(citr->guid);
+        Player *m = sObjectMgr.GetPlayer(citr->guid);
         if(m && m != p && m->IsInWorld() && m->isAlive() && Player::TeamForRace(m->getRace()) != m_guidedTeam) // get level sum for hostile/guiding team
         {
             //FactionTemplateEntry const *mf = sFactionTemplateStore.LookupEntry(Player::getFactionForRace(m->getRace()));
@@ -1757,7 +1757,7 @@ void Group::UpdateDiplomacyDistance(Player *p)
     }
     if(IsDiplomatic() && IsLevelForDiplomacy(lvlsum))
     {
-        Player *leader = objmgr.GetPlayer(GetLeaderGUID());
+        Player *leader = sObjectMgr.GetPlayer(GetLeaderGUID());
         if(leader && leader->IsInWorld())
             p->setFaction(leader->getFaction());
         else
@@ -1781,7 +1781,7 @@ void Group::UpdateDiplomacyStatus(void)
         {
             for(member_citerator citr = m_memberSlots.begin(); citr != m_memberSlots.end(); ++citr)
             {
-                Player *m = objmgr.GetPlayer(citr->guid);
+                Player *m = sObjectMgr.GetPlayer(citr->guid);
                 if(m && m->IsInWorld())
                     m->setFaction(Player::getFactionForRace(m->getRace()));
             }
@@ -1800,7 +1800,7 @@ void Group::UpdateDiplomacyStatus(void)
 
     for(member_citerator citr = m_memberSlots.begin(); citr != m_memberSlots.end(); ++citr)
     {
-        Player *m = objmgr.GetPlayer(citr->guid);
+        Player *m = sObjectMgr.GetPlayer(citr->guid);
         if(m && m->IsInWorld()) // player does not need to be alive
         {
             t = Player::TeamForRace(m->getRace());
@@ -1838,7 +1838,7 @@ void Group::UpdateDiplomacyStatus(void)
 
     for(member_citerator citr = m_memberSlots.begin(); citr != m_memberSlots.end(); ++citr)
     {
-        Player *m = objmgr.GetPlayer(citr->guid);
+        Player *m = sObjectMgr.GetPlayer(citr->guid);
         UpdateDiplomacyDistance(m); // maybe a little inefficient.... dunno
     }
 }

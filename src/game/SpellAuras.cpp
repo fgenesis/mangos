@@ -4569,7 +4569,7 @@ void Aura::HandlePeriodicEnergize(bool apply, bool Real)
         {
             case 29166: //Innervate
             {
-                Player *caster = objmgr.GetPlayer(m_caster_guid);
+                Player *caster = sObjectMgr.GetPlayer(m_caster_guid);
                 if (caster)
                     m_modifier.m_amount = caster->GetCreateMana() * 45 / 200;
                 break;

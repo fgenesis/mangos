@@ -953,7 +953,7 @@ uint32 WorldSession::ACH_CheckMoveInfo(uint32 opcode, MovementInfo& movementInfo
         }
         else
         {
-            if (GameObjectData const* go_data = objmgr.GetGOData(plMover->m_anti_TransportGUID))
+            if (GameObjectData const* go_data = sObjectMgr.GetGOData(plMover->m_anti_TransportGUID))
             {
                 float delta_gox = go_data->posX - movementInfo.x;
                 float delta_goy = go_data->posY - movementInfo.y;

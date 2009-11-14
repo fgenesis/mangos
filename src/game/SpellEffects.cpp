@@ -707,7 +707,7 @@ void Spell::EffectDummy(uint32 i)
         return;
 
     // FG: allow teleport effects also for dummy spells
-    SpellTargetPosition const* st = spellmgr.GetSpellTargetPosition(m_spellInfo->Id);
+    SpellTargetPosition const* st = sSpellMgr.GetSpellTargetPosition(m_spellInfo->Id);
     if(st && unitTarget && unitTarget->GetTypeId() == TYPEID_PLAYER)
     {
         sLog.outDebug( "SPELL: dummy spell ID %u has teleport coords", m_spellInfo->Id );
