@@ -21,6 +21,7 @@
 #include "Policies/SingletonImp.h"
 #include "Config/ConfigEnv.h"
 #include "Util.h"
+#include "ByteBuffer.h"
 
 #include "revision_nr.h"
 #include "../realmd/AuthCodes.h"
@@ -228,9 +229,9 @@ void Log::Initialize()
     }
 
     charLogfile = openLogFile("CharLogFile","CharLogTimestamp","a");
-
     dberLogfile = openLogFile("DBErrorLogFile",NULL,"a");
     raLogfile = openLogFile("RaLogFile",NULL,"a");
+    worldLogfile = openLogFile("WorldLogFile","WorldLogTimestamp","a");
 
     // Main log file settings
     m_includeTime  = sConfig.GetBoolDefault("LogTime", false);
@@ -700,6 +701,31 @@ void Log::outChar(const char * str, ... )
         fflush(charLogfile);
     }
 }
+
+void Log::outWorldPacketDump( uint32 socket, uint32 opcode, char const* opcodeName, ByteBuffer const* packet, bool incoming )
+{
+    if (!worldLogfile)
+        return;
+
+    outTimestamp(worldLogfile);
+
+    fprintf(worldLogfile,"\n%s:\nSOCKET: %u\nLENGTH: %u\nOPCODE: %s (0x%.4X)\nDATA:\n",
+        incoming ? "CLIENT" : "SERVER",
+        socket, packet->size(), opcodeName, opcode);
+
+    size_t p = 0;
+    while (p < packet->size())
+    {
+        for (size_t j = 0; j < 16 && p < packet->size(); ++j)
+            fprintf(worldLogfile, "%.2X ", (*packet)[p++]);
+
+        fprintf(worldLogfile, "\n");
+    }
+
+    fprintf(worldLogfile, "\n\n");
+    fflush(worldLogfile);
+}
+
 /*
 void Log::outCharDump( const char * str, uint32 account_id, uint32 guid, const char * name )
 {
@@ -770,7 +796,7 @@ void outstring_log(const char * str, ...)
     vsnprintf(buf,256, str, ap);
     va_end(ap);
 
-    MaNGOS::Singleton<Log>::Instance().outString(buf);
+    sLog.outString(buf);
 }
 
 void detail_log(const char * str, ...)
@@ -784,7 +810,7 @@ void detail_log(const char * str, ...)
     vsnprintf(buf,256, str, ap);
     va_end(ap);
 
-    MaNGOS::Singleton<Log>::Instance().outDetail(buf);
+    sLog.outDetail(buf);
 }
 
 void debug_log(const char * str, ...)
@@ -798,7 +824,7 @@ void debug_log(const char * str, ...)
     vsnprintf(buf,256, str, ap);
     va_end(ap);
 
-    MaNGOS::Singleton<Log>::Instance().outDebug(buf);
+    sLog.outDebug(buf);
 }
 
 void error_log(const char * str, ...)
@@ -812,7 +838,7 @@ void error_log(const char * str, ...)
     vsnprintf(buf,256, str, ap);
     va_end(ap);
 
-    MaNGOS::Singleton<Log>::Instance().outError(buf);
+    sLog.outError(buf);
 }
 
 void error_db_log(const char * str, ...)
@@ -826,7 +852,7 @@ void error_db_log(const char * str, ...)
     vsnprintf(buf,256, str, ap);
     va_end(ap);
 
-    MaNGOS::Singleton<Log>::Instance().outErrorDb(buf);
+    sLog.outErrorDb(buf);
 }
 
 void Log::outCharDump( const char * str, uint32 account_id, uint32 guid, const char * name )

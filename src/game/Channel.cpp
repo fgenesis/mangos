@@ -86,7 +86,7 @@ void Channel::Join(uint64 p, const char *pass)
         return;
     }
 
-    Player *plr = objmgr.GetPlayer(p);
+    Player *plr = sObjectMgr.GetPlayer(p);
 
     if(plr)
     {
@@ -144,7 +144,7 @@ void Channel::Leave(uint64 p, bool send)
     }
     else
     {
-        Player *plr = objmgr.GetPlayer(p);
+        Player *plr = sObjectMgr.GetPlayer(p);
 
         if(send)
         {
@@ -179,7 +179,7 @@ void Channel::Leave(uint64 p, bool send)
 void Channel::KickOrBan(uint64 good, const char *badname, bool ban)
 {
     AccountTypes sec = SEC_PLAYER;
-    Player *gplr = objmgr.GetPlayer(good);
+    Player *gplr = sObjectMgr.GetPlayer(good);
     if(gplr)
         sec = gplr->GetSession()->GetSecurity();
 
@@ -197,7 +197,7 @@ void Channel::KickOrBan(uint64 good, const char *badname, bool ban)
     }
     else
     {
-        Player *bad = objmgr.GetPlayer(badname);
+        Player *bad = sObjectMgr.GetPlayer(badname);
         if(bad == NULL || !IsOn(bad->GetGUID()))
         {
             WorldPacket data;
@@ -240,7 +240,7 @@ void Channel::KickOrBan(uint64 good, const char *badname, bool ban)
 void Channel::UnBan(uint64 good, const char *badname)
 {
     uint32 sec = 0;
-    Player *gplr = objmgr.GetPlayer(good);
+    Player *gplr = sObjectMgr.GetPlayer(good);
     if(gplr)
         sec = gplr->GetSession()->GetSecurity();
 
@@ -258,7 +258,7 @@ void Channel::UnBan(uint64 good, const char *badname)
     }
     else
     {
-        Player *bad = objmgr.GetPlayer(badname);
+        Player *bad = sObjectMgr.GetPlayer(badname);
         if(bad == NULL || !IsBanned(bad->GetGUID()))
         {
             WorldPacket data;
@@ -279,7 +279,7 @@ void Channel::UnBan(uint64 good, const char *badname)
 void Channel::Password(uint64 p, const char *pass)
 {
     uint32 sec = 0;
-    Player *plr = objmgr.GetPlayer(p);
+    Player *plr = sObjectMgr.GetPlayer(p);
     if(plr)
         sec = plr->GetSession()->GetSecurity();
 
@@ -307,7 +307,7 @@ void Channel::Password(uint64 p, const char *pass)
 
 void Channel::SetMode(uint64 p, const char *p2n, bool mod, bool set)
 {
-    Player *plr = objmgr.GetPlayer(p);
+    Player *plr = sObjectMgr.GetPlayer(p);
     if (!plr)
         return;
 
@@ -327,7 +327,7 @@ void Channel::SetMode(uint64 p, const char *p2n, bool mod, bool set)
     }
     else
     {
-        Player *newp = objmgr.GetPlayer(p2n);
+        Player *newp = sObjectMgr.GetPlayer(p2n);
         if(!newp)
         {
             WorldPacket data;
@@ -380,7 +380,7 @@ void Channel::SetOwner(uint64 p, const char *newname)
     if(m_unowned)
         return;
 
-    Player *plr = objmgr.GetPlayer(p);
+    Player *plr = sObjectMgr.GetPlayer(p);
     if (!plr)
         return;
 
@@ -402,7 +402,7 @@ void Channel::SetOwner(uint64 p, const char *newname)
         return;
     }
 
-    Player *newp = objmgr.GetPlayer(newname);
+    Player *newp = sObjectMgr.GetPlayer(newname);
     if(newp == NULL || !IsOn(newp->GetGUID()))
     {
         WorldPacket data;
@@ -464,7 +464,7 @@ void Channel::List(Player* player)
         uint32 count  = 0;
         for(PlayerList::const_iterator i = players.begin(); i != players.end(); ++i)
         {
-            Player *plr = objmgr.GetPlayer(i->first);
+            Player *plr = sObjectMgr.GetPlayer(i->first);
 
             // PLAYER can't see MODERATOR, GAME MASTER, ADMINISTRATOR characters
             // MODERATOR, GAME MASTER, ADMINISTRATOR can see all
@@ -486,7 +486,7 @@ void Channel::List(Player* player)
 void Channel::Announce(uint64 p)
 {
     uint32 sec = 0;
-    Player *plr = objmgr.GetPlayer(p);
+    Player *plr = sObjectMgr.GetPlayer(p);
     if(plr)
         sec = plr->GetSession()->GetSecurity();
 
@@ -518,7 +518,7 @@ void Channel::Announce(uint64 p)
 void Channel::Moderate(uint64 p)
 {
     uint32 sec = 0;
-    Player *plr = objmgr.GetPlayer(p);
+    Player *plr = sObjectMgr.GetPlayer(p);
     if(plr)
         sec = plr->GetSession()->GetSecurity();
 
@@ -555,7 +555,7 @@ void Channel::Say(uint64 p, const char *what, uint32 lang)
         lang = LANG_UNIVERSAL;
 
     uint32 sec = 0;
-    Player *plr = objmgr.GetPlayer(p);
+    Player *plr = sObjectMgr.GetPlayer(p);
     if(plr)
         sec = plr->GetSession()->GetSecurity();
 
@@ -606,7 +606,7 @@ void Channel::Invite(uint64 p, const char *newname)
         return;
     }
 
-    Player *newp = objmgr.GetPlayer(newname);
+    Player *newp = sObjectMgr.GetPlayer(newname);
     if(!newp)
     {
         WorldPacket data;
@@ -615,7 +615,7 @@ void Channel::Invite(uint64 p, const char *newname)
         return;
     }
 
-    Player *plr = objmgr.GetPlayer(p);
+    Player *plr = sObjectMgr.GetPlayer(p);
     if (!plr)
         return;
 
@@ -682,7 +682,7 @@ void Channel::SendToAll(WorldPacket *data, uint64 p)
 {
     for(PlayerList::const_iterator i = players.begin(); i != players.end(); ++i)
     {
-        Player *plr = objmgr.GetPlayer(i->first);
+        Player *plr = sObjectMgr.GetPlayer(i->first);
         if(plr)
         {
             if(!p || !plr->GetSocial()->HasIgnore(GUID_LOPART(p)))
@@ -697,7 +697,7 @@ void Channel::SendToAllButOne(WorldPacket *data, uint64 who)
     {
         if(i->first != who)
         {
-            Player *plr = objmgr.GetPlayer(i->first);
+            Player *plr = sObjectMgr.GetPlayer(i->first);
             if(plr)
                 plr->GetSession()->SendPacket(data);
         }
@@ -706,7 +706,7 @@ void Channel::SendToAllButOne(WorldPacket *data, uint64 who)
 
 void Channel::SendToOne(WorldPacket *data, uint64 who)
 {
-    Player *plr = objmgr.GetPlayer(who);
+    Player *plr = sObjectMgr.GetPlayer(who);
     if(plr)
         plr->GetSession()->SendPacket(data);
 }
@@ -810,7 +810,7 @@ void Channel::MakeChannelOwner(WorldPacket *data)
 {
     std::string name = "";
 
-    if(!objmgr.GetPlayerNameByGUID(m_ownerGUID, name) || name.empty())
+    if(!sObjectMgr.GetPlayerNameByGUID(m_ownerGUID, name) || name.empty())
         name = "PLAYER_NOT_FOUND";
 
     MakeNotifyPacket(data, CHAT_CHANNEL_OWNER_NOTICE);
