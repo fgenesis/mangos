@@ -7455,6 +7455,12 @@ bool Unit::HandleProcTriggerSpell(Unit *pVictim, uint32 damage, Aura* triggeredB
         {
             if (!(procSpell->SpellFamilyFlags & UI64LIT(0x0000000000000001)))
                 return false;
+        }
+        // Blessing of Ancient Kings
+        case 64411:
+        {
+            trigger_spell_id = 64413;
+            basepoints[0] = int32(damage * 0.15f);
             break;
         }
     }
