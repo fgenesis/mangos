@@ -3192,7 +3192,13 @@ bool Player::addSpell(uint32 spell_id, bool active, bool learning, bool dependen
     else if (IsPassiveSpell(spell_id))
     {
         if (IsNeedCastPassiveSpellAtLearn(spellInfo))
-            CastSpell(this, spell_id, true);
+        {
+            // Juggernaut & Warbringer needs to not be triggered
+            if(spell_id == 57499 || spell_id == 64976)
+            {
+                CastSpell(this, spell_id, false);
+            }else CastSpell(this, spell_id, true);
+        }
     }
     else if (IsSpellHaveEffect(spellInfo,SPELL_EFFECT_SKILL_STEP))
     {

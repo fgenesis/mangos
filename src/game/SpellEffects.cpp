@@ -1408,6 +1408,10 @@ void Spell::EffectDummy(uint32 i)
             {
                 int32 chargeBasePoints0 = damage;
                 m_caster->CastCustomSpell(m_caster, 34846, &chargeBasePoints0, NULL, NULL, true);
+
+                //Juggernaut crit bonus
+                if(m_caster->HasAura(64976, 0))
+                    m_caster->CastSpell(m_caster, 65156, true);
                 return;
             }
             // Execute
@@ -1417,6 +1421,17 @@ void Spell::EffectDummy(uint32 i)
                     return;
 
                 uint32 rage = m_caster->GetPower(POWER_RAGE);
+                uint32 rage2 = rage;
+                uint32 lastrage=0;
+                //Sudden Death
+                if(m_caster->HasAura(52437))
+                {
+                    if(m_caster->HasAura(29723)) lastrage=30;
+                    else if (m_caster->HasAura(29725)) lastrage=70;
+                    else if (m_caster->HasAura(29724)) lastrage=100;
+                    rage2 = rage2 - 300;
+                    rage2 = rage2<lastrage?lastrage:rage2;
+                 }
                 // Glyph of Execution bonus
                 if (Aura *aura = m_caster->GetDummyAura(58367))
                     rage+=aura->GetModifier()->m_amount;
@@ -1424,7 +1439,11 @@ void Spell::EffectDummy(uint32 i)
                 int32 basePoints0 = damage+int32(rage * m_spellInfo->DmgMultiplier[i] +
                                                  m_caster->GetTotalAttackPowerValue(BASE_ATTACK)*0.2f);
                 m_caster->CastCustomSpell(unitTarget, 20647, &basePoints0, NULL, NULL, true, 0);
-                m_caster->SetPower(POWER_RAGE, 0);
+                //Sudden Death
+                if (lastrage != 0)
+                     m_caster->SetPower(POWER_RAGE,rage2);
+                else
+                     m_caster->SetPower(POWER_RAGE,0);
                 return;
             }
             // Slam
@@ -3490,7 +3509,6 @@ void Spell::EffectSummonType(uint32 i)
         case SUMMON_TYPE_QUEST_WILD:
         case SUMMON_TYPE_CREATURE:
         case SUMMON_TYPE_JEEVES:
-        case SUMMON_TYPE_SCRAPBOT:
             EffectSummonWild(i);
             break;
         case SUMMON_TYPE_DEMON:
@@ -6541,6 +6559,11 @@ void Spell::EffectCharge(uint32 /*i*/)
     // not all charge effects used in negative spells
     if (unitTarget != m_caster && !IsPositiveSpell(m_spellInfo->Id))
         m_caster->Attack(unitTarget,true);
+
+    //Warbringer - remove movement imparing effects
+    if(m_caster->HasAura(57499))
+        m_caster->RemoveAurasAtMechanicImmunity(IMMUNE_TO_ROOT_AND_SNARE_MASK,57499,true);
+
 }
 
 void Spell::EffectCharge2(uint32 /*i*/)
