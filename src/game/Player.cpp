@@ -7760,7 +7760,7 @@ void Player::SendLoot(uint64 guid, LootType loot_type)
                 // FG: -end-
 
                 if (uint32 lootid = creature->GetCreatureInfo()->lootid)
-                    loot->FillLoot(lootid, LootTemplates_Creature, recipient, false, minloot);
+                    loot->FillLoot(lootid, LootTemplates_Creature, recipient, false, false, minloot);
 
                 loot->generateMoneyLoot(creature->GetCreatureInfo()->mingold,creature->GetCreatureInfo()->maxgold);
 
