@@ -5956,6 +5956,38 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
 				break;
 			}
 			break;
+            // Misdirection
+            if (dummySpell->SpellFamilyFlags & UI64LIT(0x10000000000000))
+            {
+                if (GetTypeId() != TYPEID_PLAYER || !pVictim || !pVictim->CanHaveThreatList())
+                    return false;
+
+                if (Group* pGroup = ((Player*)this)->GetGroup())
+                {
+                    Unit* misdirect;
+                    float threat = damage;
+
+                    if (procSpell && IsDamageToThreatSpell(procSpell))
+                        threat *= 2;
+
+                    for(GroupReference *itr = pGroup->GetFirstMember(); itr != NULL; itr = itr->next())
+                        if (itr->getSource() && itr->getSource()->GetGUID() != GetGUID() && 
+                            itr->getSource()->GetAura(SPELL_AURA_DUMMY, SPELLFAMILY_HUNTER, 0,0, GetGUID()))
+                        {
+                            misdirect = itr->getSource();
+                            break;
+                        }
+
+                    if (misdirect && misdirect != this)
+                    {
+                        pVictim->AddThreat(this, -threat, false, procSpell ? SpellSchoolMask(procSpell->SchoolMask) : SPELL_SCHOOL_MASK_NORMAL, procSpell);
+                        pVictim->AddThreat(misdirect, threat, false, procSpell ? SpellSchoolMask(procSpell->SchoolMask) : SPELL_SCHOOL_MASK_NORMAL, procSpell);
+                        return true;
+                    }
+                }
+                return false;
+            }
+            break;
         }
         case SPELLFAMILY_PALADIN:
         {
