@@ -8572,11 +8572,9 @@ bool Unit::HasAuraStateForCaster(AuraState flag, uint64 caster) const
         if (Unit* u_caster = ObjectAccessor::GetUnit(*this, caster))
             if (u_caster->HasAura(44544))
                 return true;
-
-        return HasAuraState(flag);
     }
 
-    return true;
+    return HasAuraState(flag);
 }
 
 void Unit::ModifyAuraState(AuraState flag, bool apply)
