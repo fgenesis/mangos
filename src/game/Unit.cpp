@@ -1386,16 +1386,28 @@ void Unit::CalculateMeleeDamage(Unit *pVictim, uint32 damage, CalcDamageInfo *da
             // calculate base values and mods
             float baseLowEnd = 1.3f;
             float baseHighEnd = 1.2f;
+            bool iscaster = false;
             switch(getClass())                              // lowering base values for casters
             {
                 case CLASS_SHAMAN:
+                    if (GetTypeId() == TYPEID_PLAYER && GetInt32Value(UNIT_FIELD_ATTACK_POWER) < SpellBaseDamageBonus(SPELL_SCHOOL_MASK_MAGIC) &&
+                        GetInt32Value(UNIT_FIELD_ATTACK_POWER) < SpellBaseHealingBonus(SPELL_SCHOOL_MASK_MAGIC))
+                        iscaster = true;
+                    break;
+                case CLASS_DRUID:
+                    if (IsInFeralForm())
+                        break;
                 case CLASS_PRIEST:
                 case CLASS_MAGE:
                 case CLASS_WARLOCK:
-                case CLASS_DRUID:
-                    baseLowEnd  -= 0.7f;
-                    baseHighEnd -= 0.3f;
+                    iscaster = true;
                     break;
+            }
+
+            if (iscaster)
+            {
+                baseLowEnd  -= 0.7f;
+                baseHighEnd -= 0.3f;
             }
 
             float maxLowEnd = 0.6f;
