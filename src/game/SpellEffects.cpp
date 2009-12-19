@@ -1451,10 +1451,6 @@ void Spell::EffectDummy(uint32 i)
             {
                 int32 chargeBasePoints0 = damage;
                 m_caster->CastCustomSpell(m_caster, 34846, &chargeBasePoints0, NULL, NULL, true);
-
-                //Juggernaut crit bonus
-                if(m_caster->HasAura(64976, 0))
-                    m_caster->CastSpell(m_caster, 65156, true);
                 return;
             }
             // Execute
@@ -6667,11 +6663,6 @@ void Spell::EffectCharge(uint32 /*i*/)
     // not all charge effects used in negative spells
     if (unitTarget != m_caster && !IsPositiveSpell(m_spellInfo->Id))
         m_caster->Attack(unitTarget,true);
-
-    //Warbringer - remove movement imparing effects
-    if(m_caster->HasAura(57499))
-        m_caster->RemoveAurasAtMechanicImmunity(IMMUNE_TO_ROOT_AND_SNARE_MASK,57499,true);
-
 }
 
 void Spell::EffectCharge2(uint32 /*i*/)
