@@ -2446,39 +2446,6 @@ enum DiminishingGroup
     DIMINISHING_LIMITONLY
 };
 
-enum SummonType
-{
-    SUMMON_TYPE_CRITTER     = 41,
-    SUMMON_TYPE_GUARDIAN    = 61,
-    SUMMON_TYPE_TOTEM_SLOT1 = 63,
-    SUMMON_TYPE_WILD        = 64,
-    SUMMON_TYPE_POSESSED    = 65,
-    SUMMON_TYPE_DEMON       = 66,
-    SUMMON_TYPE_SUMMON      = 67,
-    SUMMON_TYPE_TOTEM_SLOT2 = 81,
-    SUMMON_TYPE_TOTEM_SLOT3 = 82,
-    SUMMON_TYPE_TOTEM_SLOT4 = 83,
-    SUMMON_TYPE_TOTEM       = 121,
-    SUMMON_TYPE_UNKNOWN3    = 181,
-    SUMMON_TYPE_UNKNOWN4    = 187,
-    SUMMON_TYPE_UNKNOWN1    = 247,
-    SUMMON_TYPE_CRITTER2    = 407,
-    SUMMON_TYPE_CRITTER3    = 307,
-    SUMMON_TYPE_UNKNOWN5    = 409,
-    SUMMON_TYPE_UNKNOWN2    = 427,
-    SUMMON_TYPE_POSESSED2   = 428,
-    SUMMON_TYPE_QUEST_CRITTER = 487,
-    SUMMON_TYPE_QUEST_WILD  = 587,
-    SUMMON_TYPE_INFERNO     = 711,
-    SUMMON_TYPE_GUARDIAN2   = 713,
-    SUMMON_TYPE_WILD2       = 832,
-    SUMMON_TYPE_GUARDIAN3   = 1161,
-    SUMMON_TYPE_CREATURE    = 1302,
-    SUMMON_TYPE_ELEMENTAL   = 1561,
-    SUMMON_TYPE_FORCE_OF_NATURE = 1562,
-    SUMMON_TYPE_JEEVES      = 2181
-};
-
 enum ResponseCodes
 {
     RESPONSE_SUCCESS                                       = 0x00,
@@ -2676,5 +2643,11 @@ enum PetTameFailureReason
     PETTAME_CANTCONTROLEXOTIC       = 11, // 3.x
     PETTAME_UNKNOWNERROR            = 12
 };
+
+// we need to stick to 1 version or half of the stuff will work for someone
+// others will not and opposite
+// will only support WoW:WotLK 3.2.2a, client build 10505.
+
+#define EXPECTED_MANGOSD_CLIENT_BUILD        {10505, 0}
 
 #endif

@@ -26,6 +26,8 @@
 #include "revision_nr.h"
 #include "../realmd/AuthCodes.h"
 
+#define EXPECTED_MANGOSD_CLIENT_BUILD        {10505, 0} // FG: TODO: update this!!!!
+
 #include <stdarg.h>
 
 INSTANTIATE_SINGLETON_1( Log );
@@ -872,7 +874,8 @@ void Log::outCharDump( const char * str, uint32 account_id, uint32 guid, const c
 
         FILE *fh;
         char fn[255];
-        uint32 build[] = EXPECTED_MANGOS_CLIENT_BUILD;
+
+        int build[] = EXPECTED_MANGOSD_CLIENT_BUILD;
 
         sprintf(fn,"%s/%s_%u_%u_%s_%u.dump",dpath.c_str(),name,account_id,guid,REVISION_NR,build[0]);
         fh = fopen(fn,"w");

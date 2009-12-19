@@ -98,9 +98,8 @@ bool ChatHandler::HandleUnstuckCommand(const char* args)
     float z=p->GetPositionZ();
     if(z < -4000 || z > 4000)
     {
-
         p->ResurrectPlayer(1,true);
-        p->TeleportTo(p->m_homebindMapId,p->m_homebindX,p->m_homebindY,p->m_homebindZ,0.0f);
+        p->TeleportToHomebind();
 
         return true;
     }
@@ -205,10 +204,7 @@ bool ChatHandler::HandleSendHomeCommand(const char* args)
     if(target && target->GetTypeId() == TYPEID_PLAYER)
     {
         Player *ptarget = (Player*)target;
-        if(ptarget->m_homebindMapId != 0, ptarget->m_homebindX != 0, ptarget->m_homebindY != 0)
-        {
-            ptarget->TeleportTo(ptarget->m_homebindMapId,ptarget->m_homebindX,ptarget->m_homebindY,ptarget->m_homebindZ,0);
-        }
+        ptarget->TeleportToHomebind();
     }
     return true;
 }

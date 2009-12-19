@@ -208,7 +208,7 @@ Unit* HostileReference::getSourceUnit()
 
 void ThreatContainer::clearReferences()
 {
-    for(std::list<HostileReference*>::const_iterator i = iThreatList.begin(); i != iThreatList.end(); ++i)
+    for(ThreatList::const_iterator i = iThreatList.begin(); i != iThreatList.end(); ++i)
     {
         (*i)->unlink();
         delete (*i);
@@ -227,7 +227,7 @@ HostileReference* ThreatContainer::getReferenceByTarget(Unit* pVictim)
     }
     HostileReference* result = NULL;
     uint64 guid = pVictim->GetGUID();
-    for(std::list<HostileReference*>::const_iterator i = iThreatList.begin(); i != iThreatList.end(); ++i)
+    for(ThreatList::const_iterator i = iThreatList.begin(); i != iThreatList.end(); ++i)
     {
         if((*i)->getUnitGuid() == guid)
         {
@@ -288,10 +288,10 @@ HostileReference* ThreatContainer::selectNextVictim(Creature* pAttacker, Hostile
     bool found = false;
     bool noPriorityTargetFound = false;
 
-    std::list<HostileReference*>::const_iterator lastRef = iThreatList.end();
+    ThreatList::const_iterator lastRef = iThreatList.end();
     lastRef--;
 
-    for(std::list<HostileReference*>::const_iterator iter = iThreatList.begin(); iter != iThreatList.end() && !found;)
+    for(ThreatList::const_iterator iter = iThreatList.begin(); iter != iThreatList.end() && !found;)
     {
         currentRef = (*iter);
 
@@ -356,7 +356,8 @@ HostileReference* ThreatContainer::selectNextVictim(Creature* pAttacker, Hostile
 //=================== ThreatManager ==========================
 //============================================================
 
-ThreatManager::ThreatManager(Unit* owner) : iCurrentVictim(NULL), iOwner(owner), iUpdateTimer(THREAT_UPDATE_INTERVAL)
+ThreatManager::ThreatManager(Unit* owner)
+: iCurrentVictim(NULL), iOwner(owner), iUpdateTimer(THREAT_UPDATE_INTERVAL), iUpdateNeed(false)
 {
 }
 
@@ -367,7 +368,8 @@ void ThreatManager::clearReferences()
     iThreatContainer.clearReferences();
     iThreatOfflineContainer.clearReferences();
     iCurrentVictim = NULL;
-    iUpdateTimer = THREAT_UPDATE_INTERVAL;
+    iUpdateTimer.Reset(THREAT_UPDATE_INTERVAL);
+    iUpdateNeed = false;
 }
 
 //============================================================
@@ -384,7 +386,7 @@ void ThreatManager::addThreat(Unit* pVictim, float pThreat, bool crit, SpellScho
         return;
 
     // not to GM
-    if(!pVictim || (pVictim->GetTypeId() == TYPEID_PLAYER && ((Player*)pVictim)->isGameMaster()) )
+    if (!pVictim || (pVictim->GetTypeId() == TYPEID_PLAYER && ((Player*)pVictim)->isGameMaster()) )
         return;
 
     // not to dead and not for dead
@@ -396,8 +398,11 @@ void ThreatManager::addThreat(Unit* pVictim, float pThreat, bool crit, SpellScho
     float threat = ThreatCalcHelper::calcThreat(pVictim, iOwner, pThreat, crit, schoolMask, pThreatSpell);
 
     HostileReference* ref = iThreatContainer.addThreat(pVictim, threat);
+    // Ref is online
+    if (ref)
+        iUpdateNeed = true;
     // Ref is not in the online refs, search the offline refs next
-    if(!ref)
+    else
         ref = iThreatOfflineContainer.addThreat(pVictim, threat);
 
     if(!ref)                                                // there was no ref => create a new one
@@ -406,6 +411,7 @@ void ThreatManager::addThreat(Unit* pVictim, float pThreat, bool crit, SpellScho
         HostileReference* hostileReference = new HostileReference(pVictim, this, 0);
         iThreatContainer.addReference(hostileReference);
         hostileReference->addThreat(threat);                // now we add the real threat
+        iUpdateNeed = true;
         if(pVictim->GetTypeId() == TYPEID_PLAYER && ((Player*)pVictim)->isGameMaster())
             hostileReference->setOnlineOfflineState(false); // GM is always offline
     }
@@ -416,6 +422,7 @@ void ThreatManager::addThreat(Unit* pVictim, float pThreat, bool crit, SpellScho
 void ThreatManager::modifyThreatPercent(Unit *pVictim, int32 pPercent)
 {
     iThreatContainer.modifyThreatPercent(pVictim, pPercent);
+    iUpdateNeed = true;
 }
 
 //============================================================
@@ -445,12 +452,17 @@ float ThreatManager::getThreat(Unit *pVictim, bool pAlsoSearchOfflineList)
 
 void ThreatManager::tauntApply(Unit* pTaunter)
 {
-    HostileReference* ref = iThreatContainer.getReferenceByTarget(pTaunter);
-    if(getCurrentVictim() && ref && (ref->getThreat() < getCurrentVictim()->getThreat()))
+    if(HostileReference* ref = iThreatContainer.getReferenceByTarget(pTaunter))
     {
-        if(ref->getTempThreatModifyer() == 0.0f)
-                                                            // Ok, temp threat is unused
-            ref->setTempThreat(getCurrentVictim()->getThreat());
+        if(getCurrentVictim() && (ref->getThreat() < getCurrentVictim()->getThreat()))
+        {
+            // Ok, temp threat is unused
+            if(ref->getTempThreatModifyer() == 0.0f)
+            {
+                ref->setTempThreat(getCurrentVictim()->getThreat());
+                iUpdateNeed = true;
+            }
+        }
     }
 }
 
@@ -458,20 +470,26 @@ void ThreatManager::tauntApply(Unit* pTaunter)
 
 void ThreatManager::tauntFadeOut(Unit *pTaunter)
 {
-    HostileReference* ref = iThreatContainer.getReferenceByTarget(pTaunter);
-    if(ref)
+    if(HostileReference* ref = iThreatContainer.getReferenceByTarget(pTaunter))
+    {
         ref->resetTempThreat();
+        iUpdateNeed = true;
+    }
 }
 
 //============================================================
 
 void ThreatManager::setCurrentVictim(HostileReference* pHostileReference)
 {
-    if (pHostileReference && pHostileReference != iCurrentVictim)
-    {
-        iOwner->SendChangeCurrentVictimOpcode(pHostileReference);
-    }
+    // including NULL==NULL case
+    if (pHostileReference == iCurrentVictim)
+        return;
+
+    if (pHostileReference)
+        iOwner->SendHighestThreatUpdate(pHostileReference);
+
     iCurrentVictim = pHostileReference;
+    iUpdateNeed = true;
 }
 
 //============================================================
@@ -500,6 +518,7 @@ void ThreatManager::processThreatEvent(ThreatRefStatusChangeEvent* threatRefStat
                     setDirty(true);
                 }
                 iThreatContainer.remove(hostileReference);
+                iUpdateNeed = true;
                 iThreatOfflineContainer.addReference(hostileReference);
             }
             else
@@ -507,6 +526,7 @@ void ThreatManager::processThreatEvent(ThreatRefStatusChangeEvent* threatRefStat
                 if(getCurrentVictim() && hostileReference->getThreat() > (1.1f * getCurrentVictim()->getThreat()))
                     setDirty(true);
                 iThreatContainer.addReference(hostileReference);
+                iUpdateNeed = true;
                 iThreatOfflineContainer.remove(hostileReference);
             }
             break;
@@ -516,24 +536,28 @@ void ThreatManager::processThreatEvent(ThreatRefStatusChangeEvent* threatRefStat
                 setCurrentVictim(NULL);
                 setDirty(true);
             }
-            iOwner->SendRemoveFromThreatListOpcode(hostileReference);
+            iOwner->SendThreatRemove(hostileReference);
             if(hostileReference->isOnline())
+            {
                 iThreatContainer.remove(hostileReference);
+                iUpdateNeed = true;
+            }
             else
                 iThreatOfflineContainer.remove(hostileReference);
             break;
     }
 }
 
-bool ThreatManager::isNeedUpdateToClient(uint32 time)
+void ThreatManager::UpdateForClient(uint32 diff)
 {
-    if (isThreatListEmpty())
-        return false;
-    if (time >= iUpdateTimer)
+    if (!iUpdateNeed || isThreatListEmpty())
+        return;
+
+    iUpdateTimer.Update(diff);
+    if (iUpdateTimer.Passed())
     {
-        iUpdateTimer = THREAT_UPDATE_INTERVAL;
-        return true;
+        iOwner->SendThreatUpdate();
+        iUpdateTimer.Reset(THREAT_UPDATE_INTERVAL);
+        iUpdateNeed = false;
     }
-    iUpdateTimer -= time;
-    return false;
 }

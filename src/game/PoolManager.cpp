@@ -18,6 +18,7 @@
 
 #include "PoolManager.h"
 #include "ObjectMgr.h"
+#include "ObjectDefines.h"
 #include "ProgressBar.h"
 #include "Log.h"
 #include "MapManager.h"
@@ -201,7 +202,7 @@ void PoolGroup<T>::SpawnObject(uint32 limit, uint32 triggerFrom)
     int count = limit - m_SpawnedPoolAmount;
 
     // If triggered from some object respawn this object is still marked as spawned
-    // and also counted into m_SpawnedPoolAmount so we need increase count to be 
+    // and also counted into m_SpawnedPoolAmount so we need increase count to be
     // spawned by 1
     if (triggerFrom)
         ++count;

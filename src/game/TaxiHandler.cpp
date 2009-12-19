@@ -186,6 +186,16 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)
 {
     sLog.outDebug( "WORLD: Received CMSG_MOVE_SPLINE_DONE" );
 
+    uint64 guid;                                            // used only for proper packet read
+    if(!recv_data.readPackGUID(guid))
+        return;
+
+    MovementInfo movementInfo;                              // used only for proper packet read
+    ReadMovementInfo(recv_data, &movementInfo);
+
+    recv_data.read_skip<uint32>();                          // unk
+
+
     // in taxi flight packet received in 2 case:
     // 1) end taxi path in far (multi-node) flight
     // 2) switch from one map to other in case multim-map taxi path
@@ -197,12 +207,6 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)
     Player *plMover = mover->GetTypeId()==TYPEID_PLAYER ? (Player*)mover : NULL;
     if (!plMover)
         return;
-
-    // FG: unk, added in 3.2.x
-    recv_data.read_skip<uint32>();
-
-    MovementInfo movementInfo;
-    ReadMovementInfo(recv_data, &movementInfo);
     //<< end movement anticheat
 
     // FG: unk, added in 3.2.x

@@ -27,6 +27,7 @@
 GossipMenu::GossipMenu()
 {
     m_gItems.reserve(16);                                   // can be set for max from most often sizes to speedup push_back and less memory use
+    m_gMenuId = 0;
 }
 
 GossipMenu::~GossipMenu()
@@ -44,11 +45,22 @@ void GossipMenu::AddMenuItem(uint8 Icon, const std::string& Message, uint32 dtSe
     gItem.m_gMessage    = Message;
     gItem.m_gCoded      = Coded;
     gItem.m_gSender     = dtSender;
-    gItem.m_gAction     = dtAction;
+    gItem.m_gOptionId   = dtAction;
     gItem.m_gBoxMessage = BoxMessage;
     gItem.m_gBoxMoney   = BoxMoney;
 
     m_gItems.push_back(gItem);
+}
+
+void GossipMenu::AddGossipMenuItemData(uint32 action_menu, uint32 action_poi, uint32 action_script)
+{
+    GossipMenuItemData pItemData;
+
+    pItemData.m_gAction_menu    = action_menu;
+    pItemData.m_gAction_poi     = action_poi;
+    pItemData.m_gAction_script  = action_script;
+
+    m_gItemsData.push_back(pItemData);
 }
 
 void GossipMenu::AddMenuItem(uint8 Icon, const std::string& Message, bool Coded)
@@ -77,7 +89,7 @@ uint32 GossipMenu::MenuItemAction( unsigned int ItemId )
 {
     if ( ItemId >= m_gItems.size() ) return 0;
 
-    return m_gItems[ ItemId ].m_gAction;
+    return m_gItems[ ItemId ].m_gOptionId;
 }
 
 bool GossipMenu::MenuItemCoded( unsigned int ItemId )
@@ -90,6 +102,8 @@ bool GossipMenu::MenuItemCoded( unsigned int ItemId )
 void GossipMenu::ClearMenu()
 {
     m_gItems.clear();
+    m_gItemsData.clear();
+    m_gMenuId = 0;
 }
 
 PlayerMenu::PlayerMenu( WorldSession *session ) : pSession(session)
@@ -122,13 +136,13 @@ bool PlayerMenu::GossipOptionCoded( unsigned int Selection )
     return mGossipMenu.MenuItemCoded( Selection );
 }
 
-void PlayerMenu::SendGossipMenu( uint32 TitleTextId, uint64 npcGUID )
+void PlayerMenu::SendGossipMenu(uint32 TitleTextId, uint64 objectGUID)
 {
-    WorldPacket data( SMSG_GOSSIP_MESSAGE, (100) );         // guess size
-    data << uint64(npcGUID);
-    data << uint32(0);                                      // new 2.4.0
-    data << uint32( TitleTextId );
-    data << uint32( mGossipMenu.MenuItemCount() );          // max count 0x10
+    WorldPacket data(SMSG_GOSSIP_MESSAGE, (100));           // guess size
+    data << uint64(objectGUID);
+    data << uint32(mGossipMenu.GetMenuId());                // new 2.4.0
+    data << uint32(TitleTextId);
+    data << uint32(mGossipMenu.MenuItemCount());            // max count 0x10
 
     for (uint32 iI = 0; iI < mGossipMenu.MenuItemCount(); ++iI )
     {
@@ -160,7 +174,7 @@ void PlayerMenu::SendGossipMenu( uint32 TitleTextId, uint64 npcGUID )
             QuestLocale const *ql = sObjectMgr.GetQuestLocale(questID);
             if (ql)
             {
-                if (ql->Title.size() > loc_idx && !ql->Title[loc_idx].empty())
+                if (ql->Title.size() > (size_t)loc_idx && !ql->Title[loc_idx].empty())
                     Title=ql->Title[loc_idx];
             }
         }
@@ -266,9 +280,9 @@ void PlayerMenu::SendTalking( uint32 textID )
             {
                 for (int i=0;i<8;++i)
                 {
-                    if (nl->Text_0[i].size() > loc_idx && !nl->Text_0[i][loc_idx].empty())
+                    if (nl->Text_0[i].size() > (size_t)loc_idx && !nl->Text_0[i][loc_idx].empty())
                         Text_0[i]=nl->Text_0[i][loc_idx];
-                    if (nl->Text_1[i].size() > loc_idx && !nl->Text_1[i][loc_idx].empty())
+                    if (nl->Text_1[i].size() > (size_t)loc_idx && !nl->Text_1[i][loc_idx].empty())
                         Text_1[i]=nl->Text_1[i][loc_idx];
                 }
             }
@@ -393,7 +407,7 @@ void PlayerMenu::SendQuestGiverQuestList( QEmote eEmote, const std::string& Titl
         {
             if(QuestLocale const *ql = sObjectMgr.GetQuestLocale(questID))
             {
-                if (ql->Title.size() > loc_idx && !ql->Title[loc_idx].empty())
+                if (ql->Title.size() > (size_t)loc_idx && !ql->Title[loc_idx].empty())
                     title=ql->Title[loc_idx];
             }
         }
@@ -432,13 +446,13 @@ void PlayerMenu::SendQuestGiverQuestDetails( Quest const *pQuest, uint64 npcGUID
         QuestLocale const *ql = sObjectMgr.GetQuestLocale(pQuest->GetQuestId());
         if (ql)
         {
-            if (ql->Title.size() > loc_idx && !ql->Title[loc_idx].empty())
+            if (ql->Title.size() > (size_t)loc_idx && !ql->Title[loc_idx].empty())
                 Title=ql->Title[loc_idx];
-            if (ql->Details.size() > loc_idx && !ql->Details[loc_idx].empty())
+            if (ql->Details.size() > (size_t)loc_idx && !ql->Details[loc_idx].empty())
                 Details=ql->Details[loc_idx];
-            if (ql->Objectives.size() > loc_idx && !ql->Objectives[loc_idx].empty())
+            if (ql->Objectives.size() > (size_t)loc_idx && !ql->Objectives[loc_idx].empty())
                 Objectives=ql->Objectives[loc_idx];
-            if (ql->EndText.size() > loc_idx && !ql->EndText[loc_idx].empty())
+            if (ql->EndText.size() > (size_t)loc_idx && !ql->EndText[loc_idx].empty())
                 EndText=ql->EndText[loc_idx];
         }
     }
@@ -528,17 +542,17 @@ void PlayerMenu::SendQuestQueryResponse( Quest const *pQuest )
         QuestLocale const *ql = sObjectMgr.GetQuestLocale(pQuest->GetQuestId());
         if (ql)
         {
-            if (ql->Title.size() > loc_idx && !ql->Title[loc_idx].empty())
+            if (ql->Title.size() > (size_t)loc_idx && !ql->Title[loc_idx].empty())
                 Title=ql->Title[loc_idx];
-            if (ql->Details.size() > loc_idx && !ql->Details[loc_idx].empty())
+            if (ql->Details.size() > (size_t)loc_idx && !ql->Details[loc_idx].empty())
                 Details=ql->Details[loc_idx];
-            if (ql->Objectives.size() > loc_idx && !ql->Objectives[loc_idx].empty())
+            if (ql->Objectives.size() > (size_t)loc_idx && !ql->Objectives[loc_idx].empty())
                 Objectives=ql->Objectives[loc_idx];
-            if (ql->EndText.size() > loc_idx && !ql->EndText[loc_idx].empty())
+            if (ql->EndText.size() > (size_t)loc_idx && !ql->EndText[loc_idx].empty())
                 EndText=ql->EndText[loc_idx];
 
             for (int i = 0;i < QUEST_OBJECTIVES_COUNT; ++i)
-                if (ql->ObjectiveText[i].size() > loc_idx && !ql->ObjectiveText[i][loc_idx].empty())
+                if (ql->ObjectiveText[i].size() > (size_t)loc_idx && !ql->ObjectiveText[i][loc_idx].empty())
                     ObjectiveText[i] = ql->ObjectiveText[i][loc_idx];
         }
     }
@@ -650,9 +664,9 @@ void PlayerMenu::SendQuestGiverOfferReward( Quest const* pQuest, uint64 npcGUID,
         QuestLocale const *ql = sObjectMgr.GetQuestLocale(pQuest->GetQuestId());
         if (ql)
         {
-            if (ql->Title.size() > loc_idx && !ql->Title[loc_idx].empty())
+            if (ql->Title.size() > (size_t)loc_idx && !ql->Title[loc_idx].empty())
                 Title=ql->Title[loc_idx];
-            if (ql->OfferRewardText.size() > loc_idx && !ql->OfferRewardText[loc_idx].empty())
+            if (ql->OfferRewardText.size() > (size_t)loc_idx && !ql->OfferRewardText[loc_idx].empty())
                 OfferRewardText=ql->OfferRewardText[loc_idx];
         }
     }
@@ -738,9 +752,9 @@ void PlayerMenu::SendQuestGiverRequestItems( Quest const *pQuest, uint64 npcGUID
         QuestLocale const *ql = sObjectMgr.GetQuestLocale(pQuest->GetQuestId());
         if (ql)
         {
-            if (ql->Title.size() > loc_idx && !ql->Title[loc_idx].empty())
+            if (ql->Title.size() > (size_t)loc_idx && !ql->Title[loc_idx].empty())
                 Title=ql->Title[loc_idx];
-            if (ql->RequestItemsText.size() > loc_idx && !ql->RequestItemsText[loc_idx].empty())
+            if (ql->RequestItemsText.size() > (size_t)loc_idx && !ql->RequestItemsText[loc_idx].empty())
                 RequestItemsText=ql->RequestItemsText[loc_idx];
         }
     }

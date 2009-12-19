@@ -1239,7 +1239,7 @@ void World::SetInitialWorldSettings()
     sObjectMgr.LoadQuestLocales();
     sObjectMgr.LoadNpcTextLocales();
     sObjectMgr.LoadPageTextLocales();
-    sObjectMgr.LoadNpcOptionLocales();
+    sObjectMgr.LoadGossipMenuItemsLocales();
     sObjectMgr.LoadPointOfInterestLocales();
     sObjectMgr.SetDBCLocaleIndex(GetDefaultDbcLocale());        // Get once for all the locale index of DBC language (console/broadcasts)
     sLog.outString( ">>> Localization strings loaded" );
@@ -1473,8 +1473,14 @@ void World::SetInitialWorldSettings()
     sLog.outString( "Loading Npc Text Id..." );
     sObjectMgr.LoadNpcTextId();                                 // must be after load Creature and NpcText
 
-    sLog.outString( "Loading Npc Options..." );
-    sObjectMgr.LoadNpcOptions();
+    sLog.outString( "Loading Gossip scripts..." );
+    sObjectMgr.LoadGossipScripts();                             // must be before gossip menu options
+
+    sLog.outString( "Loading Gossip menus..." );
+    sObjectMgr.LoadGossipMenu();
+
+    sLog.outString( "Loading Gossip menu options..." );
+    sObjectMgr.LoadGossipMenuItems();
 
     sLog.outString( "Loading Vendors..." );
     sObjectMgr.LoadVendors();                                   // must be after load CreatureTemplate and ItemTemplate
@@ -2184,10 +2190,6 @@ void World::UpdateSessions( uint32 diff )
     {
         next = itr;
         ++next;
-
-        if(!itr->second)
-            continue;
-
         ///- and remove not active sessions from the list
         if(!itr->second->Update(diff))                      // As interval = 0
         {
