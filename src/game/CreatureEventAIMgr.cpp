@@ -244,13 +244,21 @@ void CreatureEventAIMgr::LoadCreatureEventAI_Scripts()
     //Drop Existing EventAI List
     m_CreatureEventAI_Event_Map.clear();
 
+    // FG: use table list
+    char *tables[] = { "creature_ai_scripts", "creature_ai_scripts_custom", NULL };
+    uint32 maxId_temp = 0, maxId = 0;
+    for(uint32 tid = 0; tables[tid]; tid++)
+    {
+        maxId = maxId_temp;
+
+
     // Gather event data
-    QueryResult *result = WorldDatabase.Query("SELECT id, creature_id, event_type, event_inverse_phase_mask, event_chance, event_flags, "
+    QueryResult *result = WorldDatabase.PQuery("SELECT id, creature_id, event_type, event_inverse_phase_mask, event_chance, event_flags, "
         "event_param1, event_param2, event_param3, event_param4, "
         "action1_type, action1_param1, action1_param2, action1_param3, "
         "action2_type, action2_param1, action2_param2, action2_param3, "
         "action3_type, action3_param1, action3_param2, action3_param3 "
-        "FROM creature_ai_scripts");
+        "FROM %s", tables[tid]);
     if (result)
     {
         barGoLink bar(result->GetRowCount());
@@ -262,8 +270,11 @@ void CreatureEventAIMgr::LoadCreatureEventAI_Scripts()
             Field *fields = result->Fetch();
 
             CreatureEventAI_Event temp;
-            temp.event_id = EventAI_Type(fields[0].GetUInt32());
+            temp.event_id = EventAI_Type(fields[0].GetUInt32() + maxId); // FG: avoid conflicts with existing scripts (using some value padding)
             uint32 i = temp.event_id;
+
+            // FG: save max id
+            maxId_temp = std::max(maxId, temp.event_id);
 
             temp.creature_id = fields[1].GetUInt32();
             uint32 creature_id = temp.creature_id;
@@ -777,8 +788,9 @@ void CreatureEventAIMgr::LoadCreatureEventAI_Scripts()
 
         delete result;
 
-        CheckUnusedAITexts();
-        CheckUnusedAISummons();
+        // FG: dont check in the middle of it... there may be data in the other tables
+        //CheckUnusedAITexts();
+        //CheckUnusedAISummons();
 
         sLog.outString();
         sLog.outString(">> Loaded %u CreatureEventAI scripts", Count);
@@ -787,6 +799,12 @@ void CreatureEventAIMgr::LoadCreatureEventAI_Scripts()
         barGoLink bar(1);
         bar.step();
         sLog.outString();
-        sLog.outString(">> Loaded 0 CreatureEventAI scripts. DB table `creature_ai_scripts` is empty.");
+        sLog.outString(">> Loaded 0 CreatureEventAI scripts. DB table `%s` is empty.", tables[tid]);
     }
+
+    } // FG: this ends the for-loop for multi-tables
+
+    // FG: we dont check in between, but after loading everything
+    CheckUnusedAITexts();
+    CheckUnusedAISummons();
 }
