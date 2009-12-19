@@ -1134,7 +1134,8 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         bool isInRoots() const { return HasAuraType(SPELL_AURA_MOD_ROOT); }
         bool IsPolymorphed() const;
 
-        bool isFrozen() const;
+        bool isFrozen(uint64 caster = 0) const;
+        bool isBleeding() const;
 
         void RemoveSpellbyDamageTaken(AuraType auraType, uint32 damage);
 
