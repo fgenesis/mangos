@@ -925,7 +925,7 @@ enum PlayerLoginQueryIndex
     PLAYER_LOGIN_QUERY_LOADMYINFO = 26, // FG: custom queries
     PLAYER_LOGIN_QUERY_LOADEXTENDED = 27,
 
-    MAX_PLAYER_LOGIN_QUERY                      = 27
+    MAX_PLAYER_LOGIN_QUERY                      = 28
 };
 
 enum PlayerDelayedOperations
