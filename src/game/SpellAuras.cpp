@@ -2744,6 +2744,73 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                 ((Player*)m_target)->AddSpellMod(m_spellmod, apply);
                 return;
             }
+
+            // Borrowed Time
+            if( m_spellProto->SpellIconID == 2899 && m_target->GetTypeId()==TYPEID_PLAYER )
+            {
+                if(apply)
+                {
+                    // increase spell power scaling of Power Word: Shield
+                    SpellModifier *mod = new SpellModifier;
+                    mod->op = SPELLMOD_SPELL_BONUS_DAMAGE;
+                    mod->value = m_modifier.m_amount;
+                    mod->type = SPELLMOD_PCT;
+                    mod->spellId = GetId();
+                    mod->mask = 0x1;
+                    mod->mask2= 0x0;
+                    m_spellmod = mod;
+                }
+                ((Player*)m_target)->AddSpellMod(m_spellmod, apply);
+                return;
+            }
+            break;
+        }
+        case SPELLFAMILY_PALADIN:
+        {
+            switch(GetId())
+            {
+                case 20911:                                 // Blessing of Sanctuary
+                case 25899:                                 // Greater Blessing of Sanctuary
+                {
+                    if (apply)
+                        m_target->CastSpell(m_target, 67480, true, NULL, this);
+                    else
+                        m_target->RemoveAurasDueToSpell(67480);
+                    return;
+                }
+                // Beacon of Light
+                case 53563:
+                {
+                    if(apply)
+                        // original caster must be target (beacon)
+                        m_target->CastSpell(m_target,53651,true,NULL,this,m_target->GetGUID());
+                    else
+                        m_target->RemoveAurasByCasterSpell(53651,m_target->GetGUID());
+                    return;
+                }
+                // Glyph of Blessing of Might
+                case 57958:
+                {
+                    if (m_target->GetTypeId() != TYPEID_PLAYER)
+                        return;
+
+                    if (apply)
+                    {
+                        SpellModifier *mod = new SpellModifier;
+                        mod->op = SPELLMOD_DURATION;
+                        mod->value = m_modifier.m_amount * MINUTE * IN_MILISECONDS;
+                        mod->type = SPELLMOD_FLAT;
+                        mod->spellId = GetId();
+                        mod->mask = UI64LIT(0x2);
+                        mod->mask2= UI64LIT(0x0);
+                        m_spellmod = mod;
+                    }
+
+                    ((Player*)m_target)->AddSpellMod(m_spellmod, apply);
+                    return;
+                }
+            }
+
             break;
         }
         case SPELLFAMILY_DRUID:
@@ -2875,20 +2942,6 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
             break;
         }
         case SPELLFAMILY_HUNTER:
-            break;
-        case SPELLFAMILY_PALADIN:
-            switch(GetId())
-            {
-                case 20911:                                 // Blessing of Sanctuary
-                case 25899:                                 // Greater Blessing of Sanctuary
-                {
-                    if (apply)
-                        m_target->CastSpell(m_target, 67480, true, NULL, this);
-                    else
-                        m_target->RemoveAurasDueToSpell(67480);
-                    return;
-                }
-            }
             break;
         case SPELLFAMILY_SHAMAN:
         {
