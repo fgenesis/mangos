@@ -5945,6 +5945,25 @@ void Aura::HandleModDamagePercentDone(bool apply, bool Real)
         return;
     }
 
+    // Elemental Oath - Damage increase on Clearcasting
+    if ( GetId() == 16246 )
+    {
+        Unit::AuraList const& auras = m_target->GetAurasByType(SPELL_AURA_PROC_TRIGGER_SPELL);
+        for ( Unit::AuraList::const_iterator i = auras.begin(); i != auras.end(); i++ )
+        {
+            switch((*i)->GetId())
+            {
+            case 51466:
+            case 51470:
+                m_modifier.m_amount += (*i)->GetSpellProto()->CalculateSimpleValue(m_effIndex);
+                break;
+            default:
+                continue;
+            }
+            break;
+        }
+    }
+
     // Magic damage percent modifiers implemented in Unit::SpellDamageBonus
     // Send info to client
     if(m_target->GetTypeId() == TYPEID_PLAYER)
