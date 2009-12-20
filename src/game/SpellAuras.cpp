@@ -5955,7 +5955,7 @@ void Aura::HandleModDamagePercentDone(bool apply, bool Real)
             {
             case 51466:
             case 51470:
-                m_modifier.m_amount += (*i)->GetSpellProto()->CalculateSimpleValue(m_effIndex);
+                m_modifier.m_amount += (*i)->GetSpellProto()->CalculateSimpleValue(1);
                 break;
             default:
                 continue;
