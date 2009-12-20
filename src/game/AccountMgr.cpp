@@ -19,6 +19,7 @@
 #include "AccountMgr.h"
 #include "Database/DatabaseEnv.h"
 #include "ObjectAccessor.h"
+#include "ObjectDefines.h"
 #include "Player.h"
 #include "Policies/SingletonImp.h"
 #include "Util.h"
@@ -75,13 +76,7 @@ AccountOpResult AccountMgr::DeleteAccount(uint32 accid)
             uint64 guid = MAKE_NEW_GUID(guidlo, 0, HIGHGUID_PLAYER);
 
             // kick if player currently
-            if(Player* p = ObjectAccessor::GetObjectInWorld(guid, (Player*)NULL))
-            {
-                WorldSession* s = p->GetSession();
-                s->KickPlayer();                            // mark session to remove at next session list update
-                s->LogoutPlayer(false);                     // logout player without waiting next session list update
-            }
-
+            ObjectAccessor::KickPlayer(guid);
             Player::DeleteFromDB(guid, accid, false);       // no need to update realm characters
         } while (result->NextRow());
 

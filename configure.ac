@@ -14,10 +14,10 @@
 
 ## Prelude, basic settings for Autoconf
 #  PACKAGE:            mangos
-#  VERSION:            0.14.0 (trunk)
+#  VERSION:            0.15.0 (trunk)
 #  BUG-REPORT-ADDRESS: mangos-devs@lists.sourceforge.net
-AC_INIT( [mangos], [0.14.0], [mangos-devs@lists.sourceforge.net])
-AC_CONFIG_SRCDIR([src/shared/Base.cpp])
+AC_INIT( [mangos], [0.15.0], [mangos-devs@lists.sourceforge.net])
+AC_CONFIG_SRCDIR([src/shared/Common.h])
 
 ## Prelude, basic settings for Automake
 #  Turn on all warnings and error messages, and enforce GNU
@@ -151,6 +151,26 @@ else
 AC_MSG_RESULT($DO_MYSQL)
 fi
 
+## Check for memory allocator
+#  Use libc-malloc or libtbb-malloc?
+AC_MSG_CHECKING(whether to use libc malloc)
+MANGOSD_STD_MALLOC=no
+AC_ARG_WITH(std-malloc,
+[
+Memory allocation options:
+
+  --with-std-malloc       Use standard malloc],
+[
+    if test "$withval" = "yes" ; then
+        CFLAGS="-DUSE_STANDARD_MALLOC $CFLAGS"
+        CXXFLAGS="-DUSE_STANDARD_MALLOC $CXXFLAGS"
+        MANGOSD_STD_MALLOC=yes
+    elif test "$withval" != "no" ; then
+        AC_MSG_ERROR(Please choose yes or no)
+    fi
+])
+AC_MSG_RESULT($MANGOSD_STD_MALLOC)
+
 ## Check for options
 #  Include debug info in library?
 AC_MSG_CHECKING(whether to include debug info in library)
@@ -253,6 +273,7 @@ AC_CONFIG_FILES([
    dep/src/sockets/Makefile
    dep/src/zlib/Makefile
    dep/Makefile
+   dep/tbb/Makefile
    doc/Doxyfile
    doc/Makefile
    Makefile

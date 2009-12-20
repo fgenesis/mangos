@@ -198,7 +198,6 @@ enum WorldConfigs
     CONFIG_DEATH_BONES_BG_OR_ARENA,
     CONFIG_THREAT_RADIUS,
     CONFIG_INSTANT_LOGOUT,
-    CONFIG_DISABLE_BREATHING,
     CONFIG_ALL_TAXI_PATHS,
     CONFIG_DECLINED_NAMES_USED,
     CONFIG_LISTEN_RANGE_SAY,
@@ -222,6 +221,12 @@ enum WorldConfigs
     CONFIG_CLIENTCACHE_VERSION,
     CONFIG_GUILD_EVENT_LOG_COUNT,
     CONFIG_GUILD_BANK_EVENT_LOG_COUNT,
+    CONFIG_TIMERBAR_FATIGUE_GMLEVEL,
+    CONFIG_TIMERBAR_FATIGUE_MAX,
+    CONFIG_TIMERBAR_BREATH_GMLEVEL,
+    CONFIG_TIMERBAR_BREATH_MAX,
+    CONFIG_TIMERBAR_FIRE_GMLEVEL,
+    CONFIG_TIMERBAR_FIRE_MAX,
 
     CONFIG_AUTOBROADCAST_INTERVAL,
     CONFIG_ALLOW_CITY_DUELING,
@@ -372,6 +377,7 @@ enum RealmZone
 #define SCRIPT_COMMAND_FLAG_REMOVE           5              // source = any, datalong = field_id, datalog2 = bitmask
 #define SCRIPT_COMMAND_TELEPORT_TO           6              // source or target with Player, datalong = map_id, x/y/z
 #define SCRIPT_COMMAND_QUEST_EXPLORED        7              // one from source or target must be Player, another GO/Creature, datalong=quest_id, datalong2=distance or 0
+#define SCRIPT_COMMAND_KILL_CREDIT           8              // source or target with Player, datalong = creature entry, datalong2 = bool (0=personal credit, 1=group credit)
 #define SCRIPT_COMMAND_RESPAWN_GAMEOBJECT    9              // source = any (summoner), datalong=db_guid, datalong2=despawn_delay
 #define SCRIPT_COMMAND_TEMP_SUMMON_CREATURE 10              // source = any (summoner), datalong=creature entry, datalong2=despawn_delay
 #define SCRIPT_COMMAND_OPEN_DOOR            11              // source = unit, datalong=db_guid, datalong2=reset_delay

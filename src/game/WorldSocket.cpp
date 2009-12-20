@@ -42,7 +42,6 @@
 #include "WorldSession.h"
 #include "WorldSocketMgr.h"
 #include "Log.h"
-#include "WorldLog.h"
 
 // FG
 #include "ObjectMgr.h"
@@ -169,25 +168,7 @@ int WorldSocket::SendPacket (const WorldPacket& pct)
         return -1;
 
     // Dump outgoing packet.
-    if (sWorldLog.LogWorld ())
-    {
-        sWorldLog.Log ("SERVER:\nSOCKET: %u\nLENGTH: %u\nOPCODE: %s (0x%.4X)\nDATA:\n",
-                     (uint32) get_handle (),
-                     pct.size (),
-                     LookupOpcodeName (pct.GetOpcode ()),
-                     pct.GetOpcode ());
-
-        uint32 p = 0;
-        while (p < pct.size ())
-        {
-            for (uint32 j = 0; j < 16 && p < pct.size (); j++)
-                sWorldLog.Log ("%.2X ", const_cast<WorldPacket&>(pct)[p++]);
-
-            sWorldLog.Log ("\n");
-        }
-
-        sWorldLog.Log ("\n\n");
-    }
+    sLog.outWorldPacketDump(uint32(get_handle()), pct.GetOpcode(), LookupOpcodeName(pct.GetOpcode()), &pct, false);
 
     ServerPktHeader header(pct.size()+2, pct.GetOpcode());
     m_Crypt.EncryptSend ((uint8*)header.header, header.getHeaderLength());
@@ -266,8 +247,13 @@ int WorldSocket::open (void *a)
     m_Address = remote_addr.get_host_addr ();
 
     // Send startup packet.
-    WorldPacket packet (SMSG_AUTH_CHALLENGE, 4);
+    WorldPacket packet (SMSG_AUTH_CHALLENGE, 24);
+    packet << uint32(1);                                    // 1...31
     packet << m_Seed;
+    packet << uint32(0xF3539DA3);                           // random data
+    packet << uint32(0x6E8547B9);                           // random data
+    packet << uint32(0x9A6AA2F8);                           // random data
+    packet << uint32(0xA4F170F4);                           // random data
 
     if (SendPacket (packet) == -1)
         return -1;
@@ -676,29 +662,20 @@ int WorldSocket::ProcessIncoming (WorldPacket* new_pct)
 
     const ACE_UINT16 opcode = new_pct->GetOpcode ();
 
+    if (opcode >= NUM_MSG_TYPES)
+    {
+        sLog.outError( "SESSION: received non-existed opcode 0x%.4X", opcode);
+        return -1;
+    }
+
     if (closing_)
         return -1;
 
     // Dump received packet.
-    if (sWorldLog.LogWorld ())
+    sLog.outWorldPacketDump(uint32(get_handle()), new_pct->GetOpcode(), LookupOpcodeName(new_pct->GetOpcode()), new_pct, true);
+
+    try
     {
-        sWorldLog.Log ("CLIENT:\nSOCKET: %u\nLENGTH: %u\nOPCODE: %s (0x%.4X)\nDATA:\n",
-                     (uint32) get_handle (),
-                     new_pct->size (),
-                     LookupOpcodeName (new_pct->GetOpcode ()),
-                     new_pct->GetOpcode ());
-
-        uint32 p = 0;
-        while (p < new_pct->size ())
-        {
-            for (uint32 j = 0; j < 16 && p < new_pct->size (); j++)
-                sWorldLog.Log ("%.2X ", (*new_pct)[p++]);
-            sWorldLog.Log ("\n");
-        }
-        sWorldLog.Log ("\n\n");
-    }
-
-    try {
         switch(opcode)
         {
             case CMSG_PING:
@@ -736,13 +713,13 @@ int WorldSocket::ProcessIncoming (WorldPacket* new_pct)
             }
         }
     }
-    catch(ByteBufferException &)
+    catch (ByteBufferException &)
     {
         sLog.outError("WorldSocket::ProcessIncoming ByteBufferException occured while parsing an instant handled packet (opcode: %u) from client %s, accountid=%i. Disconnected client.",
                 opcode, GetRemoteAddress().c_str(), m_Session?m_Session->GetAccountId():-1);
         if(sLog.IsOutDebug())
         {
-            sLog.outDebug("Dumping error causing packet:");
+            sLog.outDebug("Dumping error-causing packet:");
             new_pct->hexlike();
         }
 
@@ -758,6 +735,7 @@ int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
     uint8 digest[20];
     uint32 clientSeed;
     uint32 unk2, unk3;
+    uint64 unk4;
     uint32 BuiltNumberClient;
     uint32 id, security;
     uint8 expansion = 0;
@@ -770,11 +748,12 @@ int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
     BigNumber K;
 
     // Read the content of the packet
-    recvPacket >> BuiltNumberClient;                        // for now no use
+    recvPacket >> BuiltNumberClient;
     recvPacket >> unk2;
     recvPacket >> account;
     recvPacket >> unk3;
     recvPacket >> clientSeed;
+    recvPacket >> unk4;
     recvPacket.read (digest, 20);
 
     DEBUG_LOG ("WorldSocket::HandleAuthSession: client %u, unk2 %u, account %s, unk3 %u, clientseed %u",
@@ -783,6 +762,29 @@ int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
                 account.c_str (),
                 unk3,
                 clientSeed);
+
+    // Check the version of client trying to connect
+    bool valid_version = false;
+    int accepted_versions[] = EXPECTED_MANGOSD_CLIENT_BUILD;
+    for(int i = 0; accepted_versions[i]; ++i)
+    {
+        if(BuiltNumberClient == accepted_versions[i])
+        {
+            valid_version = true;
+            break;
+        }
+    }
+
+    if(!valid_version)
+    {
+        packet.Initialize (SMSG_AUTH_RESPONSE, 1);
+        packet << uint8 (AUTH_VERSION_MISMATCH);
+
+        SendPacket (packet);
+
+        sLog.outError ("WorldSocket::HandleAuthSession: Sent Auth Response (version mismatch).");
+        return -1;
+    }
 
     // Get the account information from the realmd database
     std::string safe_account = account; // Duplicate, else will screw the SHA hash verification below
@@ -860,7 +862,7 @@ int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
     // FG: prevent login if GM account isnt allowed in this realm
     if(sWorld.getConfig(CONFIG_LIMIT_GM_ACCOUNTS) && security >= SEC_MODERATOR)
     {
-        if(!objmgr.IsAllowedGMAccount(id))
+        if(!sObjectMgr.IsAllowedGMAccount(id))
         {
             sLog.outError("Not accepting login of account '%s' (%u)", account.c_str(), id);
             packet.Initialize(SMSG_AUTH_RESPONSE, 1);
@@ -884,9 +886,9 @@ int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
 
     // Re-check account ban (same check as in realmd)
     QueryResult *banresult =
-          loginDatabase.PQuery ("SELECT 1 FROM account_banned WHERE id = %u AND active = 1 "
+          loginDatabase.PQuery ("SELECT 1 FROM account_banned WHERE id = %u AND active = 1 AND (unbandate > UNIX_TIMESTAMP() OR unbandate = bandate)"
                                 "UNION "
-                                "SELECT 1 FROM ip_banned WHERE ip = '%s'",
+                                "SELECT 1 FROM ip_banned WHERE (unbandate = bandate OR unbandate > UNIX_TIMESTAMP()) AND ip = '%s'",
                                 id, GetRemoteAddress().c_str());
 
     if (banresult) // if account banned

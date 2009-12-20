@@ -125,6 +125,8 @@ inline float GetSpellMaxRange(SpellRangeEntry const *range, bool friendly = fals
 inline uint32 GetSpellRecoveryTime(SpellEntry const *spellInfo) { return spellInfo->RecoveryTime > spellInfo->CategoryRecoveryTime ? spellInfo->RecoveryTime : spellInfo->CategoryRecoveryTime; }
 int32 GetSpellDuration(SpellEntry const *spellInfo);
 int32 GetSpellMaxDuration(SpellEntry const *spellInfo);
+uint16 GetSpellAuraMaxTicks(SpellEntry const* spellInfo);
+WeaponAttackType GetWeaponAttackType(SpellEntry const *spellInfo);
 
 inline bool IsSpellHaveEffect(SpellEntry const *spellInfo, SpellEffects effect)
 {
@@ -200,9 +202,8 @@ inline bool IsPassiveSpellStackableWithRanks(SpellEntry const* spellProto)
 
 inline bool IsDeathOnlySpell(SpellEntry const *spellInfo)
 {
-    return spellInfo->AttributesEx & SPELL_ATTR_EX3_CAST_ON_DEAD
-        || spellInfo->Id == 2584
-        || spellInfo->Id == 22011;
+    return spellInfo->AttributesEx3 & SPELL_ATTR_EX3_CAST_ON_DEAD
+        || spellInfo->Id == 2584;
 }
 
 inline bool IsDeathPersistentSpell(SpellEntry const *spellInfo)
@@ -218,6 +219,9 @@ inline bool IsNonCombatSpell(SpellEntry const *spellInfo)
 bool IsPositiveSpell(uint32 spellId);
 bool IsPositiveEffect(uint32 spellId, uint32 effIndex);
 bool IsPositiveTarget(uint32 targetA, uint32 targetB);
+
+bool IsExplicitPositiveTarget(uint32 targetA);
+bool IsExplicitNegativeTarget(uint32 targetA);
 
 bool IsSingleTargetSpell(SpellEntry const *spellInfo);
 bool IsSingleTargetSpells(SpellEntry const *spellInfo1, SpellEntry const *spellInfo2);
@@ -245,7 +249,7 @@ inline bool IsCasterSourceTarget(uint32 target)
         case TARGET_SELF2:
         case TARGET_DIRECTLY_FORWARD:
         case TARGET_NONCOMBAT_PET:
-        case TARGET_IN_FRONT_OF_CASTER_30:
+        case TARGET_IN_FRONT_OF_CASTER_2:
             return true;
         default:
             break;
@@ -316,7 +320,7 @@ inline bool IsAreaEffectTarget( Targets target )
         case TARGET_AREAEFFECT_CUSTOM_2:
         case TARGET_ALL_RAID_AROUND_CASTER:
         case TARGET_AREAEFFECT_PARTY_AND_CLASS:
-        case TARGET_IN_FRONT_OF_CASTER_30:
+        case TARGET_IN_FRONT_OF_CASTER_2:
             return true;
         default:
             break;
@@ -386,9 +390,9 @@ inline uint32 GetSpellMechanicMask(SpellEntry const* spellInfo, int32 effect)
 {
     uint32 mask = 0;
     if (spellInfo->Mechanic)
-        mask |= 1<<spellInfo->Mechanic;
+        mask |= 1 << (spellInfo->Mechanic - 1);
     if (spellInfo->EffectMechanic[effect])
-        mask |= 1<<spellInfo->EffectMechanic[effect];
+        mask |= 1 << (spellInfo->EffectMechanic[effect] - 1);
     return mask;
 }
 
@@ -396,10 +400,10 @@ inline uint32 GetAllSpellMechanicMask(SpellEntry const* spellInfo)
 {
     uint32 mask = 0;
     if (spellInfo->Mechanic)
-        mask |= 1<<spellInfo->Mechanic;
+        mask |= 1 << (spellInfo->Mechanic - 1);
     for (int i=0; i< 3; ++i)
         if (spellInfo->EffectMechanic[i])
-            mask |= 1<<spellInfo->EffectMechanic[i];
+            mask |= 1 << (spellInfo->EffectMechanic[i]-1);
     return mask;
 }
 
@@ -466,7 +470,10 @@ enum ProcFlags
    PROC_FLAG_ON_TRAP_ACTIVATION            = 0x00200000,    // 21 On trap activation
 
    PROC_FLAG_TAKEN_OFFHAND_HIT             = 0x00400000,    // 22 Taken off-hand melee attacks(not used)
-   PROC_FLAG_SUCCESSFUL_OFFHAND_HIT        = 0x00800000     // 23 Successful off-hand melee attacks
+   PROC_FLAG_SUCCESSFUL_OFFHAND_HIT        = 0x00800000,    // 23 Successful off-hand melee attacks
+
+   PROC_FLAG_ON_DEATH                      = 0x01000000,    // 24 On caster's death
+   PROC_FLAG_ON_AURA_REMOVE                = 0x02000000     // 25 On Aura remove
 };
 
 #define MELEE_BASED_TRIGGER_MASK (PROC_FLAG_SUCCESSFUL_MELEE_HIT        | \
@@ -494,7 +501,7 @@ enum ProcFlagsEx
    PROC_EX_ABSORB              = 0x0000400,
    PROC_EX_REFLECT             = 0x0000800,
    PROC_EX_INTERRUPT           = 0x0001000,                 // Melee hit result can be Interrupt (not used)
-   PROC_EX_RESERVED1           = 0x0002000,
+   PROC_EX_DISPEL              = 0x0002000,
    PROC_EX_RESERVED2           = 0x0004000,
    PROC_EX_RESERVED3           = 0x0008000,
    PROC_EX_EX_TRIGGER_ALWAYS   = 0x0010000,                 // If set trigger always ( no matter another flags) used for drop charges
@@ -1034,5 +1041,5 @@ class SpellMgr
         SpellAreaForAreaMap  mSpellAreaForAreaMap;
 };
 
-#define spellmgr SpellMgr::Instance()
+#define sSpellMgr SpellMgr::Instance()
 #endif

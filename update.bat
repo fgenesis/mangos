@@ -1,4 +1,0 @@
-
-git pull
-
-pause

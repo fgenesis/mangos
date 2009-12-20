@@ -45,7 +45,7 @@ struct GameObjectInfo
     uint32  faction;
     uint32  flags;
     float   size;
-    uint32  questItems[4];
+    uint32  questItems[6];
     union                                                   // different GO types have different data field
     {
         //0 GAMEOBJECT_TYPE_DOOR
@@ -489,6 +489,16 @@ struct GameObjectInfo
             default: return 0;
         }
     }
+
+    uint32 GetGossipMenuId() const
+    {
+        switch(type)
+        {
+            case GAMEOBJECT_TYPE_QUESTGIVER:    return questgiver.gossipID;
+            case GAMEOBJECT_TYPE_GOOBER:        return goober.gossipID;
+            default: return 0;
+        }
+    }
 };
 
 // GCC have alternative #pragma pack() syntax and old gcc version not support pack(pop), also any gcc version not support it at some platform
@@ -559,7 +569,6 @@ class MANGOS_DLL_SPEC GameObject : public WorldObject
 
         void AddToWorld();
         void RemoveFromWorld();
-        void CleanupsBeforeDelete();
 
         bool Create(uint32 guidlow, uint32 name_id, Map *map, uint32 phaseMask, float x, float y, float z, float ang, float rotation0, float rotation1, float rotation2, float rotation3, uint32 animprogress, GOState go_state);
         void Update(uint32 p_time);
@@ -678,14 +687,12 @@ class MANGOS_DLL_SPEC GameObject : public WorldObject
 
         bool isActiveObject() const { return false; }
         uint64 GetRotation() const { return m_rotation; }
-        void DealSiegeDamage(uint32 damage);
     protected:
         uint32      m_spellId;
         time_t      m_respawnTime;                          // (secs) time of next respawn (or despawn if GO have owner()),
         uint32      m_respawnDelayTime;                     // (secs) if 0 then current GO state no dependent from timer
         LootState   m_lootState;
         bool        m_spawnedByDefault;
-        int32       m_actualHealth;                         // current health state
         time_t      m_cooldownTime;                         // used as internal reaction delay time store (not state change reaction).
                                                             // For traps this: spell casting cooldown, for doors/buttons: reset time.
         std::list<uint32> m_SkillupList;

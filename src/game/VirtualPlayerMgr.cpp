@@ -388,7 +388,7 @@ uint32 VirtualPlayerMgr::_LoadQuests(void)
 {
     _quests.clear();
     uint32 count = 0;
-    ObjectMgr::QuestMap const& qmap = objmgr.GetQuestTemplates();
+    ObjectMgr::QuestMap const& qmap = sObjectMgr.GetQuestTemplates();
     uint32 qlvl;
     for(ObjectMgr::QuestMap::const_iterator qi = qmap.begin(); qi != qmap.end(); qi++)
     {
@@ -445,7 +445,7 @@ std::string VirtualPlayerMgr::_GenerateName(uint32 s) // syllables
             DEBUG_LOG("VPM: NameGen: '%s' cant be normalized!",name.c_str());
             name = "";
         }
-        if(objmgr.GetPlayerGUIDByName(name))
+        if(sObjectMgr.GetPlayerGUIDByName(name))
         {
             DEBUG_LOG("VPM: NameGen: '%s' already exists as real character",name.c_str());
             name = "";
@@ -608,7 +608,7 @@ void VirtualPlayer::_Export(void)
 void VirtualPlayer::Init(void)
 {
     uint32 curtime = time(NULL);
-    lvlup_xp = objmgr.GetXPForLevel(lvl);
+    lvlup_xp = sObjectMgr.GetXPForLevel(lvl);
     next_savetime = urand(0, sWorld.getConfig(CONFIG_INTERVAL_SAVE) / 1000);
     next_questtime = urand(traits.questtime_min, traits.questtime_max);
     if(lvl < 23)
@@ -660,7 +660,7 @@ void VirtualPlayer::HandleKill(uint32 mlvl)
 
 void VirtualPlayer::FinishQuest(uint32 questId)
 {
-    const Quest *q = objmgr.GetQuestTemplate(questId);
+    const Quest *q = sObjectMgr.GetQuestTemplate(questId);
     if(!q)
         return;
 
@@ -724,7 +724,7 @@ void VirtualPlayer::AddXP(uint32 addxp)
         if(lvl > sVPlayerMgr.GetMaxLevel())
             lvl = sVPlayerMgr.GetMaxLevel();
         newxp -= lvlup_xp;
-        lvlup_xp = objmgr.GetXPForLevel(lvl);
+        lvlup_xp = sObjectMgr.GetXPForLevel(lvl);
         DEBUG_LOG("VP: %s: Leveled to %u",name.c_str(),lvl);
     }
     xp = newxp;
@@ -736,7 +736,7 @@ VirtualPlayer *VirtualPlayerMgr::_GenerateNewChar(void)
     VirtualPlayer vp;
     vp.id = _maxCharID;
     vp.name = _GenerateName( urand(2,4) );
-    vp.guid = objmgr.GenerateLowGuid(HIGHGUID_PLAYER);
+    vp.guid = sObjectMgr.GenerateLowGuid(HIGHGUID_PLAYER);
     vp.xp = 0;
     vp.zone = 0;
     vp.quests = 0;
@@ -798,7 +798,7 @@ VirtualPlayer *VirtualPlayerMgr::_GenerateNewChar(void)
         {
             vp.class_ = urand(1,11);
         } while(vp.class_ == 6 || vp.class_ == 10); // invalid classes!
-    } while( !objmgr.GetPlayerInfo(vp.race, vp.class_) );
+    } while( !sObjectMgr.GetPlayerInfo(vp.race, vp.class_) );
     vp.Init();
     _chars[vp.id] = vp;
     DEBUG_LOG("VPM: Generated new char %s (%u), level %u, traits %u, class %u, race %u", vp.name.c_str(), vp.id, vp.lvl, vp.traits_id, vp.class_, vp.race);

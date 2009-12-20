@@ -23,6 +23,7 @@
 #include "WorldPacket.h"
 #include "Player.h"
 #include "ObjectMgr.h"
+#include "ObjectDefines.h"
 #include "World.h"
 #include "Util.h"
 
@@ -120,7 +121,7 @@ void PlayerSocial::SetFriendNote(uint32 friend_guid, std::string note)
 
 void PlayerSocial::SendSocialList()
 {
-    Player *plr = objmgr.GetPlayer(GetPlayerGUID());
+    Player *plr = sObjectMgr.GetPlayer(GetPlayerGUID());
     if(!plr)
         return;
 

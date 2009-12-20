@@ -68,7 +68,7 @@ void LoadPlayerDrops(void)
             pd.racemask = -1;
         }
 
-        const ItemPrototype *proto = pd.item ? objmgr.GetItemPrototype(pd.item) : NULL; // fast check
+        const ItemPrototype *proto = pd.item ? sObjectMgr.GetItemPrototype(pd.item) : NULL; // fast check
 
         if(proto && pd.chance > 0 && pd.racemask && pd.classmask && pd.kminlvl <= 255 && pd.vminlvl <= 255 && pd.lvldiff < 255)
         {

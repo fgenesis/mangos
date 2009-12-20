@@ -49,7 +49,7 @@ void WorldSession::SendTaxiStatus( uint64 guid )
         return;
     }
 
-    uint32 curloc = objmgr.GetNearestTaxiNode(unit->GetPositionX(),unit->GetPositionY(),unit->GetPositionZ(),unit->GetMapId(),GetPlayer( )->GetTeam());
+    uint32 curloc = sObjectMgr.GetNearestTaxiNode(unit->GetPositionX(),unit->GetPositionY(),unit->GetPositionZ(),unit->GetMapId(),GetPlayer( )->GetTeam());
 
     // not found nearest
     if(curloc == 0)
@@ -94,7 +94,7 @@ void WorldSession::HandleTaxiQueryAvailableNodes( WorldPacket & recv_data )
 void WorldSession::SendTaxiMenu( Creature* unit )
 {
     // find current node
-    uint32 curloc = objmgr.GetNearestTaxiNode(unit->GetPositionX(),unit->GetPositionY(),unit->GetPositionZ(),unit->GetMapId(),GetPlayer( )->GetTeam());
+    uint32 curloc = sObjectMgr.GetNearestTaxiNode(unit->GetPositionX(),unit->GetPositionY(),unit->GetPositionZ(),unit->GetMapId(),GetPlayer( )->GetTeam());
 
     if ( curloc == 0 )
         return;
@@ -129,7 +129,7 @@ void WorldSession::SendDoFlight( uint32 mountDisplayId, uint32 path, uint32 path
 bool WorldSession::SendLearnNewTaxiNode( Creature* unit )
 {
     // find current node
-    uint32 curloc = objmgr.GetNearestTaxiNode(unit->GetPositionX(),unit->GetPositionY(),unit->GetPositionZ(),unit->GetMapId(),GetPlayer( )->GetTeam());
+    uint32 curloc = sObjectMgr.GetNearestTaxiNode(unit->GetPositionX(),unit->GetPositionY(),unit->GetPositionZ(),unit->GetMapId(),GetPlayer( )->GetTeam());
 
     if ( curloc == 0 )
         return true;                                        // `true` send to avoid WorldSession::SendTaxiMenu call with one more curlock seartch with same false result.
@@ -155,9 +155,9 @@ void WorldSession::HandleActivateTaxiExpressOpcode ( WorldPacket & recv_data )
     sLog.outDebug( "WORLD: Received CMSG_ACTIVATETAXIEXPRESS" );
 
     uint64 guid;
-    uint32 node_count, _totalcost;
+    uint32 node_count;
 
-    recv_data >> guid >> _totalcost >> node_count;
+    recv_data >> guid >> node_count;
 
     Creature *npc = GetPlayer()->GetNPCIfCanInteractWith(guid, UNIT_NPC_FLAG_FLIGHTMASTER);
     if (!npc)
@@ -186,6 +186,16 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)
 {
     sLog.outDebug( "WORLD: Received CMSG_MOVE_SPLINE_DONE" );
 
+    uint64 guid;                                            // used only for proper packet read
+    if(!recv_data.readPackGUID(guid))
+        return;
+
+    MovementInfo movementInfo;                              // used only for proper packet read
+    ReadMovementInfo(recv_data, &movementInfo);
+
+    recv_data.read_skip<uint32>();                          // unk
+
+
     // in taxi flight packet received in 2 case:
     // 1) end taxi path in far (multi-node) flight
     // 2) switch from one map to other in case multim-map taxi path
@@ -197,10 +207,10 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)
     Player *plMover = mover->GetTypeId()==TYPEID_PLAYER ? (Player*)mover : NULL;
     if (!plMover)
         return;
-
-    MovementInfo movementInfo;
-    ReadMovementInfo(recv_data, &movementInfo);
     //<< end movement anticheat
+
+    // FG: unk, added in 3.2.x
+    recv_data.read_skip<uint32>();
 
     uint32 curDest = GetPlayer()->m_taxi.GetTaxiDestination();
     if(!curDest)
@@ -243,7 +253,7 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)
     }
 
     //movment anticheat
-    uint32 curloc = objmgr.GetNearestTaxiNode(movementInfo.x,movementInfo.y,movementInfo.z,GetPlayer()->GetMapId(),GetPlayer( )->GetTeam());
+    uint32 curloc = sObjectMgr.GetNearestTaxiNode(movementInfo.x,movementInfo.y,movementInfo.z,GetPlayer()->GetMapId(),GetPlayer( )->GetTeam());
     //end movement anticheat
 
     TaxiNodesEntry const* curDestNode = sTaxiNodesStore.LookupEntry(curDest);
@@ -314,10 +324,10 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)
 
         sLog.outDebug( "WORLD: Taxi has to go from %u to %u", sourcenode, destinationnode );
 
-        uint32 mountDisplayId = objmgr.GetTaxiMountDisplayId(sourcenode, GetPlayer()->GetTeam());
+        uint32 mountDisplayId = sObjectMgr.GetTaxiMountDisplayId(sourcenode, GetPlayer()->GetTeam());
 
         uint32 path, cost;
-        objmgr.GetTaxiPath( sourcenode, destinationnode, path, cost);
+        sObjectMgr.GetTaxiPath( sourcenode, destinationnode, path, cost);
 
         if(path && mountDisplayId)
             SendDoFlight( mountDisplayId, path, 1 );        // skip start fly node

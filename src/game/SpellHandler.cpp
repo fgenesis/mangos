@@ -27,7 +27,6 @@
 #include "Spell.h"
 #include "ScriptCalls.h"
 #include "Totem.h"
-#include "Vehicle.h"
 #include "SpellAuras.h"
 
 void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
@@ -295,11 +294,6 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
         return;
     }
 
-    // vehicle spells are handled by CMSG_PET_CAST_SPELL,
-    // but player is still able to cast own spells
-    if(_player->GetCharmGUID() && _player->GetCharmGUID() == _player->GetVehicleGUID())
-        mover = _player;
-
     sLog.outDebug("WORLD: got cast spell packet, spellId - %u, cast_count: %u, unk_flags %u, data length = %i",
         spellId, cast_count, unk_flags, (uint32)recvPacket.size());
 
@@ -317,6 +311,7 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
         // not have spell in spellbook or spell passive and not casted by client
         if (!((Player*)mover)->HasActiveSpell (spellId) || IsPassiveSpell(spellId) )
         {
+            sLog.outError("World: Player %u casts spell %u which he shouldn't have", mover->GetGUIDLow(), spellId);
             //cheater? kick? ban?
             recvPacket.rpos(recvPacket.wpos());                 // prevent spam at ignore packet
             return;
@@ -346,16 +341,24 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
     {
         recvPacket.read_skip<float>();                      // unk1, coords?
         recvPacket.read_skip<float>();                      // unk1, coords?
-        recvPacket.read_skip<uint8>();                      // >> 1
-        recvPacket.read_skip<uint32>();                     // >> MSG_MOVE_STOP
-        MovementInfo movementInfo;
-        ReadMovementInfo(recvPacket, &movementInfo);
+        uint8 unk1;
+        recvPacket >> unk1;                                 // >> 1 or 0
+        if(unk1)
+        {
+            recvPacket.read_skip<uint32>();                 // >> MSG_MOVE_STOP
+            uint64 guid;                                    // guid - unused
+            if(!recvPacket.readPackGUID(guid))
+                return;
+
+            MovementInfo movementInfo;
+            ReadMovementInfo(recvPacket, &movementInfo);
+        }
     }
 
     // auto-selection buff level base at target level (in spellInfo)
     if(targets.getUnitTarget())
     {
-        SpellEntry const *actualSpellInfo = spellmgr.SelectAuraRankForPlayerLevel(spellInfo,targets.getUnitTarget()->getLevel());
+        SpellEntry const *actualSpellInfo = sSpellMgr.SelectAuraRankForPlayerLevel(spellInfo,targets.getUnitTarget()->getLevel());
 
         // if rank not found then function return NULL but in explicit cast case original spell can be casted and later failed with appropriate error message
         if(actualSpellInfo)
@@ -456,7 +459,7 @@ void WorldSession::HandlePetCancelAuraOpcode( WorldPacket& recvPacket)
         return;
     }
 
-    Creature* pet=ObjectAccessor::GetCreatureOrPetOrVehicle(*_player,guid);
+    Creature* pet = GetPlayer()->GetMap()->GetCreatureOrPetOrVehicle(guid);
 
     if(!pet)
     {
@@ -548,67 +551,20 @@ void WorldSession::HandleSpellClick( WorldPacket & recv_data )
     if (_player->isInCombat())                              // client prevent click and set different icon at combat state
         return;
 
-    Creature *unit = ObjectAccessor::GetCreatureOrPetOrVehicle(*_player, guid);
+    Creature *unit = _player->GetMap()->GetCreatureOrPetOrVehicle(guid);
     if (!unit || unit->isInCombat())                        // client prevent click and set different icon at combat state
         return;
 
-    if(!_player->IsWithinDistInMap(unit, 10))
-        return;
-
-    // cheater?
-    if(!unit->HasFlag(UNIT_NPC_FLAGS,UNIT_NPC_FLAG_SPELLCLICK))
-        return;
-
-    uint32 vehicleId = 0;
-    CreatureDataAddon const *cainfo = unit->GetCreatureAddon();
-    if(cainfo)
-        vehicleId = cainfo->vehicle_id;
-
-    // handled other (hacky) way to avoid overwriting auras
-    if(vehicleId || unit->isVehicle())
+    SpellClickInfoMapBounds clickPair = sObjectMgr.GetSpellClickInfoMapBounds(unit->GetEntry());
+    for(SpellClickInfoMap::const_iterator itr = clickPair.first; itr != clickPair.second; ++itr)
     {
-        if(!unit->isAlive())
-            return;
-
-        if(_player->GetVehicleGUID())
-            return;
-
-        // create vehicle if no one present and kill the original creature to avoid double, triple etc spawns
-        if(!unit->isVehicle())
+        if (itr->second.IsFitToRequirements(_player))
         {
-            Vehicle *v = _player->SummonVehicle(unit->GetEntry(), unit->GetPositionX(), unit->GetPositionY(), unit->GetPositionZ(), unit->GetOrientation(), vehicleId);
-            if(!v)
-                return;
+            Unit *caster = (itr->second.castFlags & 0x1) ? (Unit*)_player : (Unit*)unit;
+            Unit *target = (itr->second.castFlags & 0x2) ? (Unit*)_player : (Unit*)unit;
 
-            if(v->GetVehicleFlags() & VF_DESPAWN_NPC)
-            {
-                v->SetSpawnDuration(unit->GetRespawnDelay()*IN_MILISECONDS);
-                unit->setDeathState(JUST_DIED);
-                unit->RemoveCorpse();
-                unit->SetHealth(0);
-            }
-            unit = v;
-        }
-
-        if(((Vehicle*)unit)->GetVehicleData())
-            if(uint32 r_aura = ((Vehicle*)unit)->GetVehicleData()->req_aura)
-                if(!_player->HasAura(r_aura))
-                    return;
-
-        _player->EnterVehicle((Vehicle*)unit, 0);
-    }
-    else
-    {
-        SpellClickInfoMapBounds clickPair = objmgr.GetSpellClickInfoMapBounds(unit->GetEntry());
-        for(SpellClickInfoMap::const_iterator itr = clickPair.first; itr != clickPair.second; ++itr)
-        {
-            if (itr->second.IsFitToRequirements(_player))
-            {
-                Unit *caster = (itr->second.castFlags & 0x1) ? (Unit*)_player : (Unit*)unit;
-                Unit *target = (itr->second.castFlags & 0x2) ? (Unit*)_player : (Unit*)unit;
-     
-                caster->CastSpell(target, itr->second.spellId, true);
-            }
+            caster->CastSpell(target, itr->second.spellId, true);
         }
     }
 }
+
