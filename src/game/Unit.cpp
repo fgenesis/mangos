@@ -5603,6 +5603,21 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                 triggered_spell_id = 26654;
                 break;
             }
+            // Sudden Death
+            if (dummySpell->Id == 52437)
+            {
+                RemoveAurasDueToSpell(52437);
+                return true;
+            }
+            // Glyph of Sunder Armor
+            if (dummySpell->Id == 58387 && procSpell->Id == 7386)
+            {
+                target = SelectNearbyTarget(target);
+                if (!target)
+                    return false;
+                CastSpell(target, 58567, true, NULL, triggeredByAura);
+                return true;
+            }
             break;
         }
         case SPELLFAMILY_WARLOCK:
