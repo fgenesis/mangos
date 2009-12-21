@@ -4968,7 +4968,7 @@ void Aura::HandlePeriodicDamage(bool apply, bool Real)
                 if (m_spellProto->SpellFamilyFlags & UI64LIT(0x000000010000000000))
                 {
                     // $AP*0.05/5 bonus per tick
-                    m_modifier.m_amount += int32(caster->GetTotalAttackPowerValue(BASE_ATTACK) / 100);
+                    m_modifier.m_amount += int32(caster->GetTotalAttackPowerValue(BASE_ATTACK) * 5 / 100);
                     return;
                 }
                 // Rip
