@@ -3162,6 +3162,7 @@ void Spell::EffectEnergize(uint32 i)
             break;
         case 31930:                                         // Judgements of the Wise
         case 63375:                                         // Improved Stormstrike
+        case 67545:                                         // Empowered Fire
             damage = damage * unitTarget->GetCreateMana() / 100;
             break;
         default:
