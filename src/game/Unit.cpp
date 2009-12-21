@@ -5492,6 +5492,7 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                 }
                 // Combustion
                 case 11129:
+                case 28682: // FG: combustion aura also needed?! NOTE: this removes the buff after 1 crit, but thats better then stacking
                 {
                     //last charge and crit
                     if (triggeredByAura->GetAuraCharges() <= 1 && (procEx & PROC_EX_CRITICAL_HIT) )
