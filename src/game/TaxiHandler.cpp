@@ -207,10 +207,7 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)
     Player *plMover = mover->GetTypeId()==TYPEID_PLAYER ? (Player*)mover : NULL;
     if (!plMover)
         return;
-    //<< end movement anticheat
-
-    // FG: unk, added in 3.2.x
-    recv_data.read_skip<uint32>();
+    //<< end movement antiche
 
     uint32 curDest = GetPlayer()->m_taxi.GetTaxiDestination();
     if(!curDest)
