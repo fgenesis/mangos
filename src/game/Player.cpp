@@ -12512,6 +12512,7 @@ void Player::PrepareGossipMenu(WorldObject *pSource, uint32 menuId)
                 case GOSSIP_OPTION_PETITIONER:
                 case GOSSIP_OPTION_TABARDDESIGNER:
                 case GOSSIP_OPTION_AUCTIONEER:
+                case GOSSIP_OPTION_LEARNDUALSPEC:
                     break;                                  // no checks
                 default:
                     sLog.outErrorDb("Creature entry %u have unknown gossip option %u for menu %u", pCreature->GetEntry(), itr->second.option_id, itr->second.menu_id);
@@ -21140,6 +21141,11 @@ void Player::LearnTalent(uint32 talentId, uint32 talentRank)
         sLog.outError("Talent.dbc have for talent: %u Rank: %u spell id = 0", talentId, talentRank);
         return;
     }
+
+    // FG: HACKFIX! dont allow learning bugged improved fire nova totem
+    // TODO: remove in 3.3.x, these spells were changed there!!
+    if(spellid == 16086 || spellid == 16544)
+        return;
 
     // already known
     if(HasSpell(spellid))
