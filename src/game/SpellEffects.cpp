@@ -1936,7 +1936,10 @@ void Spell::EffectDummy(uint32 i)
             if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x0000000000002000))
             {
                 if (unitTarget)
+                {
+                    damage += int32(0.045f*m_caster->SpellBaseDamageBonusForVictim(GetSpellSchoolMask(m_spellInfo), unitTarget));
                     m_caster->CastCustomSpell(unitTarget, 52042, &damage, 0, 0, true, 0, 0, m_originalCasterGUID);
+                }
                 return;
             }
             // Mana Spring Totem
