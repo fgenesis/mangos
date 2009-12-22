@@ -1937,7 +1937,7 @@ void Spell::EffectDummy(uint32 i)
             {
                 if (unitTarget)
                 {
-                    damage += int32(0.045f*m_caster->SpellBaseDamageBonusForVictim(GetSpellSchoolMask(m_spellInfo), unitTarget));
+                    damage += int32(0.045f*m_caster->SpellBaseDamageBonus(GetSpellSchoolMask(m_spellInfo)));
                     m_caster->CastCustomSpell(unitTarget, 52042, &damage, 0, 0, true, 0, 0, m_originalCasterGUID);
                 }
                 return;
