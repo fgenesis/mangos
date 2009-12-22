@@ -12731,6 +12731,31 @@ void Player::OnGossipSelect(WorldObject* pSource, uint32 gossipListId, uint32 me
             GetSession()->SendBattlegGroundList(guid, bgTypeId);
             break;
         }
+        case GOSSIP_OPTION_LEARNDUALSPEC:
+        {
+            if(GetSpecsCount() == 1 && !(getLevel() < sWorld.getConfig(CONFIG_MIN_DUALSPEC_LEVEL)))
+            {
+                if (GetMoney() < 10000000)
+                {
+                    SendBuyError( BUY_ERR_NOT_ENOUGHT_MONEY, 0, 0, 0);
+                    PlayerTalkClass->CloseGossip();
+                    break;
+                }
+                else
+                {
+                    ModifyMoney(-10000000);
+
+                    // Cast spells that teach dual spec
+                    // Both are also ImplicitTarget self and must be cast by player
+                    CastSpell(this,63680,true,NULL,NULL,GetGUID());
+                    CastSpell(this,63624,true,NULL,NULL,GetGUID());
+
+                    // Should show another Gossip text with "Congratulations..."
+                    PlayerTalkClass->CloseGossip();
+                }
+            }
+            break;
+        }
     }
 }
 
