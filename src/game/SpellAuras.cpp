@@ -7207,8 +7207,6 @@ void Aura::PeriodicTick()
                 }
             }
 
-            uint32 procAttacker = PROC_FLAG_ON_DO_PERIODIC;//   | PROC_FLAG_SUCCESSFUL_HEAL;
-            uint32 procVictim   = PROC_FLAG_ON_TAKE_PERIODIC;// | PROC_FLAG_TAKEN_HEAL;
             // ignore item heals
             if (!m_castItemGuid)
                 pCaster->ProcDamageAndSpell(m_target, procAttacker, procVictim, PROC_EX_NORMAL_HIT, gain, BASE_ATTACK, GetSpellProto());
