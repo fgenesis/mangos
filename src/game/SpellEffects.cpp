@@ -2034,75 +2034,34 @@ void Spell::EffectDummy(uint32 i)
                 m_caster->CastCustomSpell(m_caster, 45470, &bp, NULL, NULL, true);
                 return;
             }
-            // Pestilence
-            /*
-            else if(m_spellInfo->SpellFamilyFlags & UI64LIT(0x0001000000000000))
+            switch(m_spellInfo->Id)
             {
-                if (i != 0 || m_caster->GetTypeId() != TYPEID_PLAYER)
-                    return;
-
-                Unit *target = ObjectAccessor::GetUnit(*m_caster, ((Player*)m_caster)->GetSelection());
-
-                if (!target || !target->isAlive())
-                    return;
-
-                Aura *BloodPlague = target->GetAura(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_DEATHKNIGHT, 0x0200080000000000, 2, m_caster->GetGUID());
-                Aura *FrostFever = target->GetAura(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_DEATHKNIGHT, 0x0400080000000000, 2, m_caster->GetGUID());
-
-                if (!BloodPlague && !FrostFever)
-                    return;
-
-                std::list<Unit*> targets;
+                // Death Grip
+                case 49560:
+                case 49576:
                 {
-                    float radius = GetSpellRadius(sSpellRadiusStore.LookupEntry(m_spellInfo->EffectRadiusIndex[2]));
+                    if (!unitTarget || !m_caster)
+                        return;
 
-                    CellPair p(MaNGOS::ComputeCellPair(target->GetPositionX(),target->GetPositionY()));
-                    Cell cell(p);
-                    cell.data.Part.reserved = ALL_DISTRICT;
+                    float x = m_caster->GetPositionX();
+                    float y = m_caster->GetPositionY();
+                    float z = m_caster->GetPositionZ()+1;
+                    float orientation = unitTarget->GetOrientation();
 
-                    MaNGOS::AnyUnfriendlyVisibleUnitInObjectRangeCheck u_check(target, m_caster, radius);
-                    MaNGOS::UnitListSearcher<MaNGOS::AnyUnfriendlyVisibleUnitInObjectRangeCheck> checker(m_caster, targets, u_check);
+                    m_caster->CastSpell(unitTarget,51399,true,NULL);
 
-                    TypeContainerVisitor<MaNGOS::UnitListSearcher<MaNGOS::AnyUnfriendlyVisibleUnitInObjectRangeCheck>, GridTypeMapContainer > grid_object_checker(checker);
-                    TypeContainerVisitor<MaNGOS::UnitListSearcher<MaNGOS::AnyUnfriendlyVisibleUnitInObjectRangeCheck>, WorldTypeMapContainer > world_object_checker(checker);
+                    if(unitTarget->GetTypeId() != TYPEID_PLAYER)
+                    {
+                        unitTarget->GetMap()->CreatureRelocation((Creature*)unitTarget,x,y,z,orientation);
+                        ((Creature*)unitTarget)->SendMonsterMove(x, y, z, orientation, MONSTER_MOVE_UNK12, 1);
+                    }
+                    else
+                        unitTarget->NearTeleportTo(x,y,z,orientation,false);
 
-                    CellLock<GridReadGuard> cell_lock(cell, p);
-
-                    cell_lock->Visit(cell_lock, grid_object_checker,  *target->GetMap(), *target, radius);
-                    cell_lock->Visit(cell_lock, world_object_checker, *target->GetMap(), *target, radius);
-                }
-
-                if (!m_caster->HasAura(63334))
-                    targets.remove(target);
-
-                if (targets.empty())
                     return;
-
-                for(std::list<Unit*>::const_iterator itr = targets.begin(); itr != targets.end(); ++itr)
-                {
-                    if (!(*itr))
-                        continue;
-
-                    if (BloodPlague)
-                        target->CastSpell((*itr), BloodPlague->GetId(), true, NULL, NULL, m_caster->GetGUID());
-                    if (FrostFever)
-                        target->CastSpell((*itr), FrostFever->GetId(), true, NULL, NULL, m_caster->GetGUID());
                 }
-
-                return;
-            }
-            // Death Grip
-            else if(m_spellInfo->Id == 49576)
-            {
-                if (!unitTarget)
-                    return;
-
-                unitTarget->KnockBackFrom(m_caster, -float(unitTarget->GetDistance2d(m_caster)), 10.0f);
-                m_caster->CastSpell(unitTarget, 49560, true);
-                return;
             }
             break;
-            */
     }
 
     // pet auras
