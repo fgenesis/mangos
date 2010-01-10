@@ -459,6 +459,7 @@ void WorldSession::HandleCharCreateOpcode( WorldPacket & recv_data )
     if(!pNewChar->Create( sObjectMgr.GenerateLowGuid(HIGHGUID_PLAYER), name, race_, class_, gender, skin, face, hairStyle, hairColor, facialHair, outfitId ))
     {
         // Player not create (race/class problem?)
+        pNewChar->CleanupsBeforeDelete();
         delete pNewChar;
 
         data << (uint8)CHAR_CREATE_ERROR;
@@ -477,6 +478,7 @@ void WorldSession::HandleCharCreateOpcode( WorldPacket & recv_data )
     loginDatabase.PExecute("DELETE FROM realmcharacters WHERE acctid= '%d' AND realmid = '%d'", GetAccountId(), realmID);
     loginDatabase.PExecute("INSERT INTO realmcharacters (numchars, acctid, realmid) VALUES (%u, %u, %u)",  charcount, GetAccountId(), realmID);
 
+    pNewChar->CleanupsBeforeDelete();
     delete pNewChar;                                        // created only to call SaveToDB()
 
     data << (uint8)CHAR_CREATE_SUCCESS;
