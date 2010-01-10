@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -64,7 +64,7 @@ pEffect SpellEffects[TOTAL_SPELL_EFFECTS]=
     &Spell::EffectUnused,                                   //  4 SPELL_EFFECT_PORTAL_TELEPORT          unused
     &Spell::EffectTeleportUnits,                            //  5 SPELL_EFFECT_TELEPORT_UNITS
     &Spell::EffectApplyAura,                                //  6 SPELL_EFFECT_APPLY_AURA
-    &Spell::EffectEnvirinmentalDMG,                         //  7 SPELL_EFFECT_ENVIRONMENTAL_DAMAGE
+    &Spell::EffectEnvironmentalDMG,                         //  7 SPELL_EFFECT_ENVIRONMENTAL_DAMAGE
     &Spell::EffectPowerDrain,                               //  8 SPELL_EFFECT_POWER_DRAIN
     &Spell::EffectHealthLeech,                              //  9 SPELL_EFFECT_HEALTH_LEECH
     &Spell::EffectHeal,                                     // 10 SPELL_EFFECT_HEAL
@@ -285,7 +285,7 @@ void Spell::EffectInstaKill(uint32 /*i*/)
     m_caster->DealDamage(unitTarget, unitTarget->GetHealth(), NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);
 }
 
-void Spell::EffectEnvirinmentalDMG(uint32 i)
+void Spell::EffectEnvironmentalDMG(uint32 i)
 {
     uint32 absorb = 0;
     uint32 resist = 0;
@@ -786,44 +786,6 @@ void Spell::EffectDummy(uint32 i)
                     ((Creature*)unitTarget)->setDeathState(JUST_ALIVED);
                     return;
                 }
-                case 12162:                                 // Deep wounds
-                case 12850:                                 // (now good common check for this spells)
-                case 12868:
-                {
-                    if (!unitTarget)
-                        return;
-
-                    float damage;
-                    // DW should benefit of attack power, damage percent mods etc.
-                    // TODO: check if using offhand damage is correct and if it should be divided by 2
-                    if (m_caster->haveOffhandWeapon() && m_caster->getAttackTimer(BASE_ATTACK) > m_caster->getAttackTimer(OFF_ATTACK))
-                        damage = (m_caster->GetFloatValue(UNIT_FIELD_MINOFFHANDDAMAGE) + m_caster->GetFloatValue(UNIT_FIELD_MAXOFFHANDDAMAGE))/2;
-                    else
-                        damage = (m_caster->GetFloatValue(UNIT_FIELD_MINDAMAGE) + m_caster->GetFloatValue(UNIT_FIELD_MAXDAMAGE))/2;
-
-                    switch (m_spellInfo->Id)
-                    {
-                        case 12162: damage *= 0.16f; break; // Rank 1
-                        case 12850: damage *= 0.32f; break; // Rank 2
-                        case 12868: damage *= 0.48f; break; // Rank 3
-                        default:
-                            sLog.outError("Spell::EffectDummy: Spell %u not handled in DW",m_spellInfo->Id);
-                            return;
-                    };
-
-                    // get remaining damage of old Deep Wound aura
-                    Aura* deepWound = unitTarget->GetAura(12721, 0);
-                    if (deepWound)
-                    {
-                        int32 remainingTicks = deepWound->GetAuraDuration() / deepWound->GetModifier()->periodictime;
-                        damage += remainingTicks * deepWound->GetModifier()->m_amount;
-                    }
-
-                    // 1 tick/sec * 6 sec = 6 ticks
-                    int32 deepWoundsDotBasePoints0 = int32(damage / 6);
-                    m_caster->CastCustomSpell(unitTarget, 12721, &deepWoundsDotBasePoints0, NULL, NULL, true, NULL);
-                    return;
-                }
                 case 13120:                                 // net-o-matic
                 {
                     if (!unitTarget)
@@ -1250,6 +1212,37 @@ void Spell::EffectDummy(uint32 i)
 
                     return;
                 }
+                case 46167:                                 // Planning for the Future: Create Snowfall Glade Pup Cover
+                case 50926:                                 // Gluttonous Lurkers: Create Zul'Drak Rat Cover
+                case 51026:                                 // Create Drakkari Medallion Cover
+                case 51592:                                 // Pickup Primordial Hatchling
+                case 51961:                                 // Captured Chicken Cover
+                {
+                    if (!unitTarget || unitTarget->GetTypeId() != TYPEID_UNIT || m_caster->GetTypeId() != TYPEID_PLAYER)
+                        return;
+
+                    uint32 spellId = 0;
+
+                    switch(m_spellInfo->Id)
+                    {
+                        case 46167: spellId = 46773; break;
+                        case 50926: spellId = 50927; break;
+                        case 51026: spellId = 50737; break;
+                        case 51592: spellId = 51593; break;
+                        case 51961: spellId = 51037; break;
+                    }
+
+                    if (const SpellEntry *pSpell = sSpellStore.LookupEntry(spellId))
+                    {
+                        unitTarget->CastSpell(m_caster, spellId, true);
+
+                        Creature* creatureTarget = (Creature*)unitTarget;
+
+                        if (const SpellCastTimesEntry *pCastTime = sSpellCastTimesStore.LookupEntry(pSpell->CastingTimeIndex))
+                            creatureTarget->ForcedDespawn(pCastTime->CastTime + 1);
+                    }
+                    return;
+                }
                 case 51582:                                 //Rocket Boots Engaged (Rocket Boots Xtreme and Rocket Boots Xtreme Lite)
                 {
                     if (m_caster->GetTypeId() != TYPEID_PLAYER)
@@ -1260,17 +1253,6 @@ void Spell::EffectDummy(uint32 i)
 
                     m_caster->CastSpell(m_caster, 30452, true, NULL);
                     return;
-                }
-                case 51592:                                 // Pickup Primordial Hatchling
-                {
-                    if (!unitTarget || unitTarget->GetTypeId() != TYPEID_UNIT)
-                        return;
-
-                    Creature* creatureTarget = (Creature*)unitTarget;
-
-                    creatureTarget->ForcedDespawn();
-                    return;
-
                 }
                 case 52308:                                 // Take Sputum Sample
                 {
@@ -1621,7 +1603,7 @@ void Spell::EffectDummy(uint32 i)
             break;
         case SPELLFAMILY_DRUID:
             // Starfall
-            if (m_spellInfo->SpellFamilyFlags2 & UI64LIT(0x00000100))
+            if (m_spellInfo->SpellFamilyFlags2 & 0x00000100)
             {
                 //Shapeshifting into an animal form or mounting cancels the effect.
                 if(m_caster->GetCreatureType() == CREATURE_TYPE_BEAST || m_caster->IsMounted())
@@ -5167,23 +5149,6 @@ void Spell::EffectScriptEffect(uint32 effIndex)
                     }
                     return;
                 }
-                // PX-238 Winter Wondervolt TRAP
-                case 26275:
-                {
-                    uint32 spells[4] = { 26272, 26157, 26273, 26274 };
-
-                    // check presence
-                    for(int j = 0; j < 4; ++j)
-                        if(unitTarget->HasAura(spells[j],0))
-                            return;
-
-                    // select spell
-                    uint32 iTmpSpellId = spells[urand(0,3)];
-
-                    // cast
-                    unitTarget->CastSpell(unitTarget, iTmpSpellId, true);
-                    return;
-                }
                 // Bending Shinbone
                 case 8856:
                 {
@@ -5200,10 +5165,45 @@ void Spell::EffectScriptEffect(uint32 effIndex)
                     m_caster->CastSpell(m_caster,spell_id,true,NULL);
                     return;
                 }
+                // Piccolo of the Flaming Fire
+                case 17512:
+                {
+                    if(!unitTarget || unitTarget->GetTypeId() != TYPEID_PLAYER)
+                        return;
+                    unitTarget->HandleEmoteCommand(EMOTE_STATE_DANCE);
+                    return;
+                }
+                // Escape artist
+                case 20589:
+                {
+                    if(!unitTarget)
+                        return;
+
+                    unitTarget->RemoveSpellsCausingAura(SPELL_AURA_MOD_ROOT);
+                    unitTarget->RemoveSpellsCausingAura(SPELL_AURA_MOD_DECREASE_SPEED);
+                    return;
+                }
                 // Brittle Armor - need remove one 24575 Brittle Armor aura
                 case 24590:
                     unitTarget->RemoveSingleSpellAurasFromStack(24575);
                     return;
+                    // PX-238 Winter Wondervolt TRAP
+                case 26275:
+                {
+                    uint32 spells[4] = { 26272, 26157, 26273, 26274 };
+
+                    // check presence
+                    for(int j = 0; j < 4; ++j)
+                        if(unitTarget->HasAura(spells[j],0))
+                            return;
+
+                    // select spell
+                    uint32 iTmpSpellId = spells[urand(0,3)];
+
+                    // cast
+                    unitTarget->CastSpell(unitTarget, iTmpSpellId, true);
+                    return;
+                }
                 // Mercurial Shield - need remove one 26464 Mercurial Shield aura
                 case 26465:
                     unitTarget->RemoveSingleSpellAurasFromStack(26464);
@@ -5295,36 +5295,6 @@ void Spell::EffectScriptEffect(uint32 effIndex)
                         unitTarget->CastSpell(unitTarget, 26655, false);
                     return;
                 }
-                // Piccolo of the Flaming Fire
-                case 17512:
-                {
-                    if(!unitTarget || unitTarget->GetTypeId() != TYPEID_PLAYER)
-                        return;
-                    unitTarget->HandleEmoteCommand(EMOTE_STATE_DANCE);
-                    return;
-                }
-                // Demonic Empowerment (succubus Vanish effect)
-                case 54436:
-                {
-                    if(!unitTarget)
-                        return;
-
-                    unitTarget->RemoveSpellsCausingAura(SPELL_AURA_MOD_ROOT);
-                    unitTarget->RemoveSpellsCausingAura(SPELL_AURA_MOD_DECREASE_SPEED);
-                    unitTarget->RemoveSpellsCausingAura(SPELL_AURA_MOD_STALKED);
-                    unitTarget->RemoveSpellsCausingAura(SPELL_AURA_MOD_STUN);
-                    return;
-                }
-                // Escape artist
-                case 20589:
-                {
-                    if(!unitTarget)
-                        return;
-
-                    unitTarget->RemoveSpellsCausingAura(SPELL_AURA_MOD_ROOT);
-                    unitTarget->RemoveSpellsCausingAura(SPELL_AURA_MOD_DECREASE_SPEED);
-                    return;
-                }
                 // Mirren's Drinking Hat
                 case 29830:
                 {
@@ -5399,6 +5369,24 @@ void Spell::EffectScriptEffect(uint32 effIndex)
 
                     break;
                 }
+                // Surge Needle Teleporter
+                case 47097:
+                {
+                    if (!unitTarget || unitTarget->GetTypeId() != TYPEID_PLAYER)
+                        return;
+
+                    if (unitTarget->GetAreaId() == 4156)
+                        unitTarget->CastSpell(unitTarget, 47324, true);
+                    else if (unitTarget->GetAreaId() == 4157)
+                        unitTarget->CastSpell(unitTarget, 47325, true);
+
+                    break;
+                }
+                // High Executor's Branding Iron
+                case 48603:
+                    // Torture the Torturer: High Executor's Branding Iron Impact
+                    unitTarget->CastSpell(unitTarget, 48614, true);
+                    return;
                 // Emblazon Runeblade
                 case 51770:
                 {
@@ -5471,6 +5459,18 @@ void Spell::EffectScriptEffect(uint32 effIndex)
                         else
                             unitTarget->CastSpell(unitTarget, 54726, true);
                     }
+                    return;
+                }
+                // Demonic Empowerment (succubus Vanish effect)
+                case 54436:
+                {
+                    if(!unitTarget)
+                        return;
+
+                    unitTarget->RemoveSpellsCausingAura(SPELL_AURA_MOD_ROOT);
+                    unitTarget->RemoveSpellsCausingAura(SPELL_AURA_MOD_DECREASE_SPEED);
+                    unitTarget->RemoveSpellsCausingAura(SPELL_AURA_MOD_STALKED);
+                    unitTarget->RemoveSpellsCausingAura(SPELL_AURA_MOD_STUN);
                     return;
                 }
                 case 55693:                                 // Remove Collapsing Cave Aura
@@ -6775,7 +6775,11 @@ void Spell::EffectPlayerPull(uint32 i)
     if(!unitTarget)
         return;
 
-    unitTarget->KnockBackFrom(m_caster,float(damage ? damage : unitTarget->GetDistance2d(m_caster)),float(m_spellInfo->EffectMiscValue[i])/10);
+    float dist = unitTarget->GetDistance2d(m_caster);
+    if (damage && dist > damage)
+        dist = damage;
+
+    unitTarget->KnockBackFrom(m_caster,-dist,float(m_spellInfo->EffectMiscValue[i])/10);
 }
 
 void Spell::EffectDispelMechanic(uint32 i)

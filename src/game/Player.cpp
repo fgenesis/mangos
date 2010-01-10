@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -11423,12 +11423,12 @@ void Player::SwapItem( uint16 src, uint16 dst )
     Item *pSrcItem = GetItemByPos( srcbag, srcslot );
     Item *pDstItem = GetItemByPos( dstbag, dstslot );
 
-    if( !pSrcItem )
+    if (!pSrcItem)
         return;
 
     sLog.outDebug( "STORAGE: SwapItem bag = %u, slot = %u, item = %u", dstbag, dstslot, pSrcItem->GetEntry());
 
-    if(!isAlive() )
+    if (!isAlive())
     {
         SendEquipError( EQUIP_ERR_YOU_ARE_DEAD, pSrcItem, pDstItem );
         return;
@@ -11436,7 +11436,7 @@ void Player::SwapItem( uint16 src, uint16 dst )
 
     // SRC checks
 
-    if(pSrcItem->m_lootGenerated)                           // prevent swap looting item
+    if (pSrcItem->m_lootGenerated)                          // prevent swap looting item
     {
         //best error message found for attempting to swap while looting
         SendEquipError( EQUIP_ERR_CANT_DO_RIGHT_NOW, pSrcItem, NULL );
@@ -11444,11 +11444,11 @@ void Player::SwapItem( uint16 src, uint16 dst )
     }
 
     // check unequip potability for equipped items and bank bags
-    if(IsEquipmentPos ( src ) || IsBagPos ( src ))
+    if (IsEquipmentPos(src) || IsBagPos(src))
     {
         // bags can be swapped with empty bag slots, or with empty bag (items move possibility checked later)
         uint8 msg = CanUnequipItem( src, !IsBagPos ( src ) || IsBagPos ( dst ) || (pDstItem && pDstItem->IsBag() && ((Bag*)pDstItem)->IsEmpty()));
-        if(msg != EQUIP_ERR_OK)
+        if (msg != EQUIP_ERR_OK)
         {
             SendEquipError( msg, pSrcItem, pDstItem );
             return;
@@ -11456,9 +11456,16 @@ void Player::SwapItem( uint16 src, uint16 dst )
     }
 
     // prevent put equipped/bank bag in self
-    if( IsBagPos ( src ) && srcslot == dstbag)
+    if (IsBagPos(src) && srcslot == dstbag)
     {
         SendEquipError( EQUIP_ERR_NONEMPTY_BAG_OVER_OTHER_BAG, pSrcItem, pDstItem );
+        return;
+    }
+
+    // prevent put equipped/bank bag in self
+    if (IsBagPos(dst) && dstslot == srcbag)
+    {
+        SendEquipError( EQUIP_ERR_NONEMPTY_BAG_OVER_OTHER_BAG, pDstItem, pSrcItem );
         return;
     }
 
@@ -16916,7 +16923,7 @@ void Player::SavePositionInDB(uint32 mapid, float x,float y,float z,float o,uint
         << "',position_z='"<<z<<"',orientation='"<<o<<"',map='"<<mapid
         << "',zone='"<<zone<<"',trans_x='0',trans_y='0',trans_z='0',"
         << "transguid='0',taxi_path='' WHERE guid='"<< GUID_LOPART(guid) <<"'";
-    sLog.outDebug(ss.str().c_str());
+    sLog.outDebug("%s", ss.str().c_str());
     CharacterDatabase.Execute(ss.str().c_str());
 }
 
@@ -17182,7 +17189,14 @@ void Player::RemovePet(Pet* pet, PetSaveMode mode, bool returnreagent)
     if(!pet)
         pet = GetPet();
 
-    if(returnreagent && (pet || m_temporaryUnsummonedPetNumber) && (!IsWithinDistInMap(pet, 100.0f) || !InBattleGround()))
+    if(!pet || pet->GetOwnerGUID()!=GetGUID())
+        return;
+
+    // not save secondary permanent pet as current
+    if (pet && m_temporaryUnsummonedPetNumber != pet->GetCharmInfo()->GetPetNumber() && mode == PET_SAVE_AS_CURRENT)
+        mode = PET_SAVE_NOT_IN_SLOT;
+
+    if(returnreagent && pet && mode != PET_SAVE_AS_CURRENT)
     {
         //returning of reagents only for players, so best done here
         uint32 spellId = pet ? pet->GetUInt32Value(UNIT_CREATED_BY_SPELL) : m_oldpetspell;
@@ -17205,7 +17219,6 @@ void Player::RemovePet(Pet* pet, PetSaveMode mode, bool returnreagent)
                 }
             }
         }
-        m_temporaryUnsummonedPetNumber = 0;
     }
 
     if(pet == GetCharm())
@@ -17230,20 +17243,6 @@ void Player::RemovePet(Pet* pet, PetSaveMode mode, bool returnreagent)
     }
 
     pet->CombatStop();
-
-    if(returnreagent)
-    {
-        switch(pet->GetEntry())
-        {
-            //warlock pets except imp are removed(?) when logging out
-            case 1860:
-            case 1863:
-            case 417:
-            case 17252:
-                mode = PET_SAVE_NOT_IN_SLOT;
-                break;
-        }
-    }
 
     pet->SavePetToDB(mode);
 
@@ -17417,6 +17416,18 @@ void Player::PetSpellInitialize()
         data << uint32(cooldown);                           // category cooldown
     }
 
+    GetSession()->SendPacket(&data);
+}
+
+void Player::SendPetGUIDs()
+{
+    if(!GetPetGUID())
+        return;
+
+    // Later this function might get modified for multiple guids
+    WorldPacket data(SMSG_PET_GUIDS, 12);
+    data << uint32(1);                      // count
+    data << uint64(GetPetGUID());
     GetSession()->SendPacket(&data);
 }
 
@@ -19520,16 +19531,16 @@ bool Player::GetBGAccessByLevel(BattleGroundTypeId bgTypeId) const
     return true;
 }
 
-BGQueueIdBasedOnLevel Player::GetBattleGroundQueueIdFromLevel() const
+BattleGroundBracketId Player::GetBattleGroundBracketIdFromLevel() const
 {
     // for ranges 0 - 19, 20 - 29, 30 - 39, 40 - 49, 50 - 59, 60 - 69, 70 - 79, 80
-    uint32 queue_id = ( getLevel() / 10) - 1;
-    if( queue_id >= MAX_BATTLEGROUND_QUEUES )
+    uint32 bracket_id = ( getLevel() / 10) - 1;
+    if( bracket_id >= MAX_BATTLEGROUND_BRACKETS )
     {
-        sLog.outError("BattleGround: too high queue_id %u for player %u (acc: %u) with level %u", queue_id, GetGUIDLow(), GetSession()->GetAccountId(), getLevel());
-        return QUEUE_ID_MAX_LEVEL_80;
+        sLog.outError("BattleGround: too high bracket_id %u for player %u (acc: %u) with level %u", bracket_id, GetGUIDLow(), GetSession()->GetAccountId(), getLevel());
+        return BG_BRACKET_ID_LAST;
     }
-    return BGQueueIdBasedOnLevel(queue_id);
+    return BattleGroundBracketId(bracket_id);
 }
 
 float Player::GetReputationPriceDiscount( Creature const* pCreature ) const

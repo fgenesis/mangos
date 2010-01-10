@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -205,7 +205,7 @@ enum AuraType
     SPELL_AURA_MOD_AOE_AVOIDANCE = 160,
     SPELL_AURA_MOD_HEALTH_REGEN_IN_COMBAT = 161,
     SPELL_AURA_POWER_BURN_MANA = 162,
-    SPELL_AURA_MOD_CRIT_DAMAGE_BONUS_MELEE = 163,
+    SPELL_AURA_MOD_CRIT_DAMAGE_BONUS = 163,
     SPELL_AURA_164 = 164,
     SPELL_AURA_MELEE_ATTACK_POWER_ATTACKER_BONUS = 165,
     SPELL_AURA_MOD_ATTACK_POWER_PCT = 166,

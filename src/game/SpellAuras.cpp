@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -213,7 +213,7 @@ pAuraHandler AuraHandler[TOTAL_AURAS]=
     &Aura::HandleNoImmediateEffect,                         //160 SPELL_AURA_MOD_AOE_AVOIDANCE          implemented in Unit::MagicSpellHitResult
     &Aura::HandleNoImmediateEffect,                         //161 SPELL_AURA_MOD_HEALTH_REGEN_IN_COMBAT implemented in Player::RegenerateAll and Player::RegenerateHealth
     &Aura::HandleAuraPowerBurn,                             //162 SPELL_AURA_POWER_BURN_MANA
-    &Aura::HandleNoImmediateEffect,                         //163 SPELL_AURA_MOD_CRIT_DAMAGE_BONUS_MELEE implememnted in Unit::CalculateMeleeDamage and Unit::SpellCriticalDamageBonus
+    &Aura::HandleNoImmediateEffect,                         //163 SPELL_AURA_MOD_CRIT_DAMAGE_BONUS      implemented in Unit::CalculateMeleeDamage and Unit::SpellCriticalDamageBonus
     &Aura::HandleUnused,                                    //164 unused (3.0.8a-3.2.2a), only one test spell 10654
     &Aura::HandleNoImmediateEffect,                         //165 SPELL_AURA_MELEE_ATTACK_POWER_ATTACKER_BONUS implemented in Unit::MeleeDamageBonus
     &Aura::HandleAuraModAttackPowerPercent,                 //166 SPELL_AURA_MOD_ATTACK_POWER_PCT
@@ -363,7 +363,7 @@ static AuraType const frozenAuraTypes[] = { SPELL_AURA_MOD_ROOT, SPELL_AURA_MOD_
 
 Aura::Aura(SpellEntry const* spellproto, uint32 eff, int32 *currentBasePoints, Unit *target, Unit *caster, Item* castItem) :
 m_spellmod(NULL), m_caster_guid(0), m_target(target), m_castItemGuid(castItem?castItem->GetGUID():0),
-m_timeCla(1000), m_periodicTimer(0), m_removeMode(AURA_REMOVE_BY_DEFAULT), m_AuraDRGroup(DIMINISHING_NONE),
+m_timeCla(1000), m_periodicTimer(0), m_periodicTick(0), m_removeMode(AURA_REMOVE_BY_DEFAULT), m_AuraDRGroup(DIMINISHING_NONE),
 m_effIndex(eff), m_auraSlot(MAX_AURAS), m_auraFlags(AFLAG_NONE), m_auraLevel(1), m_procCharges(0), m_stackAmount(1),
 m_positive(false), m_permanent(false), m_isPeriodic(false), m_isAreaAura(false), m_isPersistent(false),
 m_isRemovedOnShapeLost(true), m_in_use(0), m_deleted(false)
@@ -652,6 +652,7 @@ void Aura::Update(uint32 diff)
         {
             // update before applying (aura can be removed in TriggerSpell or PeriodicTick calls)
             m_periodicTimer += m_modifier.periodictime;
+            ++m_periodicTick;                               // for some infinity auras in some cases can overflow and reset
             PeriodicTick();
         }
     }
@@ -1437,6 +1438,7 @@ void Aura::HandleAddModifier(bool apply, bool Real)
             case 51124:                                     // Killing Machine
             case 54741:                                     // Firestarter
             case 57761:                                     // Fireball!
+            case 64823:                                     // Elune's Wrath (Balance druid t8 set
                 SetAuraCharges(1);
                 break;
         }
@@ -2276,6 +2278,12 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                             if (Unit* caster = GetCaster())
                                 m_target->AddThreat(caster, 10.0f, false, GetSpellSchoolMask(GetSpellProto()), GetSpellProto());
                         return;
+                    case 7057:                              // Haunting Spirits
+                        // expected to tick with 30 sec period (tick part see in Aura::PeriodicTick)
+                        m_isPeriodic = true;
+                        m_modifier.periodictime = 30*IN_MILISECONDS;
+                        m_periodicTimer = m_modifier.periodictime;
+                        return;
                     case 13139:                             // net-o-matic
                         // root to self part of (root_target->charge->root_self sequence
                         if (Unit* caster = GetCaster())
@@ -2440,6 +2448,21 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
 
         switch(GetId())
         {
+            case 28169:                                     // Mutating Injection
+            {
+                // Mutagen Explosion
+                m_target->CastSpell(m_target, 28206, true, NULL, this);
+                // Poison Cloud
+                m_target->CastSpell(m_target, 28240, true, NULL, this);
+                return;
+            }
+            case 32286:                                     // Focus Target Visual
+            {
+                if (m_removeMode == AURA_REMOVE_BY_DEFAULT)
+                    m_target->CastSpell(m_target, 32301, true, NULL, this);
+
+                return;
+            }
             case 36730:                                     // Flame Strike
             {
                 m_target->CastSpell(m_target, 36731, true, NULL, this);
@@ -2490,6 +2513,16 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                 }
                 return;
             }
+        }
+
+        // Living Bomb
+        if (m_spellProto->SpellFamilyName == SPELLFAMILY_MAGE && (m_spellProto->SpellFamilyFlags & UI64LIT(0x2000000000000)))
+        {
+            // Zero duration is equal to AURA_REMOVE_BY_DEFAULT. We can't use it directly, as it is set even
+            // when removing aura from one target due to casting Living Bomb at other.
+            if (m_duration == 0 || m_removeMode == AURA_REMOVE_BY_DISPEL)
+                m_target->CastSpell(m_target,m_modifier.m_amount,true,NULL,this);
+            return;
         }
 
         if (m_removeMode == AURA_REMOVE_BY_DEATH)
@@ -3028,7 +3061,7 @@ void Aura::HandleAuraMounted(bool apply, bool Real)
         if (minfo)
             display_id = minfo->modelid;
 
-        m_target->Mount(display_id);
+        m_target->Mount(display_id, m_spellProto->Id);
     }
     else
     {
@@ -3256,16 +3289,17 @@ void Aura::HandleAuraModShapeshift(bool apply, bool Real)
                         }
                     }
 
-                    if(!furorChance)
-                        break;
-
                     if (m_modifier.m_miscvalue == FORM_CAT)
                     {
-                        m_target->SetPower(POWER_ENERGY, 0);
-                        // Furor chance is now amount of energy for cat form
-                        m_target->CastCustomSpell(m_target, 17099, &furorChance, NULL, NULL, this);
+                        // Furor chance is now amount allowed to save energy for cat form
+                        // without talent it reset to 0
+                        if (m_target->GetPower(POWER_ENERGY) > furorChance)
+                        {
+                            m_target->SetPower(POWER_ENERGY, 0);
+                            m_target->CastCustomSpell(m_target, 17099, &furorChance, NULL, NULL, this);
+                        }
                     }
-                    else
+                    else if(furorChance)                    // only if talent known
                     {
                         m_target->SetPower(POWER_RAGE, 0);
                         if(urand(1,100) <= furorChance)
@@ -4796,7 +4830,7 @@ void Aura::HandlePeriodicEnergize(bool apply, bool Real)
             case 54833:                                     // Glyph of Innervate (value%/2 of casters base mana)
             {
                 if (Unit* caster = GetCaster())
-                    m_modifier.m_amount = int32(caster->GetCreateMana() * GetBasePoints() / (200 * m_maxduration / m_periodicTimer));
+                    m_modifier.m_amount = int32(caster->GetCreateMana() * GetBasePoints() / (200 * GetAuraMaxTicks()));
                 break;
 
             }
@@ -4808,7 +4842,7 @@ void Aura::HandlePeriodicEnergize(bool apply, bool Real)
                     if (caster->HasAura(54832))
                         caster->CastSpell(caster,54833,true,NULL,this);
 
-                    m_modifier.m_amount = int32(caster->GetCreateMana() * GetBasePoints() / (100 * m_maxduration / m_periodicTimer));
+                    m_modifier.m_amount = int32(caster->GetCreateMana() * GetBasePoints() / (100 * GetAuraMaxTicks()));
                 }
                 break;
             }
@@ -6251,8 +6285,25 @@ void Aura::HandleSpellSpecificBoosts(bool apply)
                 else
                     return;
             }
+            // Combustion (remove triggered aura stack)
+            else if (m_spellProto->Id == 11129)
+            {
+                if(!apply)
+                    spellId1 = 28682;
+                else
+                    return;
+            }
+            // Combustion (remove main aura)
+            else if (m_spellProto->Id == 28682)
+            {
+                if(!apply)
+                    spellId1 = 11129;
+                else
+                    return;
+            }
             else
                 return;
+            break;
         }
         case SPELLFAMILY_WARRIOR:
         {
@@ -6276,6 +6327,7 @@ void Aura::HandleSpellSpecificBoosts(bool apply)
             break;
         }
         case SPELLFAMILY_WARLOCK:
+        {
             // Fear (non stacking)
             if (m_spellProto->SpellFamilyFlags & UI64LIT(0x0000040000000000))
             {
@@ -6310,6 +6362,7 @@ void Aura::HandleSpellSpecificBoosts(bool apply)
             else
                 return;
             break;
+        }
         case SPELLFAMILY_PRIEST:
         {
             // Shadow Word: Pain (need visual check fro skip improvement talent) or Vampiric Touch
@@ -6984,10 +7037,10 @@ void Aura::PeriodicTick()
                 if (GetSpellProto()->SpellFamilyName==SPELLFAMILY_WARLOCK && (GetSpellProto()->SpellFamilyFlags & UI64LIT(0x0000000000000400)) && GetSpellProto()->SpellIconID==544)
                 {
                     // 1..4 ticks, 1/2 from normal tick damage
-                    if (m_duration >= ((m_maxduration-m_modifier.periodictime) * 2 / 3))
+                    if (GetAuraTicks() <= 4)
                         pdamage = pdamage/2;
                     // 9..12 ticks, 3/2 from normal tick damage
-                    else if(m_duration < ((m_maxduration-m_modifier.periodictime) / 3))
+                    else if(GetAuraTicks() >= 9)
                         pdamage += (pdamage + 1) / 2;       // +1 prevent 0.5 damage possible lost at 1..4 ticks
                     // 5..8 ticks have normal tick damage
                 }
@@ -7150,8 +7203,8 @@ void Aura::PeriodicTick()
                 // Wild Growth (1/7 - 6 + 2*ramainTicks) %
                 if (m_spellProto->SpellFamilyName == SPELLFAMILY_DRUID && m_spellProto->SpellIconID == 2864)
                 {
-                    int32 ticks = m_maxduration/m_modifier.periodictime;
-                    int32 remainingTicks = int32(float(m_duration) / m_modifier.periodictime + 0.5);
+                    int32 ticks = GetAuraMaxTicks();
+                    int32 remainingTicks = ticks - GetAuraTicks();
                     pdamage = int32(pdamage) + int32(amount)*ticks*(-6+2*remainingTicks)/100;
                 }
             }
@@ -7410,6 +7463,7 @@ void Aura::PeriodicTick()
             break;
         }
         // Here tick dummy auras
+        case SPELL_AURA_DUMMY:                              // some spells have dummy aura
         case SPELL_AURA_PERIODIC_DUMMY:
         {
             PeriodicDummyTick();
@@ -7495,6 +7549,10 @@ void Aura::PeriodicDummyTick()
                     // 7053 Forsaken Skill: Shadow
                     return;
                 }
+                case 7057:                                  // Haunting Spirits
+                    if (roll_chance_i(33))
+                        m_target->CastSpell(m_target,m_modifier.m_amount,true,NULL,this);
+                    return;
 //              // Panda
 //              case 19230: break;
 //              // Gossip NPC Periodic - Talk
@@ -7609,8 +7667,11 @@ void Aura::PeriodicDummyTick()
 //              case 45960: break;
 //              // Darkness
 //              case 45996: break;
-//              // Summon Blood Elves Periodic
-//              case 46041: break;
+                case 46041:                                 // Summon Blood Elves Periodic
+                    m_target->CastSpell(m_target, 46037, true, NULL, this);
+                    m_target->CastSpell(m_target, roll_chance_i(50) ? 46038 : 46039, true, NULL, this);
+                    m_target->CastSpell(m_target, 46040, true, NULL, this);
+                    return;
 //              // Transform Visual Missile Periodic
 //              case 46205: break;
 //              // Find Opening Beam End
@@ -7637,7 +7698,20 @@ void Aura::PeriodicDummyTick()
 //              case 47489: break;
 //              case 47941: break; // Crystal Spike
 //              case 48200: break; // Healer Aura
-//              case 48630: break; // Summon Gauntlet Mobs Periodic
+                case 48630:                                 // Summon Gauntlet Mobs Periodic
+                case 59275:                                 // Below may need some adjustment, pattern for amount of summon and where is not verified 100% (except for odd/even tick)
+                {
+                    bool chance = roll_chance_i(50);
+
+                    m_target->CastSpell(m_target, chance ? 48631 : 48632, true, NULL, this);
+
+                    if (GetAuraTicks() % 2)                 // which doctor at odd tick
+                        m_target->CastSpell(m_target, chance ? 48636 : 48635, true, NULL, this);
+                    else                                    // or harponeer, at even tick
+                        m_target->CastSpell(m_target, chance ? 48634 : 48633, true, NULL, this);
+
+                    return;
+                }
 //              case 49313: break; // Proximity Mine Area Aura
 //              // Mole Machine Portal Schedule
 //              case 49466: break;
@@ -7649,6 +7723,36 @@ void Aura::PeriodicDummyTick()
 //              case 50493: break;
 //              // Love Rocket Barrage
 //              case 50530: break;
+                case 50789:                                 // Summon iron dwarf (left or right)
+                case 59860:
+                    m_target->CastSpell(m_target, roll_chance_i(50) ? 50790 : 50791, true, NULL, this);
+                    return;
+                case 50792:                                 // Summon iron trogg (left or right)
+                case 59859:
+                    m_target->CastSpell(m_target, roll_chance_i(50) ? 50793 : 50794, true, NULL, this);
+                    return;
+                case 50801:                                 // Summon malformed ooze (left or right)
+                case 59858:
+                    m_target->CastSpell(m_target, roll_chance_i(50) ? 50802 : 50803, true, NULL, this);
+                    return;
+                case 50824:                                 // Summon earthen dwarf
+                    m_target->CastSpell(m_target, roll_chance_i(50) ? 50825 : 50826, true, NULL, this);
+                    return;
+                case 52441:                                 // Cool Down
+                    m_target->CastSpell(m_target, 52443, true);
+                    return;
+                case 53520:                                 // Carrion Beetles
+                    m_target->CastSpell(m_target, 53521, true, NULL, this);
+                    m_target->CastSpell(m_target, 53521, true, NULL, this);
+                    return;
+                case 55592:                                 // Clean
+                    switch(urand(0,2))
+                    {
+                        case 0: m_target->CastSpell(m_target, 55731, true); break;
+                        case 1: m_target->CastSpell(m_target, 55738, true); break;
+                        case 2: m_target->CastSpell(m_target, 55739, true); break;
+                    }
+                    return;
 // Exist more after, need add later
                 default:
                     break;

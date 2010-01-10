@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,7 +40,7 @@ char const* petTypeSuffix[MAX_PET_TYPE] =
 Pet::Pet(PetType type) :
 Creature(), m_removed(false), m_petType(type), m_happinessTimer(7500), m_duration(0), m_resetTalentsCost(0),
 m_bonusdamage(0), m_resetTalentsTime(0), m_usedTalentCount(0), m_auraUpdateMask(0), m_loading(false),
-m_declinedname(NULL)
+m_declinedname(NULL), m_petModeFlags(PET_MODE_DEFAULT)
 {
     m_isPet = true;
     m_name = "Pet";
@@ -1951,4 +1951,21 @@ void Pet::SynchronizeLevelWithOwner()
         default:
             break;
     }
+}
+
+void Pet::ApplyModeFlags(PetModeFlags mode, bool apply)
+{
+    if (apply)
+        m_petModeFlags = PetModeFlags(m_petModeFlags | mode);
+    else
+        m_petModeFlags = PetModeFlags(m_petModeFlags & ~mode);
+
+    Unit* owner = GetOwner();
+    if(!owner || owner->GetTypeId()!=TYPEID_PLAYER)
+        return;
+
+    WorldPacket data(SMSG_PET_MODE, 12);
+    data << uint64(GetGUID());
+    data << uint32(m_petModeFlags);
+    ((Player*)owner)->GetSession()->SendPacket(&data);
 }

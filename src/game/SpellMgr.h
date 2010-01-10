@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -180,7 +180,8 @@ inline bool IsLootCraftingSpell(SpellEntry const *spellInfo)
 {
     return (spellInfo->Effect[0]==SPELL_EFFECT_CREATE_RANDOM_ITEM ||
         // different random cards from Inscription (121==Virtuoso Inking Set category)
-        (spellInfo->Effect[0]==SPELL_EFFECT_CREATE_ITEM_2 && spellInfo->TotemCategory[0] == 121));
+        // also Abyssal Shatter (63), any !=0 infact
+        (spellInfo->Effect[0]==SPELL_EFFECT_CREATE_ITEM_2 && spellInfo->TotemCategory[0] != 0));
 }
 
 int32 CompareAuraRanks(uint32 spellId_1, uint32 effIndex_1, uint32 spellId_2, uint32 effIndex_2);
@@ -243,13 +244,12 @@ inline bool IsCasterSourceTarget(uint32 target)
         case TARGET_TOTEM_WATER:
         case TARGET_TOTEM_AIR:
         case TARGET_TOTEM_FIRE:
-        case TARGET_SUMMON:
         case TARGET_AREAEFFECT_CUSTOM_2:
         case TARGET_ALL_RAID_AROUND_CASTER:
         case TARGET_SELF2:
         case TARGET_DIRECTLY_FORWARD:
         case TARGET_NONCOMBAT_PET:
-        case TARGET_IN_FRONT_OF_CASTER_2:
+        case TARGET_IN_FRONT_OF_CASTER_30:
             return true;
         default:
             break;
@@ -320,7 +320,7 @@ inline bool IsAreaEffectTarget( Targets target )
         case TARGET_AREAEFFECT_CUSTOM_2:
         case TARGET_ALL_RAID_AROUND_CASTER:
         case TARGET_AREAEFFECT_PARTY_AND_CLASS:
-        case TARGET_IN_FRONT_OF_CASTER_2:
+        case TARGET_IN_FRONT_OF_CASTER_30:
             return true;
         default:
             break;

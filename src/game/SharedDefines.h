@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -358,7 +358,7 @@ const uint32 ItemQualityColors[MAX_ITEM_QUALITY] = {
 #define SPELL_ATTR_EX4_UNK5                       0x00000020            // 5
 #define SPELL_ATTR_EX4_NOT_STEALABLE              0x00000040            // 6 although such auras might be dispellable, they cannot be stolen
 #define SPELL_ATTR_EX4_UNK7                       0x00000080            // 7
-#define SPELL_ATTR_EX4_UNK8                       0x00000100            // 8
+#define SPELL_ATTR_EX4_STACK_DOT_MODIFIER         0x00000100            // 8 no effect on non DoTs?
 #define SPELL_ATTR_EX4_UNK9                       0x00000200            // 9
 #define SPELL_ATTR_EX4_SPELL_VS_EXTEND_COST       0x00000400            // 10 Rogue Shiv have this flag
 #define SPELL_ATTR_EX4_UNK11                      0x00000800            // 11
@@ -445,7 +445,7 @@ const uint32 ItemQualityColors[MAX_ITEM_QUALITY] = {
 #define SPELL_ATTR_EX6_UNK26                      0x04000000            // 26 not set in 3.0.3
 #define SPELL_ATTR_EX6_UNK27                      0x08000000            // 27 not set in 3.0.3
 #define SPELL_ATTR_EX6_UNK28                      0x10000000            // 28 not set in 3.0.3
-#define SPELL_ATTR_EX6_UNK29                      0x20000000            // 29 not set in 3.0.3
+#define SPELL_ATTR_EX6_NO_DMG_PERCENT_MODS        0x20000000            // 29 do not apply damage percent mods (usually in cases where it has already been applied)
 #define SPELL_ATTR_EX6_UNK30                      0x40000000            // 30 not set in 3.0.3
 #define SPELL_ATTR_EX6_UNK31                      0x80000000            // 31 not set in 3.0.3
 
@@ -1071,7 +1071,7 @@ enum Targets
     TARGET_CHAIN_HEAL                  = 45,
     TARGET_SCRIPT_COORDINATES          = 46,
     TARGET_DYNAMIC_OBJECT_FRONT        = 47,
-    TARGET_SUMMON                      = 48,
+    TARGET_DYNAMIC_OBJECT_BEHIND       = 48,
     TARGET_DYNAMIC_OBJECT_LEFT_SIDE    = 49,
     TARGET_DYNAMIC_OBJECT_RIGHT_SIDE   = 50,
     TARGET_AREAEFFECT_CUSTOM_2         = 52,
@@ -1102,7 +1102,7 @@ enum Targets
     TARGET_SELF2                       = 87,
     TARGET_DIRECTLY_FORWARD            = 89,
     TARGET_NONCOMBAT_PET               = 90,
-    TARGET_IN_FRONT_OF_CASTER_2        = 104,
+    TARGET_IN_FRONT_OF_CASTER_30       = 104,
 };
 
 enum SpellMissInfo
@@ -2649,5 +2649,12 @@ enum PetTameFailureReason
 // will only support WoW:WotLK 3.2.2a, client build 10505.
 
 #define EXPECTED_MANGOSD_CLIENT_BUILD        {10505, 0}
+
+// max supported expansion level in mangosd
+// NOTE: not set it more that supported by targeted client version with all expansions installed
+// account with expansion > client supported will rejected at connection by client
+// because if client receive unsupported expansion level it think
+// that it not have expansion installed and reject
+#define MAX_EXPANSION 2
 
 #endif
