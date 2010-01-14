@@ -50,6 +50,8 @@ Channel::Channel(const std::string& name, uint32 channel_id)
     }
 
     // FG: if it returns a valid struct its a special channel
+    std::string lname(m_name);
+    std::transform( lname.begin(), lname.end(), lname.begin(), tolower );
     SpecialChannel spch = sObjectMgr.GetSpecialChan(m_name);
     if(spch.name.length())
     {

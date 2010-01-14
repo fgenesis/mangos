@@ -8459,6 +8459,7 @@ void ObjectMgr::LoadSpecialChannels(void)
                 ch.no_notify = no_notify;
                 ch.unowned = unowned;
 
+                std::transform( name.begin(), name.end(), name.begin(), tolower );
                 mSpecialChannels[name] = ch;
                 sLog.outString("Special Channel '%s'",ch.name.c_str());
             }
