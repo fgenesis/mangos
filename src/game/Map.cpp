@@ -409,7 +409,7 @@ Map::EnsureGridLoadedAtEnter(const Cell &cell, Player *player)
     else
         grid = getNGrid(cell.GridX(), cell.GridY());
 
-    if (player)
+    if (player && grid)
         AddToGrid(player,grid,cell);
 }
 
@@ -418,8 +418,7 @@ bool Map::EnsureGridLoaded(const Cell &cell)
     EnsureGridCreated(GridPair(cell.GridX(), cell.GridY()));
     NGridType *grid = getNGrid(cell.GridX(), cell.GridY());
 
-    assert(grid != NULL);
-    if( !isGridObjectDataLoaded(cell.GridX(), cell.GridY()) )
+    if(grid && !isGridObjectDataLoaded(cell.GridX(), cell.GridY()) )
     {
         ObjectGridLoader loader(*grid, this, cell);
         loader.LoadN();
@@ -439,7 +438,8 @@ void Map::LoadGrid(const Cell& cell, bool no_unload)
     EnsureGridLoaded(cell);
 
     if(no_unload)
-        getNGrid(cell.GridX(), cell.GridY())->setUnloadExplicitLock(true);
+        if(NGridType *gt = getNGrid(cell.GridX(), cell.GridY()))
+            gt->setUnloadExplicitLock(true);
 }
 
 bool Map::Add(Player *player)
@@ -485,7 +485,9 @@ Map::Add(T *obj)
         EnsureGridCreated(GridPair(cell.GridX(), cell.GridY()));
 
     NGridType *grid = getNGrid(cell.GridX(), cell.GridY());
-    assert( grid != NULL );
+    //assert( grid != NULL );
+    if(!grid)
+        return;
 
     AddToGrid(obj,grid,cell);
     obj->AddToWorld();
@@ -771,7 +773,9 @@ void Map::Remove(Player *player, bool remove)
 
     DEBUG_LOG("Remove player %s from grid[%u,%u]", player->GetName(), cell.GridX(), cell.GridY());
     NGridType *grid = getNGrid(cell.GridX(), cell.GridY());
-    assert(grid != NULL);
+    //assert(grid != NULL);
+    if(!grid)
+        return;
 
     RemoveFromGrid(player,grid,cell);
 
@@ -836,7 +840,9 @@ Map::Remove(T *obj, bool remove)
 
     DEBUG_LOG("Remove object (GUID: %u TypeId:%u) from grid[%u,%u]", obj->GetGUIDLow(), obj->GetTypeId(), cell.data.Part.grid_x, cell.data.Part.grid_y);
     NGridType *grid = getNGrid(cell.GridX(), cell.GridY());
-    assert( grid != NULL );
+    //assert( grid != NULL );
+    if(!grid)
+        return;
 
     if(obj->isActiveObject())
         RemoveFromActive(obj);
@@ -884,6 +890,8 @@ Map::PlayerRelocation(Player *player, float x, float y, float z, float orientati
             player->SetGroupUpdateFlag(GROUP_UPDATE_FLAG_POSITION);
 
         NGridType* oldGrid = getNGrid(old_cell.GridX(), old_cell.GridY());
+        if(!oldGrid)
+            return;
         RemoveFromGrid(player, oldGrid,old_cell);
         if( !old_cell.DiffGrid(new_cell) )
             AddToGrid(player, oldGrid,new_cell);
@@ -903,6 +911,8 @@ Map::PlayerRelocation(Player *player, float x, float y, float z, float orientati
     UpdateObjectsVisibilityFor(player,new_cell,new_val);
     PlayerRelocationNotify(player,new_cell,new_val);
     NGridType* newGrid = getNGrid(new_cell.GridX(), new_cell.GridY());
+    if(!newGrid)
+        return;
     if( !same_cell && newGrid->GetGridState()!= GRID_STATE_ACTIVE )
     {
         ResetGridExpiry(*newGrid, 0.1f);
@@ -999,8 +1009,14 @@ bool Map::CreatureCellRelocation(Creature *c, Cell new_cell)
 
             if( !old_cell.DiffGrid(new_cell) )
             {
-                RemoveFromGrid(c,getNGrid(old_cell.GridX(), old_cell.GridY()),old_cell);
-                AddToGrid(c,getNGrid(new_cell.GridX(), new_cell.GridY()),new_cell);
+                NGridType *gt = getNGrid(old_cell.GridX(), old_cell.GridY());
+                if(!gt)
+                    return false;
+                RemoveFromGrid(c,gt,old_cell);
+                NGridType *ngt = getNGrid(new_cell.GridX(), new_cell.GridY());
+                if(!ngt)
+                    return false;
+                AddToGrid(c,ngt,new_cell);
                 c->SetCurrentCell(new_cell);
             }
         }
@@ -1025,8 +1041,15 @@ bool Map::CreatureCellRelocation(Creature *c, Cell new_cell)
             sLog.outDebug("Active creature (GUID: %u Entry: %u) moved from grid[%u,%u]cell[%u,%u] to grid[%u,%u]cell[%u,%u].", c->GetGUIDLow(), c->GetEntry(), old_cell.GridX(), old_cell.GridY(), old_cell.CellX(), old_cell.CellY(), new_cell.GridX(), new_cell.GridY(), new_cell.CellX(), new_cell.CellY());
         #endif
 
-        RemoveFromGrid(c,getNGrid(old_cell.GridX(), old_cell.GridY()),old_cell);
-        AddToGrid(c,getNGrid(new_cell.GridX(), new_cell.GridY()),new_cell);
+        NGridType *gt = getNGrid(old_cell.GridX(), old_cell.GridY());
+        if(!gt)
+            return false;
+        RemoveFromGrid(c,gt,old_cell);
+
+        NGridType *ngt = getNGrid(new_cell.GridX(), new_cell.GridY());
+        if(!ngt)
+            return false;
+        AddToGrid(c,ngt,new_cell);
 
         return true;
     }
@@ -1039,7 +1062,10 @@ bool Map::CreatureCellRelocation(Creature *c, Cell new_cell)
             sLog.outDebug("Creature (GUID: %u Entry: %u) moved from grid[%u,%u]cell[%u,%u] to grid[%u,%u]cell[%u,%u].", c->GetGUIDLow(), c->GetEntry(), old_cell.GridX(), old_cell.GridY(), old_cell.CellX(), old_cell.CellY(), new_cell.GridX(), new_cell.GridY(), new_cell.CellX(), new_cell.CellY());
         #endif
 
-        RemoveFromGrid(c,getNGrid(old_cell.GridX(), old_cell.GridY()),old_cell);
+        NGridType *gt = getNGrid(old_cell.GridX(), old_cell.GridY());
+        if(!gt)
+            return false;
+        RemoveFromGrid(c,gt,old_cell);
         {
             EnsureGridCreated(GridPair(new_cell.GridX(), new_cell.GridY()));
             AddToGrid(c,getNGrid(new_cell.GridX(), new_cell.GridY()),new_cell);
@@ -1087,8 +1113,8 @@ bool Map::CreatureRespawnRelocation(Creature *c)
 bool Map::UnloadGrid(const uint32 &x, const uint32 &y, bool pForce)
 {
     NGridType *grid = getNGrid(x, y);
-    assert( grid != NULL);
-
+    //assert( grid != NULL);
+    if(grid)
     {
         if(!pForce && ActiveObjectsNearGrid(x, y) )
             return false;
@@ -2442,7 +2468,7 @@ bool InstanceMap::Add(Player *player)
                 if(playerBind->save != mapSave)
                 {
                     sLog.outError("InstanceMap::Add: player %s(%d) is permanently bound to instance %d,%d,%d,%d,%d,%d but he is being put in instance %d,%d,%d,%d,%d,%d", player->GetName(), player->GetGUIDLow(), playerBind->save->GetMapId(), playerBind->save->GetInstanceId(), playerBind->save->GetDifficulty(), playerBind->save->GetPlayerCount(), playerBind->save->GetGroupCount(), playerBind->save->CanReset(), mapSave->GetMapId(), mapSave->GetInstanceId(), mapSave->GetDifficulty(), mapSave->GetPlayerCount(), mapSave->GetGroupCount(), mapSave->CanReset());
-                    assert(false);
+                    //assert(false);
                 }
             }
             else
@@ -2456,7 +2482,7 @@ bool InstanceMap::Add(Player *player)
                     {
                         sLog.outError("InstanceMap::Add: player %s(%d) is being put in instance %d,%d,%d,%d,%d,%d but he is in group %d and is bound to instance %d,%d,%d,%d,%d,%d!", player->GetName(), player->GetGUIDLow(), mapSave->GetMapId(), mapSave->GetInstanceId(), mapSave->GetDifficulty(), mapSave->GetPlayerCount(), mapSave->GetGroupCount(), mapSave->CanReset(), GUID_LOPART(pGroup->GetLeaderGUID()), playerBind->save->GetMapId(), playerBind->save->GetInstanceId(), playerBind->save->GetDifficulty(), playerBind->save->GetPlayerCount(), playerBind->save->GetGroupCount(), playerBind->save->CanReset());
                         if(groupBind) sLog.outError("InstanceMap::Add: the group is bound to instance %d,%d,%d,%d,%d,%d", groupBind->save->GetMapId(), groupBind->save->GetInstanceId(), groupBind->save->GetDifficulty(), groupBind->save->GetPlayerCount(), groupBind->save->GetGroupCount(), groupBind->save->CanReset());
-                        assert(false);
+                        //assert(false);
                     }
                     // bind to the group or keep using the group save
                     if(!groupBind)
@@ -2475,7 +2501,7 @@ bool InstanceMap::Add(Player *player)
                                 sLog.outError("GroupBind save players: %d, group count: %d", groupBind->save->GetPlayerCount(), groupBind->save->GetGroupCount());
                             else
                                 sLog.outError("GroupBind save NULL");
-                            assert(false);
+                            //assert(false);
                         }
                         // if the group/leader is permanently bound to the instance
                         // players also become permanently bound when they enter
@@ -2493,9 +2519,9 @@ bool InstanceMap::Add(Player *player)
                     // set up a solo bind or continue using it
                     if(!playerBind)
                         player->BindToInstance(mapSave, false);
-                    else
+                    //else
                         // cannot jump to a different instance without resetting it
-                        assert(playerBind->save == mapSave);
+                        //assert(playerBind->save == mapSave);
                 }
             }
         }

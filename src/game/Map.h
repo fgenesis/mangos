@@ -296,8 +296,16 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>, public MaNGOS::Obj
             return loaded(p);
         }
 
-        bool GetUnloadLock(const GridPair &p) const { return getNGrid(p.x_coord, p.y_coord)->getUnloadLock(); }
-        void SetUnloadLock(const GridPair &p, bool on) { getNGrid(p.x_coord, p.y_coord)->setUnloadExplicitLock(on); }
+        bool GetUnloadLock(const GridPair &p) const
+        {
+            NGridType *gt = getNGrid(p.x_coord, p.y_coord);
+            return gt ? gt->getUnloadLock() : false;
+        }
+        void SetUnloadLock(const GridPair &p, bool on)
+        {
+            if (NGridType *gt = getNGrid(p.x_coord, p.y_coord))
+                gt->setUnloadExplicitLock(on);
+        }
         void LoadGrid(const Cell& cell, bool no_unload = false);
         bool UnloadGrid(const uint32 &x, const uint32 &y, bool pForce);
         virtual void UnloadAll(bool pForce);
@@ -492,8 +500,16 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>, public MaNGOS::Obj
             return i_grids[x][y];
         }
 
-        bool isGridObjectDataLoaded(uint32 x, uint32 y) const { return getNGrid(x,y)->isGridObjectDataLoaded(); }
-        void setGridObjectDataLoaded(bool pLoaded, uint32 x, uint32 y) { getNGrid(x,y)->setGridObjectDataLoaded(pLoaded); }
+        bool isGridObjectDataLoaded(uint32 x, uint32 y) const
+        {
+            NGridType *gt = getNGrid(x, y);
+            return gt ? gt->isGridObjectDataLoaded() : false;
+        }
+        void setGridObjectDataLoaded(bool pLoaded, uint32 x, uint32 y)
+        {
+            if(NGridType *gt = getNGrid(x, y))
+                gt->setGridObjectDataLoaded(pLoaded);
+        }
 
         void setNGrid(NGridType* grid, uint32 x, uint32 y);
         void ScriptsProcess();
@@ -501,7 +517,11 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>, public MaNGOS::Obj
         void SendObjectUpdates();
         std::set<Object *> i_objectsToClientUpdate;
     protected:
-        void SetUnloadReferenceLock(const GridPair &p, bool on) { getNGrid(p.x_coord, p.y_coord)->setUnloadReferenceLock(on); }
+        void SetUnloadReferenceLock(const GridPair &p, bool on)
+        {
+            if (NGridType *gt = getNGrid(p.x_coord, p.y_coord))
+                gt->setUnloadReferenceLock(on);
+        }
 
         typedef MaNGOS::ObjectLevelLockable<Map, ACE_Thread_Mutex>::Lock Guard;
 

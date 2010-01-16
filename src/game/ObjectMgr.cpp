@@ -6551,24 +6551,20 @@ void ObjectMgr::SaveGORespawnTime(uint32 loguid, uint32 instance, time_t t)
 
 void ObjectMgr::DeleteRespawnTimeForInstance(uint32 instance)
 {
-    RespawnTimes::iterator next;
-
-    for(RespawnTimes::iterator itr = mGORespawnTimes.begin(); itr != mGORespawnTimes.end(); itr = next)
+    for(RespawnTimes::iterator itr = mGORespawnTimes.begin(); itr != mGORespawnTimes.end(); )
     {
-        next = itr;
-        ++next;
-
         if(GUID_HIPART(itr->first)==instance)
-            mGORespawnTimes.erase(itr);
+            itr = mGORespawnTimes.erase(itr);
+        else
+            itr++;
     }
 
-    for(RespawnTimes::iterator itr = mCreatureRespawnTimes.begin(); itr != mCreatureRespawnTimes.end(); itr = next)
+    for(RespawnTimes::iterator itr = mCreatureRespawnTimes.begin(); itr != mCreatureRespawnTimes.end(); )
     {
-        next = itr;
-        ++next;
-
         if(GUID_HIPART(itr->first)==instance)
-            mCreatureRespawnTimes.erase(itr);
+            itr = mCreatureRespawnTimes.erase(itr);
+        else
+            itr++;
     }
 
     WorldDatabase.PExecute("DELETE FROM creature_respawn WHERE instance = '%u'", instance);

@@ -211,6 +211,9 @@ InstanceMap* MapInstanced::CreateInstance(uint32 InstanceId, InstanceSave *save,
 
 BattleGroundMap* MapInstanced::CreateBattleGroundMap(uint32 InstanceId, BattleGround* bg)
 {
+    if(!bg)
+        return NULL;
+
     // load/create a map
     Guard guard(*this);
 
