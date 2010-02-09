@@ -1396,10 +1396,12 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
     switch(targetMode)
     {
         case TARGET_RANDOM_NEARBY_LOC:
-            radius *= sqrtf(rand_norm_f()); // Get a random point in circle. Use sqrt(rand) to correct distribution when converting polar to Cartesian coordinates.
-                                         // no 'break' expected since we use code in case TARGET_RANDOM_CIRCUMFERENCE_POINT!!!
+            // Get a random point IN circle around the CASTER(!). Use sqrt(rand) to correct distribution when converting polar to Cartesian coordinates.
+            radius *= sqrtf(rand_norm_f());
+            // no 'break' expected since we use code in case TARGET_RANDOM_CIRCUMFERENCE_POINT!!!
         case TARGET_RANDOM_CIRCUMFERENCE_POINT:
         {
+            // Get a random point AT the CIRCUMREFERENCE(!).
             float angle = 2.0f * M_PI_F * rand_norm_f();
             float dest_x, dest_y, dest_z;
             m_caster->GetClosePoint(dest_x, dest_y, dest_z, 0.0f, radius, angle);
@@ -1410,20 +1412,22 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
         }
         case TARGET_RANDOM_NEARBY_DEST:
         {
-            radius *= sqrtf(rand_norm_f()); // Get a random point in circle. Use sqrt(rand) to correct distribution when converting polar to Cartesian coordinates.
-            float angle = 2.0f * M_PI_F * rand_norm_f();
-            float dest_x = m_targets.m_destX + cos(angle) * radius;
-            float dest_y = m_targets.m_destY + sin(angle) * radius;
-            float dest_z = m_caster->GetPositionZ();
-            m_caster->UpdateGroundPositionZ(dest_x, dest_y, dest_z);
-            m_targets.setDestination(dest_x, dest_y, dest_z);
-
-            if (radius > 0.0f)
+            // Get a random point IN the CIRCEL around current M_TARGETS COORDINATES(!).
+            if (radius > 0)
             {
-                // caster included here?
-                FillAreaTargets(targetUnitMap, dest_x, dest_y, radius, PUSH_DEST_CENTER, SPELL_TARGETS_AOE_DAMAGE);
+                // Use sqrt(rand) to correct distribution when converting polar to Cartesian coordinates.
+                radius *= sqrtf(rand_norm_f());
+                float angle = 2.0f * M_PI_F * rand_norm_f();
+                float dest_x = m_targets.m_destX + cos(angle) * radius;
+                float dest_y = m_targets.m_destY + sin(angle) * radius;
+                float dest_z = m_caster->GetPositionZ();
+                m_caster->UpdateGroundPositionZ(dest_x, dest_y, dest_z);
+                m_targets.setDestination(dest_x, dest_y, dest_z);
             }
-            else
+
+            // This targetMode is often used as 'last' implicitTarget for positive spells, that just require coordinates
+            // and no unitTarget (e.g. summon effects). As MaNGOS always needs a unitTarget we add just the caster here.
+            if (IsPositiveSpell(m_spellInfo->Id))
                 targetUnitMap.push_back(m_caster);
 
             break;
