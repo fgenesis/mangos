@@ -463,6 +463,9 @@ WorldObject* Spell::FindCorpseUsing()
     return result;
 }
 
+// explicitly instantiate for use in SpellEffects.cpp
+template WorldObject* Spell::FindCorpseUsing<MaNGOS::RaiseDeadObjectCheck>();
+
 void Spell::FillTargetMap()
 {
     // TODO: ADD the correct target FILLS!!!!!!
@@ -3208,6 +3211,11 @@ void Spell::SendCastResult(Player* caster, SpellEntry const* spellInfo, uint8 ca
                     data << uint32(0);
                     break;
             }
+            break;
+        case SPELL_FAILED_REAGENTS:
+            // normally client checks reagents, just some script effects here
+            if(spellInfo->Id == 46584)                      // Raise Dead
+                data << uint32(37201);                      // Corpse Dust
             break;
         case SPELL_FAILED_TOTEMS:
             if(spellInfo->Totem[0])
