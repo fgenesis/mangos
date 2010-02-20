@@ -163,7 +163,7 @@ bool AchievementCriteriaRequirement::IsValid(AchievementCriteriaEntry const* cri
                     criteria->ID, criteria->requiredType,(requirementType==ACHIEVEMENT_CRITERIA_REQUIRE_S_AURA?"ACHIEVEMENT_CRITERIA_REQUIRE_S_AURA":"ACHIEVEMENT_CRITERIA_REQUIRE_T_AURA"),requirementType,aura.spell_id);
                 return false;
             }
-            if (aura.effect_idx >= 3)
+            if (aura.effect_idx >= MAX_EFFECT_INDEX)
             {
                 sLog.outErrorDb( "Table `achievement_criteria_requirement` (Entry: %u Type: %u) for requirement %s (%u) have wrong spell effect index in value2 (%u), ignore.",
                     criteria->ID, criteria->requiredType,(requirementType==ACHIEVEMENT_CRITERIA_REQUIRE_S_AURA?"ACHIEVEMENT_CRITERIA_REQUIRE_S_AURA":"ACHIEVEMENT_CRITERIA_REQUIRE_T_AURA"),requirementType,aura.effect_idx);
@@ -186,7 +186,7 @@ bool AchievementCriteriaRequirement::IsValid(AchievementCriteriaEntry const* cri
             }
             return true;
         case ACHIEVEMENT_CRITERIA_REQUIRE_T_LEVEL:
-            if (level.minlevel < 0 || level.minlevel > STRONG_MAX_LEVEL)
+            if (level.minlevel > STRONG_MAX_LEVEL)
             {
                 sLog.outErrorDb( "Table `achievement_criteria_requirement` (Entry: %u Type: %u) for requirement ACHIEVEMENT_CRITERIA_REQUIRE_T_LEVEL (%u) have wrong minlevel in value1 (%u), ignore.",
                     criteria->ID, criteria->requiredType,requirementType,level.minlevel);
@@ -276,7 +276,7 @@ bool AchievementCriteriaRequirement::Meets(uint32 criteria_id, Player const* sou
             // flag set == must be same team, not set == different team
             return (((Player*)target)->GetTeam() == source->GetTeam()) == (player_dead.own_team_flag != 0);
         case ACHIEVEMENT_CRITERIA_REQUIRE_S_AURA:
-            return source->HasAura(aura.spell_id,aura.effect_idx);
+            return source->HasAura(aura.spell_id,SpellEffectIndex(aura.effect_idx));
         case ACHIEVEMENT_CRITERIA_REQUIRE_S_AREA:
         {
             uint32 zone_id,area_id;
@@ -284,7 +284,7 @@ bool AchievementCriteriaRequirement::Meets(uint32 criteria_id, Player const* sou
             return area.id==zone_id || area.id==area_id;
         }
         case ACHIEVEMENT_CRITERIA_REQUIRE_T_AURA:
-            return target && target->HasAura(aura.spell_id,aura.effect_idx);
+            return target && target->HasAura(aura.spell_id,SpellEffectIndex(aura.effect_idx));
         case ACHIEVEMENT_CRITERIA_REQUIRE_VALUE:
             return miscvalue1 >= value.minvalue;
         case ACHIEVEMENT_CRITERIA_REQUIRE_T_LEVEL:
@@ -385,7 +385,7 @@ void AchievementMgr::ResetAchievementCriteria(AchievementCriteriaTypes type, uin
     if((sLog.getLogFilter() & LOG_FILTER_ACHIEVEMENT_UPDATES)==0)
         sLog.outDetail("AchievementMgr::ResetAchievementCriteria(%u, %u, %u)", type, miscvalue1, miscvalue2);
 
-    if (!sWorld.getConfig(CONFIG_GM_ALLOW_ACHIEVEMENT_GAINS) && m_player->GetSession()->GetSecurity() > SEC_PLAYER)
+    if (!sWorld.getConfig(CONFIG_BOOL_GM_ALLOW_ACHIEVEMENT_GAINS) && m_player->GetSession()->GetSecurity() > SEC_PLAYER)
         return;
 
     AchievementCriteriaEntryList const& achievementCriteriaList = sAchievementMgr.GetAchievementCriteriaByType(type);
@@ -625,10 +625,9 @@ void AchievementMgr::SendAchievementEarned(AchievementEntry const* achievement)
 
         MaNGOS::AchievementChatBuilder say_builder(*GetPlayer(), CHAT_MSG_ACHIEVEMENT, LANG_ACHIEVEMENT_EARNED,achievement->ID);
         MaNGOS::LocalizedPacketDo<MaNGOS::AchievementChatBuilder> say_do(say_builder);
-        MaNGOS::PlayerDistWorker<MaNGOS::LocalizedPacketDo<MaNGOS::AchievementChatBuilder> > say_worker(GetPlayer(),sWorld.getConfig(CONFIG_LISTEN_RANGE_SAY),say_do);
+        MaNGOS::PlayerDistWorker<MaNGOS::LocalizedPacketDo<MaNGOS::AchievementChatBuilder> > say_worker(GetPlayer(),sWorld.getConfig(CONFIG_FLOAT_LISTEN_RANGE_SAY),say_do);
         TypeContainerVisitor<MaNGOS::PlayerDistWorker<MaNGOS::LocalizedPacketDo<MaNGOS::AchievementChatBuilder> >, WorldTypeMapContainer > message(say_worker);
-        CellLock<GridReadGuard> cell_lock(cell, p);
-        cell_lock->Visit(cell_lock, message, *GetPlayer()->GetMap(), *GetPlayer(), sWorld.getConfig(CONFIG_LISTEN_RANGE_SAY));
+        cell.Visit(p, message, *GetPlayer()->GetMap(), *GetPlayer(), sWorld.getConfig(CONFIG_FLOAT_LISTEN_RANGE_SAY));
     }
 
     WorldPacket data(SMSG_ACHIEVEMENT_EARNED, 8+4+8);
@@ -636,7 +635,7 @@ void AchievementMgr::SendAchievementEarned(AchievementEntry const* achievement)
     data << uint32(achievement->ID);
     data << uint32(secsToTimeBitFields(time(NULL)));
     data << uint32(0);
-    GetPlayer()->SendMessageToSetInRange(&data, sWorld.getConfig(CONFIG_LISTEN_RANGE_SAY), true);
+    GetPlayer()->SendMessageToSetInRange(&data, sWorld.getConfig(CONFIG_FLOAT_LISTEN_RANGE_SAY), true);
 }
 
 void AchievementMgr::SendCriteriaUpdate(uint32 id, CriteriaProgress const* progress)
@@ -685,7 +684,7 @@ void AchievementMgr::UpdateAchievementCriteria(AchievementCriteriaTypes type, ui
     if((sLog.getLogFilter() & LOG_FILTER_ACHIEVEMENT_UPDATES)==0)
         sLog.outDetail("AchievementMgr::UpdateAchievementCriteria(%u, %u, %u, %u)", type, miscvalue1, miscvalue2, time);
 
-    if (!sWorld.getConfig(CONFIG_GM_ALLOW_ACHIEVEMENT_GAINS) && m_player->GetSession()->GetSecurity() > SEC_PLAYER)
+    if (!sWorld.getConfig(CONFIG_BOOL_GM_ALLOW_ACHIEVEMENT_GAINS) && m_player->GetSession()->GetSecurity() > SEC_PLAYER)
         return;
 
     AchievementCriteriaEntryList const& achievementCriteriaList = sAchievementMgr.GetAchievementCriteriaByType(type);
@@ -1585,10 +1584,10 @@ bool AchievementMgr::IsCompletedAchievement(AchievementEntry const* entry)
         return false;
 
     // for achievement with referenced achievement criterias get from referenced and counter from self
-    uint32 achievmentForTestId = entry->refAchievement ? entry->refAchievement : entry->ID;
-    uint32 achievmentForTestCount = entry->count;
+    uint32 achievementForTestId = entry->refAchievement ? entry->refAchievement : entry->ID;
+    uint32 achievementForTestCount = entry->count;
 
-    AchievementCriteriaEntryList const* cList = sAchievementMgr.GetAchievementCriteriaByAchievement(achievmentForTestId);
+    AchievementCriteriaEntryList const* cList = sAchievementMgr.GetAchievementCriteriaByAchievement(achievementForTestId);
     if(!cList)
         return false;
     uint32 count = 0;
@@ -1630,12 +1629,12 @@ bool AchievementMgr::IsCompletedAchievement(AchievementEntry const* entry)
             completed_all = false;
 
         // completed as have req. count of completed criterias
-        if(achievmentForTestCount > 0 && achievmentForTestCount <= count)
+        if(achievementForTestCount > 0 && achievementForTestCount <= count)
            return true;
     }
 
     // all criterias completed requirement
-    if(completed_all && achievmentForTestCount==0)
+    if(completed_all && achievementForTestCount==0)
         return true;
 
     return false;
@@ -1901,7 +1900,7 @@ void AchievementGlobalMgr::LoadAchievementCriteriaRequirements()
 
     uint32 count = 0;
     uint32 disabled_count = 0;
-    barGoLink bar(result->GetRowCount());
+    barGoLink bar((int)result->GetRowCount());
     do
     {
         bar.step();
@@ -1912,7 +1911,7 @@ void AchievementGlobalMgr::LoadAchievementCriteriaRequirements()
 
         if (!criteria)
         {
-            sLog.outErrorDb( "Table `achievement_criteria_requirement` have data for not existed criteria (Entry: %u), ignore.", criteria_id);
+            sLog.outErrorDb( "Table `achievement_criteria_requirement`.`criteria_id` %u does not exist, ignoring.", criteria_id);
             continue;
         }
 
@@ -2002,8 +2001,8 @@ void AchievementGlobalMgr::LoadAchievementCriteriaRequirements()
                 continue;
         }
 
-        if(!GetCriteriaRequirementSet(criteria))
-            sLog.outErrorDb( "Table `achievement_criteria_requirement` not have expected data for criteria (Entry: %u Type: %u) for achievement %u.", criteria->ID, criteria->requiredType, criteria->referredAchievement);
+        if (!GetCriteriaRequirementSet(criteria))
+            sLog.outErrorDb("Table `achievement_criteria_requirement` is missing expected data for `criteria_id` %u (type: %u) for achievement %u.", criteria->ID, criteria->requiredType, criteria->referredAchievement);
     }
 
     sLog.outString();
@@ -2024,7 +2023,7 @@ void AchievementGlobalMgr::LoadCompletedAchievements()
         return;
     }
 
-    barGoLink bar(result->GetRowCount());
+    barGoLink bar((int)result->GetRowCount());
     do
     {
         bar.step();
@@ -2067,7 +2066,7 @@ void AchievementGlobalMgr::LoadRewards()
     }
 
     uint32 count = 0;
-    barGoLink bar(result->GetRowCount());
+    barGoLink bar((int)result->GetRowCount());
 
     do
     {
@@ -2177,7 +2176,7 @@ void AchievementGlobalMgr::LoadRewardLocales()
         return;
     }
 
-    barGoLink bar(result->GetRowCount());
+    barGoLink bar((int)result->GetRowCount());
 
     do
     {

@@ -74,8 +74,30 @@ void WaypointMovementGenerator<Creature>::ClearWaypoints()
     i_path = NULL;
 }
 
-void WaypointMovementGenerator<Creature>::Initialize()
+void WaypointMovementGenerator<Creature>::Initialize( Creature &u )
 {
+    i_nextMoveTime.Reset(0);                        // TODO: check the lower bound (0 is probably too small)
+    u.StopMoving();
+    LoadPath(u);
+    u.addUnitState(UNIT_STAT_ROAMING|UNIT_STAT_ROAMING_MOVE);
+}
+
+void WaypointMovementGenerator<Creature>::Finalize( Creature &u )
+{
+    u.clearUnitState(UNIT_STAT_ROAMING|UNIT_STAT_ROAMING_MOVE);
+}
+
+void WaypointMovementGenerator<Creature>::Interrupt( Creature &u )
+{
+    u.addUnitState(UNIT_STAT_ROAMING|UNIT_STAT_ROAMING_MOVE);
+}
+
+void WaypointMovementGenerator<Creature>::Reset( Creature &u )
+{
+    ReloadPath(u);
+    b_StoppedByPlayer = false;
+    i_nextMoveTime.Reset(0);
+    u.addUnitState(UNIT_STAT_ROAMING|UNIT_STAT_ROAMING_MOVE);
 }
 
 bool WaypointMovementGenerator<Creature>::Update(Creature &creature, const uint32 &diff)
@@ -85,12 +107,18 @@ bool WaypointMovementGenerator<Creature>::Update(Creature &creature, const uint3
 
     // Waypoint movement can be switched on/off
     // This is quite handy for escort quests and other stuff
-    if (creature.hasUnitState(UNIT_STAT_ROOT | UNIT_STAT_STUNNED | UNIT_STAT_DISTRACTED | UNIT_STAT_DIED))
+    if (creature.hasUnitState(UNIT_STAT_NOT_MOVE))
+    {
+        creature.clearUnitState(UNIT_STAT_ROAMING_MOVE);
         return true;
+    }
 
     // prevent a crash at empty waypoint path.
     if (!i_path || i_path->empty())
+    {
+        creature.clearUnitState(UNIT_STAT_ROAMING_MOVE);
         return true;
+    }
 
     // i_path was modified by chat commands for example
     if (i_path->size() != i_hasDone.size())
@@ -112,10 +140,10 @@ bool WaypointMovementGenerator<Creature>::Update(Creature &creature, const uint3
         {
             SetStoppedByPlayer(false);
 
-            creature.addUnitState(UNIT_STAT_ROAMING);
+            creature.addUnitState(UNIT_STAT_ROAMING_MOVE);
 
             if (creature.canFly())
-                creature.AddMonsterMoveFlag(MONSTER_MOVE_FLY);
+                creature.AddSplineFlag(SPLINEFLAG_UNKNOWN7);
 
             // Now we re-set destination to same node and start travel
             const WaypointNode &node = i_path->at(i_currentNode);
@@ -187,10 +215,10 @@ bool WaypointMovementGenerator<Creature>::Update(Creature &creature, const uint3
         // If stopped then begin a new move segment
         if (creature.IsStopped())
         {
-            creature.addUnitState(UNIT_STAT_ROAMING);
+            creature.addUnitState(UNIT_STAT_ROAMING_MOVE);
 
             if (creature.canFly())
-                creature.AddMonsterMoveFlag(MONSTER_MOVE_FLY);
+                creature.AddSplineFlag(SPLINEFLAG_UNKNOWN7);
 
             const WaypointNode &node = i_path->at(i_currentNode);
             i_destinationHolder.SetDestination(traveller, node.x, node.y, node.z);
@@ -264,7 +292,7 @@ void FlightPathMovementGenerator::Initialize(Player &player)
     // do not send movement, it was sent already
     i_destinationHolder.SetDestination(traveller, i_path[i_currentNode].x, i_path[i_currentNode].y, i_path[i_currentNode].z, false);
 
-    player.SendMonsterMoveByPath(GetPath(),GetCurrentNode(),GetPathAtMapEnd(),MONSTER_MOVE_SPLINE_FLY);
+    player.SendMonsterMoveByPath(GetPath(),GetCurrentNode(),GetPathAtMapEnd(), SplineFlags(SPLINEFLAG_WALKMODE|SPLINEFLAG_FLYING));
 }
 
 void FlightPathMovementGenerator::Finalize(Player & player)

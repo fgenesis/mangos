@@ -45,8 +45,8 @@ m_sessionDbcLocale(sWorld.GetAvailableDbcLocale(locale)), m_sessionDbLocaleIndex
 _logoutTime(0), m_inQueue(false), m_playerLoading(false), m_playerLogout(false), m_playerRecentlyLogout(false), m_playerSave(false),
 m_latency(0), m_TutorialsChanged(false)
 {
-    m_XPMultiKill  = sWorld.getRate(RATE_XP_KILL);
-    m_XPMultiQuest = sWorld.getRate(RATE_XP_QUEST);
+    m_XPMultiKill  = sWorld.getConfig(CONFIG_FLOAT_RATE_XP_KILL);
+    m_XPMultiQuest = sWorld.getConfig(CONFIG_FLOAT_RATE_XP_QUEST);
 
     if (sock)
     {
@@ -381,7 +381,7 @@ void WorldSession::LogoutPlayer(bool Save)
 
         ///- Reset the online field in the account table
         // no point resetting online in character table here as Player::SaveToDB() will set it to 1 since player has not been removed from world at this stage
-        //No SQL injection as AccountID is uint32
+        // No SQL injection as AccountID is uint32
         loginDatabase.PExecute("UPDATE account SET active_realm_id = 0 WHERE id = '%u'", GetAccountId());
 
         ///- If the player is in a guild, update the guild roster and broadcast a logout message to other guild members
@@ -391,16 +391,11 @@ void WorldSession::LogoutPlayer(bool Save)
             guild->SetMemberStats(_player->GetGUID());
             guild->UpdateLogoutTime(_player->GetGUID());
 
-            WorldPacket data(SMSG_GUILD_EVENT, (1+1+12+8)); // name limited to 12 in character table.
-            data<<(uint8)GE_SIGNED_OFF;
-            data<<(uint8)1;
-            data<<_player->GetName();
-            data<<_player->GetGUID();
-            guild->BroadcastPacket(&data);
+            guild->BroadcastEvent(GE_SIGNED_OFF, _player->GetGUID(), 1, _player->GetName(), "", "");
         }
 
         ///- Remove pet
-        _player->RemovePet(NULL,PET_SAVE_AS_CURRENT, true);
+        _player->RemovePet(NULL, PET_SAVE_AS_CURRENT, true);
 
         ///- empty buyback items and save the player in the database
         // some save parts only correctly work in case player present in map/player_lists (pets, etc)
@@ -572,9 +567,10 @@ void WorldSession::SendAuthWaitQue(uint32 position)
     }
     else
     {
-        WorldPacket packet( SMSG_AUTH_RESPONSE, 5 );
-        packet << uint8( AUTH_WAIT_QUEUE );
-        packet << uint32 (position);
+        WorldPacket packet( SMSG_AUTH_RESPONSE, 1+4+1 );
+        packet << uint8(AUTH_WAIT_QUEUE);
+        packet << uint32(position);
+        packet << uint8(0);                                 // unk 3.3.0
         SendPacket(&packet);
     }
 }
@@ -631,8 +627,9 @@ void WorldSession::SetAccountData(AccountDataType type, time_t time_, std::strin
 
         CharacterDatabase.BeginTransaction ();
         CharacterDatabase.PExecute("DELETE FROM account_data WHERE account='%u' AND type='%u'", acc, type);
-        CharacterDatabase.escape_string(data);
-        CharacterDatabase.PExecute("INSERT INTO account_data VALUES ('%u','%u','%u','%s')", acc, type, (uint32)time_, data.c_str());
+        std::string safe_data = data;
+        CharacterDatabase.escape_string(safe_data);
+        CharacterDatabase.PExecute("INSERT INTO account_data VALUES ('%u','%u','%u','%s')", acc, type, (uint32)time_, safe_data.c_str());
         CharacterDatabase.CommitTransaction ();
     }
     else
@@ -643,8 +640,9 @@ void WorldSession::SetAccountData(AccountDataType type, time_t time_, std::strin
 
         CharacterDatabase.BeginTransaction ();
         CharacterDatabase.PExecute("DELETE FROM character_account_data WHERE guid='%u' AND type='%u'", m_GUIDLow, type);
-        CharacterDatabase.escape_string(data);
-        CharacterDatabase.PExecute("INSERT INTO character_account_data VALUES ('%u','%u','%u','%s')", m_GUIDLow, type, (uint32)time_, data.c_str());
+        std::string safe_data = data;
+        CharacterDatabase.escape_string(safe_data);
+        CharacterDatabase.PExecute("INSERT INTO character_account_data VALUES ('%u','%u','%u','%s')", m_GUIDLow, type, (uint32)time_, safe_data.c_str());
         CharacterDatabase.CommitTransaction ();
     }
 
@@ -723,115 +721,26 @@ void WorldSession::SaveTutorialsData()
     m_TutorialsChanged = false;
 }
 
-void WorldSession::ReadMovementInfo(WorldPacket &data, MovementInfo *mi)
-{
-    data >> mi->flags;
-    data >> mi->unk1;
-    data >> mi->time;
-    data >> mi->x;
-    data >> mi->y;
-    data >> mi->z;
-    data >> mi->o;
-
-    if(mi->HasMovementFlag(MOVEMENTFLAG_ONTRANSPORT))
-    {
-        if(!data.readPackGUID(mi->t_guid))
-            return;
-
-        data >> mi->t_x;
-        data >> mi->t_y;
-        data >> mi->t_z;
-        data >> mi->t_o;
-        data >> mi->t_time;
-        data >> mi->t_seat;
-    }
-
-    if((mi->HasMovementFlag(MovementFlags(MOVEMENTFLAG_SWIMMING | MOVEMENTFLAG_FLYING2))) || (mi->unk1 & 0x20))
-    {
-        data >> mi->s_pitch;
-    }
-
-    data >> mi->fallTime;
-
-    if(mi->HasMovementFlag(MOVEMENTFLAG_JUMPING))
-    {
-        data >> mi->j_unk;
-        data >> mi->j_sinAngle;
-        data >> mi->j_cosAngle;
-        data >> mi->j_xyspeed;
-    }
-
-    if(mi->HasMovementFlag(MOVEMENTFLAG_SPLINE))
-    {
-        data >> mi->u_unk1;
-    }
-}
-
 void WorldSession::SetXPMultiKill(float m)
 {
     if(m < 1.0f)
         m = 1.0f;
-    if(m > sWorld.getRate(RATE_XP_KILL))
-        m = sWorld.getRate(RATE_XP_KILL);
+    if(m > sWorld.getConfig(CONFIG_FLOAT_RATE_XP_KILL))
+        m = sWorld.getConfig(CONFIG_FLOAT_RATE_XP_KILL);
     m_XPMultiKill = m;
 }
 void WorldSession::SetXPMultiQuest(float m)
 {
     if(m < 1.0f)
         m = 1.0f;
-    if(m > sWorld.getRate(RATE_XP_QUEST))
-        m = sWorld.getRate(RATE_XP_QUEST);
+    if(m > sWorld.getConfig(CONFIG_FLOAT_RATE_XP_QUEST))
+        m = sWorld.getConfig(CONFIG_FLOAT_RATE_XP_QUEST);
     m_XPMultiQuest = m;
 }
 
 std::string WorldSession::GetIP(void)
 {
     return m_Socket->GetRemoteAddress();
-}
-
-void WorldSession::WriteMovementInfo(WorldPacket *data, MovementInfo *mi)
-{
-    data->appendPackGUID(mi->guid);
-
-    *data << mi->flags;
-    *data << mi->unk1;
-    *data << mi->time;
-    *data << mi->x;
-    *data << mi->y;
-    *data << mi->z;
-    *data << mi->o;
-
-    if(mi->HasMovementFlag(MOVEMENTFLAG_ONTRANSPORT))
-    {
-        data->appendPackGUID(mi->t_guid);
-
-        *data << mi->t_x;
-        *data << mi->t_y;
-        *data << mi->t_z;
-        *data << mi->t_o;
-        *data << mi->t_time;
-        *data << mi->t_seat;
-    }
-
-    if((mi->HasMovementFlag(MovementFlags(MOVEMENTFLAG_SWIMMING | MOVEMENTFLAG_FLYING2))) || (mi->unk1 & 0x20))
-    {
-        *data << mi->s_pitch;
-    }
-
-    *data << mi->fallTime;
-
-    if(mi->HasMovementFlag(MOVEMENTFLAG_JUMPING))
-    {
-        *data << mi->j_unk;
-        *data << mi->j_sinAngle;
-        *data << mi->j_cosAngle;
-        *data << mi->j_xyspeed;
-    }
-
-    if(mi->HasMovementFlag(MOVEMENTFLAG_SPLINE))
-    {
-        *data << mi->u_unk1;
-    }
 }
 
 void WorldSession::ReadAddonsInfo(WorldPacket &data)
@@ -950,6 +859,7 @@ void WorldSession::SendAddonsInfo()
         uint32
         string (16 bytes)
         string (16 bytes)
+        uint32
         uint32
     }*/
 

@@ -52,13 +52,6 @@
 extern int m_ServiceStatus;
 #endif
 
-/*#if COMPILER == COMPILER_GNU
-#include "LinuxCrashDump.h"
-#endif*/
-
-/// \todo Warning disabling not useful under VC++2005. Can somebody say on which compiler it is useful?
-#pragma warning(disable:4305)
-
 INSTANTIATE_SINGLETON_1( Master );
 
 volatile uint32 Master::m_masterLoopCounter = 0;
@@ -126,7 +119,7 @@ public:
 
     RARunnable ()
     {
-        uint32 socketSelecttime = sWorld.getConfig (CONFIG_SOCKET_SELECTTIME);
+        uint32 socketSelecttime = sWorld.getConfig (CONFIG_UINT32_SOCKET_SELECTTIME);
         numLoops = (sConfig.GetIntDefault ("MaxPingTime", 30) * (MINUTE * 1000000 / socketSelecttime));
         loopCounter = 0;
     }
@@ -170,7 +163,7 @@ public:
         }
 
         // Socket Selet time is in microseconds , not miliseconds!!
-        uint32 socketSelecttime = sWorld.getConfig (CONFIG_SOCKET_SELECTTIME);
+        uint32 socketSelecttime = sWorld.getConfig (CONFIG_UINT32_SOCKET_SELECTTIME);
 
         // if use ra spend time waiting for io, if not use ra ,just sleep
         if (usera)
@@ -233,13 +226,9 @@ int Master::Run()
     
     // set realmbuilds depend on mangosd expected builds, and set server online
     {
-        std::ostringstream data;
-        int accepted_versions[] = EXPECTED_MANGOSD_CLIENT_BUILD;
-        for(int i = 0; accepted_versions[i]; ++i)
-        {
-            data << accepted_versions[i] << " ";
-        }
-        loginDatabase.PExecute("UPDATE realmlist SET color = 0, population = 0, realmbuilds = '%s'  WHERE id = '%d'", data.str().c_str(), realmID);
+        std::string builds = AcceptableClientBuildsListStr();
+        loginDatabase.escape_string(builds);
+        loginDatabase.PExecute("UPDATE realmlist SET color = 0, population = 0, realmbuilds = '%s'  WHERE id = '%d'", builds.c_str(), realmID);
     }
 
     ACE_Based::Thread* cliThread = NULL;
@@ -314,7 +303,7 @@ int Master::Run()
     }
 
     ///- Launch the world listener socket
-    port_t wsport = sWorld.getConfig (CONFIG_PORT_WORLD);
+    port_t wsport = sWorld.getConfig (CONFIG_UINT32_PORT_WORLD);
     std::string bind_ip = sConfig.GetStringDefault ("BindIP", "0.0.0.0");
 
     if (sWorldSocketMgr->StartNetwork (wsport, bind_ip.c_str ()) == -1)

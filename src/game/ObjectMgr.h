@@ -254,6 +254,32 @@ typedef std::pair<GossipMenusMap::const_iterator, GossipMenusMap::const_iterator
 typedef std::multimap<uint32,GossipMenuItems> GossipMenuItemsMap;
 typedef std::pair<GossipMenuItemsMap::const_iterator, GossipMenuItemsMap::const_iterator> GossipMenuItemsMapBounds;
 
+struct QuestPOIPoint
+{
+    int32 x;
+    int32 y;
+
+    QuestPOIPoint() : x(0), y(0) {}
+    QuestPOIPoint(int32 _x, int32 _y) : x(_x), y(_y) {}
+};
+
+struct QuestPOI
+{
+    int32 ObjectiveIndex;
+    uint32 MapId;
+    uint32 Unk1;
+    uint32 Unk2;
+    uint32 Unk3;
+    uint32 Unk4;
+    std::vector<QuestPOIPoint> points;
+
+    QuestPOI() : ObjectiveIndex(0), MapId(0), Unk1(0), Unk2(0), Unk3(0), Unk4(0) {}
+    QuestPOI(int32 objIndex, uint32 mapId, uint32 unk1, uint32 unk2, uint32 unk3, uint32 unk4) : ObjectiveIndex(objIndex), MapId(mapId), Unk1(unk1), Unk2(unk2), Unk3(unk3), Unk4(unk4) {}
+};
+
+typedef std::vector<QuestPOI> QuestPOIVector;
+typedef UNORDERED_MAP<uint32, QuestPOIVector> QuestPOIMap;
+
 #define WEATHER_SEASONS 4
 struct WeatherSeasonChances
 {
@@ -377,9 +403,9 @@ class ObjectMgr
 
         typedef UNORDERED_MAP<uint32, Item*> ItemMap;
 
-        typedef std::set< Group * > GroupSet;
+        typedef UNORDERED_MAP<uint32, Group*> GroupMap;
 
-        typedef UNORDERED_MAP<uint32, Guild *> GuildMap;
+        typedef UNORDERED_MAP<uint32, Guild*> GuildMap;
 
         typedef UNORDERED_MAP<uint32, ArenaTeam*> ArenaTeamMap;
 
@@ -404,9 +430,10 @@ class ObjectMgr
         void LoadGameobjectInfo();
         void AddGameobjectInfo(GameObjectInfo *goinfo);
 
-        Group * GetGroupByLeader(const uint64 &guid) const;
-        void AddGroup(Group* group) { mGroupSet.insert( group ); }
-        void RemoveGroup(Group* group) { mGroupSet.erase( group ); }
+        void PackGroupIds();
+        Group* GetGroupById(uint32 id) const;
+        void AddGroup(Group* group);
+        void RemoveGroup(Group* group);
 
         Guild* GetGuildByLeader(uint64 const&guid) const;
         Guild* GetGuildById(uint32 GuildId) const;
@@ -536,6 +563,14 @@ class ObjectMgr
             return NULL;
         }
 
+        QuestPOIVector const* GetQuestPOIVector(uint32 questId)
+        {
+            QuestPOIMap::const_iterator itr = mQuestPOIMap.find(questId);
+            if(itr != mQuestPOIMap.end())
+                return &itr->second;
+            return NULL;
+        }
+
         void LoadGuilds();
         void LoadArenaTeams();
         void LoadGroups();
@@ -609,6 +644,7 @@ class ObjectMgr
 
         void LoadReputationOnKill();
         void LoadPointsOfInterest();
+        void LoadQuestPOI();
 
         void LoadNPCSpellClickSpells();
 
@@ -624,8 +660,9 @@ class ObjectMgr
         void LoadTrainerSpell();
 
         std::string GeneratePetName(uint32 entry);
-        uint32 GetBaseXP(uint32 level);
-        uint32 GetXPForLevel(uint32 level);
+        uint32 GetBaseXP(uint32 level) const;
+        uint32 GetXPForLevel(uint32 level) const;
+        uint32 GetXPForPetLevel(uint32 level) const { return GetXPForLevel(level)/20; }
 
         int32 GetFishingBaseSkillLevel(uint32 entry) const
         {
@@ -641,6 +678,7 @@ class ObjectMgr
         uint32 GenerateAuctionID();
         uint64 GenerateEquipmentSetGuid();
         uint32 GenerateGuildId();
+        uint32 GenerateGroupId();
         uint32 GenerateItemTextID();
         uint32 GenerateMailID();
         uint32 GeneratePetNumber();
@@ -891,8 +929,9 @@ class ObjectMgr
         uint32 m_ItemTextId;
         uint32 m_mailid;
         uint32 m_hiPetNumber;
+        uint32 m_groupId;
 
-        // first free low guid for seelcted guid type
+        // first free low guid for selected guid type
         uint32 m_hiCharGuid;
         uint32 m_hiCreatureGuid;
         uint32 m_hiItemGuid;
@@ -907,7 +946,7 @@ class ObjectMgr
         typedef std::set<uint32> TavernAreaTriggerSet;
         typedef std::set<uint32> GameObjectForQuestSet;
 
-        GroupSet            mGroupSet;
+        GroupMap            mGroupMap;
         GuildMap            mGuildMap;
         ArenaTeamMap        mArenaTeamMap;
 
@@ -925,6 +964,8 @@ class ObjectMgr
         GossipMenusMap      m_mGossipMenusMap;
         GossipMenuItemsMap  m_mGossipMenuItemsMap;
         PointOfInterestMap  mPointsOfInterest;
+
+        QuestPOIMap         mQuestPOIMap;
 
         WeatherZoneMap      mWeatherZoneMap;
 

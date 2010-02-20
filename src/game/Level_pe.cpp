@@ -902,7 +902,7 @@ bool ChatHandler::HandleBanAutoCommand(const char *args)
                 uint32 banid = atoi(oldreason.c_str() + 10);
                 max_banid = std::max(max_banid, banid);
             }
-            else if(bandiff >= sWorld.getConfig(CONFIG_AUTOBAN_MIN_COUNTED_BANTIME) || bandiff == 0)
+            else if(bandiff >= (int32)sWorld.getConfig(CONFIG_UINT32_AUTOBAN_MIN_COUNTED_BANTIME) || bandiff == 0)
             {
                 ++counted_extra_bans;
             }

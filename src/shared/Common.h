@@ -57,14 +57,8 @@
 #if COMPILER == COMPILER_MICROSOFT
 #  pragma warning(disable:4996)                             // 'function': was declared deprecated
 #ifndef __SHOW_STUPID_WARNINGS__
-#  pragma warning(disable:4005)                             // 'identifier' : macro redefinition
-#  pragma warning(disable:4018)                             // 'expression' : signed/unsigned mismatch
 #  pragma warning(disable:4244)                             // 'argument' : conversion from 'type1' to 'type2', possible loss of data
-#  pragma warning(disable:4267)                             // 'var' : conversion from 'size_t' to 'type', possible loss of data
-#  pragma warning(disable:4305)                             // 'identifier' : truncation from 'type1' to 'type2'
-#  pragma warning(disable:4311)                             // 'variable' : pointer truncation from 'type' to 'type'
 #  pragma warning(disable:4355)                             // 'this' : used in base member initializer list
-#  pragma warning(disable:4800)                             // 'type' : forcing value to bool 'true' or 'false' (performance warning)
 #endif                                                      // __SHOW_STUPID_WARNINGS__
 #endif                                                      // __GNUC__
 
@@ -173,7 +167,7 @@ enum AccountTypes
 
 enum LocaleConstant
 {
-    LOCALE_enUS = 0,
+    LOCALE_enUS = 0,                                        // also enGB
     LOCALE_koKR = 1,
     LOCALE_frFR = 2,
     LOCALE_deDE = 3,
@@ -186,9 +180,19 @@ enum LocaleConstant
 
 #define MAX_LOCALE 9
 
+LocaleConstant GetLocaleByName(const std::string& name);
+
 extern char const* localeNames[MAX_LOCALE];
 
-LocaleConstant GetLocaleByName(const std::string& name);
+struct LocaleNameStr
+{
+    char const* name;
+    LocaleConstant locale;
+};
+
+// used for iterate all names including alternative
+extern LocaleNameStr fullLocaleNameList[];
+
 //operator new[] based version of strdup() function! Release memory by using operator delete[] !
 inline char * mangos_strdup(const char * source)
 {
@@ -208,6 +212,10 @@ inline char * mangos_strdup(const char * source)
 
 #ifndef M_PI
 #  define M_PI          3.14159265358979323846
+#endif
+
+#ifndef M_PI_F
+#  define M_PI_F        float(M_PI)
 #endif
 
 #endif
