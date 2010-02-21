@@ -346,10 +346,6 @@ class MANGOS_DLL_SPEC Group
 
         // FG: evil hacks
         void BroadcastGroupUpdate(void);
-        void UpdateDiplomacyDistance(Player*);
-        void UpdateDiplomacyStatus(void);
-        bool IsDiplomatic(void) { return (m_isDiplomatic && !isRaidGroup()); }
-        bool IsLevelForDiplomacy(uint32);
 
     protected:
         bool _addMember(const uint64 &guid, const char* name, bool isAssistant=false);
@@ -429,12 +425,5 @@ class MANGOS_DLL_SPEC Group
         Rolls               RollId;
         BoundInstancesMap   m_boundInstances[MAX_DIFFICULTY];
         uint8*              m_subGroupsCounts;
-
-
-        // FG: some extra values needed for diplomacy mode
-        bool m_isDiplomatic : 1;
-        uint32 m_guidedTeamLevelSum; // the weaker side's level sum
-        uint32 m_guidedTeam; // HORDE or ALLIANCE
-
 };
 #endif

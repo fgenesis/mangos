@@ -121,10 +121,7 @@ void WorldSession::SendAuctionOutbiddedMail(AuctionEntry *auction, uint32 newPri
         std::ostringstream msgAuctionOutbiddedSubject;
         msgAuctionOutbiddedSubject << auction->item_template << ":0:" << AUCTION_OUTBIDDED;
 
-        if (oldBidder && !_player)
-            oldBidder->GetSession()->SendAuctionBidderNotification( auction->GetHouseId(), auction->Id, AuctionHouseBotPlayerGUID(), newPrice, auction->GetAuctionOutBid(), auction->item_template);
-
-        if (oldBidder && _player)
+        if (oldBidder)
             oldBidder->GetSession()->SendAuctionBidderNotification( auction->GetHouseId(), auction->Id, _player->GetGUID(), newPrice, auction->GetAuctionOutBid(), auction->item_template);
 
         MailDraft(msgAuctionOutbiddedSubject.str())

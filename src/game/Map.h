@@ -338,7 +338,6 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>, public MaNGOS::Obj
         virtual bool CanEnter(Player* /*player*/) { return true; }
         const char* GetMapName() const;
 
-
         // have meaning only for instanced map (that have set real difficulty), NOT USE its for BaseMap
         // _currently_ spawnmode == difficulty, but this can be changes later, so use appropriate spawmmode/difficult functions
         // for simplify later code support
@@ -349,7 +348,7 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>, public MaNGOS::Obj
         uint32 GetMaxPlayers() const;                       // dependent from map difficulty
         uint32 GetMaxResetDelay() const;                    // dependent from map difficulty
         MapDifficulty const* GetMapDifficulty() const;      // dependent from map difficulty
-        bool Instanceable() const;
+        bool Instanceable() const; // FG: implementation in Map.cpp, added some extra stuff
 
         // NOTE: this duplicate of Instanceable(), but Instanceable() can be changed when BG also will be instanceable
         bool IsDungeon() const { return i_mapEntry && i_mapEntry->IsDungeon(); }

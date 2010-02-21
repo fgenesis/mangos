@@ -96,8 +96,7 @@ enum ItemBondingType
     BIND_WHEN_EQUIPED                           = 2,
     BIND_WHEN_USE                               = 3,
     BIND_QUEST_ITEM                             = 4,
-    BIND_QUEST_ITEM1                            = 5
-
+    BIND_QUEST_ITEM1                            = 5         // not used in game
 };
 
 #define MAX_BIND_TYPE                             6

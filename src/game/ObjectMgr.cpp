@@ -1021,7 +1021,7 @@ void ObjectMgr::LoadCreatures()
 {
     uint32 count = 0;
     //                                                0              1   2    3
-    QueryResult *result = WorldDatabase.PQuery("SELECT creature.guid, id, map, modelid,"
+    QueryResult *result = WorldDatabase.Query("SELECT creature.guid, id, map, modelid,"
     //   4             5           6           7           8            9              10         11
         "equipment_id, position_x, position_y, position_z, orientation, spawntimesecs, spawndist, currentwaypoint,"
     //   12         13       14          15            16         17         18     19
@@ -6723,25 +6723,31 @@ void ObjectMgr::SaveGORespawnTime(uint32 loguid, uint32 instance, time_t t)
 
 void ObjectMgr::DeleteRespawnTimeForInstance(uint32 instance)
 {
-    for(RespawnTimes::iterator itr = mGORespawnTimes.begin(); itr != mGORespawnTimes.end(); )
+    RespawnTimes::iterator next;
+
+    for(RespawnTimes::iterator itr = mGORespawnTimes.begin(); itr != mGORespawnTimes.end(); itr = next)
     {
+        next = itr;
+        ++next;
+
         if(GUID_HIPART(itr->first)==instance)
-            itr = mGORespawnTimes.erase(itr);
-        else
-            itr++;
+            mGORespawnTimes.erase(itr);
     }
 
-    for(RespawnTimes::iterator itr = mCreatureRespawnTimes.begin(); itr != mCreatureRespawnTimes.end(); )
+    for(RespawnTimes::iterator itr = mCreatureRespawnTimes.begin(); itr != mCreatureRespawnTimes.end(); itr = next)
     {
+        next = itr;
+        ++next;
+
         if(GUID_HIPART(itr->first)==instance)
-            itr = mCreatureRespawnTimes.erase(itr);
-        else
-            itr++;
+            mCreatureRespawnTimes.erase(itr);
     }
 
     WorldDatabase.PExecute("DELETE FROM creature_respawn WHERE instance = '%u'", instance);
     WorldDatabase.PExecute("DELETE FROM gameobject_respawn WHERE instance = '%u'", instance);
 }
+
+
 
 void ObjectMgr::DeleteGOData(uint32 guid)
 {

@@ -2223,11 +2223,6 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
         {
             // add here custom effects that need default target.
             // FOR EVERY TARGET TYPE THERE IS A DIFFERENT FILL!!
-            if (m_spellInfo->SpellFamilyFlags2 & UI64LIT (0x00000020) && m_spellInfo->SpellIconID == 3217)
-            {
-                targetUnitMap.push_back(m_caster);
-                break;
-            }
             switch(m_spellInfo->Effect[effIndex])
             {
                 case SPELL_EFFECT_DUMMY:
@@ -2639,7 +2634,7 @@ void Spell::cast(bool skipCheck)
         case SPELLFAMILY_DRUID:
         {
             // Berserk
-            if (m_spellInfo->SpellIconID == 2852 && (m_spellInfo->AttributesEx & 0x28020))
+            if (m_spellInfo->Id == 50334) // FG: replaced iconId + AttributesEx check with spell id (as of 3.3.2)
                 AddPrecastSpell(58923); // Hit 3 targets at once with mangle in dire bear form
             // Faerie Fire (Feral)
             if (m_spellInfo->Id == 16857 && m_caster->m_form != FORM_CAT)
@@ -3904,10 +3899,6 @@ void Spell::TakeReagents()
     if (IgnoreItemRequirements())                           // reagents used in triggered spell removed by original spell or don't must be removed.
         return;
 
-    bool isNoReagentReqCast = m_CastItem ? m_CastItem->GetEntry() == m_spellInfo->EffectItemType[0] : false;
-    if(isNoReagentReqCast)
-        return;
-
     Player* p_caster = (Player*)m_caster;
     if (p_caster->CanNoReagentCast(m_spellInfo) )
         return;
@@ -4099,9 +4090,7 @@ SpellCastResult Spell::CheckCast(bool strict)
         return SPELL_FAILED_CASTER_AURASTATE;
 
     // Caster aura req check if need
-    if(m_spellInfo->casterAuraSpell &&
-        sSpellStore.LookupEntry(m_spellInfo->casterAuraSpell) &&
-        !m_caster->HasAura(m_spellInfo->casterAuraSpell))
+    if(m_spellInfo->casterAuraSpell && !m_caster->HasAura(m_spellInfo->casterAuraSpell))
         return SPELL_FAILED_CASTER_AURASTATE;
     if(m_spellInfo->excludeCasterAuraSpell)
     {

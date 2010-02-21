@@ -43,8 +43,6 @@
 #include "AuctionHouseMgr.h"
 
 // FG: more req. includes
-#include "AuctionHouseBot.h"
-
 #include "Chat.h"
 
 

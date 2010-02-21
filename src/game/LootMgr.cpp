@@ -383,7 +383,7 @@ void Loot::AddItem(LootStoreItem const & item)
         for(std::vector<LootItem>::iterator it = items.begin(); it != items.end(); it++)
             if(it->itemid == item.itemid)
                 exist_count++;
-        if( (exist_count == 1 && roll_chance_i(88)) || exist_count > 1) // if only 1 exists, 12% chance to add 2nd, if 2 items or more, dont add
+        if( (exist_count == 1 && roll_chance_i(95)) || exist_count > 1) // if only 1 exists, 5% chance to add 2nd, if 2 items or more, dont add
             return;
 
         items.push_back(LootItem(item));

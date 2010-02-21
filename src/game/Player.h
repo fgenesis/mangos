@@ -95,12 +95,6 @@ struct PlayerSpell
     bool disabled          : 1;                             // first rank has been learned in result talent learn but currently talent unlearned, save max learned ranks
 };
 
-struct PlayerTalent
-{
-    PlayerSpellState state : 8;
-    uint8 spec             : 8;
-};
-
 // Spell modifier (used for modify other spells)
 struct SpellModifier
 {
@@ -126,7 +120,6 @@ struct SpellModifier
     Spell const* lastAffected;
 };
 
-typedef UNORDERED_MAP<uint32, PlayerTalent*> PlayerTalentMap;
 typedef UNORDERED_MAP<uint32, PlayerSpell*> PlayerSpellMap;
 typedef std::list<SpellModifier*> SpellModList;
 
@@ -170,11 +163,10 @@ enum ActionButtonType
 
 struct ActionButton
 {
-    ActionButton() : packedData(0), uState( ACTIONBUTTON_NEW ), canRemoveByClient(true){}
+    ActionButton() : packedData(0), uState( ACTIONBUTTON_NEW ) {}
 
     uint32 packedData;
     ActionButtonUpdateState uState;
-    bool canRemoveByClient;
 
     // helpers
     ActionButtonType GetType() const { return ActionButtonType(ACTION_BUTTON_TYPE(packedData)); }
@@ -1438,7 +1430,6 @@ class MANGOS_DLL_SPEC Player : public Unit
 
         bool LoadFromDB(uint32 guid, SqlQueryHolder *holder);
 
-        bool MinimalLoadFromDB(QueryResult *result, uint32 guid);
         static bool   LoadValuesArrayFromDB(Tokens& data,uint64 guid);
         static uint32 GetUInt32ValueFromArray(Tokens const& data, uint16 index);
         static float  GetFloatValueFromArray(Tokens const& data, uint16 index);
@@ -1587,9 +1578,6 @@ class MANGOS_DLL_SPEC Player : public Unit
         void SendTalentsInfoData(bool pet);
         void LearnTalent(uint32 talentId, uint32 talentRank);
         void LearnPetTalent(uint64 petGuid, uint32 talentId, uint32 talentRank);
-
-        bool AddTalent(uint32 spell, uint8 spec, bool learning);
-        bool HasTalent(uint32 spell_id, uint8 spec) const;
 
         uint32 CalculateTalentsPoints() const;
 
@@ -1779,7 +1767,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         void UpdateRating(CombatRating cr);
         void UpdateAllRatings();
 
-        void CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, bool addTotalPct, float& min_damage, float& max_damage);
+        void CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, float& min_damage, float& max_damage);
 
         void UpdateDefenseBonusesMod();
         float GetMeleeCritFromAgility();
@@ -2307,6 +2295,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         bool HasTitle(uint32 bitIndex);
         bool HasTitle(CharTitlesEntry const* title) { return HasTitle(title->bit_index); }
         void SetTitle(CharTitlesEntry const* title, bool lost = false);
+
         bool isActiveObject() const { return true; }
         bool canSeeSpellClickOn(Creature const* creature) const;
 
@@ -2317,7 +2306,6 @@ class MANGOS_DLL_SPEC Player : public Unit
         void SetGMTriggers(bool on) { if(on) m_ExtraFlags |= PLAYER_EXTRA_GM_SHOW_TRIGGERS; else m_ExtraFlags &= ~PLAYER_EXTRA_GM_SHOW_TRIGGERS; }
         bool isGMHax() const { return GetSession()->GetSecurity() >= SEC_MODERATOR && (m_ExtraFlags & PLAYER_EXTRA_GM_SHOW_HAXORS); }
         void SetGMHax(bool on) { if(on) m_ExtraFlags |= PLAYER_EXTRA_GM_SHOW_HAXORS; else m_ExtraFlags &= ~PLAYER_EXTRA_GM_SHOW_HAXORS; }
-        void UpdateDiplomacyDistance(void);
         inline void SetMyinfoForbidden(bool b) { m_myinfoForbidden = b; }
         inline bool IsMyinfoForbidden(void) { return m_myinfoForbidden; }
         // ACH start
@@ -2386,7 +2374,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         /***                   LOAD SYSTEM                     ***/
         /*********************************************************/
 
-        void _LoadActions(QueryResult *result, bool startup);
+        void _LoadActions(QueryResult *result);
         void _LoadAuras(QueryResult *result, uint32 timediff);
         void _LoadBoundInstances(QueryResult *result);
         void _LoadInventory(QueryResult *result, uint32 timediff);
@@ -2472,7 +2460,6 @@ class MANGOS_DLL_SPEC Player : public Unit
         PlayerMails m_mail;
         PlayerSpellMap m_spells;
         SpellCooldowns m_spellCooldowns;
-		PlayerTalentMap *m_talents[MAX_TALENT_SPEC_COUNT];
         uint32 m_lastPotionId;                              // last used health/mana potion in combat, that block next potion use
 
         uint8 m_activeSpec;

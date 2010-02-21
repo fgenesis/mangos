@@ -154,7 +154,6 @@ void WorldSession::HandleGuildInviteOpcode(WorldPacket& recvPacket)
     sLog.outDebug("WORLD: Sent (SMSG_GUILD_INVITE)");
 }
 
-
 void WorldSession::HandleGuildRemoveOpcode(WorldPacket& recvPacket)
 {
     sLog.outDebug("WORLD: Received CMSG_GUILD_REMOVE");

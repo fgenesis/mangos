@@ -885,7 +885,6 @@ class ObjectMgr
         void LoadCreaturesExtended(void);
         void LoadAnticheatAccInfo(void);
         AnticheatAccInfo *GetAnticheatAccInfo(uint32);
-        void LoadCustomInstanceResetTimes(void);
         void LoadSpecialChannels(void);
         SpecialChannel GetSpecialChan(std::string);
         void LoadAllowedGMAccounts(void);

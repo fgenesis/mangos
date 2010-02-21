@@ -84,9 +84,6 @@ class AuctionHouseObject
 
         uint32 Getcount() { return AuctionsMap.size(); }
 
-        AuctionEntryMap::iterator GetAuctionsBegin() {return AuctionsMap.begin();}
-        AuctionEntryMap::iterator GetAuctionsEnd() {return AuctionsMap.end();}
-
         void AddAuction(AuctionEntry *ah)
         {
             ASSERT( ah );
@@ -113,10 +110,8 @@ class AuctionHouseObject
             uint32 inventoryType, uint32 itemClass, uint32 itemSubClass, uint32 quality,
             uint32& count, uint32& totalcount);
 
-
-
     private:
-    AuctionEntryMap AuctionsMap;
+        AuctionEntryMap AuctionsMap;
 };
 
 class AuctionHouseMgr

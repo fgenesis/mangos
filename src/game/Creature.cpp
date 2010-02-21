@@ -131,6 +131,7 @@ m_creatureInfo(NULL), m_isActiveObject(false), m_splineFlags(SPLINEFLAG_WALKMODE
     m_CreatureSpellCooldowns.clear();
     m_CreatureCategoryCooldowns.clear();
     m_GlobalCooldown = 0;
+
     m_splineFlags = SPLINEFLAG_WALKMODE;
 
     ResetObtainedDamage();

@@ -30,8 +30,6 @@ void WorldSession::HandleJoinChannel(WorldPacket& recvPacket)
     recvPacket >> channel_id >> unknown1 >> unknown2;
     recvPacket >> channelname;
 
-    DEBUG_LOG("-- %s join chan: '%s' id=%u u1=%u u2=%u",GetPlayerName(),channelname.c_str(),channel_id,unknown1,unknown2);
-
     if(channelname.empty())
         return;
 

@@ -1594,9 +1594,9 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                     (spellInfo_2->Id == 47585 && spellInfo_1->Id == 60069))
                     return false;
                 // Power Word: Shield and Divine Aegis
-                if ((spellInfo_1->SpellIconID == 566 && spellInfo_2->SpellIconID == 2820) ||
+                /*if ((spellInfo_1->SpellIconID == 566 && spellInfo_2->SpellIconID == 2820) ||
                     (spellInfo_2->SpellIconID == 566 && spellInfo_1->SpellIconID == 2820))
-                    return false;
+                    return false;*/ // FG: this caused a shitload of trouble!!!!
             }
             break;
         case SPELLFAMILY_DRUID:
