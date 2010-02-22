@@ -4589,6 +4589,12 @@ SpellCastResult Spell::CheckCast(bool strict)
                         return SPELL_FAILED_TOTEMS;
                 }
                 break;
+                // FG: hunger for blood requires bleed effect on target
+                if (m_spellInfo->Id == 51662)
+                {
+                    if(!m_targets.getUnitTarget() || !m_targets.getUnitTarget()->HasAuraState(AURA_STATE_MECHANIC_BLEED))
+                        return SPELL_FAILED_PREVENTED_BY_MECHANIC; // FG: i guess its the wrong one
+                }
             }
             case SPELL_EFFECT_SCHOOL_DAMAGE:
             {
@@ -5131,6 +5137,7 @@ SpellCastResult Spell::CheckCast(bool strict)
         // sated preventing bloodlust
         if(m_spellInfo->Id == 2825 && target->HasAura(57724))
             return SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW;
+
     }
 
 
@@ -5622,7 +5629,7 @@ SpellCastResult Spell::CheckItems()
         if(!m_targets.getItemTarget())
             return SPELL_FAILED_ITEM_GONE;
 
-        if(!m_targets.getItemTarget()->IsFitToSpellRequirements(m_spellInfo) && !isNoReagentReqCast)
+        if(!m_targets.getItemTarget()->IsFitToSpellRequirements(m_spellInfo) && )
             return SPELL_FAILED_EQUIPPED_ITEM_CLASS;
     }
     // if not item target then required item must be equipped

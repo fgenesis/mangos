@@ -2901,7 +2901,7 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                     if (Unit* caster = GetCaster())
                         // prevent double apply bonuses
                         if(m_target->GetTypeId()!=TYPEID_PLAYER || !((Player*)m_target)->GetSession()->PlayerLoading())
-                            m_modifier.m_amount = caster->SpellHealingBonus(m_target, GetSpellProto(), m_modifier.m_amount / m_stackAmount, SPELL_DIRECT_DAMAGE);
+                            m_modifier.m_amount = caster->SpellHealingBonus(m_target, GetSpellProto(), m_modifier.m_amount, SPELL_DIRECT_DAMAGE);
                 }
                 else
                 {
@@ -2919,7 +2919,7 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                     // final heal
                     if(m_target->IsInWorld() && m_stackAmount > 0)
                     {
-                        int32 amount = m_modifier.m_amount * m_stackAmount;
+                        int32 amount = m_modifier.m_amount / m_stackAmount;
                         m_target->CastCustomSpell(m_target, 33778, &amount, NULL, NULL, true, NULL, this, GetCasterGUID());
 
                         if (Unit* caster = GetCaster())
@@ -3277,8 +3277,7 @@ void Aura::HandleAuraModShapeshift(bool apply, bool Real)
         if(m_target->m_ShapeShiftFormSpellId)
             m_target->RemoveAurasDueToSpell(m_target->m_ShapeShiftFormSpellId, this);
 
-        // For Shadow Dance we must apply Stealth form (30) instead of current (13)
-        m_target->SetByteValue(UNIT_FIELD_BYTES_2, 3, (form == FORM_SHADOW_DANCE) ? uint8(FORM_STEALTH) : form);
+        m_target->SetByteValue(UNIT_FIELD_BYTES_2, 3, form);
 
         if(modelid > 0)
             m_target->SetDisplayId(modelid);
@@ -3347,12 +3346,6 @@ void Aura::HandleAuraModShapeshift(bool apply, bool Real)
                         m_target->SetPower(POWER_RAGE, Rage_val);
                     break;
                 }
-                // Shadow Dance - apply stealth mode stand flag
-                case FORM_SHADOW_DANCE:
-                {
-                    m_target->SetStandFlags(UNIT_STAND_FLAGS_CREEP);
-                    break;
-                }
                 default:
                     break;
             }
@@ -3393,10 +3386,6 @@ void Aura::HandleAuraModShapeshift(bool apply, bool Real)
                 if(Aura* dummy = m_target->GetDummyAura(37324) )
                     m_target->CastSpell(m_target, 37325, true, NULL, dummy);
                 break;
-            // Shadow Dance - apply stealth mode stand flag
-            case FORM_SHADOW_DANCE:
-                m_target->RemoveStandFlags(UNIT_STAND_FLAGS_CREEP);
-                break;
             default:
                 break;
         }
@@ -3412,8 +3401,6 @@ void Aura::HandleAuraModShapeshift(bool apply, bool Real)
     // adding/removing linked auras
     // add/remove the shapeshift aura's boosts
     HandleShapeshiftBoosts(apply);
-
-    m_target->UpdateSpeed(MOVE_RUN, true);
 
     if(m_target->GetTypeId() == TYPEID_PLAYER)
         ((Player*)m_target)->InitDataForForm();
@@ -3675,7 +3662,6 @@ void Aura::HandleChannelDeathItem(bool apply, bool Real)
         ((Player*)caster)->SendNewItem(newitem, count, true, false);
     }
 }
-
 
 void Aura::HandleBindSight(bool apply, bool /*Real*/)
 {
@@ -4987,7 +4973,7 @@ void Aura::HandlePeriodicDamage(bool apply, bool Real)
                 if (m_spellProto->SpellFamilyFlags & UI64LIT(0x000000010000000000))
                 {
                     // $AP*0.05/5 bonus per tick
-                    m_modifier.m_amount += int32(caster->GetTotalAttackPowerValue(BASE_ATTACK) * 5 / 100);
+                    m_modifier.m_amount += int32(caster->GetTotalAttackPowerValue(BASE_ATTACK) * 5 / 100); // FG: corrected damage
                     return;
                 }
                 // Rip
@@ -5442,7 +5428,6 @@ void Aura::HandleComprehendLanguage(bool apply, bool /*Real*/)
 
 void Aura::HandleAuraModIncreaseHealth(bool apply, bool Real)
 {
-    UnitModifierType value_or_pct = TOTAL_VALUE;
     // Special case with temporary increase max/current health
     switch(GetId())
     {
@@ -5477,13 +5462,10 @@ void Aura::HandleAuraModIncreaseHealth(bool apply, bool Real)
             }
             return;
         }
-        case 55233:                                         // Vampiric Blood
-            value_or_pct = TOTAL_PCT;
-            break;
     }
 
     // generic case
-    m_target->HandleStatModifier(UNIT_MOD_HEALTH, value_or_pct, float(m_modifier.m_amount), apply);
+    m_target->HandleStatModifier(UNIT_MOD_HEALTH, TOTAL_VALUE, float(m_modifier.m_amount), apply);
 }
 
 void  Aura::HandleAuraModIncreaseMaxHealth(bool apply, bool /*Real*/)
@@ -6782,7 +6764,6 @@ void Aura::HandleSchoolAbsorb(bool apply, bool Real)
             switch(m_spellProto->SpellFamilyName)
             {
                 case SPELLFAMILY_PRIEST:
-                {
                     // Power Word: Shield
                     if (m_spellProto->SpellFamilyFlags & UI64LIT(0x0000000000000001))
                     {
@@ -6802,7 +6783,6 @@ void Aura::HandleSchoolAbsorb(bool apply, bool Real)
                     }
 
                     break;
-                }
                 case SPELLFAMILY_MAGE:
                     // Frost Ward, Fire Ward
                     if (m_spellProto->SpellFamilyFlags & UI64LIT(0x0000000000000108))
@@ -8174,29 +8154,6 @@ void Aura::HandlePhase(bool apply, bool Real)
         m_target->SetVisibility(m_target->GetVisibility());
 }
 
-void Aura::HandleAllowOnlyAbility(bool apply, bool Real)
-{
-    if(!Real)
-        return;
-
-    if(apply)
-    {
-        m_target->setAttackTimer(BASE_ATTACK,m_duration);
-        m_target->setAttackTimer(RANGED_ATTACK,m_duration);
-        m_target->setAttackTimer(OFF_ATTACK,m_duration);
-    }
-    else
-    {
-        m_target->resetAttackTimer(BASE_ATTACK);
-        m_target->resetAttackTimer(RANGED_ATTACK);
-        m_target->resetAttackTimer(OFF_ATTACK);
-    }
-
-    m_target->UpdateDamagePhysical(BASE_ATTACK);
-    m_target->UpdateDamagePhysical(RANGED_ATTACK);
-    m_target->UpdateDamagePhysical(OFF_ATTACK);
-}
-
 void Aura::UnregisterSingleCastAura()
 {
     if (IsSingleTarget())
@@ -8305,4 +8262,27 @@ void Aura::HandleAuraModAllCritChance(bool apply, bool Real)
 
     // included in Player::UpdateSpellCritChance calculation
     ((Player*)m_target)->UpdateAllSpellCritChances();
+}
+
+void Aura::HandleAllowOnlyAbility(bool apply, bool Real)
+{
+    if(!Real)
+        return;
+
+    if(apply)
+    {
+        m_target->setAttackTimer(BASE_ATTACK,m_duration);
+        m_target->setAttackTimer(RANGED_ATTACK,m_duration);
+        m_target->setAttackTimer(OFF_ATTACK,m_duration);
+    }
+    else
+    {
+        m_target->resetAttackTimer(BASE_ATTACK);
+        m_target->resetAttackTimer(RANGED_ATTACK);
+        m_target->resetAttackTimer(OFF_ATTACK);
+    }
+
+    m_target->UpdateDamagePhysical(BASE_ATTACK);
+    m_target->UpdateDamagePhysical(RANGED_ATTACK);
+    m_target->UpdateDamagePhysical(OFF_ATTACK);
 }
