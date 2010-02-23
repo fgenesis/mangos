@@ -2519,6 +2519,26 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                 m_target->CastSpell(m_target, 47287, true, NULL, this);
                 return;
             }
+            case 34219: // Q: Recharging the Batteries
+            {
+                if (Unit* caster = GetCaster())
+                    if( GetTarget() &&GetTarget()->GetTypeId() == TYPEID_UNIT && GetTarget()->GetEntry() == 18879 && (GetTarget()->GetHealth() * 100 / GetTarget()->GetMaxHealth() < 30) )
+                        ((Creature*)GetTarget())->UpdateEntry(19595);
+                return;
+            }
+            case 31606: // Q: As the Crow Flies
+            {
+                if (Unit* caster = GetCaster())
+                    if( caster->GetTypeId() == TYPEID_PLAYER && ((Player*)caster)->GetQuestStatus(9718) == QUEST_STATUS_INCOMPLETE )
+                        ((Player*)caster)->CompleteQuest( 9718 );
+                return;
+            }
+            case 50141: // Q: Truce?
+            {                 if (Unit* caster = GetCaster())
+                    if( caster->GetTypeId() == TYPEID_PLAYER && ((Player*)caster)->GetQuestStatus(11989) == QUEST_STATUS_INCOMPLETE )
+                        ((Player*)caster)->CastSpell( caster, 50001, true );
+                return;
+            }
             case 58914:
             {
                 // kill command, just eye candy
@@ -2742,6 +2762,46 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                         // Play part 3
                         else
                             m_target->PlayDirectSound(14972, (Player *)m_target);
+                    }
+                    return;
+                case 43354: // Q: Seeds of the Blacksouled Keepers
+                    if( apply )
+                    {
+                        if (Unit* caster = GetCaster())
+                            if(caster->GetTypeId() == TYPEID_PLAYER )
+                                ((Player*)caster)->KilledMonsterCredit( 24235, 0);
+                    }
+                    else
+                    {
+                        if( m_target->GetTypeId() != TYPEID_PLAYER && m_target->GetEntry() == 23876 )
+                            ((Creature*)m_target)->ForcedDespawn();
+                    }
+                    return;
+                case 57806: // Q: The Restless Dead
+                    if( apply )
+                    {
+                        if (Unit* caster = GetCaster())
+                            if( caster->GetTypeId() == TYPEID_PLAYER )
+                                ((Player*)caster)->KilledMonsterCredit( 30546, 0);
+                    }
+                    else
+                    {
+                        if( m_target->GetTypeId() != TYPEID_PLAYER && m_target->GetEntry() == 31043 )
+                            ((Creature*)m_target)->ForcedDespawn();
+                    }
+                    return;
+                case 43115: // Q: Test at Sea
+                    if( apply && m_target->GetEntry() == 24120 )
+                    {
+                        switch( irand(0, 3))
+                        {
+                            case 0: m_target->MonsterYell("I don't feel so good...", LANG_UNIVERSAL, 0); break;
+                            case 1: m_target->MonsterYell("That liquid... it reeks!", LANG_UNIVERSAL, 0); break;
+                            case 2: m_target->MonsterYell("Someone shoot that bat down!", LANG_UNIVERSAL, 0); break;
+                        }
+                        if (Unit* caster = GetCaster())
+                            if(caster->GetTypeId() == TYPEID_PLAYER )
+                                caster->CastSpell(caster, 43138, true);
                     }
                     return;
                 case 40131:

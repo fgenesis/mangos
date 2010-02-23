@@ -1453,6 +1453,55 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                     m_caster->CastSpell(unitTarget,60934,true,NULL);
                     return;
                 }
+                case 45958: // Q:Coward Delivery... Under 30 Minutes or it's Free
+                {
+                    if( m_caster->GetTypeId() == TYPEID_PLAYER )
+                    {
+                        m_caster->CastSpell(m_caster, 45956, true );
+                        ((Player*)m_caster)->AreaExploredOrEventHappens(11711);
+                    }
+                    return;
+                }
+                case 46023: // Q:Master and Servant
+                {
+                    if( unitTarget->isDead() && unitTarget->GetTypeId() != TYPEID_PLAYER )
+                    {
+                        uint32 spellToCast;
+                        switch( unitTarget->GetEntry() )
+                        {
+                            case 25793: spellToCast = 46034; break;
+                            case 25758: spellToCast = 46058; break;
+                            case 25752: spellToCast = 46063; break;
+                            case 25792: spellToCast = 46066; break;
+                            case 25753: spellToCast = 46068; break;
+                        }
+                        ((Creature*)unitTarget)->RemoveCorpse();
+                        m_caster->CastSpell( m_caster, spellToCast, true );
+                        m_caster->CastSpell( m_caster, 46027, true );
+                    }
+                    return;
+                }
+                case 47530: // Q: Strengthen the Ancients
+                {
+                    if( m_caster->GetTypeId() == TYPEID_PLAYER && unitTarget->GetTypeId() != TYPEID_PLAYER && unitTarget->GetEntry() == 26321 )
+                    {
+                        unitTarget->MonsterTextEmote("The Lothalor Acient gives you its thanks.", 0);
+                        ((Player*)m_caster)->KilledMonsterCredit(26321, 0);
+                    }
+                    return;
+                }
+                case 45923: // Q: Foolish Endeavors
+                {
+                    if(unitTarget->HasAura(45924))
+                        unitTarget->CastSpell(unitTarget, 45922, true);
+                    return;
+                }
+                case 45607: // Q: Kaganishu
+                {
+                    if(m_caster->GetTypeId() == TYPEID_PLAYER)
+                        ((Player*)m_caster)->KilledMonsterCredit(25425, 0);
+                    return;
+                }
                 case 67019:                                 // Flask of the North
                 {
                     if (m_caster->GetTypeId() != TYPEID_PLAYER)
@@ -5582,6 +5631,39 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
                     }
                     return;
                 }
+                // Q: The Denouncement
+                case 48724:
+                case 48726:
+                case 48728:
+                case 48730:
+                {
+                    if(!unitTarget)
+                        return;
+                    // triggered spell is stored in m_spellInfo->EffectBasePoints[0]
+                    unitTarget->CastSpell(unitTarget, damage, true);
+                    return;
+                }
+                // Q: In Service of Blood/Unholy/Frost
+                case 50252:
+                case 47724:
+                case 47703:
+                {
+                    Unit *caster = GetCaster();
+                    if( !caster || caster->GetTypeId() != TYPEID_PLAYER )
+                    {
+                        if(Unit *o_caster = GetAffectiveCaster())
+                        {
+                            caster = o_caster;
+                            if(caster->GetTypeId() != TYPEID_PLAYER )
+                                return;
+                        }
+                        else return;
+                    }
+
+                    // triggered spell is stored in m_spellInfo->EffectBasePoints[0]
+                    caster->CastSpell(caster, damage, true);
+                    return;
+                }
                 case 54729:                                 // Winged Steed of the Ebon Blade
                 {
                     if (!unitTarget || unitTarget->GetTypeId() != TYPEID_PLAYER)
@@ -5698,6 +5780,29 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
                         return;
 
                     m_caster->CastSpell(unitTarget, 72588, true);
+                    return;
+                }
+                case 45713:
+                {
+                    uint32 transformTo = m_caster->GetDisplayId();
+                    switch(m_caster->GetDisplayId())
+                    {
+                        case 23124 : transformTo = 23253; break;
+                        case 23125 : transformTo = 23254; break;
+                        case 23126 : transformTo = 23255; break;
+                        case 23246 : transformTo = 23245; break;
+                        case 23247 : transformTo = 23250; break;
+                        case 23248 : transformTo = 23251; break;
+                        case 23249 : transformTo = 23252; break;
+                    }
+                    m_caster->SetDisplayId(transformTo);
+                    return;
+                }
+                case 45923: // Q: Foolish Endeavors
+                {
+                    if (unitTarget->GetTypeId() == TYPEID_PLAYER)
+                        if (((Player*)unitTarget)->GetQuestStatus(11705) == QUEST_STATUS_INCOMPLETE)
+                            unitTarget->CastSpell(unitTarget, 45924, true);
                     return;
                 }
             }
