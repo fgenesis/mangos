@@ -275,11 +275,7 @@ namespace VMAP
         {
             dirFileName = getDirFileName(pMapId);
         }
-        //size_t len = pBasePath.length() + dirFileName.length();
-        //char *filenameBuffer = new char[len+1];
-        //sprintf(filenameBuffer, "%s%s", pBasePath.c_str(), dirFileName.c_str());
         std::string fb = pBasePath + dirFileName;
-        //FILE* df = fopen(filenameBuffer, "rb");
         FILE* df = fopen(fb.c_str(), "rb");
         if(df)
         {
@@ -290,11 +286,7 @@ namespace VMAP
                 chomp(name);
                 if(name.length() >1)
                 {
-                    //size_t len2 = pBasePath.length() + name.length();
-                    //char *filenameBuffer2 = new char[len2+1];
-                    //sprintf(filenameBuffer2, "%s%s", pBasePath.c_str(), name.c_str());
                     std::string fb2 = pBasePath + name;
-                    //FILE* df2 = fopen(filenameBuffer2, "rb");
                     FILE* df2 = fopen(fb2.c_str(), "rb");
                     if(df2)
                     {
@@ -308,7 +300,6 @@ namespace VMAP
             }
             fclose(df);
         }
-        //delete[] filenameBuffer;
         return result;
     }
 
@@ -665,15 +656,11 @@ namespace VMAP
     bool MapTree::loadMap(const std::string& pDirFileName, unsigned int pMapTileIdent)
     {
         bool result = true;
-        //size_t len = iBasePath.length() + pDirFileName.length();
-        //char *filenameBuffer = new char[len+1];
         if(!hasDirFile(pDirFileName))
         {
             FilesInDir filesInDir;
             result = false;
             std::string fb = iBasePath + pDirFileName;
-            //sprintf(filenameBuffer, "%s%s", iBasePath.c_str(), pDirFileName.c_str());
-            //FILE* df = fopen(filenameBuffer, "rb");
             FILE* df = fopen(fb.c_str(), "rb");
             if(df)
             {
@@ -734,7 +721,6 @@ namespace VMAP
                 filesInDir.incRefCount();
             }
         }
-        //delete [] filenameBuffer;
         return (result);
     }
 

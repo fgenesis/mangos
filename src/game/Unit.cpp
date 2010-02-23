@@ -1411,7 +1411,7 @@ void Unit::CalculateMeleeDamage(Unit *pVictim, uint32 damage, CalcDamageInfo *da
        damageInfo->cleanDamage    = 0;
        return;
     }
-    damage += CalculateDamage (damageInfo->attackType, false, true);
+    damage += CalculateDamage (damageInfo->attackType, false);
     // Add melee damage bonus
     damage = MeleeDamageBonus(damageInfo->target, damage, damageInfo->attackType);
     // Calculate armor reduction
@@ -2652,12 +2652,12 @@ MeleeHitOutcome Unit::RollMeleeOutcomeAgainst (const Unit *pVictim, WeaponAttack
     return MELEE_HIT_NORMAL;
 }
 
-uint32 Unit::CalculateDamage (WeaponAttackType attType, bool normalized, bool addTotalPct)
+uint32 Unit::CalculateDamage (WeaponAttackType attType, bool normalized)
 {
     float min_damage, max_damage;
 
-    if (GetTypeId()==TYPEID_PLAYER && (normalized || !addTotalPct))
-        ((Player*)this)->CalculateMinMaxDamage(attType,normalized,addTotalPct,min_damage, max_damage);
+    if (normalized && GetTypeId()==TYPEID_PLAYER)
+        ((Player*)this)->CalculateMinMaxDamage(attType,normalized,min_damage, max_damage);
     else
     {
         switch (attType)
@@ -5715,7 +5715,6 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                 }
                 // Combustion
                 case 11129:
-                case 28682: // FG: combustion aura also needed?! NOTE: this removes the buff after 1 crit, but thats better then stacking
                 {
                     //last charge and crit
                     if (triggeredByAura->GetAuraCharges() <= 1 && (procEx & PROC_EX_CRITICAL_HIT) )
@@ -6525,31 +6524,7 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
             if (dummySpell->SpellIconID == 3025)
             {
                 // 4 damage tick
-                int32 TickCD = 3000;
-                Aura const* PrevAura = NULL;
-
-                Unit::AuraList const &mPeriodic = target->GetAurasByType(SPELL_AURA_PERIODIC_DAMAGE);
-                for(Unit::AuraList::const_iterator i = mPeriodic.begin(); i != mPeriodic.end(); ++i)
-                {
-                    if ((*i)->GetCasterGUID() != this->GetGUID())
-                        continue;
-
-                    if ((*i)->GetSpellProto()->SpellIconID == 3025)
-                    {
-                        PrevAura = *i;
-                        break;
-                    }
-                }
-
-                if (PrevAura)
-                {
-                    int32 PrevTickDmg = SpellDamageBonus(target, PrevAura->GetSpellProto(), PrevAura->GetModifier()->m_amount, DOT);
-                    int32 RemainingTicks = 1 + PrevAura->GetAuraDuration() / TickCD;
-                    basepoints0 = RemainingTicks * PrevTickDmg;
-                }
-
-                basepoints0 = (basepoints0 +  triggerAmount * damage * 0.01) / 4;
-
+                basepoints0 = triggerAmount*damage/400;
                 triggered_spell_id = 61840;
                 break;
             }
@@ -8414,14 +8389,10 @@ void Unit::setPowerType(Powers new_powertype)
     {
         default:
         case POWER_MANA:
-            if(GetTypeId() == TYPEID_PLAYER && IsUnderLastManaUseEffect())
-                RemoveFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_REGENERATE_POWER);
             break;
         case POWER_RAGE:
             SetMaxPower(POWER_RAGE,GetCreatePowers(POWER_RAGE));
             SetPower(   POWER_RAGE,0);
-            if(GetTypeId() == TYPEID_PLAYER)
-                SetFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_REGENERATE_POWER);
             break;
         case POWER_FOCUS:
             SetMaxPower(POWER_FOCUS,GetCreatePowers(POWER_FOCUS));
@@ -8874,6 +8845,17 @@ void Unit::RemoveAllAttackers()
 
 bool Unit::HasAuraStateForCaster(AuraState flag, uint64 caster) const
 {
+    // FG: from fingers of frost patch
+    if(flag == AURA_STATE_FROZEN)
+    {
+        if (Unit* u_caster = ObjectAccessor::GetUnit(*this, caster))
+            if (u_caster->HasAura(44544))
+                return true;
+    }
+
+    if(!HasAuraState(flag))
+        return false;
+
     // single per-caster aura state
     if(flag == AURA_STATE_CONFLAGRATE)
     {
@@ -8893,14 +8875,8 @@ bool Unit::HasAuraStateForCaster(AuraState flag, uint64 caster) const
 
         return false;
     }
-    else if(flag == AURA_STATE_FROZEN)
-    {
-        if (Unit* u_caster = ObjectAccessor::GetUnit(*this, caster))
-            if (u_caster->HasAura(44544))
-                return true;
-    }
 
-    return HasAuraState(flag);
+    return true;
 }
 
 void Unit::ModifyAuraState(AuraState flag, bool apply)
@@ -9237,9 +9213,9 @@ uint32 Unit::SpellDamageBonus(Unit *pVictim, SpellEntry const *spellProto, uint3
         {
             if( ((*i)->GetModifier()->m_miscvalue & GetSpellSchoolMask(spellProto)) &&
                 (*i)->GetSpellProto()->EquippedItemClass == -1 &&
-                                                                // -1 == any item class (not wand then)
+                // -1 == any item class (not wand then)
                 (*i)->GetSpellProto()->EquippedItemInventoryTypeMask == 0 )
-                                                                // 0 == any inventory type (not wand then)
+                // 0 == any inventory type (not wand then)
             {
                 DoneTotalMod *= ((*i)->GetModifier()->m_amount+100.0f)/100.0f;
             }
@@ -9415,10 +9391,6 @@ uint32 Unit::SpellDamageBonus(Unit *pVictim, SpellEntry const *spellProto, uint3
                 if (pVictim->GetHealth() * 100 / pVictim->GetMaxHealth() <= 25)
                   DoneTotalMod *= 4;
             }
-
-            if (spellProto->TargetAuraState == AURA_STATE_CONFLAGRATE)
-                return pdamage;
-
             break;
         }
         case SPELLFAMILY_DEATHKNIGHT:
@@ -9631,7 +9603,6 @@ int32 Unit::SpellBaseDamageBonus(SpellSchoolMask schoolMask)
     return DoneAdvertisedBenefit;
 }
 
-
 int32 Unit::SpellBaseDamageBonusForVictim(SpellSchoolMask schoolMask, Unit *pVictim)
 {
     uint32 creatureTypeMask = pVictim->GetCreatureTypeMask();
@@ -9796,13 +9767,13 @@ uint32 Unit::SpellCriticalDamageBonus(SpellEntry const *spellProto, uint32 damag
     int32 crit_bonus;
     switch(spellProto->DmgClass)
     {
-    case SPELL_DAMAGE_CLASS_MELEE:                      // for melee based spells is 100%
-    case SPELL_DAMAGE_CLASS_RANGED:
-        crit_bonus = damage;
-        break;
-    default:
-        crit_bonus = damage / 2;                        // for spells is 50%
-        break;
+        case SPELL_DAMAGE_CLASS_MELEE:                      // for melee based spells is 100%
+        case SPELL_DAMAGE_CLASS_RANGED:
+            crit_bonus = damage;
+            break;
+        default:
+            crit_bonus = damage / 2;                        // for spells is 50%
+            break;
     }
 
     // adds additional damage to crit_bonus (from talents)
@@ -9836,7 +9807,6 @@ uint32 Unit::SpellCriticalDamageBonus(SpellEntry const *spellProto, uint32 damag
 
     return damage;
 }
-
 
 uint32 Unit::SpellCriticalHealingBonus(SpellEntry const *spellProto, uint32 damage, Unit *pVictim)
 {
@@ -9914,29 +9884,29 @@ int32 Unit::SpellHealingBonus(Unit *pVictim, SpellEntry const *spellProto, int32
             continue;
         switch((*i)->GetModifier()->m_miscvalue)
         {
-            case 4415: // Increased Rejuvenation Healing
-            case 4953:
-            case 3736: // Hateful Totem of the Third Wind / Increased Lesser Healing Wave / LK Arena (4/5/6) Totem of the Third Wind / Savage Totem of the Third Wind
-                DoneTotal+=(*i)->GetModifier()->m_amount;
-                break;
-            case 7997: // Renewed Hope
-            case 7998:
-                if (pVictim->HasAura(6788))
-                    DoneTotalMod *=((*i)->GetModifier()->m_amount + 100.0f)/100.0f;
-                break;
-            case   21: // Test of Faith
-            case 6935:
-            case 6918:
-                if (pVictim->GetHealth() < pVictim->GetMaxHealth()/2)
-                    DoneTotalMod *=((*i)->GetModifier()->m_amount + 100.0f)/100.0f;
-                break;
-            case 7798: // Glyph of Regrowth
+        case 4415: // Increased Rejuvenation Healing
+        case 4953:
+        case 3736: // Hateful Totem of the Third Wind / Increased Lesser Healing Wave / LK Arena (4/5/6) Totem of the Third Wind / Savage Totem of the Third Wind
+            DoneTotal+=(*i)->GetModifier()->m_amount;
+            break;
+        case 7997: // Renewed Hope
+        case 7998:
+            if (pVictim->HasAura(6788))
+                DoneTotalMod *=((*i)->GetModifier()->m_amount + 100.0f)/100.0f;
+            break;
+        case   21: // Test of Faith
+        case 6935:
+        case 6918:
+            if (pVictim->GetHealth() < pVictim->GetMaxHealth()/2)
+                DoneTotalMod *=((*i)->GetModifier()->m_amount + 100.0f)/100.0f;
+            break;
+        case 7798: // Glyph of Regrowth
             {
                 if (pVictim->GetAura(SPELL_AURA_PERIODIC_HEAL, SPELLFAMILY_DRUID, UI64LIT(0x0000000000000040)))
                     DoneTotalMod *= ((*i)->GetModifier()->m_amount+100.0f)/100.0f;
                 break;
             }
-            case 8477: // Nourish Heal Boost
+        case 8477: // Nourish Heal Boost
             {
                 int32 stepPercent = (*i)->GetModifier()->m_amount;
 
@@ -9952,14 +9922,14 @@ int32 Unit::SpellHealingBonus(Unit *pVictim, SpellEntry const *spellProto, int32
                     TakenTotalMod *= (stepPercent * ownHotCount + 100.0f) / 100.0f;
                 break;
             }
-            case 7871: // Glyph of Lesser Healing Wave
+        case 7871: // Glyph of Lesser Healing Wave
             {
                 if (pVictim->GetAura(SPELL_AURA_DUMMY, SPELLFAMILY_SHAMAN, UI64LIT(0x0000040000000000), 0, GetGUID()))
                     DoneTotalMod *= ((*i)->GetModifier()->m_amount+100.0f)/100.0f;
                 break;
             }
-            default:
-                break;
+        default:
+            break;
         }
     }
 
@@ -9968,31 +9938,27 @@ int32 Unit::SpellHealingBonus(Unit *pVictim, SpellEntry const *spellProto, int32
     int32 TakenAdvertisedBenefit = SpellBaseHealingBonusForVictim(GetSpellSchoolMask(spellProto), pVictim);
 
     float LvlPenalty = CalculateLevelPenalty(spellProto);
-
-    Player* modOwner = GetSpellModOwner();
+    // Spellmod SpellDamage
+    float SpellModSpellDamage = 100.0f;
+    if(Player* modOwner = GetSpellModOwner())
+        modOwner->ApplySpellMod(spellProto->Id, SPELLMOD_SPELL_BONUS_DAMAGE, SpellModSpellDamage);
+    SpellModSpellDamage /= 100.0f;
 
     // Check for table values
+    SpellBonusEntry const* bonus = sSpellMgr.GetSpellBonusData(spellProto->Id);
     if (bonus)
     {
         float coeff;
         if (damagetype == DOT)
-            coeff = bonus->dot_damage  * stack;
+            coeff = bonus->dot_damage * LvlPenalty * stack;
         else
-            coeff = bonus->direct_damage * stack;
+            coeff = bonus->direct_damage * LvlPenalty * stack;
 
         if (bonus->ap_bonus)
             DoneTotal += int32(bonus->ap_bonus * GetTotalAttackPowerValue(BASE_ATTACK) * stack);
 
-        // Spellmod SpellBonusDamage
-        if (modOwner)
-        {
-            coeff *= 100.0f;
-            modOwner->ApplySpellMod(spellProto->Id,SPELLMOD_SPELL_BONUS_DAMAGE,coeff);
-            coeff /= 100.0f;
-        }
-
-        DoneTotal  += int32(DoneAdvertisedBenefit * coeff * LvlPenalty);
-        TakenTotal += int32(TakenAdvertisedBenefit * coeff * LvlPenalty);
+        DoneTotal  += int32(DoneAdvertisedBenefit * coeff * SpellModSpellDamage);
+        TakenTotal += int32(TakenAdvertisedBenefit * coeff);
     }
     // Default calculation
     else if (DoneAdvertisedBenefit || TakenAdvertisedBenefit)
@@ -10023,19 +9989,8 @@ int32 Unit::SpellHealingBonus(Unit *pVictim, SpellEntry const *spellProto, int32
                 break;
             }
         }
-
-        float coeff = (CastingTime / 3500.0f) * DotFactor * 1.88f;
-
-        // Spellmod SpellBonusDamage
-        if (modOwner)
-        {
-            coeff *= 100.0f;
-            modOwner->ApplySpellMod(spellProto->Id,SPELLMOD_SPELL_BONUS_DAMAGE,coeff);
-            coeff /= 100.0f;
-        }
-
-        DoneTotal  += int32(DoneAdvertisedBenefit * coeff * LvlPenalty);
-        TakenTotal += int32(TakenAdvertisedBenefit * coeff * LvlPenalty);
+        DoneTotal  += int32(DoneAdvertisedBenefit * (CastingTime / 3500.0f) * DotFactor * LvlPenalty * SpellModSpellDamage * 1.88f);
+        TakenTotal += int32(TakenAdvertisedBenefit * (CastingTime / 3500.0f) * DotFactor * LvlPenalty * 1.88f);
     }
 
     // use float as more appropriate for negative values and percent applying
@@ -10210,8 +10165,9 @@ bool Unit::IsImmunedToSpellEffect(SpellEntry const* spellInfo, SpellEffectIndex 
     {
         SpellImmuneList const& list = m_spellImmune[IMMUNITY_STATE];
         for(SpellImmuneList::const_iterator itr = list.begin(); itr != list.end(); ++itr)
-            if(itr->type == aura)
+            if (itr->type == aura)
                 return true;
+
         // Check for immune to application of harmful magical effects
         AuraList const& immuneAuraApply = GetAurasByType(SPELL_AURA_MOD_IMMUNE_AURA_APPLY_SCHOOL);
         for(AuraList::const_iterator iter = immuneAuraApply.begin(); iter != immuneAuraApply.end(); ++iter)
@@ -10228,7 +10184,6 @@ bool Unit::IsImmunedToSpellEffect(SpellEntry const* spellInfo, SpellEffectIndex 
                 (1 << (spellInfo->Mechanic - 1)) & IMMUNE_TO_MOVEMENT_IMPAIRMENT_AND_LOSS_CONTROL_MASK))
                 return true;
     }
-
 
     return false;
 }
@@ -10692,13 +10647,8 @@ void Unit::SetInCombatState(bool PvP, Unit* enemy)
     if (!isAlive())
         return;
 
-    if(PvP)
-    {
+    if (PvP)
         m_CombatTimer = 5000;
-        // FG: if player enters combat by himself, remove "Inactive" buff
-        RemoveAurasDueToSpell(43680);
-        RemoveAurasDueToSpell(43681);
-    }
 
     bool creatureNotInCombat = GetTypeId()==TYPEID_UNIT && !HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IN_COMBAT);
 
@@ -11210,21 +11160,6 @@ void Unit::UpdateSpeed(UnitMoveType mtype, bool forced)
         default:
             sLog.outError("Unit::UpdateSpeed: Unsupported move type (%d)", mtype);
             return;
-    }
-
-    // Remove Druid Dash bonus if not in Cat Form
-    if (m_form != FORM_CAT)
-    {
-        AuraList const& speed_increase_auras = GetAurasByType(SPELL_AURA_MOD_INCREASE_SPEED);
-        for(AuraList::const_iterator itr = speed_increase_auras.begin(); itr != speed_increase_auras.end(); ++itr)
-        {
-            const SpellEntry* aura_proto = (*itr)->GetSpellProto();
-            if (aura_proto->SpellFamilyName == SPELLFAMILY_DRUID && aura_proto->SpellIconID == 959)
-            {
-                main_speed_mod -= (*itr)->GetModifier()->m_amount;
-                break;
-            }
-        }
     }
 
     float bonus = non_stack_bonus > stack_bonus ? non_stack_bonus : stack_bonus;
@@ -11948,7 +11883,8 @@ bool Unit::HandleStatModifier(UnitMods unitMod, UnitModifierType modifierType, f
         case UNIT_MOD_ENERGY:
         case UNIT_MOD_HAPPINESS:
         case UNIT_MOD_RUNE:
-        case UNIT_MOD_RUNIC_POWER:         UpdateMaxPower(GetPowerTypeByAuraGroup(unitMod));           break;
+        case UNIT_MOD_RUNIC_POWER:          UpdateMaxPower(GetPowerTypeByAuraGroup(unitMod));          break;
+
         case UNIT_MOD_RESISTANCE_HOLY:
         case UNIT_MOD_RESISTANCE_FIRE:
         case UNIT_MOD_RESISTANCE_NATURE:
@@ -12611,9 +12547,6 @@ bool InitTriggerAuraData()
     isTriggerAura[SPELL_AURA_MOD_DAMAGE_FROM_CASTER] = true;
     isTriggerAura[SPELL_AURA_MOD_SPELL_CRIT_CHANCE] = true;
     isTriggerAura[SPELL_AURA_MAELSTROM_WEAPON] = true;
-    isTriggerAura[SPELL_AURA_ADD_FLAT_MODIFIER] = true;
-    isTriggerAura[SPELL_AURA_MOD_DAMAGE_PERCENT_DONE] = true;
-    isTriggerAura[SPELL_AURA_IGNORE_REQUIREMENTS] = true;
 
     isNonTriggerAura[SPELL_AURA_MOD_POWER_REGEN]=true;
     isNonTriggerAura[SPELL_AURA_REDUCE_PUSHBACK]=true;
@@ -12793,10 +12726,6 @@ void Unit::ProcDamageAndSpellFor( bool isVictim, Unit * pTarget, uint32 procFlag
                 DealSpellDamage(&damageInfo, true);
                 break;
             }
-            case SPELL_AURA_IGNORE_REQUIREMENTS:
-            case SPELL_AURA_MOD_STUN:
-            case SPELL_AURA_ADD_FLAT_MODIFIER:
-            case SPELL_AURA_MOD_DAMAGE_PERCENT_DONE:
             case SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN:
             case SPELL_AURA_MANA_SHIELD:
             case SPELL_AURA_OBS_MOD_MANA:
@@ -12941,7 +12870,7 @@ void Unit::ProcDamageAndSpellFor( bool isVictim, Unit * pTarget, uint32 procFlag
         // Sort spells and remove dublicates
         removedSpells.sort();
         removedSpells.unique();
-        // Remove auras (one stack) from removedAuras
+        // Remove auras from removedAuras
         for(RemoveSpellList::const_iterator i = removedSpells.begin(); i != removedSpells.end();++i)
             RemoveSingleSpellAurasFromStack(*i);
     }
@@ -13664,7 +13593,6 @@ bool Unit::IsTriggeredAtSpellProcEvent(Unit *pVictim, Aura* aura, SpellEntry con
                 return false;
         }
     }
-
     // Get chance from spell
     float chance = (float)spellProto->procChance;
     // If in spellProcEvent exist custom chance, chance = spellProcEvent->customChance;

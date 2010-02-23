@@ -2634,6 +2634,7 @@ void Spell::cast(bool skipCheck)
         case SPELLFAMILY_DRUID:
         {
             // Berserk
+            //if (m_spellInfo->SpellIconID == 2852 && (m_spellInfo->AttributesEx & 0x28020))
             if (m_spellInfo->Id == 50334) // FG: replaced iconId + AttributesEx check with spell id (as of 3.3.2)
                 AddPrecastSpell(58923); // Hit 3 targets at once with mangle in dire bear form
             // Faerie Fire (Feral)

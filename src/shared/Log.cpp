@@ -26,7 +26,7 @@
 #include "revision_nr.h"
 #include "../realmd/AuthCodes.h"
 
-#define EXPECTED_MANGOSD_CLIENT_BUILD        {10505, 0} // FG: TODO: update this!!!!
+#define EXPECTED_MANGOSD_CLIENT_BUILD        {11403, 0} // FG: TODO: update this!!!!
 
 #include <stdarg.h>
 

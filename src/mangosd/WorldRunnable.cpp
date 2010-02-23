@@ -49,13 +49,6 @@ void WorldRunnable::run()
 
     uint32 prevSleepTime = 0;                               // used for balanced full tick time length near WORLD_SLEEP_CONST
 
-    // FG: some additional vars needed for performance info
-    const uint32 maxcycles = 300;
-    uint32 diffs[maxcycles];
-    uint32 cycles = 0;
-    uint32 hidiff = 0;
-    uint32 lodiff = 0;
-
     ///- While we have not World::m_stopEvent, update the world
     while (!World::IsStopped())
     {
@@ -63,22 +56,6 @@ void WorldRunnable::run()
         realCurrTime = getMSTime();
 
         uint32 diff = getMSTimeDiff(realPrevTime,realCurrTime);
-
-        diffs[cycles++] = diff;
-        if(cycles >= maxcycles)
-        {
-            uint32 avgdiff = 0;
-            cycles = 0;
-            lodiff = diffs[0];
-            for(uint32 cyc = 0; cyc < maxcycles; cyc++)
-            {
-                avgdiff += diffs[cyc];
-                hidiff = std::max(hidiff, diff);
-                lodiff = std::min(lodiff, diff);
-            }
-            avgdiff /= maxcycles;
-            sLog.outBasic("Performance: Average world update time: %u, highest: %u lowest: %u expected: %u (%u loops) ", avgdiff,hidiff,lodiff,WORLD_SLEEP_CONST,maxcycles);
-        }
 
         sWorld.Update( diff );
         realPrevTime = realCurrTime;

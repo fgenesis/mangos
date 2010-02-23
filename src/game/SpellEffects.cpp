@@ -2259,10 +2259,12 @@ void Spell::EffectTriggerSpell(SpellEffectIndex effIndex)
                 ((Player*)unitTarget)->RemoveSpellCooldown(spellId);
 
             // prevent interrupt message
+            // FG: extra check for safety
             if(Spell *curspell_ = unitTarget->GetCurrentSpell(CURRENT_GENERIC_SPELL))
             {
                 curspell_->finish();
             }
+
             //interrupt anything that might aggro creatures again
             unitTarget->InterruptNonMeleeSpells(true);
 
@@ -2868,30 +2870,6 @@ void Spell::EffectHeal(SpellEffectIndex /*eff_idx*/)
                 unitTarget->RemoveAurasDueToSpell(targetAura->GetId());
 
             addhealth += tickheal * tickcount;
-        }
-        // Chain Heal - multiplier
-        else if (m_spellInfo->SpellFamilyName == SPELLFAMILY_SHAMAN && m_spellInfo->SpellFamilyFlags == UI64LIT(0x100))
-        {
-            // The " / " here should be considered a hack (Chain heal decreases 50% per jump, and damage has already been multiplied once)
-            addhealth = m_damageMultipliers[i] * caster->SpellHealingBonus(unitTarget, m_spellInfo, addhealth / m_damageMultipliers[i], HEAL);
-        }
-        // Nourish - 20% bonus if target has one of Druid's HoTs
-        else if (m_spellInfo->SpellFamilyName == SPELLFAMILY_DRUID && m_spellInfo->SpellFamilyFlags == UI64LIT(0x0200000000000000))
-        {
-            float totalPct = 1.0f;
-            Unit::AuraList const& targetAuras = unitTarget->GetAurasByType(SPELL_AURA_PERIODIC_HEAL);
-            for (Unit::AuraList::const_iterator itr = targetAuras.begin(); itr != targetAuras.end(); ++itr)
-            {
-                if ((*itr)->GetCasterGUID() != caster->GetGUID())
-                    continue;
-                SpellEntry const* m_spell = (*itr)->GetSpellProto();
-                if ( (m_spell->SpellFamilyName != SPELLFAMILY_DRUID) &&
-                    !(m_spell->SpellFamilyFlags & UI64LIT(0x0400001000000050)))
-                    continue;
-                totalPct = 1.2f;
-                break;
-            }
-            addhealth = totalPct * caster->SpellHealingBonus(unitTarget, m_spellInfo, addhealth, HEAL);
         }
         else
             addhealth = caster->SpellHealingBonus(unitTarget, m_spellInfo, addhealth, HEAL);
@@ -4949,21 +4927,12 @@ void Spell::EffectWeaponDmg(SpellEffectIndex eff_idx)
             case RANGED_ATTACK: unitMod = UNIT_MOD_DAMAGE_RANGED;   break;
         }
 
-        float weapon_total_pct = 1.0f;
-        if ( m_spellInfo->SchoolMask & SPELL_SCHOOL_MASK_NORMAL )
-             weapon_total_pct = m_caster->GetModifierValue(unitMod, TOTAL_PCT);
+        float weapon_total_pct  = m_caster->GetModifierValue(unitMod, TOTAL_PCT);
         bonus = int32(bonus*weapon_total_pct);
     }
 
     // + weapon damage with applied weapon% dmg to base weapon damage in call
-    if ( m_spellInfo->SchoolMask & SPELL_SCHOOL_MASK_NORMAL )
-    {
-        bonus += int32(m_caster->CalculateDamage(m_attackType, normalized, true)*weaponDamagePercentMod);
-    }
-    else
-    {
-        bonus += int32(m_caster->CalculateDamage(m_attackType, normalized, false)*weaponDamagePercentMod);
-    }
+    bonus += int32(m_caster->CalculateDamage(m_attackType, normalized)*weaponDamagePercentMod);
 
     // total damage
     bonus = int32(bonus*totalDamagePercentMod);
@@ -5075,9 +5044,9 @@ void Spell::EffectInterruptCast(SpellEffectIndex /*eff_idx*/)
 
     // TODO: not all spells that used this effect apply cooldown at school spells
     // also exist case: apply cooldown to interrupted cast only and to all spells
-    for (uint32 it = CURRENT_FIRST_NON_MELEE_SPELL; it < CURRENT_MAX_SPELL; ++it)
+    for (uint32 i = CURRENT_FIRST_NON_MELEE_SPELL; i < CURRENT_MAX_SPELL; ++i)
     {
-        if (Spell* spell = unitTarget->GetCurrentSpell(CurrentSpellTypes(it)))
+        if (Spell* spell = unitTarget->GetCurrentSpell(CurrentSpellTypes(i)))
         {
             SpellEntry const* curSpellInfo = spell->m_spellInfo;
             // check if we can interrupt spell
@@ -6054,7 +6023,7 @@ void Spell::EffectDuel(SpellEffectIndex eff_idx)
     }
 
     // FG: allow dueling in major cities if needed. just skip the check in this case.
-    if(!sWorld.getConfig(CONFIG_ALLOW_CITY_DUELING))
+    if(!sWorld.getConfig(CONFIG_BOOL_ALLOW_CITY_DUELING))
     {
         AreaTableEntry const* casterAreaEntry = GetAreaEntryByAreaID(caster->GetZoneId());
         if(casterAreaEntry && (casterAreaEntry->flags & AREA_FLAG_CAPITAL) )

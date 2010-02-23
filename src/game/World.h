@@ -592,6 +592,7 @@ class World
         void _UpdateGameTime();
         // callback for UpdateRealmCharacters
         void _UpdateRealmCharCount(QueryResult *resultCharCount, uint32 accountId);
+
         void InitDailyQuestResetTime();
         void ResetDailyQuests();
 
