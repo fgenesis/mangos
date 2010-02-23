@@ -705,9 +705,6 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
     {
         DEBUG_LOG("DealDamage: victim just died");
 
-        if (pVictim->GetTypeId() == TYPEID_PLAYER)
-            ((Player*)pVictim)->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_TOTAL_DAMAGE_RECEIVED, health);
-
         // find player: owner of controlled `this` or `this` itself maybe
         Player *player = GetCharmerOrOwnerPlayerOrPlayerItself();
 
@@ -721,6 +718,14 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
 
         if(bRewardIsAllowed && pVictim->GetTypeId() == TYPEID_UNIT && ((Creature*)pVictim)->GetLootRecipient())
             player = ((Creature*)pVictim)->GetLootRecipient();
+
+        if (pVictim->GetTypeId() == TYPEID_PLAYER)
+        {
+            ((Player*)pVictim)->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_TOTAL_DAMAGE_RECEIVED, health);
+            if (player)
+                player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_SPECIAL_PVP_KILL,1,0,pVictim);
+        }
+
         // Reward player, his pets, and group/raid members
         // call kill spell proc event (before real die and combat stop to triggering auras removed at death/combat stop)
         if(player && player!=pVictim && bRewardIsAllowed)
@@ -11657,8 +11662,9 @@ int32 Unit::CalculateSpellDuration(SpellEntry const* spellProto, SpellEffectInde
         int32 mechanic = GetEffectMechanic(spellProto, effect_index);
         // Find total mod value (negative bonus)
         int32 durationMod_always = target->GetTotalAuraModifierByMiscValue(SPELL_AURA_MECHANIC_DURATION_MOD, mechanic);
-        // Modify from SPELL_AURA_MOD_DURATION_OF_EFFECTS_BY_DISPEL aura (stack always ?)
-        durationMod_always+=target->GetTotalAuraModifierByMiscValue(SPELL_AURA_MOD_DURATION_OF_EFFECTS_BY_DISPEL, spellProto->Dispel);
+        // Modify from SPELL_AURA_MOD_DURATION_OF_EFFECTS_BY_DISPEL aura for negatve effects (stack always ?)
+        if (!IsPositiveEffect(spellProto->Id, effect_index))
+            durationMod_always+=target->GetTotalAuraModifierByMiscValue(SPELL_AURA_MOD_DURATION_OF_EFFECTS_BY_DISPEL, spellProto->Dispel);
         // Find max mod (negative bonus)
         int32 durationMod_not_stack = target->GetMaxNegativeAuraModifierByMiscValue(SPELL_AURA_MECHANIC_DURATION_MOD_NOT_STACK, mechanic);
 
@@ -12083,6 +12089,12 @@ void Unit::SetMaxHealth(uint32 val)
 
     if(val < health)
         SetHealth(val);
+}
+
+void Unit::SetHealthPercent(float percent)
+{
+    uint32 newHealth = GetMaxHealth() * percent/100.0f;
+    SetHealth(newHealth);
 }
 
 void Unit::SetPower(Powers power, uint32 val)
@@ -13823,7 +13835,7 @@ void Unit::SetFFAPvP( bool state )
     CallForAllControlledUnits(SetFFAPvPHelper(state),true,true,true);
 }
 
-void Unit::KnockBackFrom(Unit* target, float horizintalSpeed, float verticalSpeed)
+void Unit::KnockBackFrom(Unit* target, float horizontalSpeed, float verticalSpeed)
 {
     float angle = this == target ? GetOrientation() + M_PI_F : target->GetAngle(this);
     float vsin = sin(angle);
@@ -13837,13 +13849,13 @@ void Unit::KnockBackFrom(Unit* target, float horizintalSpeed, float verticalSpee
         data << uint32(0);                                  // Sequence
         data << float(vcos);                                // x direction
         data << float(vsin);                                // y direction
-        data << float(horizintalSpeed);                     // Horizontal speed
+        data << float(horizontalSpeed);                     // Horizontal speed
         data << float(-verticalSpeed);                      // Z Movement speed (vertical)
         ((Player*)this)->GetSession()->SendPacket(&data);
     }
     else
     {
-        float dis = horizintalSpeed;
+        float dis = horizontalSpeed;
 
         float ox, oy, oz;
         GetPosition(ox, oy, oz);
