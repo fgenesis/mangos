@@ -782,8 +782,9 @@ class MovementInfo
         uint32 GetFallTime() const { return fallTime; }
         void ChangePosition(float x, float y, float z, float o) { pos.x = x; pos.y = y; pos.z = z; pos.o = o; }
         void UpdateTime(uint32 _time) { time = _time; }
+        uint32 GetTime(void) { return time; }
 
-    private:
+    //private: // FG: private not needed, i know what i'm doing
         // common
         uint32   moveFlags;                                 // see enum MovementFlags
         uint16   moveFlags2;                                // see enum MovementFlags2

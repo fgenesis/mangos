@@ -2302,8 +2302,8 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                             caster->CastSpell(caster,34027,true,NULL,this);
 
                             // set 3 stacks
-                            Aura* owner_aura	= caster->GetAura(34027,0);
-                            Aura* pet_aura	= caster->GetPet()->GetAura(58914,0);
+                            Aura* owner_aura	= caster->GetAura(34027,EFFECT_INDEX_0);
+                            Aura* pet_aura	= caster->GetPet()->GetAura(58914,EFFECT_INDEX_0);
                             if( owner_aura )
                                 owner_aura->SetStackAmount(3);
                             if( pet_aura )
@@ -5066,7 +5066,7 @@ void Aura::HandlePeriodicDamage(bool apply, bool Real)
                 {
                     // AP * 0.025 + SPH * 0.013 bonus per tick
                     float ap = caster->GetTotalAttackPowerValue(BASE_ATTACK);
-                    int32 holy = caster->SpellBaseDamageBonus(GetSpellSchoolMask(m_spellProto)) //+ // FG: drop extra dmg part
+                    int32 holy = caster->SpellBaseDamageBonus(GetSpellSchoolMask(m_spellProto));//+ // FG: drop extra dmg part
                                  //caster->SpellBaseDamageBonusForVictim(GetSpellSchoolMask(m_spellProto), GetTarget());
                     m_modifier.m_amount += int32(GetStackAmount()) * (int32(ap * 0.025f) + int32(holy * 13 / 1000));
                     return;
@@ -5919,7 +5919,7 @@ void Aura::HandleModDamagePercentDone(bool apply, bool Real)
             {
             case 51466:
             case 51470:
-                m_modifier.m_amount += (*i)->GetSpellProto()->CalculateSimpleValue(1);
+                m_modifier.m_amount += (*i)->GetSpellProto()->CalculateSimpleValue(EFFECT_INDEX_1);
                 break;
             default:
                 continue;
@@ -6824,7 +6824,7 @@ void Aura::HandleSchoolAbsorb(bool apply, bool Real)
                     if (m_spellProto->SpellFamilyFlags & UI64LIT(0x0000000000000001))
                     {
                         // Glyph of Power Word: Shield
-                        if(Aura* glyph = caster->GetAura(55672,0))
+                        if(Aura* glyph = caster->GetAura(55672,EFFECT_INDEX_0))
                         {
                             // instant heal glyph m_amount% of the absorbed amount
                             int32 heal = (glyph->GetModifier()->m_amount * m_modifier.m_amount)/100;

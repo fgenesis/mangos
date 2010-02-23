@@ -2915,73 +2915,6 @@ void Player::AddNewMailDeliverTime(time_t deliver_time)
     }
 }
 
-bool Player::AddTalent(uint32 spell_id, uint8 spec, bool learning)
-{
-    SpellEntry const *spellInfo = sSpellStore.LookupEntry(spell_id);
-    if (!spellInfo)
-    {
-        // do character spell book cleanup (all characters)
-        if(!IsInWorld() && !learning)                       // spell load case
-        {
-            sLog.outError("Player::addTalent: Non-existed in SpellStore spell #%u request, deleting for all characters in `character_talent`.",spell_id);
-            CharacterDatabase.PExecute("DELETE FROM character_talent WHERE spell = '%u'",spell_id);
-        }
-        else
-            sLog.outError("Player::addTalent: Non-existed in SpellStore spell #%u request.",spell_id);
-
-        return false;
-    }
-
-    if(!SpellMgr::IsSpellValid(spellInfo,this,false))
-    {
-        // do character spell book cleanup (all characters)
-        if(!IsInWorld() && !learning)                       // spell load case
-        {
-            sLog.outError("Player::addTalent: Broken spell #%u learning not allowed, deleting for all characters in `character_talent`.",spell_id);
-            CharacterDatabase.PExecute("DELETE FROM character_talent WHERE spell = '%u'",spell_id);
-        }
-        else
-            sLog.outError("Player::addTalent: Broken spell #%u learning not allowed.",spell_id);
-
-        return false;
-    }
-
-    PlayerTalentMap::iterator itr = m_talents[spec]->find(spell_id);
-    if (itr != m_talents[spec]->end())
-    {
-        itr->second->state = PLAYERSPELL_UNCHANGED;
-    }
-    else if(TalentSpellPos const *talentPos = GetTalentSpellPos(spell_id))
-    {
-        if(TalentEntry const *talentInfo = sTalentStore.LookupEntry( talentPos->talent_id ))
-        {
-            for(uint8 rank = 0; rank < MAX_TALENT_RANK; ++rank)
-            {
-                // skip learning spell and no rank spell case
-                uint32 rankSpellId = talentInfo->RankID[rank];
-                if(!rankSpellId || rankSpellId == spell_id)
-                    continue;
-
-                PlayerTalentMap::iterator itr = m_talents[spec]->find(rankSpellId);
-                if (itr != m_talents[spec]->end())
-                {
-                    itr->second->state = PLAYERSPELL_REMOVED;
-                }
-            }
-        }
-
-        PlayerSpellState state = learning ? PLAYERSPELL_NEW : PLAYERSPELL_UNCHANGED;
-        PlayerTalent *newtalent = new PlayerTalent();
-
-        newtalent->state = state;
-        newtalent->spec = spec;
-
-        (*m_talents[spec])[spell_id] = newtalent;
-        return true;
-    }
-    return false;
-}
-
 bool Player::addSpell(uint32 spell_id, bool active, bool learning, bool dependent, bool disabled)
 {
     SpellEntry const *spellInfo = sSpellStore.LookupEntry(spell_id);
@@ -3805,12 +3738,6 @@ bool Player::resetTalents(bool no_cost)
                     ++itr;
             }
         }
-
-        for (PlayerTalentMap::iterator itr2 = m_talents[m_activeSpec]->begin(); itr2 != m_talents[m_activeSpec]->end(); ++itr2)
-        {
-			removeSpell(itr2->first, !IsPassiveSpell(itr2->first),false);
-			itr2->second->state = PLAYERSPELL_REMOVED;
-        }
     }
 
     SetFreeTalentPoints(talentPointsForLevel);
@@ -4043,12 +3970,6 @@ bool Player::HasSpell(uint32 spell) const
     PlayerSpellMap::const_iterator itr = m_spells.find(spell);
     return (itr != m_spells.end() && itr->second->state != PLAYERSPELL_REMOVED &&
         !itr->second->disabled);
-}
-
-bool Player::HasTalent(uint32 spell, uint8 spec) const
-{
-    PlayerTalentMap::const_iterator itr = m_talents[spec]->find(spell);
-    return (itr != m_talents[spec]->end() && itr->second->state != PLAYERSPELL_REMOVED);
 }
 
 bool Player::HasActiveSpell(uint32 spell) const
@@ -5785,12 +5706,12 @@ int16 Player::GetSkillTempBonusValue(uint32 skill) const
     return SKILL_TEMP_BONUS(GetUInt32Value(PLAYER_SKILL_BONUS_INDEX(itr->second.pos)));
 }
 
-void Player::SendActionButtons(uint32 state) const
+void Player::SendInitialActionButtons() const
 {
-    sLog.outDetail( "Sending Action Buttons for '%u' spec '%u'", GetGUIDLow(), m_activeSpec);
+    sLog.outDetail( "Initializing Action Buttons for '%u'", GetGUIDLow() );
 
     WorldPacket data(SMSG_ACTION_BUTTONS, 1+(MAX_ACTION_BUTTONS*4));
-    data << uint8(state);                                       // can be 0, 1, 2 (talent spec)
+    data << uint8(1);                                       // can be 0, 1, 2 (talent spec)
     ActionButtonList const& currentActionButtonList = m_actionButtons[m_activeSpec];
     for(uint8 button = 0; button < MAX_ACTION_BUTTONS; ++button)
     {
@@ -5802,7 +5723,7 @@ void Player::SendActionButtons(uint32 state) const
     }
 
     GetSession()->SendPacket( &data );
-    sLog.outDetail( "Action Buttons for '%u' spec '%u' Sent", GetGUIDLow(), m_activeSpec );
+    sLog.outDetail( "Action Buttons for '%u' Initialized", GetGUIDLow() );
 }
 
 bool Player::IsActionButtonDataValid(uint8 button, uint32 action, uint8 type, Player* player, bool msg)
@@ -12805,7 +12726,7 @@ void Player::OnGossipSelect(WorldObject* pSource, uint32 gossipListId, uint32 me
         }
         case GOSSIP_OPTION_LEARNDUALSPEC:
         {
-            if(GetSpecsCount() == 1 && !(getLevel() < sWorld.getConfig(CONFIG_MIN_DUALSPEC_LEVEL)))
+            if(GetSpecsCount() == 1 && !(getLevel() < 40)) // FG: TODO: change this back to a config setting ASAP!
             {
                 if (GetMoney() < 10000000)
                 {
@@ -21160,9 +21081,9 @@ void Player::LearnTalent(uint32 talentId, uint32 talentRank)
     uint32 curtalent_maxrank = 0;
     for(int32 k = MAX_TALENT_RANK-1; k > -1; --k)
     {
-        if(talentInfo->RankID[rank] && HasSpell(talentInfo->RankID[rank]))
+        if(talentInfo->RankID[k] && HasSpell(talentInfo->RankID[k]))
         {
-            curtalent_maxrank = (rank + 1);
+            curtalent_maxrank = (k + 1);
             break;
         }
     }
@@ -21477,13 +21398,13 @@ void Player::BuildPlayerTalentsInfoData(WorldPacket *data)
                     if(talentInfo->TalentTab != talentTabId)
                         continue;
 
-                    // find max talent rank (0~4)
-                    int8 curtalent_maxrank = -1;
-                    for(int8 rank = MAX_TALENT_RANK-1; rank >= 0; --rank)
+                    // find max talent rank
+                    int32 curtalent_maxrank = -1;
+                    for(int32 k = MAX_TALENT_RANK-1; k > -1; --k)
                     {
-                        if(talentInfo->RankID[rank] && HasTalent(talentInfo->RankID[rank], specIdx))
+                        if(talentInfo->RankID[k] && HasSpell(talentInfo->RankID[k]))
                         {
-                            curtalent_maxrank = rank;
+                            curtalent_maxrank = k;
                             break;
                         }
                     }
@@ -21509,6 +21430,7 @@ void Player::BuildPlayerTalentsInfoData(WorldPacket *data)
         }
     }
 }
+
 
 void Player::BuildPetTalentsInfoData(WorldPacket *data)
 {

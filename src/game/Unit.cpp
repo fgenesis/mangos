@@ -2059,7 +2059,7 @@ void Unit::CalcAbsorbResist(Unit *pVictim,SpellSchoolMask schoolMask, DamageEffe
                         pVictim->CastCustomSpell(pVictim, 66235, &healAmount, NULL, NULL, true);
                         ((Player*)pVictim)->AddSpellCooldown(66235,0,time(NULL) + 120);
                     }
-                    else if (remainingHealth < allowedHealth)
+                    else if ((uint32)remainingHealth < allowedHealth) // FG: check for <= 0 already done above
                     {
                         // Reduce damage that brings us under 35% (or full damage if we are already under 35%) by x%
                         uint32 damageToReduce = (pVictim->GetHealth() < allowedHealth)
@@ -4511,9 +4511,6 @@ void Unit::RemoveAura(AuraMap::iterator &i, AuraRemoveMode mode)
         {
             uint32 procEx = PROC_EX_NONE;
 
-            if(mode == AURA_REMOVE_BY_DISPEL)
-                procEx |= PROC_EX_DISPEL;
-
             //if absorb aura was removed (ice barrier, power word: shield, etc..)
             if(mode == AURA_REMOVE_BY_DEFAULT && Aur->GetModifier()->m_auraname == SPELL_AURA_SCHOOL_ABSORB && !Aur->GetModifier()->m_amount)
                 procEx |= PROC_EX_ABSORB;
@@ -4689,7 +4686,7 @@ bool Unit::IsLastAura(uint32 spellId, uint32 effIndex) const
 {
      for (int i = 0; i < 3 ; ++i)
      {
-        AuraMap::const_iterator iter = m_Auras.find(spellEffectPair(spellId, i));
+        AuraMap::const_iterator iter = m_Auras.find(spellEffectPair(spellId, SpellEffectIndex(i)));
         if (iter != m_Auras.end() && iter->second->GetEffIndex() != effIndex)
             return false;
      }
@@ -8309,16 +8306,6 @@ bool Unit::HandleOverrideClassScriptAuraProc(Unit *pVictim, uint32 /*damage*/, A
         case 5497:                                          // Improved Mana Gems (Serpent-Coil Braid)
             triggered_spell_id = 37445;                     // Mana Surge
             break;
-        case 8152:                                          // Serendipity
-        {
-            // if heal your target over maximum health
-            if (pVictim->GetHealth() + damage < pVictim->GetMaxHealth())
-                return false;
-            int32 cost = procSpell->manaCost + procSpell->ManaCostPercentage * GetCreateMana() / 100;
-            int32 basepoints0 = cost * triggeredByAura->GetModifier()->m_amount/100;
-            CastCustomSpell(this, 47762, &basepoints0, NULL, NULL, true, NULL, triggeredByAura);
-            return true;
-        }
         case 6953:                                          // Warbringer
             RemoveAurasAtMechanicImmunity(IMMUNE_TO_ROOT_AND_SNARE_MASK,0,true);
             return true;
@@ -13684,7 +13671,7 @@ bool Unit::ApplySpellAura(uint32 spellID)
             case SPELL_EFFECT_APPLY_AREA_AURA_ENEMY:
             case SPELL_EFFECT_APPLY_AREA_AURA_OWNER:
 
-                Aura *Aur = CreateAura(spellInfo, i, NULL, this);
+                Aura *Aur = CreateAura(spellInfo, SpellEffectIndex(i), NULL, this);
                 this->AddAura(Aur);
             }
         }

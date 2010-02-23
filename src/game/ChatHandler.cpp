@@ -225,7 +225,7 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recv_data )
             if(VirtualPlayer *vp = sVPlayerMgr.GetChar(to))
             {
                 uint32 t = Player::TeamForRace(vp->race);
-                if(!vp->online || (!sWorld.getConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_CHAT) && GetPlayer()->GetTeam() != t) )
+                if(!vp->online || (!sWorld.getConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_INTERACTION_CHAT) && GetPlayer()->GetTeam() != t) )
                 {
                     WorldPacket data(SMSG_CHAT_PLAYER_NOT_FOUND, (to.size()+1));
                     data<<to;
@@ -235,7 +235,7 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recv_data )
 
                 // simulate received whisper. (To: <Name>: blah blah   at sender client)
                 WorldPacket rdata(SMSG_MESSAGECHAT, 200);
-                rdata << (uint8)CHAT_MSG_REPLY;
+                rdata << (uint8)CHAT_MSG_WHISPER_INFORM;
                 rdata << (uint32)lang;
                 rdata << (uint64)vp->guid;
                 rdata << (uint32)lang;

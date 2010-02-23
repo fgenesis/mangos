@@ -854,10 +854,10 @@ void World::LoadConfigSettings(bool reload)
 
 
     // FG: custom stuffs
-    setConfig[CONFIG_UINT32_AUTOBROADCAST_INTERVAL] = sConfig.GetIntDefault("AutoBroadcastInterval",0);
-    setConfig[CONFIG_BOOL_ALLOW_CITY_DUELING] = sConfig.GetIntDefault("AllowCityDueling",0);
-    setConfig[CONFIG_UINT32_MAX_MUTETIME] = sConfig.GetIntDefault("MaxMuteTime",0);
-    setConfig[CONFIG_BOOL_LIMIT_GM_ACCOUNTS] = sConfig.GetBoolDefault("LimitGMAccounts", false);
+    setConfig(CONFIG_UINT32_AUTOBROADCAST_INTERVAL, sConfig.GetIntDefault("AutoBroadcastInterval",0));
+    setConfig(CONFIG_BOOL_ALLOW_CITY_DUELING, sConfig.GetIntDefault("AllowCityDueling",0));
+    setConfig(CONFIG_UINT32_MAX_MUTETIME, sConfig.GetIntDefault("MaxMuteTime",0));
+    setConfig(CONFIG_BOOL_LIMIT_GM_ACCOUNTS, sConfig.GetBoolDefault("LimitGMAccounts", false));
     m_nonInstanceMaps.clear();
     std::string nonInstMaps = sConfig.GetStringDefault("NonInstanceMaps","");
     Tokens tok = StrSplit(nonInstMaps,",");
@@ -875,7 +875,7 @@ void World::LoadConfigSettings(bool reload)
         m_autoBanTimes.push_back(tok[ti]);
         sLog.outString("FG: AutoBan Time %u: '%s'", ti, tok[ti].c_str());
     }
-    setConfig[CONFIG_UINT32_AUTOBAN_MIN_COUNTED_BANTIME] = sConfig.GetIntDefault("AutoBan.MinCountedTime", DAY);
+    setConfig(CONFIG_UINT32_AUTOBAN_MIN_COUNTED_BANTIME, sConfig.GetIntDefault("AutoBan.MinCountedTime", DAY));
     sVPlayerMgr.SetEnabled( sConfig.GetBoolDefault("VP.Enabled", false) );
     sVPlayerMgr.SetMaxLevel( sConfig.GetIntDefault("VP.Maxlevel",70) );
     sVPlayerMgr.SetOnlineSpread( sConfig.GetFloatDefault("VP.OnlineSpread",0.12f) );
@@ -883,22 +883,22 @@ void World::LoadConfigSettings(bool reload)
     sVPlayerMgr.SetHourOffset( sConfig.GetIntDefault("VP.HourOffset", 0) );
     sVPlayerMgr.SetLoginCheckInterval( sConfig.GetIntDefault("VP.LoginCheckInterval", 5) );
     // FG: ACH related
-    setConfig[CONFIG_UINT32_ACH_NOTIFY_IMPACT_1]                  = sConfig.GetIntDefault("ACH.Notify.Impact.1",2000);
-    setConfig[CONFIG_UINT32_ACH_NOTIFY_IMPACT_2]                  = sConfig.GetIntDefault("ACH.Notify.Impact.2",5000);
-    setConfig[CONFIG_UINT32_ACH_NOTIFY_IMPACT_3]                  = sConfig.GetIntDefault("ACH.Notify.Impact.3",20000);
-    setConfig[CONFIG_UINT32_ACH_NOTIFY_INTERVAL]                  = sConfig.GetIntDefault("ACH.Notify.Interval",60) * CLOCKS_PER_SEC;
-    setConfig[CONFIG_UINT32_ACH_MISTIMING_DELTA]                  = sConfig.GetIntDefault("ACH.Mistiming.Delta",10000);
-    setConfig[CONFIG_UINT32_ACH_IMPACT_MISTIMING_FLAT]            = sConfig.GetIntDefault("ACH.Impact.Mistiming.Flat",50);
-    setConfig[CONFIG_UINT32_ACH_IMPACT_MISTIMING_MULTI]           = sConfig.GetIntDefault("ACH.Impact.Mistiming.Multi",100);
-    setConfig[CONFIG_UINT32_ACH_IMPACT_GRAVITY]                   = sConfig.GetIntDefault("ACH.Impact.Gravity",300);
-    setConfig[CONFIG_UINT32_ACH_IMPACT_SPEED_FLAT]                = sConfig.GetIntDefault("ACH.Impact.Speed.Flat",50);
-    setConfig[CONFIG_UINT32_ACH_IMPACT_SPEED_MULTI]               = sConfig.GetIntDefault("ACH.Impact.Speed.Multi",100);
-    setConfig[CONFIG_UINT32_ACH_IMPACT_MULTIJUMP]                 = sConfig.GetIntDefault("ACH.Impact.Multijump",500);
-    setConfig[CONFIG_UINT32_ACH_IMPACT_MOUNTAIN]                  = sConfig.GetIntDefault("ACH.Impact.Mountain",250);
-    setConfig[CONFIG_UINT32_ACH_IMPACT_FLY]                       = sConfig.GetIntDefault("ACH.Impact.Fly",500);
-    setConfig[CONFIG_UINT32_ACH_IMPACT_WATERWALK]                 = sConfig.GetIntDefault("ACH.Impact.Waterwalk",200);
-    setConfig[CONFIG_UINT32_ACH_IMPACT_TELEPORT_TO_PLANE_FLAT]    = sConfig.GetIntDefault("ACH.Impact.Plane.Flat",100);
-    setConfig[CONFIG_UINT32_ACH_IMPACT_TELEPORT_TO_PLANE_MULTI]   = sConfig.GetIntDefault("ACH.Impact.Plane.Multi",50);
+    setConfig(CONFIG_UINT32_ACH_NOTIFY_IMPACT_1,                   sConfig.GetIntDefault("ACH.Notify.Impact.1",2000));
+    setConfig(CONFIG_UINT32_ACH_NOTIFY_IMPACT_2,                   sConfig.GetIntDefault("ACH.Notify.Impact.2",5000));
+    setConfig(CONFIG_UINT32_ACH_NOTIFY_IMPACT_3,                   sConfig.GetIntDefault("ACH.Notify.Impact.3",20000));
+    setConfig(CONFIG_UINT32_ACH_NOTIFY_INTERVAL,                   sConfig.GetIntDefault("ACH.Notify.Interval",60) * CLOCKS_PER_SEC);
+    setConfig(CONFIG_UINT32_ACH_MISTIMING_DELTA,                   sConfig.GetIntDefault("ACH.Mistiming.Delta",10000));
+    setConfig(CONFIG_UINT32_ACH_IMPACT_MISTIMING_FLAT,             sConfig.GetIntDefault("ACH.Impact.Mistiming.Flat",50));
+    setConfig(CONFIG_UINT32_ACH_IMPACT_MISTIMING_MULTI,            sConfig.GetIntDefault("ACH.Impact.Mistiming.Multi",100));
+    setConfig(CONFIG_UINT32_ACH_IMPACT_GRAVITY,                    sConfig.GetIntDefault("ACH.Impact.Gravity",300));
+    setConfig(CONFIG_UINT32_ACH_IMPACT_SPEED_FLAT,                 sConfig.GetIntDefault("ACH.Impact.Speed.Flat",50));
+    setConfig(CONFIG_UINT32_ACH_IMPACT_SPEED_MULTI,                sConfig.GetIntDefault("ACH.Impact.Speed.Multi",100));
+    setConfig(CONFIG_UINT32_ACH_IMPACT_MULTIJUMP,                  sConfig.GetIntDefault("ACH.Impact.Multijump",500));
+    setConfig(CONFIG_UINT32_ACH_IMPACT_MOUNTAIN,                   sConfig.GetIntDefault("ACH.Impact.Mountain",250));
+    setConfig(CONFIG_UINT32_ACH_IMPACT_FLY,                        sConfig.GetIntDefault("ACH.Impact.Fly",500));
+    setConfig(CONFIG_UINT32_ACH_IMPACT_WATERWALK,                  sConfig.GetIntDefault("ACH.Impact.Waterwalk",200));
+    setConfig(CONFIG_UINT32_ACH_IMPACT_TELEPORT_TO_PLANE_FLAT,     sConfig.GetIntDefault("ACH.Impact.Plane.Flat",100));
+    setConfig(CONFIG_UINT32_ACH_IMPACT_TELEPORT_TO_PLANE_MULTI,    sConfig.GetIntDefault("ACH.Impact.Plane.Multi",50));
 
     // FG: -end-
 
@@ -1340,7 +1340,7 @@ void World::SetInitialWorldSettings()
     if(sWorld.getConfig(CONFIG_UINT32_AUTOBROADCAST_INTERVAL) > 0)
     {
         sLog.outString("ProjectEden: Starting AutoBroadcast Handler");
-        m_timers[WUPDATE_AUTOBROADCAST].SetInterval(1000 * sWorld.getConfig(CONFIG_AUTOBROADCAST_INTERVAL));
+        m_timers[WUPDATE_AUTOBROADCAST].SetInterval(1000 * sWorld.getConfig(CONFIG_UINT32_AUTOBROADCAST_INTERVAL));
     }
     else
         sLog.outString("ProjectEden: AutoBroadcast INACTIVE.");
@@ -1524,7 +1524,7 @@ void World::Update(uint32 diff)
     }
 
 
-    if(m_configs[CONFIG_AUTOBROADCAST_INTERVAL])
+    if(getConfig(CONFIG_UINT32_AUTOBROADCAST_INTERVAL))
     {
         if(m_timers[WUPDATE_AUTOBROADCAST].Passed())
         {

@@ -203,24 +203,24 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)
     if(!curDest)
     {
         //movement anticheat code
-        GetPlayer()->SetPosition(movementInfo.x, movementInfo.y, movementInfo.z, movementInfo.o);
+        GetPlayer()->SetPosition(movementInfo.GetPos()->x, movementInfo.GetPos()->y, movementInfo.GetPos()->z, movementInfo.GetPos()->o);
         GetPlayer()->m_movementInfo = movementInfo;
-        //GetPlayer()->SetUnitMovementFlags(movementInfo.flags);
+        //GetPlayer()->SetUnitMovementFlags(movementInfo.moveFlags);
 
         //calc time deltas
         int32 cClientTimeDelta = 0;
         if (GetPlayer()->m_anti_LastClientTime !=0)
         {
-            cClientTimeDelta = movementInfo.time - GetPlayer()->m_anti_LastClientTime;
+            cClientTimeDelta = movementInfo.GetTime() - GetPlayer()->m_anti_LastClientTime;
             GetPlayer()->m_anti_DeltaClientTime += cClientTimeDelta;
-            GetPlayer()->m_anti_LastClientTime = movementInfo.time;
+            GetPlayer()->m_anti_LastClientTime = movementInfo.GetTime();
         }
         else
         {
-            GetPlayer()->m_anti_LastClientTime = movementInfo.time;
+            GetPlayer()->m_anti_LastClientTime = movementInfo.GetTime();
         }
 
-        uint32 cServerTime=getMSTime();
+        uint32 cServerTime = getMSTime();
         uint32 cServerTimeDelta = 0;
         if (GetPlayer()->m_anti_LastServerTime != 0)
         {
@@ -240,29 +240,30 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)
     }
 
     //movment anticheat
-    uint32 curloc = sObjectMgr.GetNearestTaxiNode(movementInfo.x,movementInfo.y,movementInfo.z,GetPlayer()->GetMapId(),GetPlayer( )->GetTeam());
+    uint32 curloc = sObjectMgr.GetNearestTaxiNode(movementInfo.GetPos()->x,movementInfo.GetPos()->y,movementInfo.GetPos()->z,
+        GetPlayer()->GetMapId(),GetPlayer( )->GetTeam());
     //end movement anticheat
 
     TaxiNodesEntry const* curDestNode = sTaxiNodesStore.LookupEntry(curDest);
 
     //movement anticheat code
-    GetPlayer()->SetPosition(movementInfo.x, movementInfo.y, movementInfo.z, movementInfo.o);
+    GetPlayer()->SetPosition(movementInfo.GetPos()->x, movementInfo.GetPos()->y, movementInfo.GetPos()->z, movementInfo.GetPos()->o);
     GetPlayer()->m_movementInfo = movementInfo;
-    //GetPlayer()->SetUnitMovementFlags(movementInfo.flags);
+    //GetPlayer()->SetUnitMovementFlags(movementInfo.moveFlags);
     //calc time deltas
     int32 cClientTimeDelta = 0;
     if (GetPlayer()->m_anti_LastClientTime !=0)
     {
-        cClientTimeDelta = movementInfo.time - GetPlayer()->m_anti_LastClientTime;
+        cClientTimeDelta = movementInfo.GetTime() - GetPlayer()->m_anti_LastClientTime;
         GetPlayer()->m_anti_DeltaClientTime += cClientTimeDelta;
-        GetPlayer()->m_anti_LastClientTime = movementInfo.time;
+        GetPlayer()->m_anti_LastClientTime = movementInfo.GetTime();
     }
     else
     {
-        GetPlayer()->m_anti_LastClientTime = movementInfo.time;
+        GetPlayer()->m_anti_LastClientTime = movementInfo.GetTime();
     }
 
-    uint32 cServerTime=getMSTime();
+    uint32 cServerTime = getMSTime();
     uint32 cServerTimeDelta = 0;
     if (GetPlayer()->m_anti_LastServerTime != 0)
     {

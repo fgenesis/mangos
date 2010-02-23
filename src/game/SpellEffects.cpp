@@ -664,7 +664,7 @@ void Spell::EffectSchoolDMG(SpellEffectIndex effect_idx)
                 if (m_spellInfo->Id == 20187)
                 {
                     float ap = m_caster->GetTotalAttackPowerValue(BASE_ATTACK);
-                    int32 holy = m_caster->SpellBaseDamageBonus(GetSpellSchoolMask(m_spellInfo))// + // FG: drop this part of extra damage
+                    int32 holy = m_caster->SpellBaseDamageBonus(GetSpellSchoolMask(m_spellInfo));// + // FG: drop this part of extra damage
                                  //m_caster->SpellBaseDamageBonusForVictim(GetSpellSchoolMask(m_spellInfo), unitTarget);
                     damage += int32(ap * 0.2f) + int32(holy * 32 / 100);
                 }
@@ -2124,7 +2124,7 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                     if(unitTarget->GetTypeId() != TYPEID_PLAYER)
                     {
                         unitTarget->GetMap()->CreatureRelocation((Creature*)unitTarget,x,y,z,orientation);
-                        ((Creature*)unitTarget)->SendMonsterMove(x, y, z, orientation, MONSTER_MOVE_UNK12, 1);
+                        ((Creature*)unitTarget)->SendMonsterMove(x, y, z, SPLINETYPE_FACINGSPOT, SPLINEFLAG_UNKNOWN11, 1);
                     }
                     else
                         unitTarget->NearTeleportTo(x,y,z,orientation,false);
@@ -4189,13 +4189,13 @@ void Spell::EffectEnchantItemPerm(SpellEffectIndex eff_idx)
 
     ItemPrototype const* targetProto = itemTarget->GetProto();
     // EffectItemType serves as the entry of the item to be created.
-    if(m_spellInfo->EffectItemType[effect_idx])
+    if(m_spellInfo->EffectItemType[eff_idx])
     {
         if((m_spellInfo->EquippedItemClass == ITEM_CLASS_ARMOR && itemTarget->IsArmorVellum()) ||
            (m_spellInfo->EquippedItemClass == ITEM_CLASS_WEAPON && itemTarget->IsWeaponVellum()))
         {
              unitTarget = m_caster;
-             DoCreateItem(effect_idx,m_spellInfo->EffectItemType[effect_idx]);
+             DoCreateItem(eff_idx,m_spellInfo->EffectItemType[eff_idx]);
              return;
         }
     }
@@ -4788,7 +4788,7 @@ void Spell::EffectWeaponDmg(SpellEffectIndex eff_idx)
             if(m_spellInfo->SpellFamilyFlags & UI64LIT(0x00020000000000))
             {
                 float ap = m_caster->GetTotalAttackPowerValue(BASE_ATTACK);
-                int32 holy = m_caster->SpellBaseDamageBonus(GetSpellSchoolMask(m_spellInfo)) //+ // FG: drop the extra dmg part below
+                int32 holy = m_caster->SpellBaseDamageBonus(GetSpellSchoolMask(m_spellInfo));//+ // FG: drop the extra dmg part below
                              //m_caster->SpellBaseDamageBonusForVictim(GetSpellSchoolMask(m_spellInfo), unitTarget);
                 spell_bonus += int32(ap * 0.08f) + int32(holy * 13 / 100);
             }
@@ -6403,7 +6403,7 @@ void Spell::EffectSummonObject(SpellEffectIndex eff_idx)
     if(uint64 guid = m_caster->m_ObjectSlot[slot])
     {
         if(GameObject* obj = m_caster ? m_caster->GetMap()->GetGameObject(guid) : NULL)
-                obj->SetLootState(GO_JUST_DEACTIVATED);
+            obj->SetLootState(GO_JUST_DEACTIVATED);
         m_caster->m_ObjectSlot[slot] = 0;
     }
 
@@ -6513,53 +6513,29 @@ void Spell::EffectBlock(SpellEffectIndex /*eff_idx*/)
 
 void Spell::EffectLeapForward(SpellEffectIndex eff_idx)
 {
-    if (unitTarget->isInFlight())
+    if(unitTarget->isInFlight())
         return;
 
-    if (m_spellInfo->rangeIndex == 1)                       //self range
+    if( m_spellInfo->rangeIndex == 1)                       //self range
     {
         float dis = GetSpellRadius(sSpellRadiusStore.LookupEntry(m_spellInfo->EffectRadiusIndex[eff_idx]));
 
-        float *fx = new float[11], *fy = new float[11], *fz = new float[11];
-        unitTarget->GetPosition(fx[0], fy[0], fz[0]);
-
-        float orientation = unitTarget->GetOrientation(), itr_i, step = dis / 10.0, fx2, fy2, fz2, ground, floor;
-
-        int itr_j = 1, last_valid = 0;
-        bool hit = false;
+        // before caster
+        float fx, fy, fz;
+        unitTarget->GetClosePoint(fx, fy, fz, unitTarget->GetObjectSize(), dis);
+        float ox, oy, oz;
+        unitTarget->GetPosition(ox, oy, oz);
 
         float fx2, fy2, fz2;                                // getObjectHitPos overwrite last args in any result case
         if(VMAP::VMapFactory::createOrGetVMapManager()->getObjectHitPos(unitTarget->GetMapId(), ox,oy,oz+0.5f, fx,fy,oz+0.5f,fx2,fy2,fz2, -0.5f))
         {
-            fx[itr_j] = fx[0] + itr_i * cos(orientation);
-            fy[itr_j] = fy[0] + itr_i * sin(orientation);
-
-            ground = unitTarget->GetMap()->GetHeight(fx[itr_j], fy[itr_j], MAX_HEIGHT, true);
-            floor = unitTarget->GetMap()->GetHeight(fx[itr_j], fy[itr_j], fz[last_valid], true);
-            fz[itr_j] = fabs(ground - fz[last_valid]) <= fabs(floor - fz[last_valid]) ? ground : floor;
-            if (fabs(fz[itr_j] - fz[0]) <= 6.0)
-            {
-                if (VMAP::VMapFactory::createOrGetVMapManager()->getObjectHitPos(mapid, fx[last_valid], fy[last_valid], fz[last_valid] + 0.5, fx[itr_j], fy[itr_j], fz[itr_j] + 0.5, fx2, fy2, fz2, -0.5))
-                {
-                    hit = true;
-                    fx[itr_j] = fx2 - 0.6 * cos(orientation);
-                    fy[itr_j] = fy2 - 0.6 * sin(orientation);
-                    ground = unitTarget->GetMap()->GetHeight(fx[itr_j], fy[itr_j], MAX_HEIGHT, true);
-                    floor = unitTarget->GetMap()->GetHeight(fx[itr_j], fy[itr_j], fz[last_valid], true);
-                    float tempz = fabs(ground - fz[last_valid]) <= fabs(floor - fz[last_valid]) ? ground : floor;
-                    fz[itr_j] = fabs(tempz - fz[last_valid]) <= fabs(fz2 - fz[last_valid]) ? tempz : fz2;
-                    break;
-                }
-                else
-                    last_valid = itr_j;
-            }
-            itr_j++;
+            fx = fx2;
+            fy = fy2;
+            fz = fz2;
+            unitTarget->UpdateGroundPositionZ(fx, fy, fz);
         }
-        if (!hit)
-            itr_j = last_valid;
 
-        unitTarget->NearTeleportTo(fx[itr_j], fy[itr_j], fz[itr_j] + 0.07531, unitTarget->GetOrientation(),unitTarget==m_caster);
-        delete [] fx; delete [] fy; delete [] fz;
+        unitTarget->NearTeleportTo(fx, fy, fz, unitTarget->GetOrientation(), unitTarget == m_caster);
     }
 }
 

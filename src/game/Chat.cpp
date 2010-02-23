@@ -741,7 +741,6 @@ ChatCommand * ChatHandler::getCommandTable()
         //{ "anticheat", SEC_ADMINISTRATOR, NULL, "", anticheatCommandTable },
         { "xpmulti", SEC_ADMINISTRATOR,false, NULL, "", xpmultiCommandTable },
         { "helpme", SEC_PLAYER, false, &ChatHandler::HandleHelpmeCommand, "", NULL },
-        { "ahbotoptions",   SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleAHBotOptionsCommand,        "", NULL },
 
 
         // alternative defs

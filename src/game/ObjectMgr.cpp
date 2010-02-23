@@ -45,8 +45,6 @@
 #include "WaypointManager.h"
 #include "GossipDef.h"
 
-#include "AuctionHouseBot.h"
-
 INSTANTIATE_SINGLETON_1(ObjectMgr);
 
 ScriptMapMap sQuestEndScripts;
