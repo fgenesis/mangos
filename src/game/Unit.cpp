@@ -5540,6 +5540,12 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                     target = this;
                     break;
                 }
+ 				//Explode Corpse
+                case 49555:
+                {
+                     triggered_spell_id = 49618;
+                     break;
+                }
                 // kill command (pet aura proc)
                 case 58914:
                 {
@@ -5569,6 +5575,12 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                     // Glyph of Shadowfiend (need cast as self cast for owner, no hidden cooldown)
                     owner->CastSpell(owner,58227,true,castItem,triggeredByAura);
                     return true;
+                }
+                //Explode Corpse heroic
+                case 59807:
+                {
+                    triggered_spell_id = 59809;
+                    break;
                 }
                 // Glyph of Life Tap
                 case 63320:
