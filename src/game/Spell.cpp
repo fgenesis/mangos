@@ -4084,6 +4084,20 @@ SpellCastResult Spell::CheckCast(bool strict)
         }
     }
 
+    bool reqCombat=true;
+    Unit::AuraList const& stateAuras = m_caster->GetAurasByType(SPELL_AURA_IGNORE_REQUIREMENTS);
+    for (Unit::AuraList::const_iterator j = stateAuras.begin(); j != stateAuras.end(); ++j)
+    {
+        if((*j)->isAffectedOnSpell(m_spellInfo))
+        {
+            if ((*j)->GetMiscValue() == 1)
+            {
+                reqCombat = false;
+                break;
+            }
+        }
+    }
+
     // caster state requirements
     if(m_spellInfo->CasterAuraState && !m_caster->HasAuraState(AuraState(m_spellInfo->CasterAuraState)))
         return SPELL_FAILED_CASTER_AURASTATE;
@@ -4331,7 +4345,7 @@ SpellCastResult Spell::CheckCast(bool strict)
         }
 
         // check if target is in combat
-        if (non_caster_target && (m_spellInfo->AttributesEx & SPELL_ATTR_EX_NOT_IN_COMBAT_TARGET) && target->isInCombat())
+        if (non_caster_target && reqCombat && (m_spellInfo->AttributesEx & SPELL_ATTR_EX_NOT_IN_COMBAT_TARGET) && target->isInCombat())
             return SPELL_FAILED_TARGET_AFFECTING_COMBAT;
     }
     // zone check
