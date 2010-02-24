@@ -61,6 +61,7 @@
 #include "WaypointManager.h"
 #include "GMTicketMgr.h"
 #include "Util.h"
+#include "AuctionHouseBot.h"
 
 // FG: req. headers
 #include "PlayerDropMgr.h"
@@ -1337,6 +1338,9 @@ void World::SetInitialWorldSettings()
     m_timers[WUPDATE_EVENTS].SetInterval(nextGameEvent);    //depend on next event
 
     // FG: more custom stuff
+    sLog.outString("Initialize AuctionHouseBot...");
+    auctionbot.Initialize();
+
     if(sWorld.getConfig(CONFIG_UINT32_AUTOBROADCAST_INTERVAL) > 0)
     {
         sLog.outString("ProjectEden: Starting AutoBroadcast Handler");
@@ -1434,6 +1438,7 @@ void World::Update(uint32 diff)
     /// <ul><li> Handle auctions when the timer has passed
     if (m_timers[WUPDATE_AUCTIONS].Passed())
     {
+        auctionbot.Update();
         m_timers[WUPDATE_AUCTIONS].Reset();
 
         ///- Update mails (return old mails with item, or delete them)
