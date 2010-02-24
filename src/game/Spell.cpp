@@ -4961,15 +4961,23 @@ SpellCastResult Spell::CheckCast(bool strict)
             {
                 if(m_spellInfo->EffectItemType[i] && m_targets.getItemTarget())
                 {
-                    if(m_targets.getItemTarget()->IsWeaponVellum() || m_targets.getItemTarget()->IsArmorVellum())
+                    Item *itmtarget = m_targets.getItemTarget();
+                    if(itmtarget && m_caster->GetTypeId() == TYPEID_PLAYER)
                     {
-                         ItemPosCountVec dest;
-                         uint8 msg = ((Player*)m_caster)->CanStoreNewItem( NULL_BAG, NULL_SLOT, dest, m_spellInfo->EffectItemType[i], 1 );
-                         if(msg != EQUIP_ERR_OK)
-                         {
-                            ((Player*)m_caster)->SendEquipError( msg, NULL, NULL );
-                            return SPELL_FAILED_DONT_REPORT;
-                         }
+                        if(itmtarget->IsWeaponVellum() || m_targets.getItemTarget()->IsArmorVellum())
+                        {
+                             ItemPosCountVec dest;
+                             uint8 msg = ((Player*)m_caster)->CanStoreNewItem( NULL_BAG, NULL_SLOT, dest, m_spellInfo->EffectItemType[i], 1 );
+                             if(msg != EQUIP_ERR_OK)
+                             {
+                                ((Player*)m_caster)->SendEquipError( msg, NULL, NULL );
+                                return SPELL_FAILED_DONT_REPORT;
+                             }
+
+                            // FG: remove a vellum after it was enchanted
+                            uint32 itemcount = 1;
+                            ((Player*)m_caster)->DestroyItemCount(itmtarget, itemcount, true);
+                        }
                     }
                 }
                 break;
