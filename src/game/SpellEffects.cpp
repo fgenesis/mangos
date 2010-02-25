@@ -4324,8 +4324,22 @@ void Spell::EffectEnchantItemPerm(SpellEffectIndex eff_idx)
 
     Player* p_caster = (Player*)m_caster;
 
-    // not grow at item use at item case
-    p_caster->UpdateCraftSkill(m_spellInfo->Id);
+    // Enchanting a vellum requires special handling, as it creates a new item
+    // instead of modifying an existing one.
+    ItemPrototype const* targetProto = itemTarget->GetProto();
+    if(targetProto->IsVellum() && m_spellInfo->EffectItemType[eff_idx])
+    {
+        unitTarget = m_caster;
+        DoCreateItem(eff_idx,m_spellInfo->EffectItemType[eff_idx]);
+        // Vellum target case: Target becomes additional reagent, new scroll item created instead in Spell::EffectEnchantItemPerm()
+        // cannot already delete in TakeReagents() unfortunately
+        p_caster->DestroyItemCount(targetProto->ItemId, 1, true);
+        return;
+    }
+
+    // not grow at item use at item case, using scrolls does not increase enchanting skill!
+    if (!(m_CastItem && m_CastItem->GetProto()->Flags & ITEM_FLAGS_ENCHANT_SCROLL))
+        p_caster->UpdateCraftSkill(m_spellInfo->Id);
 
     uint32 enchant_id = m_spellInfo->EffectMiscValue[eff_idx];
     if (!enchant_id)
@@ -4334,19 +4348,6 @@ void Spell::EffectEnchantItemPerm(SpellEffectIndex eff_idx)
     SpellItemEnchantmentEntry const *pEnchant = sSpellItemEnchantmentStore.LookupEntry(enchant_id);
     if (!pEnchant)
         return;
-
-    ItemPrototype const* targetProto = itemTarget->GetProto();
-    // EffectItemType serves as the entry of the item to be created.
-    if(m_spellInfo->EffectItemType[eff_idx])
-    {
-        if((m_spellInfo->EquippedItemClass == ITEM_CLASS_ARMOR && itemTarget->IsArmorVellum()) ||
-           (m_spellInfo->EquippedItemClass == ITEM_CLASS_WEAPON && itemTarget->IsWeaponVellum()))
-        {
-             unitTarget = m_caster;
-             DoCreateItem(eff_idx,m_spellInfo->EffectItemType[eff_idx]);
-             return;
-        }
-    }
 
     // item can be in trade slot and have owner diff. from caster
     Player* item_owner = itemTarget->GetOwner();

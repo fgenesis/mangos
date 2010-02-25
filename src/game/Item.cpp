@@ -755,9 +755,14 @@ bool Item::IsFitToSpellRequirements(SpellEntry const* spellInfo) const
 {
     ItemPrototype const* proto = GetProto();
 
-    if(spellInfo->Effect[0] == SPELL_EFFECT_ENCHANT_ITEM && ((spellInfo->EquippedItemClass == ITEM_CLASS_ARMOR && IsArmorVellum()) ||
-      (spellInfo->EquippedItemClass == ITEM_CLASS_WEAPON && IsWeaponVellum())))
-        return true;
+    // Enchant spells have only effect[0]
+    if(proto->IsVellum() && spellInfo->Effect[0] == SPELL_EFFECT_ENCHANT_ITEM && spellInfo->EffectItemType[0])
+    {
+        if ((proto->SubClass == ITEM_SUBCLASS_WEAPON_ENCHANTMENT && spellInfo->EquippedItemClass == ITEM_CLASS_WEAPON) ||
+            (proto->SubClass == ITEM_SUBCLASS_ARMOR_ENCHANTMENT && spellInfo->EquippedItemClass == ITEM_CLASS_ARMOR))
+            return true;
+    }
+    // Vellum enchant case should ignore everything below
 
     if (spellInfo->EquippedItemClass != -1)                 // -1 == any item class
     {
