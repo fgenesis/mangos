@@ -2551,6 +2551,14 @@ void Spell::EffectTriggerSpell(SpellEffectIndex effIndex)
             m_caster->ModifyPower(POWER_RUNIC_POWER, 25);
             return;
         }
+        // Mirror Image
+        case 58832:
+        {
+            // Glyph of Mirror Image
+            if (m_caster->HasAura(63093))
+                m_caster->CastSpell(m_caster, 65047, true); // Mirror Image
+            return;
+        }
     }
 
     // normal case
@@ -4207,6 +4215,93 @@ void Spell::DoSummonWild(SpellEffectIndex eff_idx, uint32 forceFaction)
         {
             summon->SetUInt32Value(UNIT_CREATED_BY_SPELL, m_spellInfo->Id);
             summon->SetCreatorGUID(m_caster->GetGUID());
+
+            //Mirror image
+            if(creature_entry == 31216)
+            {
+                summon->SetLevel(m_caster->getLevel());
+                summon->SetMaxHealth(m_caster->GetMaxHealth());
+                summon->SetHealth(m_caster->GetHealth());
+                summon->SetDisplayId(m_caster->GetDisplayId());
+                summon->SetMaxPower(POWER_MANA, m_caster->GetMaxPower(POWER_MANA));
+                summon->SetPower(POWER_MANA, m_caster->GetPower(POWER_MANA));
+                summon->SetPvP(true);
+                summon->setFaction(m_caster->getFaction());
+                //m_caster->CastSpell(summon, 45204, false);
+                //m_caster->CastSpell((Unit*)NULL, 58838, true);
+                summon->SetUInt32Value(UNIT_FIELD_FLAGS_2, 2064);
+                if (m_caster->GetTypeId()== TYPEID_PLAYER)
+                {
+                    if (Item const* item = ((Player *)m_caster)->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND))
+                        summon->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID, item->GetProto()->ItemId);
+                    if (Item const* item = ((Player *)m_caster)->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND))
+                        summon->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 1, item->GetProto()->ItemId);
+                }
+                else
+                {
+                    summon->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID, m_caster->GetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID));
+                    summon->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 1, m_caster->GetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 1));
+                    summon->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 2, m_caster->GetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 2));
+                }
+
+                WorldPacket data(SMSG_MIRRORIMAGE_DATA, 68);
+                data << (uint32)m_caster->GetDisplayId();
+                if (m_caster->GetTypeId() == TYPEID_PLAYER)
+                {
+                    Player* pCreator = (Player *)m_caster;
+                    data << (uint8)pCreator->getRace();                         // race
+                    data << (uint8)pCreator->getGender();                       // gender
+                    data << (uint8)pCreator->getClass();                        // class
+                    data << (uint8)pCreator->GetByteValue(PLAYER_BYTES, 0);     // skin
+                    data << (uint8)pCreator->GetByteValue(PLAYER_BYTES, 1);     // face
+                    data << (uint8)pCreator->GetByteValue(PLAYER_BYTES, 2);     // hair
+                    data << (uint8)pCreator->GetByteValue(PLAYER_BYTES, 3);     // haircolor
+                    data << (uint8)pCreator->GetByteValue(PLAYER_BYTES_2, 0);   // facialhair
+
+                    data << (uint32)0;                    // unknown
+
+                    static const EquipmentSlots ItemSlots[] =
+                    {
+                        EQUIPMENT_SLOT_HEAD,
+                        EQUIPMENT_SLOT_SHOULDERS,
+                        EQUIPMENT_SLOT_BODY,
+                        EQUIPMENT_SLOT_CHEST,
+                        EQUIPMENT_SLOT_WAIST,
+                        EQUIPMENT_SLOT_LEGS,
+                        EQUIPMENT_SLOT_FEET,
+                        EQUIPMENT_SLOT_WRISTS,
+                        EQUIPMENT_SLOT_HANDS,
+                        EQUIPMENT_SLOT_BACK,
+                        EQUIPMENT_SLOT_TABARD,
+                        EQUIPMENT_SLOT_END
+                    };
+
+                    // Display items in visible slots
+                    for (EquipmentSlots const* itr = &ItemSlots[0]; *itr != EQUIPMENT_SLOT_END; ++itr)
+                        if (Item const* item =  pCreator->GetItemByPos(INVENTORY_SLOT_BAG_0, *itr))
+                            data << (uint32)item->GetProto()->DisplayInfoID;    // display id
+                        else
+                            data << (uint32)0;                    // no item found, so no id
+                }
+                else
+                {
+                    // Skip player data for creatures
+                    data << (uint32)0;
+                    data << (uint32)0;
+                    data << (uint32)0;
+                    data << (uint32)0;
+                    data << (uint32)0;
+                    data << (uint32)0;
+                    data << (uint32)0;
+                    data << (uint32)0;
+                    data << (uint32)0;
+                    data << (uint32)0;
+                    data << (uint32)0;
+                    data << (uint32)0;
+                    data << (uint32)0;
+                    data << (uint32)0;
+                }
+           }
 
             if(forceFaction)
                 summon->setFaction(forceFaction);
