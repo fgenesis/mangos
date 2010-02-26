@@ -3841,7 +3841,7 @@ void Spell::DoSummon(SpellEffectIndex eff_idx)
         }
 
         // set timer for unsummon
-        if (duration > 0)
+        if (duration > 0 && m_spellInfo->Id != 70908) // Summon Elemental Water
             spawnCreature->SetDuration(duration);
 
         return;
