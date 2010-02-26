@@ -4917,6 +4917,13 @@ void Aura::HandlePeriodicEnergize(bool apply, bool Real)
                 break;
         }
     }
+    else if(!apply)
+    {
+        // Remove King of the Jungle with Enrage
+        if (GetSpellProto()->Id == 5229)
+            m_target->RemoveAurasDueToSpell(51185);
+    }
+
 
     m_isPeriodic = apply;
 }
