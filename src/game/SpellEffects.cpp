@@ -2558,7 +2558,7 @@ void Spell::EffectTriggerSpell(SpellEffectIndex effIndex)
             // Glyph of Mirror Image
             if (m_caster->HasAura(63093))
                 m_caster->CastSpell(m_caster, 65047, true); // Mirror Image
-            return;
+            //return; // FG: do NOT return! it should still cast the original trigger spell!
         }
     }
 
