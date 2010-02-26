@@ -478,11 +478,9 @@ void Spell::EffectSchoolDMG(SpellEffectIndex effect_idx)
                     {
                         // DoT not have applied spell bonuses in m_amount
                         int32 damagetick = m_caster->SpellDamageBonus(unitTarget, aura->GetSpellProto(), aura->GetModifier()->m_amount, DOT);
-                        damage += damagetick * 4;
 
-                        // Glyph of Conflagrate
-                        if (!m_caster->HasAura(56235))
-                            unitTarget->RemoveAurasByCasterSpell(aura->GetId(), m_caster->GetGUID());
+                        damage += damagetick * 3;
+                        //Remove auras in DoT part
                         break;
                     }
                 }
@@ -1189,6 +1187,16 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                 {
                     // Emissary of Hate Credit
                     m_caster->CastSpell(m_caster, 45088, true);
+                    return;
+                }
+                case 45449:
+                {
+                    // Arcane Prisoner Rescue triggering summon and giving Q credit
+                    if(m_caster->GetTypeId() == TYPEID_PLAYER)
+                    {
+                        m_caster->CastSpell(m_caster, ((((Player*)m_caster)->GetTeam() == ALLIANCE) ? 45448 : 45446), true);
+                        m_caster->CastSpell(m_caster, 45456, true);
+                    }
                     return;
                 }
                 case 45980:                                 // Re-Cursive Transmatter Injection

@@ -7033,6 +7033,14 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                     triggered_spell_id = 71824;
                     break;
                 }
+                // Earthen Power (Rank 1,2)
+                case 51523:
+                case 51524:
+                {
+                    triggered_spell_id = 63532;
+                    break;
+                }
+
             }
             // Storm, Earth and Fire
             if (dummySpell->SpellIconID == 3063)
