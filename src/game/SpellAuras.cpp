@@ -3123,6 +3123,10 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
             }
         }
     }
+
+    // script has to "handle with care", only use where data are not ok to use in the above code.
+    if (m_target->GetTypeId() == TYPEID_UNIT)
+        Script->EffectAuraDummy(this, apply);
 }
 
 void Aura::HandleAuraMounted(bool apply, bool Real)
@@ -3405,7 +3409,7 @@ void Aura::HandleAuraModShapeshift(bool apply, bool Real)
                         PlayerSpellMap const& sp_list = ((Player *)m_target)->GetSpellMap();
                         for (PlayerSpellMap::const_iterator itr = sp_list.begin(); itr != sp_list.end(); ++itr)
                         {
-                            if(itr->second->state == PLAYERSPELL_REMOVED) continue;
+                            if(itr->second.state == PLAYERSPELL_REMOVED) continue;
                             SpellEntry const *spellInfo = sSpellStore.LookupEntry(itr->first);
                             if (spellInfo && spellInfo->SpellFamilyName == SPELLFAMILY_WARRIOR && spellInfo->SpellIconID == 139)
                                 Rage_val += m_target->CalculateSpellDamage(spellInfo, EFFECT_INDEX_0, spellInfo->EffectBasePoints[EFFECT_INDEX_0], m_target) * 10;
@@ -4965,6 +4969,30 @@ void Aura::HandleAuraPeriodicDummy(bool apply, bool Real)
 void Aura::HandlePeriodicHeal(bool apply, bool /*Real*/)
 {
     m_isPeriodic = apply;
+
+    // For prevent double apply bonuses
+    bool loading = (m_target->GetTypeId() == TYPEID_PLAYER && ((Player*)m_target)->GetSession()->PlayerLoading());
+
+    // Custom damage calculation after
+    if (apply)
+    {
+        if(loading)
+            return;
+
+        Unit *caster = GetCaster();
+        if (!caster)
+            return;
+
+        // Gift of the Naaru (have diff spellfamilies)
+        if (m_spellProto->SpellIconID == 329 && m_spellProto->SpellVisual[0] == 7625)
+        {
+            int32 ap = int32 (0.22f * caster->GetTotalAttackPowerValue(BASE_ATTACK));
+            int32 holy = caster->SpellBaseDamageBonus(GetSpellSchoolMask(m_spellProto))
+                + caster->SpellBaseDamageBonusForVictim(GetSpellSchoolMask(m_spellProto), m_target);
+            holy = int32(holy * 377 / 1000);
+            m_modifier.m_amount += ap > holy ? ap : holy;
+        }
+    }
 }
 
 void Aura::HandlePeriodicDamage(bool apply, bool Real)
@@ -6209,7 +6237,7 @@ void Aura::HandleShapeshiftBoosts(bool apply)
             const PlayerSpellMap& sp_list = ((Player *)m_target)->GetSpellMap();
             for (PlayerSpellMap::const_iterator itr = sp_list.begin(); itr != sp_list.end(); ++itr)
             {
-                if (itr->second->state == PLAYERSPELL_REMOVED) continue;
+                if (itr->second.state == PLAYERSPELL_REMOVED) continue;
                 if (itr->first==spellId1 || itr->first==spellId2) continue;
                 SpellEntry const *spellInfo = sSpellStore.LookupEntry(itr->first);
                 if (!spellInfo || !(spellInfo->Attributes & (SPELL_ATTR_PASSIVE | (1<<7))))
@@ -7332,7 +7360,14 @@ void Aura::PeriodicTick()
                 {
                     int32 ticks = GetAuraMaxTicks();
                     int32 remainingTicks = ticks - GetAuraTicks();
-                    pdamage = int32(pdamage) + int32(amount)*ticks*(-6+2*remainingTicks)/100;
+                    int32 addition = int32(amount)*ticks*(-6+2*remainingTicks)/100;
+
+                    if (GetAuraTicks() != 1)
+                        // Item - Druid T10 Restoration 2P Bonus
+                        if (Aura *aura = pCaster->GetAura(70658, EFFECT_INDEX_0))
+                            addition += abs(int32((addition * aura->GetModifier()->m_amount) / ((ticks-1)* 100)));
+
+                    pdamage = int32(pdamage) + addition;
                 }
             }
 

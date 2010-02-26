@@ -417,7 +417,7 @@ enum UnitState
     UNIT_STAT_ISOLATED        = 0x00000020,                     // area auras do not affect other players, Aura::HandleAuraModSchoolImmunity
 
     // persistent movement generator state (all time while movement generator applied to unit (independent from top state of movegen)
-    UNIT_STAT_IN_FLIGHT       = 0x00000040,                     // player is in flight mode
+    UNIT_STAT_IN_FLIGHT       = 0x00000040,                     // player is in flight mode (in fact interrupted at far teleport until next map telport landing)
     UNIT_STAT_DISTRACTED      = 0x00000080,                     // DistractedMovementGenerator active
 
     // persistent movement generator state with non-persistent mirror states for stop support
@@ -1129,7 +1129,8 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         void CombatStop(bool includingCast = false);
         void CombatStopWithPets(bool includingCast = false);
         void StopAttackFaction(uint32 faction_id);
-        Unit* SelectNearbyTarget(Unit* except = NULL) const;
+        Unit* SelectRandomUnfriendlyTarget(Unit* except = NULL, float radius = ATTACK_DISTANCE) const;
+        Unit* SelectRandomFriendlyTarget(Unit* except = NULL, float radius = ATTACK_DISTANCE) const;
         bool hasNegativeAuraWithInterruptFlag(uint32 flag);
         void SendMeleeAttackStop(Unit* victim);
         void SendMeleeAttackStart(Unit* pVictim);

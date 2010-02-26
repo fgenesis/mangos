@@ -8,14 +8,9 @@
 # any tracked files which get ignored after the change.
 #
 
-# ScriptDev2 directory
-ScriptDev2
 #
 # Scripting projects
 # This excludes all 3rd party script libraries
 #
-*
-!universal/*
-!universal/*/*
-!Makefile.am
-!.gitignore
+*/
+!universal/
