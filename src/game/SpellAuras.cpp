@@ -6641,7 +6641,7 @@ void Aura::HandleSpellSpecificBoosts(bool apply)
         }
         case SPELLFAMILY_PALADIN:
         {
-            if (m_spellProto->Id == 19746)                  // Aura Mastery
+            if (m_spellProto->Id == 19746)                  // Concentration Aura
             {
                  Unit *caster = GetCaster();
                  if (!caster)
