@@ -149,9 +149,13 @@ struct CreatureInfo
         return (type_flags & CREATURE_TYPEFLAGS_EXOTIC);
     }
 
-    bool isTameable(bool exotic) const
+    bool isTameable(bool exotic, bool ignore_tameable = false) const
     {
-        if(type != CREATURE_TYPE_BEAST || family == 0 || (type_flags & CREATURE_TYPEFLAGS_TAMEABLE) == 0)
+        if(type != CREATURE_TYPE_BEAST || family == 0)
+            return false;
+
+        // some extra stuff to be more blizzlike.. possibility to let players keep pets even if not tameable anymore, but were tamed before
+        if(!ignore_tameable && (type_flags & CREATURE_TYPEFLAGS_TAMEABLE) == 0)
             return false;
 
         // if can tame exotic then can tame any temable
