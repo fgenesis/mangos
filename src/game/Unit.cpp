@@ -10327,6 +10327,10 @@ bool Unit::IsImmunedToSpell(SpellEntry const* spellInfo)
     //TODO add spellEffect immunity checks!, player with flag in bg is imune to imunity buffs from other friendly players!
     //SpellImmuneList const& dispelList = m_spellImmune[IMMUNITY_EFFECT];
 
+    // Shattering Throw can pass any shield
+    if (spellInfo->SpellFamilyName == SPELLFAMILY_WARRIOR && spellInfo->SpellFamilyFlags == UI64LIT(0x40000000000000))
+        return false;
+
     SpellImmuneList const& dispelList = m_spellImmune[IMMUNITY_DISPEL];
     for(SpellImmuneList::const_iterator itr = dispelList.begin(); itr != dispelList.end(); ++itr)
         if (itr->type == spellInfo->Dispel)

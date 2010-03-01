@@ -5323,6 +5323,16 @@ void Aura::HandlePeriodicDamage(bool apply, bool Real)
                 }
                 break;
             }
+            case SPELLFAMILY_DEATHKNIGHT:
+            {
+                // Frost Fever and Blood Plague damage calculation
+                if(GetSpellProto()->SpellFamilyFlags2 & 0x2)
+                {
+                    m_modifier.m_amount += int32(caster->GetTotalAttackPowerValue(BASE_ATTACK) * 0.08525 /* orginally* 0.055 * 1.55*/);
+                    return;
+                }
+                break;
+            }
             default:
                 break;
         }
@@ -8405,6 +8415,14 @@ void Aura::PeriodicDummyTick()
                 // Calculate AP bonus (from 1 efect of this spell)
                 int32 apBonus = m_modifier.m_amount * m_target->GetArmor() / m_target->CalculateSpellDamage(spell, EFFECT_INDEX_1, spell->EffectBasePoints[EFFECT_INDEX_1], m_target);
                 m_target->CastCustomSpell(m_target, 61217, &apBonus, &apBonus, NULL, true, NULL, this);
+                return;
+            }
+            // Hysteria Health Decreasing
+            if (spell->Id == 49016 )
+            {
+                uint32 dam = m_target->GetMaxHealth()*0.01;
+                m_target->DealDamage(m_target, dam, NULL, NODAMAGE, SPELL_SCHOOL_MASK_NORMAL, spell, false);
+                m_target->SendSpellNonMeleeDamageLog(m_target, spell->Id, dam, SPELL_SCHOOL_MASK_NORMAL, 0, 0, false, 0, false);
                 return;
             }
             // Reaping

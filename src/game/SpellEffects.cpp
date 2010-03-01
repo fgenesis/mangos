@@ -400,8 +400,8 @@ void Spell::EffectSchoolDMG(SpellEffectIndex effect_idx)
                 // Revenge ${$m1+$AP*0.207} to ${$M1+$AP*0.207}
                 else if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x0000000000000400))
                     damage+= uint32(m_caster->GetTotalAttackPowerValue(BASE_ATTACK) * 0.207f);
-                // Heroic Throw ${$m1+$AP*.50}
-                else if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x0000000100000000))
+                // Heroic Throw ${$m1+$AP*.50} / Shattering Throw
+                else if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x40000100000000))
                     damage+= uint32(m_caster->GetTotalAttackPowerValue(BASE_ATTACK) * 0.5f);
                 // Shockwave ${$m3/100*$AP}
                 else if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x0000800000000000))
@@ -6409,6 +6409,35 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
 
                 return;
             }
+            break;
+        }
+        case SPELLFAMILY_WARRIOR:
+        {
+            // Shattering Throw
+            if (m_spellInfo->Id == 64380)
+            {
+                if (!unitTarget)
+                    return;
+
+                Unit::AuraMap& Auras = unitTarget->GetAuras();
+                for(Unit::AuraMap::iterator iter = Auras.begin(), next; iter != Auras.end(); iter = next)
+                {
+                    next = iter;
+                    ++next;
+                    Aura *aur = iter->second;
+                    if(GetAllSpellMechanicMask(aur->GetSpellProto()) & (1 << (MECHANIC_IMMUNE_SHIELD-1)))
+                    {
+                        unitTarget->RemoveAurasDueToSpell(aur->GetId());
+                        if(Auras.empty())
+                            break;
+                        else
+                            next = Auras.begin();
+                    }
+                }
+
+                return;
+            }
+            break;
         }
         case SPELLFAMILY_POTION:
         {
