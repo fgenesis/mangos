@@ -9364,7 +9364,11 @@ Unit* Unit::SelectMagnetTarget(Unit *victim, SpellEntry const *spellInfo)
         for(Unit::AuraList::const_iterator itr = magnetAuras.begin(); itr != magnetAuras.end(); ++itr)
             if(Unit* magnet = (*itr)->GetCaster())
                 if(magnet->IsWithinLOSInMap(this) && magnet->isAlive())
+                {
+                    if (((Creature*)magnet)->isTotem()) // totem should be destroyed upon redirect
+                        magnet->CastSpell(magnet, 7, true); // suicide
                     return magnet;
+                }
     }
     // Normal case
     else
