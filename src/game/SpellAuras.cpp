@@ -4796,14 +4796,9 @@ void Aura::HandleModMechanicImmunity(bool apply, bool /*Real*/)
             }
         }
     }
-    // Heroic Fury
-    else if(GetSpellProto()->SpellFamilyName == SPELLFAMILY_WARRIOR && GetSpellProto()->SpellIconID == 3149)
-    {
-        if (m_target->GetTypeId() != TYPEID_PLAYER)
-            return;
-
-        ((Player*)m_target)->RemoveSpellCooldown(20252, true);
-    }
+    // Heroic Fury (remove Intercept cooldown)
+    else if( apply && GetId() == 60970 && m_target->GetTypeId() == TYPEID_PLAYER )
+        ((Player*)m_target)->RemoveSpellCooldown(20252,true);
     // Berserk
     else if(m_spellProto->SpellFamilyName == SPELLFAMILY_DRUID && m_spellProto->SpellFamilyFlags2 & 0x40)
     {

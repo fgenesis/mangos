@@ -2053,43 +2053,6 @@ void Unit::CalcAbsorbResist(Unit *pVictim,SpellSchoolMask schoolMask, DamageEffe
                 }
                 break;
             }
-            case SPELLFAMILY_PALADIN:
-            {
-                // Ardent Defender
-                if (spellProto->SpellIconID == 2135 && pVictim->GetTypeId() == TYPEID_PLAYER)
-                {
-                    int32 remainingHealth = pVictim->GetHealth() - RemainingDamage;
-                    uint32 allowedHealth = pVictim->GetMaxHealth() * 0.35f;
-                    // If damage kills us
-                    if (remainingHealth <= 0 && !((Player*)pVictim)->HasSpellCooldown(66235))
-                    {
-                        // Cast healing spell, completely avoid damage
-	                    RemainingDamage = 0;
-                        
-                        uint32 defenseSkillValue = pVictim->GetDefenseSkillValue();
-                        // Max heal when defense skill denies critical hits from raid bosses
-                        // Formula: max defense at level + 140 (raiting from gear)
-                        uint32 reqDefForMaxHeal  = pVictim->getLevel() * 5 + 140;
-                        float pctFromDefense = (defenseSkillValue >= reqDefForMaxHeal)
-                            ? 1.0f
-                            : float(defenseSkillValue) / float(reqDefForMaxHeal);
-
-	                    int32 healAmount = pVictim->GetMaxHealth() * ((*i)->GetSpellProto()->EffectBasePoints[1] + 1) / 100.0f * pctFromDefense;
-                        pVictim->CastCustomSpell(pVictim, 66235, &healAmount, NULL, NULL, true);
-                        ((Player*)pVictim)->AddSpellCooldown(66235,0,time(NULL) + 120);
-                    }
-                    else if ((uint32)remainingHealth < allowedHealth) // FG: check for <= 0 already done above
-                    {
-                        // Reduce damage that brings us under 35% (or full damage if we are already under 35%) by x%
-                        uint32 damageToReduce = (pVictim->GetHealth() < allowedHealth)
-                            ? RemainingDamage
-                            : allowedHealth - remainingHealth;
-                        RemainingDamage -= damageToReduce * currentAbsorb / 100;
-                    }
-                    continue;
-                }
-                break;
-            }
             case SPELLFAMILY_PRIEST:
             {
                 // Guardian Spirit
@@ -2152,6 +2115,26 @@ void Unit::CalcAbsorbResist(Unit *pVictim,SpellSchoolMask schoolMask, DamageEffe
                 }
                 break;
             }
+            case SPELLFAMILY_PALADIN:
+            {
+                // Ardent Defender
+                if (spellProto->SpellIconID == 2135)
+                {
+                    // Apply absorb only on damage below 35% hp
+                    int32 absorbableDamage = RemainingDamage + 0.35f * pVictim->GetMaxHealth() - pVictim->GetHealth();
+                    if (absorbableDamage > RemainingDamage)
+                        absorbableDamage = RemainingDamage;
+                    if (absorbableDamage > 0)
+                        RemainingDamage -= absorbableDamage * currentAbsorb / 100;
+
+                    // 66233 is cooldown aura
+                    if (!((Player*)pVictim)->HasAura(66233))
+                        preventDeathSpell = (*i)->GetSpellProto();
+
+                    continue;
+                }
+                break;
+           }
             case SPELLFAMILY_DEATHKNIGHT:
             {
                 // Shadow of Death
@@ -2399,6 +2382,33 @@ void Unit::CalcAbsorbResist(Unit *pVictim,SpellSchoolMask schoolMask, DamageEffe
                     pVictim->CastCustomSpell(pVictim, 48153, &healAmount, NULL, NULL, true);
                     pVictim->RemoveAurasDueToSpell(preventDeathSpell->Id);
                     RemainingDamage = 0;
+                }
+                break;
+            }
+            case SPELLFAMILY_PALADIN:
+            {
+                // Ardent Defender
+                if (preventDeathSpell->SpellIconID == 2135)
+                {
+                    // Calculate defense over level * 5
+                    int32 defenseAmount = pVictim->GetDefenseSkillValue() - pVictim->getLevel() * 5;
+                    // Proceed if positive value
+                    if (defenseAmount > 0)
+                    {
+                        // Defense cap
+                        if (defenseAmount > 140)
+                            defenseAmount = 140;
+                        // Trigger cooldown aura
+                        pVictim->CastSpell(pVictim, 66233, true);
+                        // Calculate heal amount
+                        int32 healAmount = preventDeathSpell->CalculateSimpleValue(EFFECT_INDEX_1);
+                        healAmount = defenseAmount * pVictim->GetMaxHealth() * healAmount / 14000 - pVictim->GetHealth();
+                        // Heal if positive value
+                        if (healAmount > 0)
+                            pVictim->CastCustomSpell(pVictim, 66235, &healAmount, NULL, NULL, true);
+                        // Absorb Everything
+                        RemainingDamage = 0;
+                    }
                 }
                 break;
             }
