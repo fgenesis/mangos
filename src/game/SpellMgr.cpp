@@ -1512,6 +1512,16 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                     (spellInfo_2->SpellFamilyFlags & UI64LIT(0x1)) && (spellInfo_1->SpellFamilyFlags & UI64LIT(0x400000)) )
                     return false;
 
+                //Focus magic 30min buff and 10s proc 
+                if( (spellInfo_1->SpellIconID == 54648) && (spellInfo_2->SpellIconID == 54646) ||
+                    (spellInfo_2->SpellIconID == 54648) && (spellInfo_1->SpellIconID == 54646) )
+                    return false;
+
+                //Improved scorch and Winter's Chill
+                if( (spellInfo_1->SpellIconID == 22959) && (spellInfo_2->SpellIconID == 12579) ||
+                    (spellInfo_2->SpellIconID == 22959) && (spellInfo_1->SpellIconID == 12579) )
+                    return false;
+
                 // FG: arcane intelligence, arcane brilliance, dalaran intelligence, dalaran brilliance
                 if( spellInfo_1->SpellFamilyFlags == 1024  && spellInfo_2->SpellFamilyFlags == 1024)
                     return true; // cant be stacked
