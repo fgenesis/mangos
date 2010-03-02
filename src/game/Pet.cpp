@@ -138,7 +138,7 @@ bool Pet::LoadPetFromDB( Player* owner, uint32 petentry, uint32 petnumber, bool 
     if(pet_type == HUNTER_PET)
     {
         CreatureInfo const* creatureInfo = ObjectMgr::GetCreatureTemplate(petentry);
-        if(!creatureInfo || !creatureInfo->isTameable(owner->CanTameExoticPets(), true))
+        if(!creatureInfo || !creatureInfo->isTameable(owner->CanTameExoticPets(), true)) // FG: let players take out pets even if not tameable anymore
         {
             delete result;
             return false;

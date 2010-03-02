@@ -618,7 +618,7 @@ void WorldSession::HandleUnstablePet( WorldPacket & recv_data )
     }
 
     CreatureInfo const* creatureInfo = ObjectMgr::GetCreatureTemplate(creature_id);
-    if(!creatureInfo || !creatureInfo->isTameable(_player->CanTameExoticPets()))
+    if(!creatureInfo || !creatureInfo->isTameable(_player->CanTameExoticPets(), true)) // FG: let players take out pets even if not tameable anymore
     {
         WorldPacket data(SMSG_STABLE_RESULT, 1);
         data << uint8(0x06);
