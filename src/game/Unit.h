@@ -1803,7 +1803,6 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         explicit Unit ();
 
         void _UpdateSpells(uint32 time);
-
         void _UpdateAutoRepeatSpell();
 
         uint32 m_attackTimer[MAX_ATTACK];
