@@ -13499,7 +13499,7 @@ void Player::RewardQuest( Quest const *pQuest, uint32 reward, Object* questGiver
     QuestStatusData& q_status = mQuestStatus[quest_id];
 
     // Not give XP in case already completed once repeatable quest
-    uint32 XP = q_status.m_rewarded ? 0 : uint32(pQuest->XPValue( this ) * sWorld.getConfig(CONFIG_FLOAT_RATE_XP_QUEST) * GetSession()->GetXPMultiQuest());
+    uint32 XP = q_status.m_rewarded ? 0 : uint32(pQuest->XPValue( this ) * GetSession()->GetXPMultiQuest());
 
     if (getLevel() < sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL))
         GiveXP( XP , NULL );
