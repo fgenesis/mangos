@@ -1450,6 +1450,10 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                     if (spellId_1 == 40216 && spellId_2 == 42016 )
                         return false;
 
+                    // FG: Gift of the Wild (21849 and ranks) and Gift of the Wild (from Item: Drums of the Wild)
+                    if (spellInfo_1->Id == 72588 && spellInfo_2->SpellIconID == 2435)
+                        return true; // does not stack
+
                     break;
                 }
                 case SPELLFAMILY_ROGUE:
@@ -1488,6 +1492,10 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                    // Devotion Aura and Essence if Gossamer
                    if (spellInfo_1->SpellIconID == 291 && spellInfo_2->SpellIconID == 291)
                         return false;
+
+                   // FG: Greater Blessing of Kings and Blessing of Forgotten Kings
+                   if (spellId_1 == 72586 && spellId_2 == 25898)
+                       return true; // does not stack
 
                     break;
                 }
@@ -1702,6 +1710,10 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                     return false;
             }
 
+            // FG: Gift of the Wild (21849 and ranks) and Gift of the Wild (from Item: Drums of the Wild)
+            if (spellInfo_1->SpellIconID == 2435 && spellId_2 == 72588)
+                return true; // does not stack
+
             // Leader of the Pack and Scroll of Stamina (multi-family check)
             if( spellInfo_1->Id == 24932 && spellInfo_2->SpellIconID == 312 && spellInfo_2->SpellVisual[0] == 216 )
                 return false;
@@ -1830,6 +1842,11 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
             // Repentance and Track Humanoids
             if (spellInfo_2->SpellFamilyName == SPELLFAMILY_HUNTER && spellInfo_1->SpellIconID == 316 && spellInfo_2->SpellIconID == 316)
                 return false;
+
+            // FG: Greater Blessing of Kings and Blessing of Forgotten Kings
+            if (spellId_1 == 25898 && spellId_2 == 72586)
+                return true; // does not stack
+
             break;
         case SPELLFAMILY_SHAMAN:
             if( spellInfo_2->SpellFamilyName == SPELLFAMILY_SHAMAN )
