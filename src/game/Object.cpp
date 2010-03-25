@@ -669,11 +669,13 @@ void Object::BuildValuesUpdate(uint8 updatetype, ByteBuffer * data, UpdateMask *
                         bool forcefriendly = false; // bool for pets/totems to offload more code from the big if below
                         if(GetTypeId() == TYPEID_UNIT)
                         {
-                            forcefriendly = (((Creature*)this)->isTotem() || ((Creature*)this)->isPet())
-                                && ((Creature*)this)->GetOwner()->GetTypeId() == TYPEID_PLAYER
-                                && ((Creature*)this)->GetOwner()->IsFriendlyTo(target) // pet owner must be friendly to target
-                                && ((Creature*)this)->GetOwner() != target // no need to send hackfix to pet owner
-                                && (target->IsInSameGroupWith((Player*)((Creature*)this)->GetOwner()) || target->IsInSameRaidWith((Player*)((Creature*)this)->GetOwner()));
+                            if(((Creature*)this)->isTotem() || ((Creature*)this)->isPet())
+                            {
+                                Unit* P_Owner = ((Creature*)this)->GetOwner();
+                                if(P_Owner && P_Owner->GetTypeId() == TYPEID_PLAYER && P_Owner->IsFriendlyTo(target)
+                                && P_Owner != target && (target->IsInSameGroupWith((Player*)P_Owner) || target->IsInSameRaidWith((Player*)P_Owner)))
+                                    forcefriendly = true;
+                            }
                         }
 
                         if(((Unit*)this)->IsSpoofSamePlayerFaction() || forcefriendly
