@@ -1068,8 +1068,8 @@ class MANGOS_DLL_SPEC Player : public Unit
         void SendTransferAborted(uint32 mapid, uint8 reason, uint8 arg = 0);
         void SendInstanceResetWarning(uint32 mapid, Difficulty difficulty, uint32 time);
 
-        Creature* GetNPCIfCanInteractWith(uint64 guid, uint32 npcflagmask);
-        GameObject* GetGameObjectIfCanInteractWith(uint64 guid, uint32 gameobject_type = MAX_GAMEOBJECT_TYPE) const;
+        Creature* GetNPCIfCanInteractWith(ObjectGuid guid, uint32 npcflagmask);
+        GameObject* GetGameObjectIfCanInteractWith(ObjectGuid guid, uint32 gameobject_type = MAX_GAMEOBJECT_TYPE) const;
 
         void UpdateVisibilityForPlayer();
 
@@ -1119,25 +1119,11 @@ class MANGOS_DLL_SPEC Player : public Unit
 
         void setDeathState(DeathState s);                   // overwrite Unit::setDeathState
 
-        void InnEnter (time_t time, uint32 mapid, float x, float y, float z)
-        {
-            inn_pos_mapid = mapid;
-            inn_pos_x = x;
-            inn_pos_y = y;
-            inn_pos_z = z;
-            time_inn_enter = time;
-        }
-
         float GetRestBonus() const { return m_rest_bonus; }
         void SetRestBonus(float rest_bonus_new);
 
         RestType GetRestType() const { return rest_type; }
-        void SetRestType(RestType n_r_type) { rest_type = n_r_type; }
-
-        uint32 GetInnPosMapId() const { return inn_pos_mapid; }
-        float GetInnPosX() const { return inn_pos_x; }
-        float GetInnPosY() const { return inn_pos_y; }
-        float GetInnPosZ() const { return inn_pos_z; }
+        void SetRestType(RestType n_r_type, uint32 areaTriggerId = 0);
 
         time_t GetTimeInnEnter() const { return time_inn_enter; }
         void UpdateInnerTime (time_t time) { time_inn_enter = time; }
@@ -1169,7 +1155,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         uint8 FindEquipSlot( ItemPrototype const* proto, uint32 slot, bool swap ) const;
         uint32 GetItemCount( uint32 item, bool inBankAlso = false, Item* skipItem = NULL ) const;
         uint32 GetItemCountWithLimitCategory(uint32 limitCategory) const;
-        Item* GetItemByGuid( uint64 guid ) const;
+        Item* GetItemByGuid(ObjectGuid uint64) const;
         Item* GetItemByEntry(uint32 item) const;            // only for special cases
         Item* GetItemByLimitedCategory(uint32 limitedCategory) const;
         Item* GetItemByPos( uint16 pos ) const;
@@ -1186,8 +1172,8 @@ class MANGOS_DLL_SPEC Player : public Unit
         static bool IsBagPos( uint16 pos );
         static bool IsBankPos( uint16 pos ) { return IsBankPos(pos >> 8, pos & 255); }
         static bool IsBankPos( uint8 bag, uint8 slot );
-        bool IsValidPos( uint16 pos, bool explicit_pos ) { return IsValidPos(pos >> 8, pos & 255, explicit_pos); }
-        bool IsValidPos( uint8 bag, uint8 slot, bool explicit_pos );
+        bool IsValidPos( uint16 pos, bool explicit_pos ) const { return IsValidPos(pos >> 8, pos & 255, explicit_pos); }
+        bool IsValidPos( uint8 bag, uint8 slot, bool explicit_pos ) const;
         uint8 GetBankBagSlotCount() const { return GetByteValue(PLAYER_BYTES_2, 2); }
         void SetBankBagSlotCount(uint8 count) { SetByteValue(PLAYER_BYTES_2, 2, count); }
         bool HasItemCount( uint32 item, uint32 count, bool inBankAlso = false ) const;
@@ -1406,10 +1392,10 @@ class MANGOS_DLL_SPEC Player : public Unit
         void GroupEventHappens( uint32 questId, WorldObject const* pEventObject );
         void ItemAddedQuestCheck( uint32 entry, uint32 count );
         void ItemRemovedQuestCheck( uint32 entry, uint32 count );
-        void KilledMonster( CreatureInfo const* cInfo, uint64 guid );
-        void KilledMonsterCredit( uint32 entry, uint64 guid );
-        void CastedCreatureOrGO( uint32 entry, uint64 guid, uint32 spell_id );
-        void TalkedToCreature( uint32 entry, uint64 guid );
+        void KilledMonster( CreatureInfo const* cInfo, ObjectGuid guid );
+        void KilledMonsterCredit( uint32 entry, ObjectGuid guid );
+        void CastedCreatureOrGO( uint32 entry, ObjectGuid guid, uint32 spell_id );
+        void TalkedToCreature( uint32 entry, ObjectGuid guid );
         void MoneyChanged( uint32 value );
         void ReputationChanged(FactionEntry const* factionEntry );
         bool HasQuestForItem( uint32 itemid ) const;
@@ -1425,7 +1411,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         void SendQuestConfirmAccept(Quest const* pQuest, Player* pReceiver);
         void SendPushToPartyResponse( Player *pPlayer, uint32 msg );
         void SendQuestUpdateAddItem( Quest const* pQuest, uint32 item_idx, uint32 count );
-        void SendQuestUpdateAddCreatureOrGo( Quest const* pQuest, uint64 guid, uint32 creatureOrGO_idx, uint32 old_count, uint32 add_count );
+        void SendQuestUpdateAddCreatureOrGo( Quest const* pQuest, ObjectGuid guid, uint32 creatureOrGO_idx, uint32 old_count, uint32 add_count );
 
         uint64 GetDivider() { return m_divider; }
         void SetDivider( uint64 guid ) { m_divider = guid; }
@@ -1813,8 +1799,8 @@ class MANGOS_DLL_SPEC Player : public Unit
         void ApplyManaRegenBonus(int32 amount, bool apply);
         void UpdateManaRegen();
 
-        const uint64& GetLootGUID() const { return m_lootGuid; }
-        void SetLootGUID(const uint64 &guid) { m_lootGuid = guid; }
+        const uint64& GetLootGUID() const { return m_lootGuid.GetRawValue(); }
+        void SetLootGUID(ObjectGuid const& guid) { m_lootGuid = guid; }
 
         void RemovedInsignia(Player* looterPlr);
 
@@ -1919,7 +1905,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         bool IsAtGroupRewardDistance(WorldObject const* pRewardSource) const;
         bool RewardPlayerAndGroupAtKill(Unit* pVictim);
         void RewardPlayerAndGroupAtEvent(uint32 creature_id,WorldObject* pRewardSource);
-        bool isHonorOrXPTarget(Unit* pVictim);
+        bool isHonorOrXPTarget(Unit* pVictim) const;
 
         ReputationMgr&       GetReputationMgr()       { return m_reputationMgr; }
         ReputationMgr const& GetReputationMgr() const { return m_reputationMgr; }
@@ -2010,8 +1996,8 @@ class MANGOS_DLL_SPEC Player : public Unit
         PlayerMenu* PlayerTalkClass;
         std::vector<ItemSetEffect *> ItemSetEff;
 
-        void SendLoot(uint64 guid, LootType loot_type);
-        void SendLootRelease( uint64 guid );
+        void SendLoot(ObjectGuid guid, LootType loot_type);
+        void SendLootRelease(ObjectGuid guid );
         void SendNotifyLootItemRemoved(uint8 lootSlot);
         void SendNotifyLootMoneyRemoved();
 
@@ -2200,9 +2186,10 @@ class MANGOS_DLL_SPEC Player : public Unit
         void RelocateToHomebind() { SetLocationMapId(m_homebindMapId); Relocate(m_homebindX, m_homebindY, m_homebindZ); }
         bool TeleportToHomebind(uint32 options = 0) { return TeleportTo(m_homebindMapId, m_homebindX, m_homebindY, m_homebindZ, GetOrientation(), options); }
 
+        Object* GetObjectByTypeMask(ObjectGuid guid, TypeMask typemask);
+
         // currently visible objects at player client
-        typedef std::set<uint64> ClientGUIDs;
-        ClientGUIDs m_clientGUIDs;
+        ObjectGuidSet m_clientGUIDs;
 
         bool HaveAtClient(WorldObject const* u) { return u==this || m_clientGUIDs.find(u->GetGUID())!=m_clientGUIDs.end(); }
 
@@ -2446,7 +2433,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         time_t m_lastHonorUpdateTime;
 
         void outDebugValues() const;
-        uint64 m_lootGuid;
+        ObjectGuid m_lootGuid;
 
         uint32 m_team;
         uint32 m_nextSave;
@@ -2545,10 +2532,7 @@ class MANGOS_DLL_SPEC Player : public Unit
 
         ////////////////////Rest System/////////////////////
         time_t time_inn_enter;
-        uint32 inn_pos_mapid;
-        float  inn_pos_x;
-        float  inn_pos_y;
-        float  inn_pos_z;
+        uint32 inn_trigger_id;
         float m_rest_bonus;
         RestType rest_type;
         ////////////////////Rest System/////////////////////

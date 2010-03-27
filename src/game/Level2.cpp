@@ -20,7 +20,7 @@
 #include "Database/DatabaseEnv.h"
 #include "DBCStores.h"
 #include "ObjectMgr.h"
-#include "ObjectDefines.h"
+#include "ObjectGuid.h"
 #include "Player.h"
 #include "Item.h"
 #include "GameObject.h"
@@ -2195,7 +2195,7 @@ bool ChatHandler::HandlePInfoCommand(const char* args)
         username = fields[0].GetCppString();
         security = (AccountTypes)fields[1].GetUInt32();
 
-        if(!m_session || m_session->GetSecurity() >= security)
+        if(GetAccessLevel() >= security)
         {
             last_ip = fields[2].GetCppString();
             last_login = fields[3].GetCppString();
@@ -2412,7 +2412,7 @@ bool ChatHandler::HandleDelTicketCommand(const char *args)
         sTicketMgr.Delete(guid);
 
         //notify player
-        if(Player* pl = sObjectMgr.GetPlayer(MAKE_NEW_GUID(guid, 0, HIGHGUID_PLAYER)))
+        if(Player* pl = sObjectMgr.GetPlayer(ObjectGuid(HIGHGUID_PLAYER, guid)))
         {
             pl->GetSession()->SendGMTicketGetTicket(0x0A, 0);
             PSendSysMessage(LANG_COMMAND_TICKETPLAYERDEL, GetNameLink(pl).c_str());

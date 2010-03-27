@@ -329,6 +329,7 @@ enum eConfigBoolValues
     CONFIG_BOOL_ARENA_AUTO_DISTRIBUTE_POINTS,
     CONFIG_BOOL_ARENA_QUEUE_ANNOUNCER_JOIN,
     CONFIG_BOOL_ARENA_QUEUE_ANNOUNCER_EXIT,
+    CONFIG_BOOL_KICK_PLAYER_ON_BAD_PACKET,
 
     // FG: custom configs (bool)
     CONFIG_BOOL_ALLOW_CITY_DUELING,
@@ -401,6 +402,8 @@ enum RealmZone
 #define SCRIPT_COMMAND_REMOVE_AURA          14              // source (datalong2!=0) or target (datalong==0) unit, datalong = spell_id
 #define SCRIPT_COMMAND_CAST_SPELL           15              // source/target cast spell at target/source (script->datalong2: 0: s->t 1: s->s 2: t->t 3: t->s
 #define SCRIPT_COMMAND_PLAY_SOUND           16              // source = any object, target=any/player, datalong (sound_id), datalong2 (bitmask: 0/1=anyone/target, 0/2=with distance dependent, so 1|2 = 3 is target with distance dependent)
+#define SCRIPT_COMMAND_CREATE_ITEM          17              // source or target must be player, datalong = item entry, datalong2 = amount
+#define SCRIPT_COMMAND_DESPAWN_SELF         18              // source or target must be creature, datalong = despawn delay
 
 /// Storage class for commands issued for delayed execution
 struct CliCommandHolder
@@ -408,13 +411,15 @@ struct CliCommandHolder
     typedef void Print(void*, const char*);
     typedef void CommandFinished(void*, bool success);
 
+    uint32 m_cliAccountId;                                  // 0 for console and real account id for RA/soap
+    AccountTypes m_cliAccessLevel;
     void* m_callbackArg;
     char *m_command;
     Print* m_print;
     CommandFinished* m_commandFinished;
 
-    CliCommandHolder(void* callbackArg, const char *command, Print* zprint, CommandFinished* commandFinished)
-        : m_callbackArg(callbackArg), m_print(zprint), m_commandFinished(commandFinished)
+    CliCommandHolder(uint32 accountId, AccountTypes cliAccessLevel, void* callbackArg, const char *command, Print* zprint, CommandFinished* commandFinished)
+        : m_cliAccountId(accountId), m_cliAccessLevel(cliAccessLevel), m_callbackArg(callbackArg), m_print(zprint), m_commandFinished(commandFinished)
     {
         size_t len = strlen(command)+1;
         m_command = new char[len];

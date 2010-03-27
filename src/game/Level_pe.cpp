@@ -39,7 +39,7 @@ bool ChatHandler::UnlockMove(const char* args)
         player = m_session->GetPlayer();
     WorldPacket data;
     data.Initialize( SMSG_FORCE_MOVE_UNROOT );
-    data.append(player->GetPackGUID());
+    data.appendPackGUID(player->GetGUID());
     player->GetSession()->SendPacket( &data );
     return true;
 }
@@ -51,7 +51,7 @@ bool ChatHandler::LockMove(const char* args)
         player = m_session->GetPlayer();
     WorldPacket data;
     data.Initialize( SMSG_FORCE_MOVE_ROOT );
-    data.append(player->GetPackGUID());
+    data.appendPackGUID(player->GetGUID());
     data << (uint32)2;
     player->GetSession()->SendPacket( &data );
     return true;

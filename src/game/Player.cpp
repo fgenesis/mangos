@@ -42,7 +42,7 @@
 #include "CellImpl.h"
 #include "ObjectMgr.h"
 #include "ObjectAccessor.h"
-#include "ObjectDefines.h"
+#include "ObjectGuid.h"
 #include "CreatureAI.h"
 #include "Formulas.h"
 #include "Group.h"
@@ -60,6 +60,7 @@
 #include "Spell.h"
 #include "SocialMgr.h"
 #include "AchievementMgr.h"
+#include "Mail.h"
 
 #include <cmath>
 
@@ -437,10 +438,7 @@ Player::Player (WorldSession *session): Unit(), m_achievementMgr(this), m_reputa
 
     ////////////////////Rest System/////////////////////
     time_inn_enter=0;
-    inn_pos_mapid=0;
-    inn_pos_x=0;
-    inn_pos_y=0;
-    inn_pos_z=0;
+    inn_trigger_id=0;
     m_rest_bonus=0;
     rest_type=REST_TYPE_NO;
     ////////////////////Rest System/////////////////////
@@ -1299,7 +1297,7 @@ void Player::Update( uint32 p_time )
             if (time_inn >= 10)                             //freeze update
             {
                 float bubble = 0.125f*sWorld.getConfig(CONFIG_FLOAT_RATE_REST_INGAME);
-                                                            //speed collect rest bonus (section/in hour)
+                //speed collect rest bonus (section/in hour)
                 SetRestBonus( float(GetRestBonus()+ time_inn*(GetUInt32Value(PLAYER_NEXT_LEVEL_XP)/72000)*bubble ));
                 UpdateInnerTime(time(NULL));
             }
@@ -2111,10 +2109,18 @@ void Player::Regenerate(Powers power, uint32 diff)
             if (getClass() != CLASS_DEATH_KNIGHT)
                 break;
 
-            for(uint32 i = 0; i < MAX_RUNES; ++i)
+            for(uint32 rune = 0; rune < MAX_RUNES; ++rune)
             {
-                if(uint16 cd = GetRuneCooldown(i))           // if we have cooldown, reduce it...
-                    SetRuneCooldown(i, (cd < diff) ? 0 : cd - diff);
+                if(uint16 cd = GetRuneCooldown(rune))       // if we have cooldown, reduce it...
+                {
+                    uint32 cd_diff = diff;
+                    AuraList const& ModPowerRegenPCTAuras = GetAurasByType(SPELL_AURA_MOD_POWER_REGEN_PERCENT);
+                    for(AuraList::const_iterator i = ModPowerRegenPCTAuras.begin(); i != ModPowerRegenPCTAuras.end(); ++i)
+                        if ((*i)->GetModifier()->m_miscvalue == power && (*i)->GetMiscBValue()==GetCurrentRune(rune))
+                            cd_diff = cd_diff * ((*i)->GetModifier()->m_amount + 100) / 100.0f;
+
+                    SetRuneCooldown(rune, (cd < cd_diff) ? 0 : cd - cd_diff);
+                }
             }
         }   break;
         case POWER_FOCUS:
@@ -2194,10 +2200,10 @@ void Player::RegenerateHealth(uint32 diff)
     ModifyHealth(int32(addvalue));
 }
 
-Creature* Player::GetNPCIfCanInteractWith(uint64 guid, uint32 npcflagmask)
+Creature* Player::GetNPCIfCanInteractWith(ObjectGuid guid, uint32 npcflagmask)
 {
-    // unit checks
-    if (!guid || !IsInWorld() || isInFlight())
+    // some basic checks
+    if (guid.IsEmpty() || !IsInWorld() || isInFlight())
         return NULL;
 
     // exist (we need look pets also for some interaction (quest/etc)
@@ -2244,8 +2250,12 @@ Creature* Player::GetNPCIfCanInteractWith(uint64 guid, uint32 npcflagmask)
     return unit;
 }
 
-GameObject* Player::GetGameObjectIfCanInteractWith(uint64 guid, uint32 gameobject_type) const
+GameObject* Player::GetGameObjectIfCanInteractWith(ObjectGuid guid, uint32 gameobject_type) const
 {
+    // some basic checks
+    if (guid.IsEmpty() || !IsInWorld() || isInFlight())
+        return NULL;
+
     if (GameObject *go = GetMap()->GetGameObject(guid))
     {
         if (uint32(go->GetGoType()) == gameobject_type || gameobject_type == MAX_GAMEOBJECT_TYPE)
@@ -2759,6 +2769,7 @@ void Player::InitStatsForLevel(bool reapplyMods)
     // cleanup unit flags (will be re-applied if need at aura load).
     RemoveFlag( UNIT_FIELD_FLAGS,
         UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_DISABLE_MOVE | UNIT_FLAG_NOT_ATTACKABLE_1 |
+        UNIT_FLAG_OOC_NOT_ATTACKABLE | UNIT_FLAG_PASSIVE  | UNIT_FLAG_LOOTING          |
         UNIT_FLAG_PET_IN_COMBAT  | UNIT_FLAG_SILENCED     | UNIT_FLAG_PACIFIED         |
         UNIT_FLAG_STUNNED        | UNIT_FLAG_IN_COMBAT    | UNIT_FLAG_DISARMED         |
         UNIT_FLAG_CONFUSED       | UNIT_FLAG_FLEEING      | UNIT_FLAG_NOT_SELECTABLE   |
@@ -4249,8 +4260,7 @@ void Player::DeleteFromDB(uint64 playerguid, uint32 accountId, bool updateRealmC
     CharacterDatabase.PExecute("DELETE FROM character_achievement WHERE guid = '%u'",guid);
     CharacterDatabase.PExecute("DELETE FROM character_achievement_progress WHERE guid = '%u'",guid);
     CharacterDatabase.PExecute("DELETE FROM character_equipmentsets WHERE guid = '%u'",guid);
-    CharacterDatabase.PExecute("DELETE FROM guild_eventlog WHERE PlayerGuid1 = '%u'",guid);
-    CharacterDatabase.PExecute("DELETE FROM guild_eventlog WHERE PlayerGuid2 = '%u'",guid);
+    CharacterDatabase.PExecute("DELETE FROM guild_eventlog WHERE PlayerGuid1 = '%u' OR PlayerGuid2 = '%u'",guid, guid);
     CharacterDatabase.PExecute("DELETE FROM guild_bank_eventlog WHERE PlayerGuid = '%u'",guid);
     CharacterDatabase.CommitTransaction();
 
@@ -4271,7 +4281,7 @@ void Player::SetMovement(PlayerMovementType pType)
             sLog.outError("Player::SetMovement: Unsupported move type (%d), data not sent to client.",pType);
             return;
     }
-    data.append(GetPackGUID());
+    data << GetPackGUID();
     data << uint32(0);
     GetSession()->SendPacket( &data );
 }
@@ -4283,7 +4293,7 @@ void Player::SetMovement(PlayerMovementType pType)
 void Player::BuildPlayerRepop()
 {
     WorldPacket data(SMSG_PRE_RESURRECT, GetPackGUID().size());
-    data.append(GetPackGUID());
+    data << GetPackGUID();
     GetSession()->SendPacket(&data);
 
     if(getRace() == RACE_NIGHTELF)
@@ -6629,38 +6639,19 @@ void Player::UpdateZone(uint32 newZone, uint32 newArea)
     }
 
     if(zone->flags & AREA_FLAG_CAPITAL)                     // in capital city
-    {
-        SetFlag(PLAYER_FLAGS, PLAYER_FLAGS_RESTING);
         SetRestType(REST_TYPE_IN_CITY);
-        InnEnter(time(0),GetMapId(),0,0,0);
-
-        if(sWorld.IsFFAPvPRealm())
-            SetFFAPvP(false);
-    }
     else                                                    // anywhere else
     {
-        if(HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_RESTING))     // but resting (walk from city or maybe in tavern or leave tavern recently)
+        if (HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_RESTING))    // but resting (walk from city or maybe in tavern or leave tavern recently)
         {
-            if(GetRestType()==REST_TYPE_IN_TAVERN)          // has been in tavern. Is still in?
+            if (GetRestType()==REST_TYPE_IN_TAVERN)         // has been in tavern. Is still in?
             {
-                if(GetMapId()!=GetInnPosMapId() || sqrt((GetPositionX()-GetInnPosX())*(GetPositionX()-GetInnPosX())+(GetPositionY()-GetInnPosY())*(GetPositionY()-GetInnPosY())+(GetPositionZ()-GetInnPosZ())*(GetPositionZ()-GetInnPosZ()))>40)
-                {
-                    RemoveFlag(PLAYER_FLAGS, PLAYER_FLAGS_RESTING);
+                AreaTriggerEntry const* at = sAreaTriggerStore.LookupEntry(inn_trigger_id);
+                if (!at || !IsPointInAreaTriggerZone(at, GetMapId(), GetPositionX(), GetPositionY(), GetPositionY()))
                     SetRestType(REST_TYPE_NO);
-
-                    if(sWorld.IsFFAPvPRealm())
-                        SetFFAPvP(true);
-                }
             }
             else                                            // not in tavern (leave city then)
-            {
-                RemoveFlag(PLAYER_FLAGS, PLAYER_FLAGS_RESTING);
                 SetRestType(REST_TYPE_NO);
-
-                // Set player to FFA PVP when not in rested environment.
-                if(sWorld.IsFFAPvPRealm())
-                    SetFFAPvP(true);
-            }
         }
     }
 
@@ -7701,14 +7692,15 @@ void Player::RemovedInsignia(Player* looterPlr)
     looterPlr->SendLoot(bones->GetGUID(), LOOT_INSIGNIA);
 }
 
-void Player::SendLootRelease( uint64 guid )
+void Player::SendLootRelease(ObjectGuid guid)
 {
     WorldPacket data( SMSG_LOOT_RELEASE_RESPONSE, (8+1) );
-    data << uint64(guid) << uint8(1);
+    data << guid;
+    data << uint8(1);
     SendDirectMessage( &data );
 }
 
-void Player::SendLoot(uint64 guid, LootType loot_type)
+void Player::SendLoot(ObjectGuid guid, LootType loot_type)
 {
     if (uint64 lguid = GetLootGUID())
         m_session->DoLootRelease(lguid);
@@ -7717,231 +7709,243 @@ void Player::SendLoot(uint64 guid, LootType loot_type)
     PermissionTypes permission = ALL_PERMISSION;
 
     sLog.outDebug("Player::SendLoot");
-    if (IS_GAMEOBJECT_GUID(guid))
+    switch(guid.GetHigh())
     {
-        sLog.outDebug("       IS_GAMEOBJECT_GUID(guid)");
-        GameObject *go = GetMap()->GetGameObject(guid);
-
-        // not check distance for GO in case owned GO (fishing bobber case, for example)
-        // And permit out of range GO with no owner in case fishing hole
-        if (!go || (loot_type != LOOT_FISHINGHOLE && (loot_type != LOOT_FISHING || go->GetOwnerGUID() != GetGUID()) && !go->IsWithinDistInMap(this,INTERACTION_DISTANCE)))
+        case HIGHGUID_GAMEOBJECT:
         {
-            SendLootRelease(guid);
-            return;
-        }
+            sLog.outDebug("       IS_GAMEOBJECT_GUID(guid)");
+            GameObject *go = GetMap()->GetGameObject(guid);
 
-        loot = &go->loot;
-
-        if (go->getLootState() == GO_READY)
-        {
-            uint32 lootid =  go->GetGOInfo()->GetLootId();
-            if ((go->GetEntry() == BG_AV_OBJECTID_MINE_N || go->GetEntry() == BG_AV_OBJECTID_MINE_S))
-                if (BattleGround *bg = GetBattleGround())
-                    if (bg->GetTypeID() == BATTLEGROUND_AV)
-                        if (!(((BattleGroundAV*)bg)->PlayerCanDoMineQuest(go->GetEntry(), GetTeam())))
-                        {
-                            SendLootRelease(guid);
-                            return;
-                        }
-
-            if (lootid)
+            // not check distance for GO in case owned GO (fishing bobber case, for example)
+            // And permit out of range GO with no owner in case fishing hole
+            if (!go || (loot_type != LOOT_FISHINGHOLE && (loot_type != LOOT_FISHING || go->GetOwnerGUID() != GetGUID()) && !go->IsWithinDistInMap(this,INTERACTION_DISTANCE)))
             {
-                sLog.outDebug("       if(lootid)");
-                loot->clear();
-                loot->FillLoot(lootid, LootTemplates_Gameobject, this, false);
+                SendLootRelease(guid);
+                return;
             }
 
-            if (loot_type == LOOT_FISHING)
-                go->getFishLoot(loot,this);
+            loot = &go->loot;
 
-            go->SetLootState(GO_ACTIVATED);
-        }
-    }
-    else if (IS_ITEM_GUID(guid))
-    {
-        Item *item = GetItemByGuid( guid );
-
-        if (!item)
-        {
-            SendLootRelease(guid);
-            return;
-        }
-
-        loot = &item->loot;
-
-        if (!item->m_lootGenerated)
-        {
-            item->m_lootGenerated = true;
-            loot->clear();
-
-            switch(loot_type)
+            if (go->getLootState() == GO_READY)
             {
-                case LOOT_DISENCHANTING:
-                    loot->FillLoot(item->GetProto()->DisenchantID, LootTemplates_Disenchant, this,true);
-                    break;
-                case LOOT_PROSPECTING:
-                    loot->FillLoot(item->GetEntry(), LootTemplates_Prospecting, this,true);
-                    break;
-                case LOOT_MILLING:
-                    loot->FillLoot(item->GetEntry(), LootTemplates_Milling, this,true);
-                    break;
-                default:
-                    loot->FillLoot(item->GetEntry(), LootTemplates_Item, this,true);
-                    loot->generateMoneyLoot(item->GetProto()->MinMoneyLoot,item->GetProto()->MaxMoneyLoot);
-                    break;
-            }
-        }
-    }
-    else if (IS_CORPSE_GUID(guid))                          // remove insignia
-    {
-        Corpse *bones = GetMap()->GetCorpse(guid);
+                uint32 lootid =  go->GetGOInfo()->GetLootId();
+                if ((go->GetEntry() == BG_AV_OBJECTID_MINE_N || go->GetEntry() == BG_AV_OBJECTID_MINE_S))
+                    if (BattleGround *bg = GetBattleGround())
+                        if (bg->GetTypeID() == BATTLEGROUND_AV)
+                            if (!(((BattleGroundAV*)bg)->PlayerCanDoMineQuest(go->GetEntry(), GetTeam())))
+                            {
+                                SendLootRelease(guid);
+                                return;
+                            }
 
-        if (!bones || !((loot_type == LOOT_CORPSE) || (loot_type == LOOT_INSIGNIA)) || (bones->GetType() != CORPSE_BONES) )
-        {
-            SendLootRelease(guid);
-            return;
-        }
-
-        loot = &bones->loot;
-
-        if (!bones->lootForBody)
-        {
-            bones->lootForBody = true;
-            uint32 pLevel = bones->loot.gold;
-            bones->loot.clear();
-            if (GetBattleGround()->GetTypeID() == BATTLEGROUND_AV)
-                loot->FillLoot(0, LootTemplates_Creature, this, false);
-            // It may need a better formula
-            // Now it works like this: lvl10: ~6copper, lvl70: ~9silver
-            bones->loot.gold = (uint32)( urand(50, 150) * 0.016f * pow( ((float)pLevel)/5.76f, 2.5f) * sWorld.getConfig(CONFIG_FLOAT_RATE_DROP_MONEY) );
-        }
-
-        if (bones->lootRecipient != this)
-            permission = NONE_PERMISSION;
-    }
-    else
-    {
-        Creature *creature = GetMap()->GetCreature(guid);
-
-        // must be in range and creature must be alive for pickpocket and must be dead for another loot
-        if (!creature || creature->isAlive()!=(loot_type == LOOT_PICKPOCKETING) || !creature->IsWithinDistInMap(this,INTERACTION_DISTANCE))
-        {
-            SendLootRelease(guid);
-            return;
-        }
-
-        if (loot_type == LOOT_PICKPOCKETING && IsFriendlyTo(creature))
-        {
-            SendLootRelease(guid);
-            return;
-        }
-
-        loot   = &creature->loot;
-
-        if (loot_type == LOOT_PICKPOCKETING)
-        {
-            if (!creature->lootForPickPocketed)
-            {
-                creature->lootForPickPocketed = true;
-                loot->clear();
-
-                if (uint32 lootid = creature->GetCreatureInfo()->pickpocketLootId)
-                    loot->FillLoot(lootid, LootTemplates_Pickpocketing, this, false);
-
-                // Generate extra money for pick pocket loot
-                const uint32 a = urand(0, creature->getLevel()/2);
-                const uint32 b = urand(0, getLevel()/2);
-                loot->gold = uint32(10 * (a + b) * sWorld.getConfig(CONFIG_FLOAT_RATE_DROP_MONEY));
-            }
-        }
-        else
-        {
-            // the player whose group may loot the corpse
-            Player *recipient = creature->GetLootRecipient();
-            if (!recipient)
-            {
-                creature->SetLootRecipient(this);
-                recipient = this;
-            }
-
-            if (creature->lootForPickPocketed)
-            {
-                creature->lootForPickPocketed = false;
-                loot->clear();
-            }
-
-            if (!creature->lootForBody)
-            {
-                creature->lootForBody = true;
-                loot->clear();
-
-                // FG: handle minloot
-                uint32 minloot = 0;
-                const CreatureExtendedInfo *exinfo = sCreatureExtendedStorage.LookupEntry<CreatureExtendedInfo>(creature->GetEntry());
-                if(exinfo)
-                    minloot = exinfo->minloot;
-                // FG: -end-
-
-                if (uint32 lootid = creature->GetCreatureInfo()->lootid)
-                    loot->FillLoot(lootid, LootTemplates_Creature, recipient, false, false, minloot);
-
-                loot->generateMoneyLoot(creature->GetCreatureInfo()->mingold,creature->GetCreatureInfo()->maxgold);
-
-                if (Group* group = recipient->GetGroup())
+                if (lootid)
                 {
-                    group->UpdateLooterGuid(creature,true);
+                    sLog.outDebug("       if(lootid)");
+                    loot->clear();
+                    loot->FillLoot(lootid, LootTemplates_Gameobject, this, false);
+                }
 
-                    switch (group->GetLootMethod())
-                    {
-                        case GROUP_LOOT:
-                            // GroupLoot delete items over threshold (threshold even not implemented), and roll them. Items with quality<threshold, round robin
-                            group->GroupLoot(recipient->GetGUID(), loot, creature);
-                            break;
-                        case NEED_BEFORE_GREED:
-                            group->NeedBeforeGreed(recipient->GetGUID(), loot, creature);
-                            break;
-                        case MASTER_LOOT:
-                            group->MasterLoot(recipient->GetGUID(), loot, creature);
-                            break;
-                        default:
-                            break;
-                    }
+                if (loot_type == LOOT_FISHING)
+                    go->getFishLoot(loot,this);
+
+                go->SetLootState(GO_ACTIVATED);
+            }
+            break;
+        }
+        case HIGHGUID_ITEM:
+        {
+            Item *item = GetItemByGuid( guid );
+
+            if (!item)
+            {
+                SendLootRelease(guid);
+                return;
+            }
+
+            loot = &item->loot;
+
+            if (!item->m_lootGenerated)
+            {
+                item->m_lootGenerated = true;
+                loot->clear();
+
+                switch(loot_type)
+                {
+                    case LOOT_DISENCHANTING:
+                        loot->FillLoot(item->GetProto()->DisenchantID, LootTemplates_Disenchant, this,true);
+                        break;
+                    case LOOT_PROSPECTING:
+                        loot->FillLoot(item->GetEntry(), LootTemplates_Prospecting, this,true);
+                        break;
+                    case LOOT_MILLING:
+                        loot->FillLoot(item->GetEntry(), LootTemplates_Milling, this,true);
+                        break;
+                    default:
+                        loot->FillLoot(item->GetEntry(), LootTemplates_Item, this,true);
+                        loot->generateMoneyLoot(item->GetProto()->MinMoneyLoot,item->GetProto()->MaxMoneyLoot);
+                        break;
                 }
             }
+            break;
+        }
+        case HIGHGUID_CORPSE:                               // remove insignia
+        {
+            Corpse *bones = GetMap()->GetCorpse(guid);
 
-            // possible only if creature->lootForBody && loot->empty() at spell cast check
-            if (loot_type == LOOT_SKINNING)
+            if (!bones || !((loot_type == LOOT_CORPSE) || (loot_type == LOOT_INSIGNIA)) || (bones->GetType() != CORPSE_BONES) )
             {
-                loot->clear();
-                loot->FillLoot(creature->GetCreatureInfo()->SkinLootId, LootTemplates_Skinning, this, false);
+                SendLootRelease(guid);
+                return;
             }
-            // set group rights only for loot_type != LOOT_SKINNING
+
+            loot = &bones->loot;
+
+            if (!bones->lootForBody)
+            {
+                bones->lootForBody = true;
+                uint32 pLevel = bones->loot.gold;
+                bones->loot.clear();
+                if (GetBattleGround()->GetTypeID() == BATTLEGROUND_AV)
+                    loot->FillLoot(0, LootTemplates_Creature, this, false);
+                // It may need a better formula
+                // Now it works like this: lvl10: ~6copper, lvl70: ~9silver
+                bones->loot.gold = (uint32)( urand(50, 150) * 0.016f * pow( ((float)pLevel)/5.76f, 2.5f) * sWorld.getConfig(CONFIG_FLOAT_RATE_DROP_MONEY) );
+            }
+
+            if (bones->lootRecipient != this)
+                permission = NONE_PERMISSION;
+            break;
+        }
+        case HIGHGUID_UNIT:
+        {
+            Creature *creature = GetMap()->GetCreature(guid);
+
+            // must be in range and creature must be alive for pickpocket and must be dead for another loot
+            if (!creature || creature->isAlive()!=(loot_type == LOOT_PICKPOCKETING) || !creature->IsWithinDistInMap(this,INTERACTION_DISTANCE))
+            {
+                SendLootRelease(guid);
+                return;
+            }
+
+            if (loot_type == LOOT_PICKPOCKETING && IsFriendlyTo(creature))
+            {
+                SendLootRelease(guid);
+                return;
+            }
+
+            loot   = &creature->loot;
+
+            if (loot_type == LOOT_PICKPOCKETING)
+            {
+                if (!creature->lootForPickPocketed)
+                {
+                    creature->lootForPickPocketed = true;
+                    loot->clear();
+
+                    if (uint32 lootid = creature->GetCreatureInfo()->pickpocketLootId)
+                        loot->FillLoot(lootid, LootTemplates_Pickpocketing, this, false);
+
+                    // Generate extra money for pick pocket loot
+                    const uint32 a = urand(0, creature->getLevel()/2);
+                    const uint32 b = urand(0, getLevel()/2);
+                    loot->gold = uint32(10 * (a + b) * sWorld.getConfig(CONFIG_FLOAT_RATE_DROP_MONEY));
+                }
+            }
             else
             {
-                if(Group* group = GetGroup())
+                // the player whose group may loot the corpse
+                Player *recipient = creature->GetLootRecipient();
+                if (!recipient)
                 {
-                    if (group == recipient->GetGroup())
+                    creature->SetLootRecipient(this);
+                    recipient = this;
+                }
+
+                if (creature->lootForPickPocketed)
+                {
+                    creature->lootForPickPocketed = false;
+                    loot->clear();
+                }
+
+                if (!creature->lootForBody)
+                {
+                    creature->lootForBody = true;
+                    loot->clear();
+
+                    // FG: handle minloot
+                    uint32 minloot = 0;
+                    const CreatureExtendedInfo *exinfo = sCreatureExtendedStorage.LookupEntry<CreatureExtendedInfo>(creature->GetEntry());
+                    if(exinfo)
+                        minloot = exinfo->minloot;
+                    // FG: -end-
+
+                    if (uint32 lootid = creature->GetCreatureInfo()->lootid)
+                        loot->FillLoot(lootid, LootTemplates_Creature, recipient, false, false, minloot);
+
+                    loot->generateMoneyLoot(creature->GetCreatureInfo()->mingold,creature->GetCreatureInfo()->maxgold);
+
+                    if (Group* group = recipient->GetGroup())
                     {
-                        if (group->GetLootMethod() == FREE_FOR_ALL)
-                            permission = ALL_PERMISSION;
-                        else if (group->GetLooterGuid() == GetGUID())
+                        group->UpdateLooterGuid(creature,true);
+
+                        switch (group->GetLootMethod())
                         {
-                            if (group->GetLootMethod() == MASTER_LOOT)
-                                permission = MASTER_PERMISSION;
-                            else
+                            case GROUP_LOOT:
+                                // GroupLoot delete items over threshold (threshold even not implemented), and roll them. Items with quality<threshold, round robin
+                                group->GroupLoot(recipient->GetObjectGuid(), loot, creature);
+                                break;
+                            case NEED_BEFORE_GREED:
+                                group->NeedBeforeGreed(recipient->GetObjectGuid(), loot, creature);
+                                break;
+                            case MASTER_LOOT:
+                                group->MasterLoot(recipient->GetObjectGuid(), loot, creature);
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                }
+
+                // possible only if creature->lootForBody && loot->empty() at spell cast check
+                if (loot_type == LOOT_SKINNING)
+                {
+                    loot->clear();
+                    loot->FillLoot(creature->GetCreatureInfo()->SkinLootId, LootTemplates_Skinning, this, false);
+                }
+                // set group rights only for loot_type != LOOT_SKINNING
+                else
+                {
+                    if(Group* group = GetGroup())
+                    {
+                        if (group == recipient->GetGroup())
+                        {
+                            if (group->GetLootMethod() == FREE_FOR_ALL)
                                 permission = ALL_PERMISSION;
+                            else if (group->GetLooterGuid() == GetGUID())
+                            {
+                                if (group->GetLootMethod() == MASTER_LOOT)
+                                    permission = MASTER_PERMISSION;
+                                else
+                                    permission = ALL_PERMISSION;
+                            }
+                            else
+                                permission = GROUP_PERMISSION;
                         }
                         else
-                            permission = GROUP_PERMISSION;
+                            permission = NONE_PERMISSION;
                     }
+                    else if (recipient == this)
+                        permission = ALL_PERMISSION;
                     else
                         permission = NONE_PERMISSION;
                 }
-                else if (recipient == this)
-                    permission = ALL_PERMISSION;
-                else
-                    permission = NONE_PERMISSION;
             }
+            break;
+        }
+        default:
+        {
+            sLog.outError("%s is unsupported for looting.", guid.GetString().c_str());
+            return;
         }
     }
 
@@ -7960,7 +7964,7 @@ void Player::SendLoot(uint64 guid, LootType loot_type)
 
     WorldPacket data(SMSG_LOOT_RESPONSE, (9+50));           // we guess size
 
-    data << uint64(guid);
+    data << guid;
     data << uint8(loot_type);
     data << LootView(*loot, this, permission);
 
@@ -7970,7 +7974,7 @@ void Player::SendLoot(uint64 guid, LootType loot_type)
     if (permission != NONE_PERMISSION)
         loot->AddLooter(GetGUID());
 
-    if (loot_type == LOOT_CORPSE && !IS_ITEM_GUID(guid))
+    if (loot_type == LOOT_CORPSE && !guid.IsItem())
         SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_LOOTING);
 }
 
@@ -8845,47 +8849,31 @@ Item* Player::GetItemByLimitedCategory(uint32 limitedCategory) const
     return NULL;
 }
 
-Item* Player::GetItemByGuid( uint64 guid ) const
+Item* Player::GetItemByGuid(ObjectGuid guid) const
 {
     for(int i = EQUIPMENT_SLOT_START; i < INVENTORY_SLOT_ITEM_END; ++i)
-    {
-        Item *pItem = GetItemByPos( INVENTORY_SLOT_BAG_0, i );
-        if( pItem && pItem->GetGUID() == guid )
-            return pItem;
-    }
+        if (Item *pItem = GetItemByPos(INVENTORY_SLOT_BAG_0, i))
+            if (pItem->GetObjectGuid() == guid)
+                return pItem;
+
     for(int i = KEYRING_SLOT_START; i < CURRENCYTOKEN_SLOT_END; ++i)
-    {
-        Item *pItem = GetItemByPos( INVENTORY_SLOT_BAG_0, i );
-        if( pItem && pItem->GetGUID() == guid )
-            return pItem;
-    }
+        if (Item *pItem = GetItemByPos(INVENTORY_SLOT_BAG_0, i))
+            if (pItem->GetObjectGuid() == guid)
+                return pItem;
 
     for(int i = INVENTORY_SLOT_BAG_START; i < INVENTORY_SLOT_BAG_END; ++i)
-    {
-        Bag *pBag = (Bag*)GetItemByPos( INVENTORY_SLOT_BAG_0, i );
-        if( pBag )
-        {
+        if (Bag *pBag = (Bag*)GetItemByPos(INVENTORY_SLOT_BAG_0, i))
             for(uint32 j = 0; j < pBag->GetBagSize(); ++j)
-            {
-                Item* pItem = pBag->GetItemByPos( j );
-                if( pItem && pItem->GetGUID() == guid )
-                    return pItem;
-            }
-        }
-    }
+                if (Item* pItem = pBag->GetItemByPos(j))
+                    if (pItem->GetObjectGuid() == guid)
+                        return pItem;
+
     for(int i = BANK_SLOT_BAG_START; i < BANK_SLOT_BAG_END; ++i)
-    {
-        Bag *pBag = (Bag*)GetItemByPos( INVENTORY_SLOT_BAG_0, i );
-        if( pBag )
-        {
+        if (Bag *pBag = (Bag*)GetItemByPos(INVENTORY_SLOT_BAG_0, i))
             for(uint32 j = 0; j < pBag->GetBagSize(); ++j)
-            {
-                Item* pItem = pBag->GetItemByPos( j );
-                if( pItem && pItem->GetGUID() == guid )
-                    return pItem;
-            }
-        }
-    }
+                if (Item* pItem = pBag->GetItemByPos(j))
+                    if (pItem->GetObjectGuid() == guid)
+                        return pItem;
 
     return NULL;
 }
@@ -9005,7 +8993,7 @@ bool Player::IsBagPos( uint16 pos )
     return false;
 }
 
-bool Player::IsValidPos( uint8 bag, uint8 slot, bool explicit_pos )
+bool Player::IsValidPos( uint8 bag, uint8 slot, bool explicit_pos ) const
 {
     // post selected
     if(bag == NULL_BAG && !explicit_pos)
@@ -14291,17 +14279,17 @@ void Player::ItemRemovedQuestCheck( uint32 entry, uint32 count )
     UpdateForQuestWorldObjects();
 }
 
-void Player::KilledMonster( CreatureInfo const* cInfo, uint64 guid )
+void Player::KilledMonster( CreatureInfo const* cInfo, ObjectGuid guid )
 {
     if(cInfo->Entry)
-        KilledMonsterCredit(cInfo->Entry,guid);
+        KilledMonsterCredit(cInfo->Entry, guid);
 
     for(int i = 0; i < MAX_KILL_CREDIT; ++i)
         if(cInfo->KillCredit[i])
-            KilledMonsterCredit(cInfo->KillCredit[i],guid);
+            KilledMonsterCredit(cInfo->KillCredit[i], guid);
 }
 
-void Player::KilledMonsterCredit( uint32 entry, uint64 guid )
+void Player::KilledMonsterCredit( uint32 entry, ObjectGuid guid )
 {
     uint32 addkillcount = 1;
     GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_KILL_CREATURE, entry, addkillcount);
@@ -14355,9 +14343,9 @@ void Player::KilledMonsterCredit( uint32 entry, uint64 guid )
     }
 }
 
-void Player::CastedCreatureOrGO( uint32 entry, uint64 guid, uint32 spell_id )
+void Player::CastedCreatureOrGO( uint32 entry, ObjectGuid guid, uint32 spell_id )
 {
-    bool isCreature = IS_CREATURE_GUID(guid);
+    bool isCreature = guid.IsCreature();
 
     uint32 addCastCount = 1;
     for( int i = 0; i < MAX_QUEST_LOG_SIZE; ++i)
@@ -14424,7 +14412,7 @@ void Player::CastedCreatureOrGO( uint32 entry, uint64 guid, uint32 spell_id )
     }
 }
 
-void Player::TalkedToCreature( uint32 entry, uint64 guid )
+void Player::TalkedToCreature( uint32 entry, ObjectGuid guid )
 {
     uint32 addTalkCount = 1;
     for( int i = 0; i < MAX_QUEST_LOG_SIZE; ++i )
@@ -14713,7 +14701,7 @@ void Player::SendQuestUpdateAddItem( Quest const* /*pQuest*/, uint32 /*item_idx*
     GetSession()->SendPacket( &data );
 }
 
-void Player::SendQuestUpdateAddCreatureOrGo( Quest const* pQuest, uint64 guid, uint32 creatureOrGO_idx, uint32 old_count, uint32 add_count )
+void Player::SendQuestUpdateAddCreatureOrGo( Quest const* pQuest, ObjectGuid guid, uint32 creatureOrGO_idx, uint32 old_count, uint32 add_count )
 {
     assert(old_count + add_count < 65536 && "mob/GO count store in 16 bits 2^16 = 65536 (0..65536)");
 
@@ -14728,7 +14716,7 @@ void Player::SendQuestUpdateAddCreatureOrGo( Quest const* pQuest, uint64 guid, u
     data << uint32(entry);
     data << uint32(old_count + add_count);
     data << uint32(pQuest->ReqCreatureOrGOCount[ creatureOrGO_idx ]);
-    data << uint64(guid);
+    data << guid;
     GetSession()->SendPacket(&data);
 
     uint16 log_slot = FindQuestSlot( pQuest->GetQuestId() );
@@ -17248,7 +17236,7 @@ void Player::SendAttackSwingBadFacingAttack()
 void Player::SendAutoRepeatCancel(Unit *target)
 {
     WorldPacket data(SMSG_CANCEL_AUTO_REPEAT, target->GetPackGUID().size());
-    data.append(target->GetPackGUID());                     // may be it's target guid
+    data << target->GetPackGUID();                          // may be it's target guid
     GetSession()->SendPacket( &data );
 }
 
@@ -17969,12 +17957,13 @@ void Player::HandleStealthedUnitsDetection()
         {
             if(!hasAtClient)
             {
+                ObjectGuid i_guid = (*i)->GetGUID();
                 (*i)->SendCreateUpdateToPlayer(this);
-                m_clientGUIDs.insert((*i)->GetGUID());
+                m_clientGUIDs.insert(i_guid);
 
                 #ifdef MANGOS_DEBUG
                 if((sLog.getLogFilter() & LOG_FILTER_VISIBILITY_CHANGES)==0)
-                    sLog.outDebug("Object %u (Type: %u) is detected in stealth by player %u. Distance = %f",(*i)->GetGUIDLow(),(*i)->GetTypeId(),GetGUIDLow(),GetDistance(*i));
+                    sLog.outDebug("%s is detected in stealth by player %u. Distance = %f",i_guid.GetString().c_str(),GetGUIDLow(),GetDistance(*i));
                 #endif
 
                 // target aura duration for caster show only if target exist at caster client
@@ -19144,12 +19133,14 @@ void Player::UpdateVisibilityOf(WorldObject const* viewPoint, WorldObject* targe
             if (target->GetTypeId()==TYPEID_UNIT)
                 BeforeVisibilityDestroy<Creature>((Creature*)target,this);
 
+            ObjectGuid t_guid = target->GetGUID();
+
             target->DestroyForPlayer(this);
-            m_clientGUIDs.erase(target->GetGUID());
+            m_clientGUIDs.erase(t_guid);
 
             #ifdef MANGOS_DEBUG
             if((sLog.getLogFilter() & LOG_FILTER_VISIBILITY_CHANGES)==0)
-                sLog.outDebug("Object %u (Type: %u) out of range for player %u. Distance = %f",target->GetGUIDLow(),target->GetTypeId(),GetGUIDLow(),GetDistance(target));
+                sLog.outDebug("%s out of range for player %u. Distance = %f",t_guid.GetString().c_str(),GetGUIDLow(),GetDistance(target));
             #endif
         }
     }
@@ -19178,13 +19169,13 @@ void Player::UpdateVisibilityOf(WorldObject const* viewPoint, WorldObject* targe
 }
 
 template<class T>
-inline void UpdateVisibilityOf_helper(std::set<uint64>& s64, T* target)
+inline void UpdateVisibilityOf_helper(ObjectGuidSet& s64, T* target)
 {
     s64.insert(target->GetGUID());
 }
 
 template<>
-inline void UpdateVisibilityOf_helper(std::set<uint64>& s64, GameObject* target)
+inline void UpdateVisibilityOf_helper(ObjectGuidSet& s64, GameObject* target)
 {
     if(!target->IsTransport())
         s64.insert(target->GetGUID());
@@ -19199,12 +19190,14 @@ void Player::UpdateVisibilityOf(WorldObject const* viewPoint, T* target, UpdateD
         {
             BeforeVisibilityDestroy<T>(target,this);
 
+            ObjectGuid t_guid = target->GetGUID();
+
             target->BuildOutOfRangeUpdateBlock(&data);
-            m_clientGUIDs.erase(target->GetGUID());
+            m_clientGUIDs.erase(t_guid);
 
             #ifdef MANGOS_DEBUG
             if((sLog.getLogFilter() & LOG_FILTER_VISIBILITY_CHANGES)==0)
-                sLog.outDebug("Object %u (Type: %u, Entry: %u) is out of range for player %u. Distance = %f",target->GetGUIDLow(),target->GetTypeId(),target->GetEntry(),GetGUIDLow(),GetDistance(target));
+                sLog.outDebug("%s is out of range for player %u. Distance = %f",t_guid.GetString().c_str(),GetGUIDLow(),GetDistance(target));
             #endif
         }
     }
@@ -19241,7 +19234,7 @@ void Player::SendComboPoints()
     if (combotarget)
     {
         WorldPacket data(SMSG_UPDATE_COMBO_POINTS, combotarget->GetPackGUID().size()+1);
-        data.append(combotarget->GetPackGUID());
+        data << combotarget->GetPackGUID();
         data << uint8(m_comboPoints);
         GetSession()->SendPacket(&data);
     }
@@ -19403,7 +19396,7 @@ void Player::SendInitialPacketsAfterAddToMap()
     if(HasAuraType(SPELL_AURA_MOD_ROOT))
     {
         WorldPacket data2(SMSG_FORCE_MOVE_ROOT, 10);
-        data2.append(GetPackGUID());
+        data2 << GetPackGUID();
         data2 << (uint32)2;
         SendMessageToSet(&data2,true);
     }
@@ -19647,7 +19640,7 @@ void Player::SendAurasForTarget(Unit *target)
         return;
 
     WorldPacket data(SMSG_AURA_UPDATE_ALL);
-    data.append(target->GetPackGUID());
+    data << target->GetPackGUID();
 
     Unit::VisibleAuraMap const *visibleAuras = target->GetVisibleAuras();
     for(Unit::VisibleAuraMap::const_iterator itr = visibleAuras->begin(); itr != visibleAuras->end(); ++itr)
@@ -19672,9 +19665,9 @@ void Player::SendAurasForTarget(Unit *target)
                     else
                         data << uint8(aura->GetStackAmount());
 
-                    if(!(auraFlags & AFLAG_NOT_CASTER))
+                    if(!(auraFlags & AFLAG_NOT_CASTER))     // packed GUID of caster
                     {
-                        data << uint8(0);                   // packed GUID of someone (caster?)
+                        data.appendPackGUID(aura->GetCasterGUID());
                     }
 
                     if(auraFlags & AFLAG_DURATION)          // include aura duration
@@ -19831,15 +19824,14 @@ void Player::UpdateForQuestWorldObjects()
 
     UpdateData udata;
     WorldPacket packet;
-    for(ClientGUIDs::const_iterator itr=m_clientGUIDs.begin(); itr!=m_clientGUIDs.end(); ++itr)
+    for(ObjectGuidSet::const_iterator itr=m_clientGUIDs.begin(); itr!=m_clientGUIDs.end(); ++itr)
     {
-        if(IS_GAMEOBJECT_GUID(*itr))
+        if (itr->IsGameobject())
         {
-            GameObject *obj = GetMap()->GetGameObject(*itr);
-            if(obj)
+            if (GameObject *obj = GetMap()->GetGameObject(*itr))
                 obj->BuildValuesUpdateBlockForPlayer(&udata,this);
         }
-        else if(IS_CREATURE_GUID(*itr) || IS_VEHICLE_GUID(*itr))
+        else if (itr->IsCreatureOrVehicle())
         {
             Creature *obj = GetMap()->GetCreatureOrPetOrVehicle(*itr);
             if(!obj)
@@ -20086,7 +20078,7 @@ uint32 Player::GetResurrectionSpellId()
 }
 
 // Used in triggers for check "Only to targets that grant experience or honor" req
-bool Player::isHonorOrXPTarget(Unit* pVictim)
+bool Player::isHonorOrXPTarget(Unit* pVictim) const
 {
     uint32 v_level = pVictim->getLevel();
     uint32 k_grey  = MaNGOS::XP::GetGrayLevel(getLevel());
@@ -20170,7 +20162,7 @@ bool Player::RewardPlayerAndGroupAtKill(Unit* pVictim)
                     {
                         // normal creature (not pet/etc) can be only in !PvP case
                         if(pVictim->GetTypeId()==TYPEID_UNIT)
-                            pGroupGuy->KilledMonster(((Creature*)pVictim)->GetCreatureInfo(), pVictim->GetGUID());
+                            pGroupGuy->KilledMonster(((Creature*)pVictim)->GetCreatureInfo(), pVictim->GetObjectGuid());
                     }
                 }
             }
@@ -20195,7 +20187,7 @@ bool Player::RewardPlayerAndGroupAtKill(Unit* pVictim)
 
             // normal creature (not pet/etc) can be only in !PvP case
             if(pVictim->GetTypeId()==TYPEID_UNIT)
-                KilledMonster(((Creature*)pVictim)->GetCreatureInfo(), pVictim->GetGUID());
+                KilledMonster(((Creature*)pVictim)->GetCreatureInfo(), pVictim->GetObjectGuid());
         }
     }
 
@@ -20297,7 +20289,7 @@ void Player::ResurectUsingRequestData()
 void Player::SetClientControl(Unit* target, uint8 allowMove)
 {
     WorldPacket data(SMSG_CLIENT_CONTROL_UPDATE, target->GetPackGUID().size()+1);
-    data.append(target->GetPackGUID());
+    data << target->GetPackGUID();
     data << uint8(allowMove);
     GetSession()->SendPacket(&data);
 }
@@ -20693,7 +20685,7 @@ void Player::EnterVehicle(Vehicle *vehicle)
     GetSession()->SendPacket(&data);
 
     data.Initialize(MSG_MOVE_TELEPORT_ACK, 30);
-    data.append(GetPackGUID());
+    data << GetPackGUID();
     data << uint32(0);                                      // counter?
     data << uint32(MOVEFLAG_ONTRANSPORT);                   // transport
     data << uint16(0);                                      // special flags
@@ -20742,7 +20734,7 @@ void Player::ExitVehicle(Vehicle *vehicle)
     SetMover(NULL);
 
     WorldPacket data(MSG_MOVE_TELEPORT_ACK, 30);
-    data.append(GetPackGUID());
+    data << GetPackGUID();
     data << uint32(0);                                      // counter?
     data << uint32(MOVEFLAG_ROOT);                          // fly unk
     data << uint16(MOVEFLAG2_UNK4);                         // special flags
@@ -22020,7 +22012,7 @@ void Player::SendClearCooldown( uint32 spell_id, Unit* target )
 void Player::BuildTeleportAckMsg( WorldPacket *data, float x, float y, float z, float ang ) const
 {
     data->Initialize(MSG_MOVE_TELEPORT_ACK, 41);
-    data->append(GetPackGUID());
+    *data << GetPackGUID();
     *data << uint32(0);                                     // this value increments every time
     *data << uint32(m_movementInfo.GetMovementFlags());     // movement flags
     *data << uint16(0);                                     // 2.3.0
@@ -22324,4 +22316,69 @@ void Player::SetHomebindToLocation(WorldLocation const& loc, uint32 area_id)
         m_homebindMapId, m_homebindAreaId, m_homebindX, m_homebindY, m_homebindZ, GetGUIDLow());
 }
 
+Object* Player::GetObjectByTypeMask(ObjectGuid guid, TypeMask typemask)
+{
+    switch(guid.GetHigh())
+    {
+        case HIGHGUID_ITEM:
+            if (typemask & TYPEMASK_ITEM)
+                return GetItemByGuid(guid);
+            break;
+        case HIGHGUID_PLAYER:
+            if (GetObjectGuid()==guid)
+                return this;
+            if ((typemask & TYPEMASK_PLAYER) && IsInWorld())
+                return ObjectAccessor::FindPlayer(guid);
+            break;
+        case HIGHGUID_GAMEOBJECT:
+            if ((typemask & TYPEMASK_GAMEOBJECT) && IsInWorld())
+                return GetMap()->GetGameObject(guid);
+            break;
+        case HIGHGUID_UNIT:
+            if ((typemask & TYPEMASK_UNIT) && IsInWorld())
+                return GetMap()->GetCreature(guid);
+            break;
+        case HIGHGUID_PET:
+            if ((typemask & TYPEMASK_UNIT) && IsInWorld())
+                return GetMap()->GetPet(guid);
+            break;
+        case HIGHGUID_VEHICLE:
+            if ((typemask & TYPEMASK_UNIT) && IsInWorld())
+                return GetMap()->GetVehicle(guid);
+            break;
+        case HIGHGUID_DYNAMICOBJECT:
+            if ((typemask & TYPEMASK_DYNAMICOBJECT) && IsInWorld())
+                return GetMap()->GetDynamicObject(guid);
+            break;
+        case HIGHGUID_TRANSPORT:
+        case HIGHGUID_CORPSE:
+        case HIGHGUID_MO_TRANSPORT:
+            break;
+    }
 
+    return NULL;
+}
+
+void Player::SetRestType( RestType n_r_type, uint32 areaTriggerId /*= 0*/)
+{
+    rest_type = n_r_type;
+
+    if (rest_type == REST_TYPE_NO)
+    {
+        RemoveFlag(PLAYER_FLAGS, PLAYER_FLAGS_RESTING);
+
+        // Set player to FFA PVP when not in rested environment.
+        if(sWorld.IsFFAPvPRealm())
+            SetFFAPvP(true);
+    }
+    else
+    {
+        SetFlag(PLAYER_FLAGS, PLAYER_FLAGS_RESTING);
+
+        inn_trigger_id = areaTriggerId;
+        time_inn_enter = time(NULL);
+
+        if(sWorld.IsFFAPvPRealm())
+            SetFFAPvP(false);
+    }
+}

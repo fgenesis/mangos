@@ -22,6 +22,7 @@
 #include "GridDefines.h"
 #include "SharedDefines.h"
 #include "DBCEnums.h"
+#include "ObjectGuid.h"
 
 class WorldSession;
 class Unit;
@@ -51,7 +52,9 @@ enum SpellCastTargetFlags
     TARGET_FLAG_UNK1            = 0x00004000,               // 199 spells, opening object/lock
     TARGET_FLAG_CORPSE          = 0x00008000,               // pguid, resurrection spells
     TARGET_FLAG_UNK2            = 0x00010000,               // pguid, not used in any spells as of 3.0.3 (can be set dynamically)
-    TARGET_FLAG_GLYPH           = 0x00020000                // used in glyph spells
+    TARGET_FLAG_GLYPH           = 0x00020000,               // used in glyph spells
+    TARGET_FLAG_UNK3            = 0x00040000,               // 
+    TARGET_FLAG_UNK4            = 0x00080000                // uint32, loop { vec3, guid -> if guid == 0 break }
 };
 
 enum SpellCastFlags
@@ -102,14 +105,26 @@ namespace MaNGOS
     struct SpellNotifierCreatureAndPlayer;
 }
 
+class SpellCastTargets;
+
+struct SpellCastTargetsReader
+{
+    explicit SpellCastTargetsReader(SpellCastTargets& _targets, Unit* _caster) : targets(_targets), caster(_caster) {}
+
+    SpellCastTargets& targets;
+    Unit* caster;
+};
+
 class SpellCastTargets
 {
     public:
         SpellCastTargets();
         ~SpellCastTargets();
 
-        bool read ( WorldPacket * data, Unit *caster );
-        void write ( WorldPacket * data );
+        void read( ByteBuffer& data, Unit *caster );
+        void write( ByteBuffer& data ) const;
+
+        SpellCastTargetsReader ReadForCaster(Unit* caster) { return SpellCastTargetsReader(*this,caster); }
 
         SpellCastTargets& operator=(const SpellCastTargets &target)
         {
@@ -139,19 +154,19 @@ class SpellCastTargets
             return *this;
         }
 
-        uint64 getUnitTargetGUID() const { return m_unitTargetGUID; }
+        uint64 getUnitTargetGUID() const { return m_unitTargetGUID.GetRawValue(); }
         Unit *getUnitTarget() const { return m_unitTarget; }
         void setUnitTarget(Unit *target);
         void setDestination(float x, float y, float z);
         void setSource(float x, float y, float z);
 
-        uint64 getGOTargetGUID() const { return m_GOTargetGUID; }
+        uint64 getGOTargetGUID() const { return m_GOTargetGUID.GetRawValue(); }
         GameObject *getGOTarget() const { return m_GOTarget; }
         void setGOTarget(GameObject *target);
 
-        uint64 getCorpseTargetGUID() const { return m_CorpseTargetGUID; }
+        uint64 getCorpseTargetGUID() const { return m_CorpseTargetGUID.GetRawValue(); }
         void setCorpseTarget(Corpse* corpse);
-        uint64 getItemTargetGUID() const { return m_itemTargetGUID; }
+        uint64 getItemTargetGUID() const { return m_itemTargetGUID.GetRawValue(); }
         Item* getItemTarget() const { return m_itemTarget; }
         uint32 getItemTargetEntry() const { return m_itemTargetEntry; }
         void setItemTarget(Item* item);
@@ -164,7 +179,7 @@ class SpellCastTargets
             }
         }
 
-        bool IsEmpty() const { return m_GOTargetGUID==0 && m_unitTargetGUID==0 && m_itemTarget==0 && m_CorpseTargetGUID==0; }
+        bool IsEmpty() const { return m_GOTargetGUID.IsEmpty() && m_unitTargetGUID.IsEmpty() && m_itemTarget==NULL && m_CorpseTargetGUID.IsEmpty(); }
 
         void Update(Unit* caster);
 
@@ -180,12 +195,24 @@ class SpellCastTargets
         Item *m_itemTarget;
 
         // object GUID/etc, can be used always
-        uint64 m_unitTargetGUID;
-        uint64 m_GOTargetGUID;
-        uint64 m_CorpseTargetGUID;
-        uint64 m_itemTargetGUID;
+        ObjectGuid m_unitTargetGUID;
+        ObjectGuid m_GOTargetGUID;
+        ObjectGuid m_CorpseTargetGUID;
+        ObjectGuid m_itemTargetGUID;
         uint32 m_itemTargetEntry;
 };
+
+inline ByteBuffer& operator<< (ByteBuffer& buf, SpellCastTargets const& targets)
+{
+    targets.write(buf);
+    return buf;
+}
+
+inline ByteBuffer& operator>> (ByteBuffer& buf, SpellCastTargetsReader const& targets)
+{
+    targets.targets.read(buf,targets.caster);
+    return buf;
+}
 
 enum SpellState
 {
@@ -324,13 +351,14 @@ class Spell
         void EffectKillCredit(SpellEffectIndex eff_idx);
         void EffectQuestFail(SpellEffectIndex eff_idx);
         void EffectActivateRune(SpellEffectIndex eff_idx);
+        void EffectTeachTaxiNode(SpellEffectIndex eff_idx);
         void EffectTitanGrip(SpellEffectIndex eff_idx);
         void EffectEnchantItemPrismatic(SpellEffectIndex eff_idx);
         void EffectPlayMusic(SpellEffectIndex eff_idx);
         void EffectSpecCount(SpellEffectIndex eff_idx);
         void EffectActivateSpec(SpellEffectIndex eff_idx);
 
-        Spell( Unit* Caster, SpellEntry const *info, bool triggered, uint64 originalCasterGUID = 0, Spell** triggeringContainer = NULL );
+        Spell( Unit* Caster, SpellEntry const *info, bool triggered, ObjectGuid originalCasterGUID = ObjectGuid::EmptyGuid, Spell** triggeringContainer = NULL );
         ~Spell();
 
         void prepare(SpellCastTargets const* targets, Aura* triggeredByAura = NULL);
@@ -447,15 +475,13 @@ class Spell
         // formal spell caster, in game source of spell affects cast
         Unit* GetCaster() const { return m_caster; }
         // real source of cast affects, explcit caster, or DoT/HoT applier, or GO owner, etc. Can be NULL
-        Unit* GetAffectiveCaster() const { return m_originalCasterGUID ? m_originalCaster : m_caster; }
+        Unit* GetAffectiveCaster() const { return !m_originalCasterGUID.IsEmpty() ? m_originalCaster : m_caster; }
         // m_originalCasterGUID can store GO guid, and in this case this is visual caster
         WorldObject* GetCastingObject() const;
 
         int32 GetPowerCost() const { return m_powerCost; }
 
         void UpdatePointers();                              // must be used at call Spell code after time delay (non triggered spell cast/update spell call/etc)
-
-        bool IsAffectedByAura(Aura *aura) const;
 
         bool CheckTargetCreatureType(Unit* target) const;
 
@@ -475,7 +501,7 @@ class Spell
 
         Unit* m_caster;
 
-        uint64 m_originalCasterGUID;                        // real source of cast (aura caster/etc), used for spell targets selection
+        ObjectGuid m_originalCasterGUID;                    // real source of cast (aura caster/etc), used for spell targets selection
                                                             // e.g. damage around area spell trigered by victim aura and da,age emeies of aura caster
         Unit* m_originalCaster;                             // cached pointer for m_originalCaster, updated at Spell::UpdatePointers()
 
@@ -545,7 +571,7 @@ class Spell
         // Targets store structures and data
         struct TargetInfo
         {
-            uint64 targetGUID;
+            ObjectGuid targetGUID;
             uint64 timeDelay;
             SpellMissInfo missCondition:8;
             SpellMissInfo reflectResult:8;
@@ -557,7 +583,7 @@ class Spell
 
         struct GOTargetInfo
         {
-            uint64 targetGUID;
+            ObjectGuid targetGUID;
             uint64 timeDelay;
             uint8  effectMask:8;
             bool   processed:1;
@@ -620,12 +646,12 @@ namespace MaNGOS
         Spell &i_spell;
         const uint32& i_index;
         float i_radius;
-        Unit* i_originalCaster;
+        WorldObject* i_originalCaster;
 
         SpellNotifierPlayer(Spell &spell, std::list<Unit*> &data, const uint32 &i, float radius)
             : i_data(data), i_spell(spell), i_index(i), i_radius(radius)
         {
-            i_originalCaster = i_spell.GetAffectiveCaster();
+            i_originalCaster = i_spell.GetCastingObject();
         }
 
         void Visit(PlayerMapType &m)
@@ -656,13 +682,15 @@ namespace MaNGOS
         SpellNotifyPushType i_push_type;
         float i_radius;
         SpellTargets i_TargetType;
-        Unit* i_originalCaster;
+        WorldObject* i_originalCaster;
+        bool i_playerControled;
 
         SpellNotifierCreatureAndPlayer(Spell &spell, std::list<Unit*> &data, float radius, SpellNotifyPushType type,
             SpellTargets TargetType = SPELL_TARGETS_NOT_FRIENDLY)
             : i_data(&data), i_spell(spell), i_push_type(type), i_radius(radius), i_TargetType(TargetType)
         {
-            i_originalCaster = spell.GetAffectiveCaster();
+            i_originalCaster = spell.GetCastingObject();
+            i_playerControled = i_originalCaster  ? i_originalCaster->IsControlledByPlayer() : false;
         }
 
         template<class T> inline void Visit(GridRefManager<T>  &m)
@@ -704,16 +732,14 @@ namespace MaNGOS
                         if(itr->getSource()->GetTypeId()==TYPEID_UNIT && ((Creature*)itr->getSource())->isTotem())
                             continue;
 
-                        Unit* check = i_originalCaster->GetCharmerOrOwnerOrSelf();
-
-                        if( check->GetTypeId()==TYPEID_PLAYER )
+                        if (i_playerControled)
                         {
-                            if (check->IsFriendlyTo( itr->getSource() ))
+                            if (i_originalCaster->IsFriendlyTo( itr->getSource() ))
                                 continue;
                         }
                         else
                         {
-                            if (!check->IsHostileTo( itr->getSource() ))
+                            if (!i_originalCaster->IsHostileTo( itr->getSource() ))
                                 continue;
                         }
                     }

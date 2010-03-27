@@ -686,7 +686,7 @@ enum SpellEffects
     SPELL_EFFECT_TRIGGER_SPELL_2           = 151,
     SPELL_EFFECT_152                       = 152,
     SPELL_EFFECT_153                       = 153,
-    SPELL_EFFECT_154                       = 154,
+    SPELL_EFFECT_TEACH_TAXI_NODE           = 154,
     SPELL_EFFECT_TITAN_GRIP                = 155,
     SPELL_EFFECT_ENCHANT_ITEM_PRISMATIC    = 156,
     SPELL_EFFECT_CREATE_ITEM_2             = 157,
@@ -2411,10 +2411,11 @@ enum PetDiet
 
 enum AiReaction
 {
-    AI_REACTION_UNK1    = 1,
-    AI_REACTION_AGGRO   = 2,                                // trigger aggro sound to play, if defined in dbc
-    AI_REACTION_UNK3    = 3,                                // seen happen at polymorph, possible when AI not in control of self?
-    AI_REACTION_UNK4    = 4
+    AI_REACTION_ALERT    = 0,                               // pre-aggro (used in client packet handler)
+    AI_REACTION_FRIENDLY = 1,                               // (NOT used in client packet handler)
+    AI_REACTION_HOSTILE  = 2,                               // sent on every attack, triggers aggro sound (used in client packet handler)
+    AI_REACTION_AFRAID   = 3,                               // seen for polymorph (when AI not in control of self?) (NOT used in client packet handler)
+    AI_REACTION_DESTROY  = 4,                               // used on object destroy (NOT used in client packet handler)
 };
 
 // Diminishing Returns Types

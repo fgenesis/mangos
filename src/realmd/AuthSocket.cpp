@@ -751,7 +751,7 @@ bool AuthSocket::_HandleLogonProof()
         sha.Initialize();
         sha.UpdateBigNumbers(&A, &M, &K, NULL);
         sha.Finalize();
-        
+
         SendProof(sha);
 
         ///- Set _authed to true!
@@ -936,7 +936,7 @@ bool AuthSocket::_HandleRealmList()
     ///- Circle through realms in the RealmList and construct the return packet (including # of user characters in each realm)
     ByteBuffer pkt;
     LoadRealmlist(pkt, id);
-    
+
     ByteBuffer hdr;
     hdr << (uint8) REALM_LIST;
     hdr << (uint16)pkt.size();
@@ -948,7 +948,7 @@ bool AuthSocket::_HandleRealmList()
 }
 
 void AuthSocket::LoadRealmlist(ByteBuffer &pkt, uint32 acctid)
-{   
+{
     switch(_build)
     {
         case 5875:                                          // 1.12.1
@@ -956,7 +956,7 @@ void AuthSocket::LoadRealmlist(ByteBuffer &pkt, uint32 acctid)
         {
             pkt << uint32(0);
             pkt << uint8(sRealmList.size());
-            
+
             for(RealmList::RealmMap::const_iterator  i = sRealmList.begin(); i != sRealmList.end(); ++i)
             {
                 uint8 AmountOfCharacters;
@@ -985,12 +985,12 @@ void AuthSocket::LoadRealmlist(ByteBuffer &pkt, uint32 acctid)
                 pkt << uint8(i->second.timezone);                   // realm category
                 pkt << uint8(0x00);                                 // unk, may be realm number/id?
             }
-            
+
             pkt << uint8(0x00);
             pkt << uint8(0x02);
             break;
         }
-            
+
         case 8606:                                          // 2.4.3
         case 10505:                                         // 3.2.2a
         case 11159:                                         // 3.3.0a
@@ -999,7 +999,7 @@ void AuthSocket::LoadRealmlist(ByteBuffer &pkt, uint32 acctid)
         {
             pkt << uint32(0);
             pkt << uint16(sRealmList.size());
-            
+
             for(RealmList::RealmMap::const_iterator  i = sRealmList.begin(); i != sRealmList.end(); ++i)
             {
                 uint8 AmountOfCharacters;
@@ -1030,7 +1030,7 @@ void AuthSocket::LoadRealmlist(ByteBuffer &pkt, uint32 acctid)
                 pkt << uint8(i->second.timezone);                   // realm category
                 pkt << uint8(0x2C);                                 // unk, may be realm number/id?
             }
-            
+
             pkt << uint8(0x10);
             pkt << uint8(0x00);
             break;

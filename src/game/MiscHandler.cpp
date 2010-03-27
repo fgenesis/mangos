@@ -26,7 +26,7 @@
 #include "Player.h"
 #include "World.h"
 #include "ObjectMgr.h"
-#include "ObjectDefines.h"
+#include "ObjectGuid.h"
 #include "WorldSession.h"
 #include "Auth/BigNumber.h"
 #include "Auth/Sha1.h"
@@ -385,7 +385,7 @@ void WorldSession::HandleLogoutRequestOpcode( WorldPacket & /*recv_data*/ )
         GetPlayer()->SetStandState(UNIT_STAND_STATE_SIT);
 
         WorldPacket data( SMSG_FORCE_MOVE_ROOT, (8+4) );    // guess size
-        data.append(GetPlayer()->GetPackGUID());
+        data << GetPlayer()->GetPackGUID();
         data << (uint32)2;
         SendPacket( &data );
         GetPlayer()->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_STUNNED);
@@ -417,7 +417,7 @@ void WorldSession::HandleLogoutCancelOpcode( WorldPacket & /*recv_data*/ )
     {
         //!we can move again
         data.Initialize( SMSG_FORCE_MOVE_UNROOT, 8 );       // guess size
-        data.append(GetPlayer()->GetPackGUID());
+        data << GetPlayer()->GetPackGUID();
         data << uint32(0);
         SendPacket( &data );
 
@@ -791,92 +791,43 @@ void WorldSession::HandleAreaTriggerOpcode(WorldPacket & recv_data)
         return;
     }
 
-    if (GetPlayer()->GetMapId() != atEntry->mapid)
-    {
-        sLog.outDebug("Player '%s' (GUID: %u) too far (trigger map: %u player map: %u), ignore Area Trigger ID: %u", GetPlayer()->GetName(), atEntry->mapid, GetPlayer()->GetMapId(), GetPlayer()->GetGUIDLow(), Trigger_ID);
-        return;
-    }
-
     // delta is safe radius
     const float delta = 5.0f;
     // check if player in the range of areatrigger
     Player* pl = GetPlayer();
 
-    if (atEntry->radius > 0)
+    if (!IsPointInAreaTriggerZone(atEntry, pl->GetMapId(), pl->GetPositionX(), pl->GetPositionY(), pl->GetPositionZ(), delta))
     {
-        // if we have radius check it
-        float dist = pl->GetDistance(atEntry->x, atEntry->y, atEntry->z);
-        if(dist > atEntry->radius + delta)
-        {
-            sLog.outDebug("Player '%s' (GUID: %u) too far (radius: %f distance: %f), ignore Area Trigger ID: %u",
-                pl->GetName(), pl->GetGUIDLow(), atEntry->radius, dist, Trigger_ID);
-            return;
-        }
-    }
-    else
-    {
-        // we have only extent
-
-        // rotate the players position instead of rotating the whole cube, that way we can make a simplified
-        // is-in-cube check and we have to calculate only one point instead of 4
-
-        // 2PI = 360°, keep in mind that ingame orientation is counter-clockwise
-        double rotation = 2*M_PI-atEntry->box_orientation;
-        double sinVal = sin(rotation);
-        double cosVal = cos(rotation);
-
-        float playerBoxDistX = pl->GetPositionX() - atEntry->x;
-        float playerBoxDistY = pl->GetPositionY() - atEntry->y;
-
-        float rotPlayerX = float(atEntry->x + playerBoxDistX * cosVal - playerBoxDistY*sinVal);
-        float rotPlayerY = float(atEntry->y + playerBoxDistY * cosVal + playerBoxDistX*sinVal);
-
-        // box edges are parallel to coordiante axis, so we can treat every dimension independently :D
-        float dz = pl->GetPositionZ() - atEntry->z;
-        float dx = rotPlayerX - atEntry->x;
-        float dy = rotPlayerY - atEntry->y;
-        if( (fabs(dx) > atEntry->box_x/2 + delta) ||
-            (fabs(dy) > atEntry->box_y/2 + delta) ||
-            (fabs(dz) > atEntry->box_z/2 + delta) )
-        {
-            sLog.outDebug("Player '%s' (GUID: %u) too far (1/2 box X: %f 1/2 box Y: %f 1/2 box Z: %f rotatedPlayerX: %f rotatedPlayerY: %f dZ:%f), ignore Area Trigger ID: %u",
-                pl->GetName(), pl->GetGUIDLow(), atEntry->box_x/2, atEntry->box_y/2, atEntry->box_z/2, rotPlayerX, rotPlayerY, dz, Trigger_ID);
-            return;
-        }
+        sLog.outDebug("Player '%s' (GUID: %u) too far, ignore Area Trigger ID: %u", pl->GetName(), pl->GetGUIDLow(), Trigger_ID);
+        return;
     }
 
-    if(Script->scriptAreaTrigger(GetPlayer(), atEntry))
+    if(Script->scriptAreaTrigger(pl, atEntry))
         return;
 
     uint32 quest_id = sObjectMgr.GetQuestForAreaTrigger( Trigger_ID );
-    if( quest_id && GetPlayer()->isAlive() && GetPlayer()->IsActiveQuest(quest_id) )
+    if( quest_id && pl->isAlive() && pl->IsActiveQuest(quest_id) )
     {
         Quest const* pQuest = sObjectMgr.GetQuestTemplate(quest_id);
         if( pQuest )
         {
-            if(GetPlayer()->GetQuestStatus(quest_id) == QUEST_STATUS_INCOMPLETE)
-                GetPlayer()->AreaExploredOrEventHappens( quest_id );
+            if(pl->GetQuestStatus(quest_id) == QUEST_STATUS_INCOMPLETE)
+                pl->AreaExploredOrEventHappens( quest_id );
         }
     }
 
-    if(sObjectMgr.IsTavernAreaTrigger(Trigger_ID))
+    // enter to tavern, not overwrite city rest
+    if(sObjectMgr.IsTavernAreaTrigger(Trigger_ID) && pl->GetRestType() != REST_TYPE_IN_CITY)
     {
         // set resting flag we are in the inn
-        GetPlayer()->SetFlag(PLAYER_FLAGS, PLAYER_FLAGS_RESTING);
-        GetPlayer()->InnEnter(time(NULL), atEntry->mapid, atEntry->x, atEntry->y, atEntry->z);
-        GetPlayer()->SetRestType(REST_TYPE_IN_TAVERN);
-
-        if(sWorld.IsFFAPvPRealm())
-            GetPlayer()->SetFFAPvP(false);
-
+        pl->SetRestType(REST_TYPE_IN_TAVERN, Trigger_ID);
         return;
     }
 
-    if(GetPlayer()->InBattleGround())
+    if(pl->InBattleGround())
     {
-        BattleGround* bg = GetPlayer()->GetBattleGround();
-        if(bg)
-            bg->HandleAreaTrigger(GetPlayer(), Trigger_ID);
+        if (BattleGround* bg = pl->GetBattleGround())
+            bg->HandleAreaTrigger(pl, Trigger_ID);
         return;
     }
 
@@ -1100,13 +1051,11 @@ void WorldSession::HandleMoveTimeSkippedOpcode( WorldPacket & recv_data )
     /*  WorldSession::Update( getMSTime() );*/
     DEBUG_LOG( "WORLD: Time Lag/Synchronization Resent/Update" );
 
-    uint64 guid;
-    if(!recv_data.readPackGUID(guid))
-    {
-        recv_data.rpos(recv_data.wpos());
-        return;
-    }
-    recv_data.read_skip<uint32>();
+    ObjectGuid guid;
+
+    recv_data >> guid.ReadAsPacked();
+    recv_data >> Unused<uint32>();
+
     /*
         uint64 guid;
         uint32 time_skipped;
@@ -1229,7 +1178,7 @@ void WorldSession::HandleInspectOpcode(WorldPacket& recv_data)
         return;
 
     WorldPacket data(SMSG_INSPECT_TALENT, 50);
-    data.append(plr->GetPackGUID());
+    data << plr->GetPackGUID();
 
     if(sWorld.getConfig(CONFIG_BOOL_TALENTS_INSPECTING) || _player->isGameMaster())
     {
@@ -1629,15 +1578,13 @@ void WorldSession::HandleMoveSetCanFlyAckOpcode( WorldPacket & recv_data )
     sLog.outDebug("WORLD: CMSG_MOVE_SET_CAN_FLY_ACK");
     //recv_data.hexlike();
 
-    uint64 guid;                                            // guid - unused
-    if(!recv_data.readPackGUID(guid))
-        return;
+    ObjectGuid guid;                                        // guid - unused
+    MovementInfo movementInfo;
 
-    recv_data.read_skip<uint32>();                          // unk
-
-    MovementInfo movementInfo(recv_data);
-
-    recv_data.read_skip<float>();                           // unk2
+    recv_data >> guid.ReadAsPacked();
+    recv_data >> Unused<uint32>();                          // unk
+    recv_data >> movementInfo;
+    recv_data >> Unused<float>();                           // unk2
 
     _player->m_movementInfo.SetMovementFlags(movementInfo.GetMovementFlags());
 }
@@ -1660,9 +1607,9 @@ void WorldSession::HandleSetTaxiBenchmarkOpcode( WorldPacket & recv_data )
 
 void WorldSession::HandleQueryInspectAchievements( WorldPacket & recv_data )
 {
-    uint64 guid;
-    if(!recv_data.readPackGUID(guid))
-        return;
+    ObjectGuid guid;
+
+    recv_data >> guid.ReadAsPacked();
 
     if(Player *player = sObjectMgr.GetPlayer(guid))
         player->GetAchievementMgr().SendRespondInspectAchievements(_player);
@@ -1684,4 +1631,22 @@ void WorldSession::HandleReadyForAccountDataTimes(WorldPacket& /*recv_data*/)
     sLog.outDebug("WORLD: CMSG_READY_FOR_ACCOUNT_DATA_TIMES");
 
     SendAccountDataTimes(GLOBAL_CACHE_MASK);
+}
+
+void WorldSession::HandleHearthandResurrect(WorldPacket & /*recv_data*/)
+{
+    sLog.outDebug("WORLD: CMSG_HEARTH_AND_RESURRECT");
+
+    AreaTableEntry const* atEntry = sAreaStore.LookupEntry(_player->GetAreaId());
+    if(!atEntry || !(atEntry->flags & AREA_FLAG_CAN_HEARTH_AND_RES))
+        return;
+
+    // Can't use in flight
+    if (_player->isInFlight())
+        return;
+
+    // Send Everytime
+    _player->BuildPlayerRepop();
+    _player->ResurrectPlayer(100);
+    _player->TeleportToHomebind();
 }

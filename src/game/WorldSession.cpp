@@ -164,7 +164,7 @@ bool WorldSession::Update(uint32 /*diff*/)
     ///- Retrieve packets from the receive queue and call the appropriate handlers
     /// not proccess packets if socket already closed
     WorldPacket* packet;
-    while (_recvQueue.next(packet) && m_Socket && !m_Socket->IsClosed ())
+    while (m_Socket && !m_Socket->IsClosed() && _recvQueue.next(packet))
     {
         /*#if 1
         sLog.outError( "MOEP: %s (0x%.4X)",
@@ -251,14 +251,22 @@ bool WorldSession::Update(uint32 /*diff*/)
                     break;
             }
         }
-        catch(ByteBufferException &)
+        catch (ByteBufferException &)
         {
-            sLog.outError("WorldSession::Update ByteBufferException occured while parsing a packet (opcode: %u) from client %s, accountid=%i. Skipped packet.",
+            sLog.outError("WorldSession::Update ByteBufferException occured while parsing a packet (opcode: %u) from client %s, accountid=%i.",
                     packet->GetOpcode(), GetRemoteAddress().c_str(), GetAccountId());
             if(sLog.IsOutDebug())
             {
                 sLog.outDebug("Dumping error causing packet:");
                 packet->hexlike();
+            }
+
+            if (sWorld.getConfig(CONFIG_BOOL_KICK_PLAYER_ON_BAD_PACKET))
+            {
+                sLog.outDetail("Disconnecting session [account id %u / address %s] for badly formatted packet.",
+                    GetAccountId(), GetRemoteAddress().c_str());
+
+                KickPlayer();
             }
         }
 

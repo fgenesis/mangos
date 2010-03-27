@@ -29,6 +29,8 @@ void MaNGOSsoapRunnable::run()
     struct soap soap;
     int m, s;
     soap_init(&soap);
+    soap_set_imode(&soap, SOAP_C_UTFSTRING);
+    soap_set_omode(&soap, SOAP_C_UTFSTRING);
     m = soap_bind(&soap, m_host.c_str(), m_port, 100);
 
     // check every 3 seconds if world ended
@@ -123,7 +125,7 @@ int ns1__executeCommand(soap* soap, char* command, char** result)
     // commands are executed in the world thread. We have to wait for them to be completed
     {
         // CliCommandHolder will be deleted from world, accessing after queueing is NOT save
-        CliCommandHolder* cmd = new CliCommandHolder(&connection, command, &SOAPCommand::print, &SOAPCommand::commandFinished);
+        CliCommandHolder* cmd = new CliCommandHolder(accountId, SEC_CONSOLE, &connection, command, &SOAPCommand::print, &SOAPCommand::commandFinished);
         sWorld.QueueCliCommand(cmd);
     }
 

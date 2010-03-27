@@ -30,6 +30,7 @@ struct ItemPrototype;
 struct AuctionEntry;
 struct DeclinedName;
 
+class ObjectGuid;
 class Creature;
 class Item;
 class Object;
@@ -258,7 +259,7 @@ class MANGOS_DLL_SPEC WorldSession
 
         void BuildPartyMemberStatsChangedPacket(Player *player, WorldPacket *data);
 
-        void DoLootRelease( uint64 lguid );
+        void DoLootRelease(ObjectGuid lguid);
 
         // Account mute time
         time_t m_muteTime;
@@ -644,10 +645,10 @@ class MANGOS_DLL_SPEC WorldSession
         void HandleSetDungeonDifficultyOpcode(WorldPacket& recv_data);
         void HandleSetRaidDifficultyOpcode(WorldPacket& recv_data);
         void HandleMoveSetCanFlyAckOpcode(WorldPacket& recv_data);
-        void HandleLfgSetAutoJoinOpcode(WorldPacket& recv_data);
-        void HandleLfgClearAutoJoinOpcode(WorldPacket& recv_data);
-        void HandleLfmSetAutoFillOpcode(WorldPacket& recv_data);
-        void HandleLfmClearAutoFillOpcode(WorldPacket& recv_data);
+        void HandleLfgJoinOpcode(WorldPacket& recv_data);
+        void HandleLfgLeaveOpcode(WorldPacket& recv_data);
+        void HandleSearchLfgJoinOpcode(WorldPacket& recv_data);
+        void HandleSearchLfgLeaveOpcode(WorldPacket& recv_data);
         void HandleLfgClearOpcode(WorldPacket& recv_data);
         void HandleLfmClearOpcode(WorldPacket& recv_data);
         void HandleSetLfmOpcode(WorldPacket& recv_data);
@@ -658,6 +659,7 @@ class MANGOS_DLL_SPEC WorldSession
         void HandleTimeSyncResp(WorldPacket& recv_data);
         void HandleWhoisOpcode(WorldPacket& recv_data);
         void HandleResetInstancesOpcode(WorldPacket& recv_data);
+        void HandleHearthandResurrect(WorldPacket & recv_data);
 
         // Arena Team
         void HandleInspectArenaTeamsOpcode(WorldPacket& recv_data);
