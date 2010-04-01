@@ -905,11 +905,13 @@ enum PlayerLoginQueryIndex
     PLAYER_LOGIN_QUERY_LOADSKILLS               = 21,
     PLAYER_LOGIN_QUERY_LOADGLYPHS               = 22,
     PLAYER_LOGIN_QUERY_LOADTALENTS              = 23,
+    PLAYER_LOGIN_QUERY_LOADMAILS                = 24,
+    PLAYER_LOGIN_QUERY_LOADMAILEDITEMS          = 25,
 
-    PLAYER_LOGIN_QUERY_LOADMYINFO = 24, // FG: custom queries
-    PLAYER_LOGIN_QUERY_LOADEXTENDED = 25,
+    PLAYER_LOGIN_QUERY_LOADMYINFO = 26, // FG: custom queries
+    PLAYER_LOGIN_QUERY_LOADEXTENDED = 27,
 
-    MAX_PLAYER_LOGIN_QUERY                      = 26
+    MAX_PLAYER_LOGIN_QUERY                      = 28
 };
 
 enum PlayerDelayedOperations
@@ -1429,12 +1431,8 @@ class MANGOS_DLL_SPEC Player : public Unit
 
         bool LoadFromDB(uint32 guid, SqlQueryHolder *holder);
 
-        bool MinimalLoadFromDB(QueryResult *result, uint32 guid);
-        static bool   LoadValuesArrayFromDB(Tokens& data,uint64 guid);
         static uint32 GetUInt32ValueFromArray(Tokens const& data, uint16 index);
         static float  GetFloatValueFromArray(Tokens const& data, uint16 index);
-        static uint32 GetUInt32ValueFromDB(uint16 index, uint64 guid);
-        static float  GetFloatValueFromDB(uint16 index, uint64 guid);
         static uint32 GetZoneIdFromDB(uint64 guid);
         static uint32 GetLevelFromDB(uint64 guid);
         static bool   LoadPositionFromDB(uint32& mapid, float& x,float& y,float& z,float& o, bool& in_flight, uint64 guid);
@@ -1446,12 +1444,8 @@ class MANGOS_DLL_SPEC Player : public Unit
         void SaveToDB();
         void SaveInventoryAndGoldToDB();                    // fast save function for item/money cheating preventing
         void SaveGoldToDB();
-        void SaveDataFieldToDB();
-        static bool SaveValuesArrayInDB(Tokens const& data,uint64 guid);
         static void SetUInt32ValueInArray(Tokens& data,uint16 index, uint32 value);
         static void SetFloatValueInArray(Tokens& data,uint16 index, float value);
-        static void SetUInt32ValueInDB(uint16 index, uint32 value, uint64 guid);
-        static void SetFloatValueInDB(uint16 index, float value, uint64 guid);
         static void Customize(uint64 guid, uint8 gender, uint8 skin, uint8 face, uint8 hairStyle, uint8 hairColor, uint8 facialHair);
         static void SavePositionInDB(uint32 mapid, float x,float y,float z,float o,uint32 zone,uint64 guid);
 
@@ -2382,8 +2376,8 @@ class MANGOS_DLL_SPEC Player : public Unit
         void _LoadAuras(QueryResult *result, uint32 timediff);
         void _LoadBoundInstances(QueryResult *result);
         void _LoadInventory(QueryResult *result, uint32 timediff);
-        void _LoadMail();
-        void _LoadMailedItems(Mail *mail);
+        void _LoadMails(QueryResult *result);
+        void _LoadMailedItems(QueryResult *result);
         void _LoadQuestStatus(QueryResult *result);
         void _LoadDailyQuestStatus(QueryResult *result);
         void _LoadGroup(QueryResult *result);
@@ -2397,6 +2391,8 @@ class MANGOS_DLL_SPEC Player : public Unit
         void _LoadBGData(QueryResult* result);
         void _LoadGlyphs(QueryResult *result);
         void _LoadTalents(QueryResult *result);
+        void _LoadExploredZones(const char* data);
+        void _LoadKnownTitles(const char* data);
 
         /*********************************************************/
         /***                   SAVE SYSTEM                     ***/
