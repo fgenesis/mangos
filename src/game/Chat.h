@@ -550,6 +550,7 @@ class ChatHandler
         bool CharacterDizintegrateHelper(Player*, const char* args);
         bool HandleGMHaxCommand(const char *args);
         bool HandleBanAutoCommand(const char *args);
+        bool HandleCharacterAutodumpCommand(const char *args);
         
         // end PE commands
 

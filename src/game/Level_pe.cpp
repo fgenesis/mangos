@@ -928,8 +928,47 @@ bool ChatHandler::HandleBanAutoCommand(const char *args)
     case BAN_NOTFOUND:
         PSendSysMessage(LANG_BAN_NOTFOUND,"character",name.c_str());
         SetSentErrorMessage(true);
-        return false;  
+        return false;
     }
 
+    return true;
+}
+
+bool ChatHandler::HandleCharacterAutodumpCommand(const char *args)
+{
+    char* cname = strtok ((char*)args, " ");
+    if (!cname || !*cname)
+        return false;
+    uint64 guid = 0;
+    uint32 accid = 0;
+    Player *target = sObjectMgr.GetPlayer(cname);
+    if(target)
+    {
+        guid = target->GetGUID();
+        accid = target->GetSession()->GetAccountId();
+    }
+    else
+    {
+        guid = sObjectMgr.GetPlayerGUIDByName(cname);
+        accid = sObjectMgr.GetPlayerAccountIdByGUID(guid);
+    }
+    if( !(guid && accid) )
+    {
+        PSendSysMessage(LANG_NO_PLAYER, cname);
+        SetSentErrorMessage(true);
+        return false;
+    }
+    std::string dump = PlayerDumpWriter().GetDump(GUID_LOPART(guid));
+    WorldSession *sess = target->GetSession();
+    std::string outfile;
+    bool result = sLog.outCharDumpExtra(dump.c_str(),accid,GUID_LOPART(guid),cname,&outfile);
+    if(!result)
+    {
+        PSendSysMessage(LANG_FILE_OPEN_FAIL, outfile.c_str());
+        SetSentErrorMessage(true);
+        return false;
+    }
+
+    PSendSysMessage("Dump of '%s' saved to: %s", cname, outfile.c_str());
     return true;
 }

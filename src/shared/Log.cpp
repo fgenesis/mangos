@@ -859,11 +859,24 @@ void error_db_log(const char * str, ...)
 
 void Log::outCharDump( const char * str, uint32 account_id, uint32 guid, const char * name )
 {
+    // FG: dump chars to files also
+    std::string outfile;
+    bool filedump = outCharDumpExtra(str, account_id, guid, name, &outfile);
     if(charLogfile)
     {
         fprintf(charLogfile, "== START DUMP == (account: %u guid: %u name: %s )\n%s\n== END DUMP ==\n",account_id,guid,name,str );
+        if(filedump)
+        {
+            fprintf(charLogfile, "(also dumped to file: %s)", outfile.c_str());
+        }
         fflush(charLogfile);
     }
+
+
+}
+
+bool Log::outCharDumpExtra( const char * str, uint32 account_id, uint32 guid, const char * name, std::string *outfn )
+{
 
     // FG: dump chars to files also
     std::string dpath = sConfig.GetStringDefault("CharDumpDir","");
@@ -873,18 +886,20 @@ void Log::outCharDump( const char * str, uint32 account_id, uint32 guid, const c
             dpath.append("/");
 
         FILE *fh;
-        char fn[255];
+        char fn[1024];
 
         int build[] = EXPECTED_MANGOSD_CLIENT_BUILD;
 
         sprintf(fn,"%s/%s_%u_%u_%s_%u.dump",dpath.c_str(),name,account_id,guid,REVISION_NR,build[0]);
+        if(outfn)
+            *outfn = fn;
         fh = fopen(fn,"w");
         if(!fh)
-            return;
+            return false;
         fputs(str,fh);
         fflush(fh);
         fclose(fh);
+        return true;
     }
+    return false;
 }
-
-

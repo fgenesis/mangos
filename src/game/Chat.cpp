@@ -134,6 +134,7 @@ ChatCommand * ChatHandler::getCommandTable()
         { "reputation",     SEC_GAMEMASTER,     true,  &ChatHandler::HandleCharacterReputationCommand, "", NULL },
         { "dizintegrate",   SEC_ADMINISTRATOR,  true,  NULL,                                           "", characterDizintegrateCommandTable },
         { "titles",         SEC_GAMEMASTER,     true,  &ChatHandler::HandleCharacterTitlesCommand,     "", NULL },
+        { "autodump",       SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleCharacterAutodumpCommand,   "", NULL },
         { NULL,             0,                  false, NULL,                                           "", NULL }
     };
 
