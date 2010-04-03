@@ -96,13 +96,15 @@ struct PlayerSpell
     bool disabled          : 1;                             // first rank has been learned in result talent learn but currently talent unlearned, save max learned ranks
 };
 
-typedef UNORDERED_MAP<uint32, PlayerSpell> PlayerSpellMap;
-
 struct PlayerTalent
 {
-    PlayerSpellState state : 8;
-    uint8 spec             : 8;
+    PlayerSpellState state;
+    TalentEntry const *m_talentEntry;
+    uint32 currentRank;
 };
+
+typedef UNORDERED_MAP<uint32, PlayerSpell> PlayerSpellMap;
+typedef UNORDERED_MAP<uint32, PlayerTalent> PlayerTalentMap;
 
 // Spell modifier (used for modify other spells)
 struct SpellModifier
@@ -129,7 +131,6 @@ struct SpellModifier
     Spell const* lastAffected;
 };
 
-typedef UNORDERED_MAP<uint32, PlayerTalent*> PlayerTalentMap;
 typedef std::list<SpellModifier*> SpellModList;
 
 struct SpellCooldown
@@ -906,9 +907,9 @@ enum PlayerLoginQueryIndex
     PLAYER_LOGIN_QUERY_LOADACCOUNTDATA          = 20,
     PLAYER_LOGIN_QUERY_LOADSKILLS               = 21,
     PLAYER_LOGIN_QUERY_LOADGLYPHS               = 22,
-    PLAYER_LOGIN_QUERY_LOADTALENTS              = 23,
-    PLAYER_LOGIN_QUERY_LOADMAILS                = 24,
-    PLAYER_LOGIN_QUERY_LOADMAILEDITEMS          = 25,
+    PLAYER_LOGIN_QUERY_LOADMAILS                = 23,
+    PLAYER_LOGIN_QUERY_LOADMAILEDITEMS          = 24,
+    PLAYER_LOGIN_QUERY_LOADTALENTS              = 25,
 
     PLAYER_LOGIN_QUERY_LOADMYINFO = 26, // FG: custom queries
     PLAYER_LOGIN_QUERY_LOADEXTENDED = 27,
@@ -1564,6 +1565,7 @@ class MANGOS_DLL_SPEC Player : public Unit
 
         uint32 GetFreeTalentPoints() const { return GetUInt32Value(PLAYER_CHARACTER_POINTS1); }
         void SetFreeTalentPoints(uint32 points) { SetUInt32Value(PLAYER_CHARACTER_POINTS1,points); }
+        void UpdateFreeTalentPoints(bool resetIfNeed = true);
         bool resetTalents(bool no_cost = false);
         uint32 resetTalentsCost() const;
         void InitTalentForLevel();
@@ -1572,9 +1574,6 @@ class MANGOS_DLL_SPEC Player : public Unit
         void SendTalentsInfoData(bool pet);
         void LearnTalent(uint32 talentId, uint32 talentRank);
         void LearnPetTalent(uint64 petGuid, uint32 talentId, uint32 talentRank);
-
-        bool AddTalent(uint32 spell, uint8 spec, bool learning);
-        bool HasTalent(uint32 spell_id, uint8 spec) const;
 
         uint32 CalculateTalentsPoints() const;
 
@@ -1663,7 +1662,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         static bool IsActionButtonDataValid(uint8 button, uint32 action, uint8 type, Player* player, bool msg = true);
         ActionButton* addActionButton(uint8 spec, uint8 button, uint32 action, uint8 type);
         void removeActionButton(uint8 spec, uint8 button);
-        void SendInitialActionButtons(uint32 state) const;
+        void SendInitialActionButtons() const;
         ActionButton const* GetActionButton(uint8 button);
 
         PvPInfo pvpInfo;
@@ -2383,6 +2382,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         void _LoadGroup(QueryResult *result);
         void _LoadSkills(QueryResult *result);
         void _LoadSpells(QueryResult *result);
+        void _LoadTalents(QueryResult *result);
         void _LoadFriendList(QueryResult *result);
         bool _LoadHomeBind(QueryResult *result);
         void _LoadDeclinedNames(QueryResult *result);
@@ -2390,7 +2390,6 @@ class MANGOS_DLL_SPEC Player : public Unit
         void _LoadEquipmentSets(QueryResult *result);
         void _LoadBGData(QueryResult* result);
         void _LoadGlyphs(QueryResult *result);
-        void _LoadTalents(QueryResult *result);
         void _LoadIntoDataField(const char* data, uint32 startOffset, uint32 count);
 
         /*********************************************************/
@@ -2460,8 +2459,8 @@ class MANGOS_DLL_SPEC Player : public Unit
 
         PlayerMails m_mail;
         PlayerSpellMap m_spells;
+        PlayerTalentMap m_talents[MAX_TALENT_SPEC_COUNT];
         SpellCooldowns m_spellCooldowns;
-        PlayerTalentMap *m_talents[MAX_TALENT_SPECS];
         uint32 m_lastPotionId;                              // last used health/mana potion in combat, that block next potion use
 
         uint8 m_activeSpec;
