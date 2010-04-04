@@ -896,7 +896,11 @@ bool Log::outCharDumpExtra( const char * str, uint32 account_id, uint32 guid, co
         fh = fopen(fn,"w");
         if(!fh)
             return false;
-        fputs(str,fh);
+        if(fputs(str,fh) == EOF) // fail?
+        {
+            fclose(fh);
+            return false;
+        }
         fflush(fh);
         fclose(fh);
         return true;

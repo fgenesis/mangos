@@ -942,26 +942,35 @@ bool ChatHandler::HandleCharacterAutodumpCommand(const char *args)
     uint64 guid = 0;
     uint32 accid = 0;
     Player *target = sObjectMgr.GetPlayer(cname);
+    std::string normalName;
     if(target)
     {
+        // player online
         guid = target->GetGUID();
         accid = target->GetSession()->GetAccountId();
+        normalName = target->GetName();
     }
     else
     {
+        // player offline, ask DB
         guid = sObjectMgr.GetPlayerGUIDByName(cname);
         accid = sObjectMgr.GetPlayerAccountIdByGUID(guid);
+        if(guid && accid)
+        {
+            normalName = cname;
+            normalizePlayerName(normalName);
+        }
+        else // nothing found or wrong data
+        {
+            PSendSysMessage(LANG_NO_PLAYER, cname);
+            SetSentErrorMessage(true);
+            return false;
+        }
     }
-    if( !(guid && accid) )
-    {
-        PSendSysMessage(LANG_NO_PLAYER, cname);
-        SetSentErrorMessage(true);
-        return false;
-    }
+
     std::string dump = PlayerDumpWriter().GetDump(GUID_LOPART(guid));
-    WorldSession *sess = target->GetSession();
     std::string outfile;
-    bool result = sLog.outCharDumpExtra(dump.c_str(),accid,GUID_LOPART(guid),cname,&outfile);
+    bool result = sLog.outCharDumpExtra(dump.c_str(),accid,GUID_LOPART(guid),normalName.c_str(),&outfile);
     if(!result)
     {
         PSendSysMessage(LANG_FILE_OPEN_FAIL, outfile.c_str());
@@ -969,6 +978,6 @@ bool ChatHandler::HandleCharacterAutodumpCommand(const char *args)
         return false;
     }
 
-    PSendSysMessage("Dump of '%s' saved to: %s", cname, outfile.c_str());
+    PSendSysMessage("Dump of '%s' saved to: %s", normalName.c_str(), outfile.c_str());
     return true;
 }
