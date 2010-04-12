@@ -452,7 +452,7 @@ bool Map::Add(Player *player)
     SendInitSelf(player);
     SendInitTransports(player);
 
-    UpdatePlayerVisibility(player,cell,p);
+    UpdateObjectVisibility(player,cell,p);
     UpdateObjectsVisibilityFor(player,cell,p);
 
     AddNotifier(player,cell,p);
@@ -770,6 +770,7 @@ void Map::Remove(Player *player, bool remove)
     RemoveFromGrid(player,grid,cell);
 
     SendRemoveTransports(player);
+    UpdateObjectVisibility(player,cell,p);
     UpdateObjectsVisibilityFor(player,cell,p);
 
     player->ResetMap();
@@ -861,9 +862,10 @@ Map::PlayerRelocation(Player *player, float x, float y, float z, float orientati
         return;
 
     // if move then update what player see and who seen
-    UpdatePlayerVisibility(player,new_cell,new_val);
     UpdateObjectsVisibilityFor(player,new_cell,new_val);
+    UpdateObjectVisibility(player, new_cell, new_val);
     PlayerRelocationNotify(player,new_cell,new_val);
+
     NGridType* newGrid = getNGrid(new_cell.GridX(), new_cell.GridY());
     if(!newGrid)
         return;
@@ -2069,16 +2071,6 @@ void Map::UpdateObjectVisibility( WorldObject* obj, Cell cell, CellPair cellpair
     MaNGOS::VisibleChangesNotifier notifier(*obj);
     TypeContainerVisitor<MaNGOS::VisibleChangesNotifier, WorldTypeMapContainer > player_notifier(notifier);
     cell.Visit(cellpair, player_notifier, *this, *obj, GetVisibilityDistance());
-}
-
-void Map::UpdatePlayerVisibility( Player* player, Cell cell, CellPair cellpair )
-{
-    cell.data.Part.reserved = ALL_DISTRICT;
-
-    MaNGOS::PlayerNotifier pl_notifier(*player);
-    TypeContainerVisitor<MaNGOS::PlayerNotifier, WorldTypeMapContainer > player_notifier(pl_notifier);
-
-    cell.Visit(cellpair, player_notifier, *this, *player, GetVisibilityDistance());
 }
 
 void Map::UpdateObjectsVisibilityFor( Player* player, Cell cell, CellPair cellpair )

@@ -353,7 +353,7 @@ Spell::Spell( Unit* Caster, SpellEntry const *info, bool triggered, ObjectGuid o
     UpdateOriginalCasterPointer();
 
     for(int i = 0; i < MAX_EFFECT_INDEX; ++i)
-        m_currentBasePoints[i] = m_spellInfo->EffectBasePoints[i];
+        m_currentBasePoints[i] = m_spellInfo->CalculateSimpleValue(SpellEffectIndex(i));
 
     m_spellState = SPELL_STATE_NULL;
 
@@ -1702,7 +1702,13 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
         case TARGET_ALL_RAID_AROUND_CASTER:
         {
             if(m_spellInfo->Id == 57669)                    // Replenishment (special target selection)
-                FillRaidOrPartyManaPriorityTargets(targetUnitMap, m_caster, m_caster, radius, 10, true, false, true);
+            {
+                // in arena, target should be only caster
+                if (m_caster->GetMap()->IsBattleArena())
+                    targetUnitMap.push_back(m_caster);
+                else
+                    FillRaidOrPartyManaPriorityTargets(targetUnitMap, m_caster, m_caster, radius, 10, true, false, true);
+            }
             else if (m_spellInfo->Id==52759)                // Ancestral Awakening (special target selection)
                 FillRaidOrPartyHealthPriorityTargets(targetUnitMap, m_caster, m_caster, radius, 1, true, false, true);
             else if (m_spellInfo->Id == 54171)              // Divine Storm
@@ -2595,9 +2601,6 @@ void Spell::cast(bool skipCheck)
         {
             if (m_spellInfo->Mechanic == MECHANIC_BANDAGE)  // Bandages
                 AddPrecastSpell(11196);                     // Recently Bandaged
-            else if(m_spellInfo->SpellIconID == 1662 && m_spellInfo->AttributesEx & 0x20)
-                                                            // Blood Fury (Racial)
-                AddPrecastSpell(23230);                     // Blood Fury - Healing Reduction
             else if(m_spellInfo->Id == 20594)               // Stoneskin
                 AddTriggeredSpell(65116);                   // Stoneskin - armor 10% for 8 sec
             break;
@@ -3114,7 +3117,8 @@ void Spell::finish(bool ok)
                     SpellEntry const *auraSpellInfo = (*i)->GetSpellProto();
                     SpellEffectIndex auraSpellIdx = (*i)->GetEffIndex();
                     // Calculate chance at that moment (can be depend for example from combo points)
-                    int32 chance = m_caster->CalculateSpellDamage(auraSpellInfo, auraSpellIdx, (*i)->GetBasePoints(),unit);
+                    int32 auraBasePoints = (*i)->GetBasePoints();
+                    int32 chance = m_caster->CalculateSpellDamage(unit, auraSpellInfo, auraSpellIdx, &auraBasePoints);
                     if(roll_chance_i(chance))
                         m_caster->CastSpell(unit, auraSpellInfo->EffectTriggerSpell[auraSpellIdx], true, NULL, (*i));
                 }
@@ -3778,7 +3782,7 @@ void Spell::TakeCastItem()
         ((Player*)m_caster)->DestroyItemCount(m_CastItem, count, true);
 
         // prevent crash at access to deleted m_targets.getItemTarget
-        if(m_CastItem==m_targets.getItemTarget())
+        if(m_CastItem == m_targets.getItemTarget())
             m_targets.setItemTarget(NULL);
 
         m_CastItem = NULL;
@@ -3998,28 +4002,18 @@ void Spell::HandleEffects(Unit *pUnitTarget,Item *pItemTarget,GameObject *pGOTar
 
     damage = int32(CalculateDamage(i, unitTarget) * DamageMultiplier);
 
-    sLog.outDebug( "Spell %u Effect%d : %u", m_spellInfo->Id, i, eff);
+    sLog.outDebug("Spell %u Effect%d : %u", m_spellInfo->Id, i, eff);
 
-    if(eff<TOTAL_SPELL_EFFECTS)
+    if(eff < TOTAL_SPELL_EFFECTS)
     {
         //sLog.outDebug( "WORLD: Spell FX %d < TOTAL_SPELL_EFFECTS ", eff);
         (*this.*SpellEffects[eff])(i);
     }
-    /*
     else
     {
-        sLog.outDebug( "WORLD: Spell FX %d > TOTAL_SPELL_EFFECTS ", eff);
-        if (m_CastItem)
-            EffectEnchantItemTmp(i);
-        else
-        {
-            sLog.outError("SPELL: unknown effect %u spell id %u",
-                eff, m_spellInfo->Id);
-        }
+        sLog.outError("WORLD: Spell FX %d > TOTAL_SPELL_EFFECTS ", eff);
     }
-    */
 }
-
 
 void Spell::AddTriggeredSpell( uint32 spellId )
 {
@@ -6453,7 +6447,7 @@ SpellCastResult Spell::CanOpenLock(SpellEffectIndex effIndex, uint32 lockId, Ski
                 {
                     // skill bonus provided by casting spell (mostly item spells)
                     // add the damage modifier from the spell casted (cheat lock / skeleton key etc.) (use m_currentBasePoints, CalculateDamage returns wrong value)
-                    uint32 spellSkillBonus = uint32(m_currentBasePoints[effIndex]+1);
+                    uint32 spellSkillBonus = uint32(m_currentBasePoints[effIndex]);
                     reqSkillValue = lockInfo->Skill[j];
 
                     // castitem check: rogue using skeleton keys. the skill values should not be added in this case.
