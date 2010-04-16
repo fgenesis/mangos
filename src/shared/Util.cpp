@@ -206,7 +206,7 @@ bool IsIPAddress(char const* ipaddress)
 
     // FG: support IP ranges to be valid IP addresses, e.g. 192.168.0.%, 127.%.%.%, 1.2.3.4
     Tokens tok = StrSplit(ipaddress, ".");
-    if(tok.size() < 4)
+    if(tok.size() != 4)
         return false;
 
     for(Tokens::iterator it = tok.begin(); it != tok.end(); it++)
@@ -229,7 +229,7 @@ bool IsIPAddress(char const* ipaddress)
 
     // Let the big boys do it.
     // Drawback: all valid ip address formats are recognized e.g.: 12.23,121234,0xABCD)
-    //return inet_addr(ipaddress) != INADDR_NONE;
+    //return ACE_OS::inet_addr(ipaddress) != INADDR_NONE;
 }
 
 /// create PID file
