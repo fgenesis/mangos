@@ -847,7 +847,7 @@ uint32 WorldSession::ACH_CheckMoveInfo(uint32 opcode, MovementInfo* movementInfo
         //Fly hack checks
         if (((movementInfo.moveFlags & (MOVEFLAG_CAN_FLY | MOVEFLAG_FLYING | MOVEFLAG_ASCENDING)) != 0)
             && !plMover->isGameMaster()
-            && !(plMover->HasAuraType(SPELL_AURA_FLY) || plMover->HasAuraType(SPELL_AURA_MOD_INCREASE_FLIGHT_SPEED)))
+            && !(plMover->HasAuraType(SPELL_AURA_FLY) || plMover->HasAuraType(SPELL_AURA_MOD_FLIGHT_SPEED_MOUNTED)))
         {
             sLog.outError("MA-%s, flight exception.",plMover->GetName());
             plMover->m_anti_TypeFlags |= ACH_TYPE_FLY;
