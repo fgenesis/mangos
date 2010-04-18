@@ -6705,8 +6705,6 @@ void ObjectMgr::DeleteRespawnTimeForInstance(uint32 instance)
     WorldDatabase.PExecute("DELETE FROM gameobject_respawn WHERE instance = '%u'", instance);
 }
 
-
-
 void ObjectMgr::DeleteGOData(uint32 guid)
 {
     // remove mapid*cellid -> guid_set map

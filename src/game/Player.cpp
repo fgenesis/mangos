@@ -15337,8 +15337,6 @@ bool Player::LoadFromDB( uint32 guid, SqlQueryHolder *holder )
     m_specsCount = fields[58].GetUInt8();
     m_activeSpec = fields[59].GetUInt8();
 
-	_LoadTalents(holder->GetResult(PLAYER_LOGIN_QUERY_LOADTALENTS));
-
     _LoadGlyphs(holder->GetResult(PLAYER_LOGIN_QUERY_LOADGLYPHS));
 
     _LoadAuras(holder->GetResult(PLAYER_LOGIN_QUERY_LOADAURAS), time_diff);
@@ -21754,7 +21752,6 @@ void Player::BuildPlayerTalentsInfoData(WorldPacket *data)
     }
 }
 
-
 void Player::BuildPetTalentsInfoData(WorldPacket *data)
 {
     uint32 unspentTalentPoints = 0;
@@ -22005,7 +22002,7 @@ void Player::DeleteEquipmentSet(uint64 setGuid)
     }
 }
 
-/*void Player::ActivateSpec(uint8 specNum)
+void Player::ActivateSpec(uint8 specNum)
 {
     if(GetActiveSpec() == specNum)
         return;
@@ -22160,7 +22157,7 @@ void Player::UpdateSpecCount(uint8 count)
     SetSpecsCount(count);
 
     SendTalentsInfoData(false);
-}*/
+}
 
 void Player::RemoveAtLoginFlag( AtLoginFlags f, bool in_db_also /*= false*/ )
 {
@@ -22273,146 +22270,6 @@ bool Player::IsImmunedToSpellEffect(SpellEntry const* spellInfo, SpellEffectInde
             break;
     }
     return Unit::IsImmunedToSpellEffect(spellInfo, index);
-}
-
-void Player::UpdateSpecCount(uint8 count)
-{
-    uint8 curCount = GetSpecsCount();
-    if (curCount == count)
-        return;
-
-    // maybe current spec data must be copied to 0 spec?
-    if (m_activeSpec >= count)
-        ActivateSpec(0);
-
-    // copy spec data from new specs
-    if (count > curCount)
-    {
-        // copy action buttons from active spec (more easy in this case iterate first by button)
-        ActionButtonList const& currentActionButtonList = m_actionButtons[m_activeSpec];
-
-        for(ActionButtonList::const_iterator itr = currentActionButtonList.begin(); itr != currentActionButtonList.end(); ++itr)
-        {
-            if (itr->second.uState != ACTIONBUTTON_DELETED)
-            {
-                for(uint8 spec = curCount; spec < count; ++spec)
-                    addActionButton(spec,itr->first,itr->second.GetAction(),itr->second.GetType());
-            }
-        }
-    }
-    // delete spec data for removed specs
-    else if (count < curCount)
-    {
-        // delete action buttons for removed spec
-        for(uint8 spec = count; spec < curCount; ++spec)
-        {
-            // delete action buttons for removed spec
-            for(uint8 button = 0; button < MAX_ACTION_BUTTONS; ++button)
-                removeActionButton(spec,button);
-        }
-    }
-
-    SetSpecsCount(count);
-
-    SendTalentsInfoData(false);
-}
-
-void Player::ActivateSpec(uint8 specNum)
-{
-    if(GetActiveSpec() == specNum)
-        return;
-
-    if(specNum >= GetSpecsCount())
-        return;
-
-    UnsummonPetTemporaryIfAny();
-
-    ApplyGlyphs(false);
-
-    // copy of new talent spec (we will use it as model for converting current tlanet state to new)
-    PlayerTalentMap tempSpec = m_talents[specNum];
-
-    // copy old spec talents to new one, must be before spec switch to have previous spec num(as m_activeSpec)
-    m_talents[specNum] = m_talents[m_activeSpec];
-
-    SetActiveSpec(specNum);
-
-    // remove all talent spells that don't exist in next spec but exist in old
-    for (PlayerTalentMap::iterator specIter = m_talents[m_activeSpec].begin(); specIter != m_talents[m_activeSpec].end();)
-    {
-        PlayerTalent& talent = (*specIter).second;
-
-        if (talent.state == PLAYERSPELL_REMOVED)
-        {
-            ++specIter;
-            continue;
-        }
-
-        PlayerTalentMap::iterator iterTempSpec = tempSpec.find(specIter->first);
-
-        // remove any talent rank if talent not listed in temp spec
-        if (iterTempSpec == tempSpec.end() || iterTempSpec->second.state == PLAYERSPELL_REMOVED)
-        {
-            for(int r = 0; r < MAX_TALENT_RANK; ++r)
-                if (talent.m_talentEntry->RankID[r])
-                    removeSpell(talent.m_talentEntry->RankID[r],!IsPassiveSpell(talent.m_talentEntry->RankID[r]),false);
-
-            specIter = m_talents[m_activeSpec].begin();
-        }
-        else
-            ++specIter;
-    }   
-
-    // now new spec data have only talents (maybe different rank) as in temp spec data, sync ranks then.
-    for (PlayerTalentMap::const_iterator tempIter = tempSpec.begin(); tempIter != tempSpec.end(); ++tempIter)
-    {
-        PlayerTalent const& talent = (*tempIter).second;
-
-        // removed state talent already unlearned in prev. loop
-        // but we need restore it if it deleted for finish removed-marked data in DB
-        if (talent.state == PLAYERSPELL_REMOVED)
-        {
-            m_talents[m_activeSpec][tempIter->first] = talent;
-            continue;
-        }
-
-        // learn talent spells if they not in new spec (old spec copy)
-        // and if they have different rank
-        PlayerTalentMap::iterator specIter = m_talents[m_activeSpec].find(tempIter->first);
-        if (specIter != m_talents[m_activeSpec].end() && specIter->second.state != PLAYERSPELL_REMOVED)
-        {
-            if ((*specIter).second.currentRank != talent.currentRank)
-                learnSpell(talent.m_talentEntry->RankID[talent.currentRank], false);
-        }
-        else
-            learnSpell(talent.m_talentEntry->RankID[talent.currentRank], false);
-
-        // sync states - original state is changed in addSpell that learnSpell calls
-        specIter = m_talents[m_activeSpec].find(tempIter->first);
-        (*specIter).second.state = talent.state;
-    }
-
-    InitTalentForLevel();
-
-    // recheck action buttons (not checked at loading/spec copy)
-    ActionButtonList const& currentActionButtonList = m_actionButtons[m_activeSpec];
-    for(ActionButtonList::const_iterator itr = currentActionButtonList.begin(); itr != currentActionButtonList.end(); ++itr)
-        if (itr->second.uState != ACTIONBUTTON_DELETED)
-            // remove broken without any output (it can be not correct because talents not copied at spec creating)
-            if (!IsActionButtonDataValid(itr->first,itr->second.GetAction(),itr->second.GetType(), this, false))
-                removeActionButton(m_activeSpec,itr->first);
-
-    ResummonPetTemporaryUnSummonedIfAny();
-
-    ApplyGlyphs(true);
-
-    SendInitialActionButtons();
-
-    Powers pw = getPowerType();
-    if(pw != POWER_MANA)
-        SetPower(POWER_MANA, 0);
-
-    SetPower(pw, 0);
 }
 
 void Player::SetHomebindToLocation(WorldLocation const& loc, uint32 area_id)
