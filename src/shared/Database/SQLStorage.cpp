@@ -36,8 +36,8 @@ const char GameObjectInfodstfmt[]="iiissssiifiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii";
 const char ItemPrototypesrcfmt[]="iiiisiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiffiffiiiiiiiiiifiiifiiiiiifiiiiiifiiiiiifiiiiiifiiiisiiiiiiiiiiiiiiiiiiiiiiiiifiiisiiiii";
 const char ItemPrototypedstfmt[]="iiiisiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiffiffiiiiiiiiiifiiifiiiiiifiiiiiifiiiiiifiiiiiifiiiisiiiiiiiiiiiiiiiiiiiiiiiiifiiiiiiiii";
 const char PageTextfmt[]="isi";
-const char InstanceTemplatesrcfmt[]="iiiiffffs";
-const char InstanceTemplatedstfmt[]="iiiiffffi";
+const char InstanceTemplatesrcfmt[]="iiiis";
+const char InstanceTemplatedstfmt[]="iiiii";
 
 SQLStorage sCreatureStorage(CreatureInfosrcfmt, CreatureInfodstfmt, "entry","creature_template");
 SQLStorage sCreatureDataAddonStorage(CreatureDataAddonInfofmt,"guid","creature_addon");
@@ -55,6 +55,26 @@ const char PlayerDropTemplateFormat[]="iiiiifiiiiii";
 SQLStorage sCreatureExtendedStorage(CreatureExtendedFormat,"entry","creature_extended");
 SQLStorage sPlayerDropStorage(CreatureExtendedFormat,"entry","creature_extended");
 
+void SQLStorage::EraseEntry(uint32 id)
+{
+    uint32 offset=0;
+    for(uint32 x=0;x<iNumFields;x++)
+        if (dst_format[x]==FT_STRING)
+        {
+            if(pIndex[id])
+                delete [] *(char**)((char*)(pIndex[id])+offset);
+
+            offset += sizeof(char*);
+        }
+        else if (dst_format[x]==FT_LOGIC)
+            offset += sizeof(bool);
+        else if (dst_format[x]==FT_BYTE)
+            offset += sizeof(char);
+        else
+            offset += 4;
+
+    reinterpret_cast<void*&>(pIndex[id]) = NULL;
+}
 
 void SQLStorage::Free ()
 {
