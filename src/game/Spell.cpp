@@ -2617,6 +2617,10 @@ void Spell::cast(bool skipCheck)
             // Ice Block
             if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x0000008000000000))
                 AddPrecastSpell(41425);                     // Hypothermia
+
+            // Mirror Image (glyph)
+            if (m_spellInfo->Id == 55342 && m_caster->HasAura(63093))
+                AddPrecastSpell(65047);                     // Mirror Image (summon 4th image)
             break;
         }
         case SPELLFAMILY_WARRIOR:
