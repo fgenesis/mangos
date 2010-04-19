@@ -312,7 +312,7 @@ pAuraHandler AuraHandler[TOTAL_AURAS]=
     &Aura::HandleNULL,                                      //259 corrupt healing over time spell
     &Aura::HandleNoImmediateEffect,                         //260 SPELL_AURA_SCREEN_EFFECT (miscvalue = id in ScreenEffect.dbc) not required any code
     &Aura::HandlePhase,                                     //261 SPELL_AURA_PHASE undetectable invisibility?     implemented in Unit::isVisibleForOrDetect
-    &Aura::HandleNoImmediateEffect,                         //262 ignore combat/aura state?
+    &Aura::HandleIgnoreUnitState,                           //262 SPELL_AURA_IGNORE_UNIT_STATE Allows some abilities which are avaible only in some cases.... implemented in Unit::isIgnoreUnitState & Spell::CheckCast
     &Aura::HandleAllowOnlyAbility,                          //263 SPELL_AURA_ALLOW_ONLY_ABILITY player can use only abilities set in SpellClassMask
     &Aura::HandleUnused,                                    //264 unused (3.0.8a-3.2.2a)
     &Aura::HandleUnused,                                    //265 unused (3.0.8a-3.2.2a)
@@ -8749,6 +8749,45 @@ void Aura::HandlePhase(bool apply, bool Real)
         m_target->SetVisibility(m_target->GetVisibility());
 }
 
+void Aura::HandleIgnoreUnitState(bool apply, bool Real)
+{
+    if(m_target->GetTypeId() != TYPEID_PLAYER || !Real)
+        return;
+
+    if(Unit* caster = GetCaster())
+    {
+        if (apply)
+        {
+            switch(GetId())
+            {
+                // Fingers of Frost
+                case 44544:
+                    SetAuraCharges(3); // 3 because first is droped on proc
+                    break;
+                // Juggernaut & Warbringer both need special slot and flag
+                // for alowing charge in combat and Warbringer
+                // for alowing charge in different stances, too
+                case 64976:
+                case 57499:
+                    SetAuraSlot(255);
+                    SetAuraFlags(19);
+                    SendAuraUpdate(false);
+                    break;
+            }
+        }
+        else
+        {
+            switch(GetId())
+            {
+                case 64976:
+                case 57499:
+                    SendAuraUpdate(true);
+                    break;
+            }
+        }
+    }
+}
+
 void Aura::UnregisterSingleCastAura()
 {
     if (IsSingleTarget())
@@ -8789,49 +8828,6 @@ bool Aura::IsCritFromAbilityAura(Unit* caster, uint32& damage)
         return true;
     }
     return false;
-}
-
-void Aura::HandleAuraAddCreatureImmunity(bool Apply, bool Real)
-{
-    if (!Real)
-        return;
-    std::list <AuraType> immunity_list;
-    if (GetMiscValue() & (1<<10))
-        immunity_list.push_back(SPELL_AURA_MOD_STUN);
-    if (GetMiscValue() & (1<<7))
-        immunity_list.push_back(SPELL_AURA_MOD_DISARM);
-    if (GetMiscValue() & (1<<1))
-        immunity_list.push_back(SPELL_AURA_MOD_TAUNT);
-
-    // These flag can be recognized wrong:
-    if (GetMiscValue() & (1<<6))
-        immunity_list.push_back(SPELL_AURA_MOD_DECREASE_SPEED);
-    if (GetMiscValue() & (1<<0))
-        immunity_list.push_back(SPELL_AURA_MOD_ROOT);
-    if (GetMiscValue() & (1<<2))
-        immunity_list.push_back(SPELL_AURA_MOD_CONFUSE);
-    if (GetMiscValue() & (1<<9))
-        immunity_list.push_back(SPELL_AURA_MOD_FEAR);
-
-    // Patch 3.0.3 Bladestorm now breaks all snares and roots on the warrior when activated.
-    // however not all mechanic specified in immunity
-    if (Apply && GetId() == 46924)
-    {
-        m_target->RemoveSpellsCausingAura(SPELL_AURA_MOD_ROOT);
-        m_target->RemoveSpellsCausingAura(SPELL_AURA_MOD_DECREASE_SPEED);
-    }
-
-    if(Apply && GetSpellProto()->AttributesEx & SPELL_ATTR_EX_DISPEL_AURAS_ON_IMMUNITY)
-    {
-        for (std::list <AuraType>::iterator iter = immunity_list.begin(); iter != immunity_list.end();++iter)
-        {
-            m_target->RemoveSpellsCausingAura(*iter);
-        }
-    }
-    for (std::list <AuraType>::iterator iter = immunity_list.begin(); iter != immunity_list.end();++iter)
-    {
-        m_target->ApplySpellImmune(GetId(),IMMUNITY_STATE,*iter,Apply);
-    }
 }
 
 void Aura::HandleModTargetArmorPct(bool /*apply*/, bool /*Real*/)
