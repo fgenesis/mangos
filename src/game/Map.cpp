@@ -1078,6 +1078,8 @@ bool Map::UnloadGrid(const uint32 &x, const uint32 &y, bool pForce)
 
     // delete grid map, but don't delete if it is from parent map (and thus only reference)
     //+++if (GridMaps[gx][gy]) don't check for GridMaps[gx][gy], we might have to unload vmaps
+    // FG: prevent passing wrong numbers that may cause crash (i guess this is not necessary, but who knows...)
+    if(uint32(gx) < MAX_NUMBER_OF_GRIDS && uint32(gy) < MAX_NUMBER_OF_GRIDS)
     {
         if (i_InstanceId == 0)
         {
@@ -1088,7 +1090,7 @@ bool Map::UnloadGrid(const uint32 &x, const uint32 &y, bool pForce)
             }
             VMAP::VMapFactory::createOrGetVMapManager()->unloadMap(GetId(), gx, gy);
         }
-        else
+        else if(m_parentMap) // FG: added ptr check
             ((MapInstanced*)m_parentMap)->RemoveGridMapReference(GridPair(gx, gy));
 
         GridMaps[gx][gy] = NULL;
