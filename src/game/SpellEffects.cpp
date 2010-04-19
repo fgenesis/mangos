@@ -4926,7 +4926,7 @@ void Spell::EffectSummonPet(SpellEffectIndex eff_idx)
     // if pet requested type already exist
     if( OldSummon )
     {
-        if(petentry == 0 || OldSummon->GetEntry() == petentry)
+        if(OldSummon->getPetType() != SUMMON_PET && (petentry == 0 || OldSummon->GetEntry() == petentry))
         {
             // pet in corpse state can't be summoned
             if( OldSummon->isDead() )
@@ -6597,9 +6597,9 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
 
                     // check for "Master of Ghouls", id's stored in basepoints
                     if (p_caster->HasAura(52143))
-                        p_caster->CastSpell(m_caster,m_currentBasePoints[2]+1,true);
+                        p_caster->CastSpell(m_caster,52150,true);
                     else
-                        p_caster->CastSpell(m_caster,m_currentBasePoints[1]+1,true);
+                        p_caster->CastSpell(m_caster,46585,true);
 
                     break;
                 }
