@@ -22090,6 +22090,7 @@ void Player::ActivateSpec(uint8 specNum)
         return;
 
     UnsummonPetTemporaryIfAny();
+    RemoveAllEnchantments(TEMP_ENCHANTMENT_SLOT);
 
     ApplyGlyphs(false);
 
