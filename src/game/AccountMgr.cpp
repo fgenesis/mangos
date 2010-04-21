@@ -66,7 +66,7 @@ AccountOpResult AccountMgr::DeleteAccount(uint32 accid)
         return AOR_NAME_NOT_EXIST;                          // account doesn't exist
     delete result;
 
-    // existed chaarcters list
+    // existed characters list
     result = CharacterDatabase.PQuery("SELECT guid FROM characters WHERE account='%d'",accid);
     if (result)
     {
