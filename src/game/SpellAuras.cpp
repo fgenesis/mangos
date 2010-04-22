@@ -8810,7 +8810,7 @@ void Aura::UnregisterSingleCastAura()
         else
         {
             sLog.outError("Couldn't find the caster of the single target aura (SpellId %u), may crash later!", GetId());
-            ASSERT(false); // FG: disabled, may improve stability a little as reported on mangos forum
+            //ASSERT(false); // FG: disabled, may improve stability a little as reported on mangos forum
         }
         m_isSingleTargetAura = false;
     }
