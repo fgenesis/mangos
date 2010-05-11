@@ -2698,7 +2698,7 @@ void Player::InitStatsForLevel(bool reapplyMods)
         SetUInt32Value(index, 0);
 
     SetUInt32Value(PLAYER_FIELD_MOD_HEALING_DONE_POS,0);
-    for (int i = 0; i < 7; ++i)
+    for (int i = 0; i < MAX_SPELL_SCHOOL; ++i)
     {
         SetUInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_NEG+i, 0);
         SetUInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS+i, 0);
@@ -2730,7 +2730,7 @@ void Player::InitStatsForLevel(bool reapplyMods)
     SetFloatValue(PLAYER_RANGED_CRIT_PERCENTAGE,0.0f);
 
     // Init spell schools (will be recalculated in UpdateAllStats() at loading and in _ApplyAllStatBonuses() at reset
-    for (uint8 i = 0; i < 7; ++i)
+    for (uint8 i = 0; i < MAX_SPELL_SCHOOL; ++i)
         SetFloatValue(PLAYER_SPELL_CRIT_PERCENTAGE1+i, 0.0f);
 
     SetFloatValue(PLAYER_PARRY_PERCENTAGE, 0.0f);
@@ -2767,7 +2767,7 @@ void Player::InitStatsForLevel(bool reapplyMods)
 
     // save new stats
     for (int i = POWER_MANA; i < MAX_POWERS; ++i)
-        SetMaxPower(Powers(i),  uint32(GetCreatePowers(Powers(i))));
+        SetMaxPower(Powers(i),  GetCreatePowers(Powers(i)));
 
     SetMaxHealth(classInfo.basehealth);                     // stamina bonus will applied later
 
@@ -15072,7 +15072,6 @@ bool Player::LoadFromDB( uint32 guid, SqlQueryHolder *holder )
     SetUInt32Value(PLAYER_AMMO_ID, fields[62].GetUInt32());
     SetByteValue(PLAYER_FIELD_BYTES, 2, fields[64].GetUInt8());
 
-
     InitDisplayIds();
 
     // cleanup inventory related item value fields (its will be filled correctly in _LoadInventory)
@@ -15366,7 +15365,7 @@ bool Player::LoadFromDB( uint32 guid, SqlQueryHolder *holder )
     SetUInt32Value(PLAYER_TRACK_CREATURES, 0 );
     SetUInt32Value(PLAYER_TRACK_RESOURCES, 0 );
 
-    // cleanup aura list explicitly before skill load wher some spells can be applied
+    // cleanup aura list explicitly before skill load where some spells can be applied
     RemoveAllAuras();
 
     // make sure the unit is considered out of combat for proper loading
@@ -17599,59 +17598,41 @@ void Player::RemovePet(Pet* pet, PetSaveMode mode, bool returnreagent)
     if (returnreagent && pet && mode != PET_SAVE_AS_CURRENT)
     {
         //returning of reagents only for players, so best done here
-        uint32 spellId = pet ? pet->GetUInt32Value(UNIT_CREATED_BY_SPELL) : m_oldpetspell;      // this is nonsense, pet will always be != NULL here
+        uint32 spellId = pet ? pet->GetUInt32Value(UNIT_CREATED_BY_SPELL) : m_oldpetspell;
+        SpellEntry const *spellInfo = sSpellStore.LookupEntry(spellId);
 
-        if(SpellEntry const *spellInfo = sSpellStore.LookupEntry(spellId))
+        if(spellInfo)
         {
-            // returning of reagents
-            if (returnreagent)
+            for(uint32 i = 0; i < MAX_SPELL_REAGENTS; ++i)
             {
-                for(uint32 i = 0; i < 7; ++i)
+                if(spellInfo->Reagent[i] > 0)
                 {
-                    if(spellInfo->Reagent[i] > 0)
+                    ItemPosCountVec dest;                   //for succubus, voidwalker, felhunter and felguard credit soulshard when despawn reason other than death (out of range, logout)
+                    uint8 msg = CanStoreNewItem( NULL_BAG, NULL_SLOT, dest, spellInfo->Reagent[i], spellInfo->ReagentCount[i] );
+                    if( msg == EQUIP_ERR_OK )
                     {
-                        ItemPosCountVec dest;                   //for succubus, voidwalker, felhunter and felguard credit soulshard when despawn reason other than death (out of range, logout)
-                        uint8 msg = CanStoreNewItem( NULL_BAG, NULL_SLOT, dest, spellInfo->Reagent[i], spellInfo->ReagentCount[i] );
-                        if( msg == EQUIP_ERR_OK )
-                        {
-                            Item* item = StoreNewItem( dest, spellInfo->Reagent[i], true);
-                            if(IsInWorld())
-                                SendNewItem(item,spellInfo->ReagentCount[i],true,false);
-                        }
+                        Item* item = StoreNewItem( dest, spellInfo->Reagent[i], true);
+                        if(IsInWorld())
+                            SendNewItem(item,spellInfo->ReagentCount[i],true,false);
                     }
                 }
-            }
-            // cooldown, only if pet is not death already (corpse)
-            if (spellInfo->Attributes & SPELL_ATTR_DISABLED_WHILE_ACTIVE && pet->getDeathState() != CORPSE)
-            {
-                SendCooldownEvent(spellInfo);
-                // Raise Dead hack
-                if (spellInfo->SpellFamilyName == SPELLFAMILY_DEATHKNIGHT && spellInfo->SpellFamilyFlags & 0x1000)
-                    if (spellInfo = sSpellStore.LookupEntry(46584))
-                        SendCooldownEvent(spellInfo);
             }
         }
     }
 
-    if(pet == GetCharm())
-        SetCharm(NULL);
-
-    if(!pet || pet->GetOwnerGUID()!=GetGUID())
-        return;
-
     // only if current pet in slot
     switch(pet->getPetType())
     {
-        case MINI_PET:
-            m_miniPet = 0;
-            break;
-        case GUARDIAN_PET:
-            RemoveGuardian(pet);
-            break;
-        default:
-            if (GetPetGUID() == pet->GetGUID())
-                SetPet(NULL);
-            break;
+    case MINI_PET:
+        m_miniPet = 0;
+        break;
+    case GUARDIAN_PET:
+        RemoveGuardian(pet);
+        break;
+    default:
+        if (GetPetGUID() == pet->GetGUID())
+            SetPet(NULL);
+        break;
     }
 
     pet->CombatStop();
@@ -17669,6 +17650,7 @@ void Player::RemovePet(Pet* pet, PetSaveMode mode, bool returnreagent)
             SetGroupUpdateFlag(GROUP_UPDATE_PET);
     }
 }
+
 
 void Player::RemoveMiniPet()
 {
@@ -18933,7 +18915,7 @@ void Player::SendCooldownEvent(SpellEntry const *spellInfo, uint32 itemId, Spell
 
 void Player::UpdatePotionCooldown(Spell* spell)
 {
-    // no potion used i combat or still in combat
+    // no potion used in combat or still in combat
     if(!m_lastPotionId || isInCombat())
         return;
 

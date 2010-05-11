@@ -2496,6 +2496,7 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
                 case SPELL_EFFECT_ADD_FARSIGHT:
                 case SPELL_EFFECT_APPLY_GLYPH:
                 case SPELL_EFFECT_STUCK:
+                case SPELL_EFFECT_BREAK_PLAYER_TARGETING:
                 case SPELL_EFFECT_SUMMON_ALL_TOTEMS:
                 case SPELL_EFFECT_FEED_PET:
                 case SPELL_EFFECT_DESTROY_ALL_TOTEMS:
@@ -2864,6 +2865,9 @@ void Spell::cast(bool skipCheck)
             // Heroism
             else if (m_spellInfo->Id == 32182)
                 AddPrecastSpell(57723);                     // Exhaustion
+            // Spirit Walk
+            else if (m_spellInfo->Id == 58875)
+                AddPrecastSpell(58876);
             else if (m_spellInfo->Effect[EFFECT_INDEX_0]==SPELL_EFFECT_APPLY_AREA_AURA_RAID && m_spellInfo->SpellFamilyFlags & UI64LIT(0x0000000004000000))
                 // only for main totem spell cast
                 AddTriggeredSpell(30708);                   // Totem of Wrath
@@ -3416,16 +3420,14 @@ void Spell::SendCastResult(Player* caster, SpellEntry const* spellInfo, uint8 ca
                 data << uint32(37201);                      // Corpse Dust
             break;
         case SPELL_FAILED_TOTEMS:
-            if(spellInfo->Totem[0])
-                data << uint32(spellInfo->Totem[0]);
-            if(spellInfo->Totem[1])
-                data << uint32(spellInfo->Totem[1]);
+            for(int i = 0; i < MAX_SPELL_TOTEMS; ++i)
+                if(spellInfo->Totem[i])
+                    data << uint32(spellInfo->Totem[i]);
             break;
         case SPELL_FAILED_TOTEM_CATEGORY:
-            if(spellInfo->TotemCategory[0])
-                data << uint32(spellInfo->TotemCategory[0]);
-            if(spellInfo->TotemCategory[1])
-                data << uint32(spellInfo->TotemCategory[1]);
+            for(int i = 0; i < MAX_SPELL_TOTEM_CATEGORIES; ++i)
+                if(spellInfo->TotemCategory[i])
+                    data << uint32(spellInfo->TotemCategory[i]);
             break;
         case SPELL_FAILED_EQUIPPED_ITEM_CLASS:
             data << uint32(spellInfo->EquippedItemClass);
@@ -4113,7 +4115,7 @@ void Spell::TakeReagents()
     if (p_caster->CanNoReagentCast(m_spellInfo) )
         return;
 
-    for(uint32 x = 0; x < 8; ++x)
+    for(uint32 x = 0; x < MAX_SPELL_REAGENTS; ++x)
     {
         if(m_spellInfo->Reagent[x] <= 0)
             continue;
@@ -5870,7 +5872,7 @@ SpellCastResult Spell::CheckItems()
     {
         if (!p_caster->CanNoReagentCast(m_spellInfo))
         {
-            for(uint32 i = 0; i < 8; ++i)
+            for(uint32 i = 0; i < MAX_SPELL_REAGENTS; ++i)
             {
                 if(m_spellInfo->Reagent[i] <= 0)
                     continue;
@@ -5902,8 +5904,8 @@ SpellCastResult Spell::CheckItems()
         }
 
         // check totem-item requirements (items presence in inventory)
-        uint32 totems = 2;
-        for(int i = 0; i < 2 ; ++i)
+        uint32 totems = MAX_SPELL_TOTEMS;
+        for(int i = 0; i < MAX_SPELL_TOTEMS ; ++i)
         {
             if (m_spellInfo->Totem[i] != 0)
             {
@@ -5921,8 +5923,8 @@ SpellCastResult Spell::CheckItems()
             return SPELL_FAILED_TOTEMS;
 
         // Check items for TotemCategory  (items presence in inventory)
-        uint32 TotemCategory = 2;
-        for(int i= 0; i < 2; ++i)
+        uint32 TotemCategory = MAX_SPELL_TOTEM_CATEGORIES;
+        for(int i= 0; i < MAX_SPELL_TOTEM_CATEGORIES; ++i)
         {
             if (m_spellInfo->TotemCategory[i] != 0)
             {
