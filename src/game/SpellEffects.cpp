@@ -6087,13 +6087,13 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
                         unitTarget->CastSpell(unitTarget, 48024, true);
                         return;
                     case 225:
-                        if ((((Player*)unitTarget)->IsKnowHowFlyIn(((Player*)unitTarget)->GetMapId(), zone) && area != 4395 && ((Player*)unitTarget)->GetMapId() == 571) || ((Player*)unitTarget)->GetMapId() == 530)
+                        if ((((Player*)unitTarget)->IsKnowHowFlyIn(((Player*)unitTarget)->GetMapId(), zone, area) && area != 4395 && ((Player*)unitTarget)->GetMapId() == 571) || ((Player*)unitTarget)->GetMapId() == 530)
                             unitTarget->CastSpell(unitTarget, 51617, true);
                         else
                             unitTarget->CastSpell(unitTarget, 48024, true);
                         return;
                     case 300:
-                        if ((((Player*)unitTarget)->IsKnowHowFlyIn(((Player*)unitTarget)->GetMapId(), zone) && area != 4395 && ((Player*)unitTarget)->GetMapId() == 571) || ((Player*)unitTarget)->GetMapId() == 530)
+                        if ((((Player*)unitTarget)->IsKnowHowFlyIn(((Player*)unitTarget)->GetMapId(), zone, area) && area != 4395 && ((Player*)unitTarget)->GetMapId() == 571) || ((Player*)unitTarget)->GetMapId() == 530)
                             unitTarget->CastSpell(unitTarget, 48023, true);
                         else
                             unitTarget->CastSpell(unitTarget, 48024, true);
