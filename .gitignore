@@ -79,5 +79,3 @@ bin/*
 !dep/tbb/src/Makefile
 
 
-src/bindings/ScriptDev2/*
-
