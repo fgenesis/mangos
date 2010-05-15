@@ -490,8 +490,15 @@ void Spell::EffectSchoolDMG(SpellEffectIndex effect_idx)
                     // found Immolate or Shadowflame
                     if (aura)
                     {
-                        int32 damagetick = aura->GetModifier()->m_amount;
-                        damage += damagetick * 4;
+                        // get damage of dot aura
+                        int32 basepoints = aura->GetModifier()->m_amount;
+                        basepoints *= aura->GetAuraMaxDuration() / aura->GetModifier()->periodictime;
+
+                        // 60% of the dot aura damage is direct damage, value stored in basepoints of effect 1
+                        damage = basepoints * m_currentBasePoints[EFFECT_INDEX_1] / 100;
+                        // 40% of the dot aura damage is dot damage, value stored in basepoints of effect 2
+                        m_currentBasePoints[EFFECT_INDEX_1] = basepoints * m_currentBasePoints[EFFECT_INDEX_2] / (100 * GetSpellAuraMaxTicks(m_spellInfo));
+
                         //Remove auras in DoT part
                         break;
                     }
