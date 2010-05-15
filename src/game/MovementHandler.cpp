@@ -310,10 +310,11 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
         }
         // end movement anticheat
     }
-    else if (plMover && (plMover->m_anti_TransportGUID || plMover->m_transport))               // if we were on a transport, leave
+    else if (plMover && plMover->m_transport)               // if we were on a transport, leave
     {
         plMover->m_transport->RemovePassenger(plMover);
         plMover->m_transport = NULL;
+        plMover->m_anti_TransportGUID = 0;
         movementInfo.ClearTransportData();
     }
 
