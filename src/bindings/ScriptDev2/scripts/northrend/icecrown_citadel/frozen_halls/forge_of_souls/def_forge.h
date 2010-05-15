@@ -14,7 +14,7 @@ enum
     DATA_DEVOURER                 = 3,
 
     NPC_BRONJAHM                  = 36497,
-    NPC_DEVOURER                  = 33113
+    NPC_DEVOURER                  = 36502
 
 };
 
