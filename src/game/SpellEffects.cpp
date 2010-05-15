@@ -5879,7 +5879,7 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
 
                     return;
                 }
-                case 44462:                                 // Cast Quest Complete on Master
+                /*case 44462:                                 // Cast Quest Complete on Master
                 {
                     if (m_caster->GetTypeId() != TYPEID_UNIT)
                         return;
@@ -5911,7 +5911,7 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
                     }
 
                     return;
-                }
+                }*/
                 case 44876:                                 // Force Cast - Portal Effect: Sunwell Isle
                 {
                     if (!unitTarget)
