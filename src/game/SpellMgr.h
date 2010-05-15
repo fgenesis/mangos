@@ -32,8 +32,6 @@
 
 #include <map>
 
-#include "Unit.h"
-
 class Player;
 class Spell;
 struct SpellModifier;
