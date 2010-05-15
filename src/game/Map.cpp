@@ -2464,6 +2464,8 @@ bool InstanceMap::Add(Player *player)
                             else
                                 sLog.outError("GroupBind save NULL");
                             //ASSERT(false);
+                            // FG: send home instead..
+                            player->TeleportToHomebind();
                         }
                         // if the group/leader is permanently bound to the instance
                         // players also become permanently bound when they enter
