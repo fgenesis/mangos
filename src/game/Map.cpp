@@ -2370,7 +2370,10 @@ bool InstanceMap::CanEnter(Player *player)
     if(player->GetMapRef().getTarget() == this)
     {
         sLog.outError("InstanceMap::CanEnter - player %s(%u) already in map %d,%d,%d!", player->GetName(), player->GetGUIDLow(), GetId(), GetInstanceId(), GetSpawnMode());
-        ASSERT(false);
+        //ASSERT(false);
+        // FG: handle this in a better way.. maybe.
+        player->SendTransferAborted(GetId(), TRANSFER_ABORT_ERROR);
+        player->TeleportToHomebind();
         return false;
     }
 
