@@ -447,7 +447,7 @@ m_isRemovedOnShapeLost(true), m_in_use(0), m_deleted(false)
 
     m_duration = m_maxduration;
 
-    DEBUG_LOG("Aura: construct Spellid : %u, Aura : %u Duration : %d Target : %d Damage : %d", m_spellProto->Id, m_spellProto->EffectApplyAuraName[eff], m_maxduration, m_spellProto->EffectImplicitTargetA[eff],damage);
+    DEBUG_FILTER_LOG(LOG_FILTER_SPELL_CAST, "Aura: construct Spellid : %u, Aura : %u Duration : %d Target : %d Damage : %d", m_spellProto->Id, m_spellProto->EffectApplyAuraName[eff], m_maxduration, m_spellProto->EffectImplicitTargetA[eff],damage);
 
     SetModifier(AuraType(m_spellProto->EffectApplyAuraName[eff]), damage, m_spellProto->EffectAmplitude[eff], m_spellProto->EffectMiscValue[eff]);
 
@@ -2603,6 +2603,16 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                 }
                 return;
             }
+            case 51870:                                     // Collect Hair Sample
+            {
+                if (Unit* pCaster = GetCaster())
+                {
+                    if (m_removeMode == AURA_REMOVE_BY_DEFAULT)
+                        pCaster->CastSpell(m_target, 51872, true, NULL, this);
+                }
+
+                return;
+            }
             case 58600:                                     // Restricted Flight Area
             {
                 // Remove Flight Auras
@@ -3826,9 +3836,7 @@ void Aura::HandleChannelDeathItem(bool apply, bool Real)
 {
     if(Real && !apply)
     {
-        Unit* caster = GetCaster();
-        Unit* victim = GetTarget();
-        if(!caster || caster->GetTypeId() != TYPEID_PLAYER || !victim || m_removeMode != AURA_REMOVE_BY_DEATH)
+        if(m_removeMode != AURA_REMOVE_BY_DEATH)
             return;
         // Item amount
         if (m_modifier.m_amount <= 0)
@@ -3838,22 +3846,23 @@ void Aura::HandleChannelDeathItem(bool apply, bool Real)
         if(spellInfo->EffectItemType[m_effIndex] == 0)
             return;
 
-        //Adding items
-        uint32 noSpaceForCount = 0;
-        uint32 count = m_modifier.m_amount;
+        Unit* victim = GetTarget();
+        Unit* caster = GetCaster();
+        if (!caster || caster->GetTypeId() != TYPEID_PLAYER)
+            return;
 
-        // Soul Shard
+        // Soul Shard (target req.)
         if (spellInfo->EffectItemType[m_effIndex] == 6265)
         {
             // Only from non-grey units
-            if((victim->getLevel() <= MaNGOS::XP::GetGrayLevel(caster->getLevel()) ||
-                victim->GetTypeId()==TYPEID_UNIT && !((Player*)caster)->isAllowedToLoot((Creature*)victim)) )
+            if (!((Player*)caster)->isHonorOrXPTarget(victim) ||
+                victim->GetTypeId() == TYPEID_UNIT && !((Player*)caster)->isAllowedToLoot((Creature*)victim))
                 return;
-
-            // Glyph of Drain Soul
-            if (roll_chance_i(5))
-                count += 1;
         }
+
+        //Adding items
+        uint32 noSpaceForCount = 0;
+        uint32 count = m_modifier.m_amount;
 
         ItemPosCountVec dest;
         uint8 msg = ((Player*)caster)->CanStoreNewItem( NULL_BAG, NULL_SLOT, dest, spellInfo->EffectItemType[m_effIndex], count, &noSpaceForCount);
@@ -3866,9 +3875,18 @@ void Aura::HandleChannelDeathItem(bool apply, bool Real)
         }
 
         Item* newitem = ((Player*)caster)->StoreNewItem(dest, spellInfo->EffectItemType[m_effIndex], true);
-        ((Player*)caster)->SendNewItem(newitem, count, true, false);
+        ((Player*)caster)->SendNewItem(newitem, count, true, true);
+
+        // Soul Shard (glyph bonus)
+        if (spellInfo->EffectItemType[m_effIndex] == 6265)
+        {
+            // Glyph of Soul Shard
+            if (caster->HasAura(58070) && roll_chance_i(40))
+                caster->CastSpell(caster, 58068, true, NULL, this);
+        }
     }
 }
+
 
 void Aura::HandleBindSight(bool apply, bool /*Real*/)
 {
@@ -6215,7 +6233,7 @@ void Aura::HandleModDamageDone(bool apply, bool Real)
 
 void Aura::HandleModDamagePercentDone(bool apply, bool Real)
 {
-    DEBUG_LOG("AURA MOD DAMAGE type:%u negative:%u", m_modifier.m_miscvalue, m_positive ? 0 : 1);
+    DEBUG_FILTER_LOG(LOG_FILTER_SPELL_CAST, "AURA MOD DAMAGE type:%u negative:%u", m_modifier.m_miscvalue, m_positive ? 0 : 1);
 
     // apply item specific bonuses for already equipped weapon
     if(Real && m_target->GetTypeId() == TYPEID_PLAYER)
@@ -6278,7 +6296,7 @@ void Aura::HandleModOffhandDamagePercent(bool apply, bool Real)
     if(!Real)
         return;
 
-    DEBUG_LOG("AURA MOD OFFHAND DAMAGE");
+    DEBUG_FILTER_LOG(LOG_FILTER_SPELL_CAST, "AURA MOD OFFHAND DAMAGE");
 
     m_target->HandleStatModifier(UNIT_MOD_DAMAGE_OFFHAND, TOTAL_PCT, float(m_modifier.m_amount), apply);
 }
@@ -6817,16 +6835,8 @@ void Aura::HandleSpellSpecificBoosts(bool apply)
             break;
         case SPELLFAMILY_HUNTER:
         {
-            // The Beast Within and Bestial Wrath - immunity
-            if (GetId() == 19574 || GetId() == 34471)
-            {
-                spellId1 = 24395;
-                spellId2 = 24396;
-                spellId3 = 24397;
-                spellId4 = 26592;
-            }
             // Freezing Trap Effect
-            else if (m_spellProto->SpellFamilyFlags & UI64LIT(0x0000000000000008))
+            if (m_spellProto->SpellFamilyFlags & UI64LIT(0x0000000000000008))
             {
                 if(!apply)
                 {
@@ -7655,7 +7665,7 @@ void Aura::PeriodicTick()
 
             // only from players
             // FIXME: need use SpellDamageBonus instead?
-            if (IS_PLAYER_GUID(m_caster_guid))
+            if (pCaster->GetTypeId() == TYPEID_PLAYER)
                 pdamage -= m_target->GetSpellDamageReduction(pdamage);
 
             m_target->CalculateAbsorbAndResist(pCaster, GetSpellSchoolMask(GetSpellProto()), DOT, pdamage, &absorb, &resist, !(GetSpellProto()->AttributesEx2 & SPELL_ATTR_EX2_CANT_REFLECTED));
@@ -7679,6 +7689,19 @@ void Aura::PeriodicTick()
             pCaster->ProcDamageAndSpell(m_target, procAttacker, procVictim, PROC_EX_NORMAL_HIT, pdamage, BASE_ATTACK, GetSpellProto());
 
             pCaster->DealDamage(m_target, pdamage, &cleanDamage, DOT, GetSpellSchoolMask(GetSpellProto()), GetSpellProto(), true);
+
+            // Drain Soul (chance soul shard)
+            if (pCaster->GetTypeId() == TYPEID_PLAYER && m_spellProto->SpellFamilyName == SPELLFAMILY_WARLOCK && m_spellProto->SpellFamilyFlags & UI64LIT(0x0000000000004000))
+            {
+                // Only from non-grey units
+                if (roll_chance_i(10) &&                    // 1-2 from drain with final and without glyph, 0-1 from damage
+                    m_target->getLevel() > MaNGOS::XP::GetGrayLevel(pCaster->getLevel()) &&
+                    (m_target->GetTypeId() != TYPEID_UNIT || ((Player*)pCaster)->isAllowedToLoot((Creature*)m_target)))
+                {
+                    pCaster->CastSpell(pCaster, 43836, true, NULL, this);
+                }
+            }
+
             break;
         }
         case SPELL_AURA_PERIODIC_LEECH:
@@ -7752,6 +7775,8 @@ void Aura::PeriodicTick()
 
             DETAIL_FILTER_LOG(LOG_FILTER_PERIODIC_AFFECTS, "PeriodicTick: %u (TypeId: %u) health leech of %u (TypeId: %u) for %u dmg inflicted by %u abs is %u",
                 GUID_LOPART(GetCasterGUID()), GuidHigh2TypeId(GUID_HIPART(GetCasterGUID())), m_target->GetGUIDLow(), m_target->GetTypeId(), pdamage, GetId(),absorb);
+
+            pCaster->DealDamageMods(m_target, pdamage, &absorb);
 
             pCaster->SendSpellNonMeleeDamageLog(m_target, GetId(), pdamage, GetSpellSchoolMask(GetSpellProto()), absorb, resist, false, 0, isCrit);
 

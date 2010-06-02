@@ -885,9 +885,9 @@ class ObjectMgr
 
             return &iter->second;
         }
-        void AddVendorItem(uint32 entry,uint32 item, uint32 maxcount, uint32 incrtime, uint32 ExtendedCost);
+        void AddVendorItem(uint32 entry,uint32 item, uint32 maxcount, uint32 incrtime, int32 ExtendedCost);
         bool RemoveVendorItem(uint32 entry,uint32 item);
-        bool IsVendorItemValid( uint32 vendor_entry, uint32 item, uint32 maxcount, uint32 ptime, uint32 ExtendedCost, Player* pl = NULL, std::set<uint32>* skip_vendors = NULL ) const;
+        bool IsVendorItemValid( uint32 vendor_entry, uint32 item, uint32 maxcount, uint32 ptime, int32 ExtendedCost, Player* pl = NULL, std::set<uint32>* skip_vendors = NULL ) const;
 
 
         // FG: custom decls
@@ -994,7 +994,7 @@ class ObjectMgr
 
     private:
         void LoadScripts(ScriptMapMap& scripts, char const* tablename);
-        void CheckScripts(ScriptMapMap const& scripts,std::set<int32>& ids);
+        void CheckScriptTexts(ScriptMapMap const& scripts,std::set<int32>& ids);
         void LoadCreatureAddons(SQLStorage& creatureaddons, char const* entryName, char const* comment);
         void ConvertCreatureAddonAuras(CreatureDataAddon* addon, char const* table, char const* guidEntryStr);
         void LoadQuestRelationsHelper(QuestRelations& map,char const* table);
