@@ -456,6 +456,9 @@
     <ClCompile Include="..\scripts\eastern_kingdoms\blackrock_spire\boss_warmaster_voone.cpp">
       <Filter>scripts\eastern_kingdoms\blackrock_spire</Filter>
     </ClCompile>
+    <ClCompile Include="..\scripts\eastern_kingdoms\blackrock_spire\instance_blackrock_spire.cpp">
+      <Filter>scripts\eastern_kingdoms\blackrock_spire</Filter>
+    </ClCompile>
     <ClCompile Include="..\scripts\eastern_kingdoms\blackwing_lair\boss_broodlord_lashlayer.cpp">
       <Filter>scripts\eastern_kingdoms\blackwing_lair</Filter>
     </ClCompile>
@@ -1003,6 +1006,9 @@
       <Filter>scripts\kalimdor\temple_of_ahnqiraj</Filter>
     </ClCompile>
     <ClCompile Include="..\scripts\kalimdor\wailing_caverns\instance_wailing_caverns.cpp">
+      <Filter>scripts\kalimdor\wailing_caverns</Filter>
+    </ClCompile>
+    <ClCompile Include="..\scripts\kalimdor\wailing_caverns\wailing_caverns.h">
       <Filter>scripts\kalimdor\wailing_caverns</Filter>
     </ClCompile>
     <ClCompile Include="..\scripts\kalimdor\zulfarrak\zulfarrak.cpp">
@@ -1603,6 +1609,9 @@
       <Filter>base</Filter>
     </ClInclude>
     <ClInclude Include="..\scripts\eastern_kingdoms\blackrock_depths\blackrock_depths.h">
+      <Filter>scripts\eastern_kingdoms\blackrock_depths</Filter>
+    </ClInclude>
+    <ClInclude Include="..\scripts\eastern_kingdoms\blackrock_spire\blackrock_spire.h">
       <Filter>scripts\eastern_kingdoms\blackrock_depths</Filter>
     </ClInclude>
     <ClInclude Include="..\scripts\eastern_kingdoms\deadmines\deadmines.h">

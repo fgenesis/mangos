@@ -263,6 +263,7 @@
     <ClCompile Include="..\scripts\eastern_kingdoms\blackrock_spire\boss_shadow_hunter_voshgajin.cpp" />
     <ClCompile Include="..\scripts\eastern_kingdoms\blackrock_spire\boss_the_beast.cpp" />
     <ClCompile Include="..\scripts\eastern_kingdoms\blackrock_spire\boss_warmaster_voone.cpp" />
+    <ClCompile Include="..\scripts\eastern_kingdoms\blackrock_spire\instance_blackrock_spire.cpp" />
     <ClCompile Include="..\scripts\eastern_kingdoms\blackwing_lair\boss_broodlord_lashlayer.cpp" />
     <ClCompile Include="..\scripts\eastern_kingdoms\blackwing_lair\boss_chromaggus.cpp" />
     <ClCompile Include="..\scripts\eastern_kingdoms\blackwing_lair\boss_ebonroc.cpp" />
@@ -653,6 +654,7 @@
     <ClInclude Include="..\base\guard_ai.h" />
     <ClInclude Include="..\base\simple_ai.h" />
     <ClInclude Include="..\scripts\eastern_kingdoms\blackrock_depths\blackrock_depths.h" />
+    <ClInclude Include="..\scripts\eastern_kingdoms\blackrock_spire\blackrock_spire.h" />
     <ClInclude Include="..\scripts\eastern_kingdoms\deadmines\deadmines.h" />
     <ClInclude Include="..\scripts\eastern_kingdoms\karazhan\karazhan.h" />
     <ClInclude Include="..\scripts\eastern_kingdoms\magisters_terrace\magisters_terrace.h" />
@@ -675,6 +677,7 @@
     <ClInclude Include="..\scripts\kalimdor\razorfen_kraul\razorfen_kraul.h" />
     <ClInclude Include="..\scripts\kalimdor\ruins_of_ahnqiraj\ruins_of_ahnqiraj.h" />
     <ClInclude Include="..\scripts\kalimdor\temple_of_ahnqiraj\temple_of_ahnqiraj.h" />
+    <ClInclude Include="..\scripts\kalimdor\wailing_caverns\wailing_caverns.h" />
     <ClInclude Include="..\scripts\northrend\azjol-nerub\ahnkahet\ahnkahet.h" />
     <ClInclude Include="..\scripts\northrend\azjol-nerub\azjol-nerub\azjol-nerub.h" />
     <ClInclude Include="..\scripts\northrend\crusaders_coliseum\trial_of_the_crusader\trial_of_the_crusader.h" />
