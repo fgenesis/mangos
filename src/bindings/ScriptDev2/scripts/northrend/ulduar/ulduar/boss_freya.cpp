@@ -33,7 +33,8 @@ struct MANGOS_DLL_DECL boss_freyaAI : public ScriptedAI
         bp = 8;
         if(!pCreature->HasAura(SP_ATTUNED_TO_NATURE, EFFECT_INDEX_0))
             pCreature->AddAura(new AttunedToNatureAura(sp, EFFECT_INDEX_0, &bp, pCreature, pCreature));
-        pCreature->GetAura(SP_ATTUNED_TO_NATURE, EFFECT_INDEX_0)->SetStackAmount(150);
+        if(Aura *aur = pCreature->GetAura(SP_ATTUNED_TO_NATURE, EFFECT_INDEX_0))
+            aur->SetStackAmount(150);
         Reset();
     }
 
