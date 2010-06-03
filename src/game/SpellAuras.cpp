@@ -5391,11 +5391,10 @@ void Aura::HandlePeriodicDamage(bool apply, bool Real)
             }
             case SPELLFAMILY_DEATHKNIGHT:
             {
-                // Frost Fever and Blood Plague damage calculation
-                if(GetSpellProto()->SpellFamilyFlags2 & 0x2)
+                //Frost Fever and Blood Plague AP scale
+                if (m_spellProto->SpellFamilyFlags & UI64LIT(0x400080000000000))
                 {
-                    m_modifier.m_amount += int32(caster->GetTotalAttackPowerValue(BASE_ATTACK) * 0.08525 /* orginally* 0.055 * 1.55*/);
-                    return;
+                    m_modifier.m_amount += int32(caster->GetTotalAttackPowerValue(BASE_ATTACK) * 0.055f * 1.15f);
                 }
                 break;
             }
@@ -6821,6 +6820,15 @@ void Aura::HandleSpellSpecificBoosts(bool apply)
             }
             break;
         }
+        case SPELLFAMILY_DRUID:
+        {
+            // Barkskin
+            if (GetId()==22812 && m_target->HasAura(63057)) // Glyph of Barkskin
+                spellId1 = 63058;                           // Glyph - Barkskin 01
+            else
+                return;
+            break;
+        }
         case SPELLFAMILY_ROGUE:
             // Sprint (skip non player casted spells by category)
             if (GetSpellProto()->SpellFamilyFlags & UI64LIT(0x0000000000000040) && GetSpellProto()->Category == 44)
@@ -7695,7 +7703,7 @@ void Aura::PeriodicTick()
             {
                 // Only from non-grey units
                 if (roll_chance_i(10) &&                    // 1-2 from drain with final and without glyph, 0-1 from damage
-                    m_target->getLevel() > MaNGOS::XP::GetGrayLevel(pCaster->getLevel()) &&
+                    ((Player*)pCaster)->isHonorOrXPTarget(m_target) &&
                     (m_target->GetTypeId() != TYPEID_UNIT || ((Player*)pCaster)->isAllowedToLoot((Creature*)m_target)))
                 {
                     pCaster->CastSpell(pCaster, 43836, true, NULL, this);
@@ -8067,7 +8075,7 @@ void Aura::PeriodicTick()
 
             SpellEntry const* spellProto = GetSpellProto();
             // maybe has to be sent different to client, but not by SMSG_PERIODICAURALOG
-            SpellNonMeleeDamage damageInfo(pCaster, m_target, spellProto->Id, spellProto->SchoolMask);
+            SpellNonMeleeDamage damageInfo(pCaster, m_target, spellProto->Id, SpellSchoolMask(spellProto->SchoolMask));
             pCaster->CalculateSpellDamage(&damageInfo, gain, spellProto);
 
             damageInfo.target->CalculateAbsorbResistBlock(pCaster, &damageInfo, spellProto);
