@@ -285,7 +285,7 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
         }
 
         // if we boarded a transport, add us to it
-        if (plMover && plMover->m_anti_TransportGUID == 0 && movementInfo.GetTransportGuid().GetRawValue() && !plMover->m_transport)
+        if (plMover && movementInfo.GetTransportGuid().GetRawValue() && !plMover->m_transport)
         {
             // elevators also cause the client to send MOVEFLAG_ONTRANSPORT - just unmount if the guid can be found in the transport list
             for (MapManager::TransportSet::const_iterator iter = sMapMgr.m_Transports.begin(); iter != sMapMgr.m_Transports.end(); ++iter)
@@ -298,23 +298,11 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
                 }
             }
         }
-        //movement anticheat;
-        if(movementInfo.GetTransportGuid().GetRawValue())
-        {
-            //Correct finding GO guid in DB (thanks to GriffonHeart)
-            GameObject *obj = plMover ? plMover->GetMap()->GetGameObject(movementInfo.GetTransportGuid()) : NULL;
-            if(obj)
-                plMover->m_anti_TransportGUID = obj->GetDBTableGUIDLow();
-            else
-                plMover->m_anti_TransportGUID = GUID_LOPART(movementInfo.GetTransportGuid().GetRawValue());
-        }
-        // end movement anticheat
     }
     else if (plMover && plMover->m_transport)               // if we were on a transport, leave
     {
         plMover->m_transport->RemovePassenger(plMover);
         plMover->m_transport = NULL;
-        plMover->m_anti_TransportGUID = 0;
         movementInfo.ClearTransportData();
     }
 
@@ -720,7 +708,7 @@ uint32 WorldSession::ACH_CheckMoveInfo(uint32 opcode, MovementInfo* movementInfo
 
 
     uint32 curDest = plMover->m_taxi.GetTaxiDestination(); //check taxi flight
-    if ((plMover->m_anti_TransportGUID == 0) && !curDest)
+    if ((plMover->GetTransport() == NULL) && !curDest)
     {
         UnitMoveType move_type;
 
@@ -898,75 +886,6 @@ uint32 WorldSession::ACH_CheckMoveInfo(uint32 opcode, MovementInfo* movementInfo
             if (plMover->m_anti_TeleToPlane_Count != 0)
                 plMover->m_anti_TeleToPlane_Count = 0;
         }
-    }
-    else if (movementInfo.moveFlags & MOVEFLAG_ONTRANSPORT)
-    {
-        //antiwrap checks
-        if (plMover->m_transport)
-        {
-            float trans_rad = movementInfo.GetTransportPos()->x * movementInfo.GetTransportPos()->x
-                + movementInfo.GetTransportPos()->y * movementInfo.GetTransportPos()->y
-                + movementInfo.GetTransportPos()->z * movementInfo.GetTransportPos()->z;
-            if (trans_rad > 3600.0f)
-            {
-                //check_passed = false;
-
-                sLog.outError("MA-%s, leave transport.", plMover->GetName());
-            }
-        }
-        else
-        {
-            if (GameObjectData const* go_data = sObjectMgr.GetGOData(plMover->m_anti_TransportGUID))
-            {
-                float delta_gox = go_data->posX - movementInfo.GetPos()->x;
-                float delta_goy = go_data->posY - movementInfo.GetPos()->y;
-                float delta_goz = go_data->posZ - movementInfo.GetPos()->z;
-                int mapid = go_data->mapid;
-
-                sLog.outDebug("MA-%s, transport movement. GO xyzo: %f,%f,%f",
-                    plMover->GetName(), go_data->posX,go_data->posY,go_data->posZ);
-
-                if (plMover->GetMapId() != mapid)
-                {
-                    //check_passed = false;
-                }
-                else if (mapid !=369)
-                {
-                    float delta_go = delta_gox*delta_gox + delta_goy*delta_goy;
-                    if (delta_go > 3600.0f)
-                    {
-                        //check_passed = false;
-
-                        sLog.outError("MA-%s, leave transport. GO xyzo: %f,%f,%f",
-                            plMover->GetName(), go_data->posX,go_data->posY,go_data->posZ);
-
-                    }
-                }
-
-            }
-            else
-            {
-
-                sLog.outDebug("MA-%s, undefined transport.", plMover->GetName());
-
-                //check_passed = false;
-            }
-        }
-
-        /*if (!check_passed)
-        {
-            if (plMover->m_transport)
-            {
-                plMover->m_transport->RemovePassenger(plMover);
-                plMover->m_transport = NULL;
-            }
-            movementInfo.t_x = 0.0f;
-            movementInfo.t_y = 0.0f;
-            movementInfo.t_z = 0.0f;
-            movementInfo.t_o = 0.0f;
-            movementInfo.t_time = 0;
-            plMover->m_anti_TransportGUID = 0;
-        }*/
     }
     return alarm_level;
 }

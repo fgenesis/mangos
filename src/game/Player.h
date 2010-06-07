@@ -2339,8 +2339,6 @@ class MANGOS_DLL_SPEC Player : public Unit
         float  m_anti_Last_HSpeed;        //horizontal speed, default RUN speed
         float  m_anti_Last_VSpeed;        //vertical speed, default max jump height
 
-        uint64 m_anti_TransportGUID;      //current transport GUID
-
         uint32 m_anti_JustTeleported;     //seted when player was teleported
         uint32 m_anti_TeleToPlane_Count;  //Teleport To Plane alarm counter
 
