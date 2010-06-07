@@ -1543,7 +1543,7 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                     ((Creature*)unitTarget)->ForcedDespawn(5000);
                     return;
                 }
-                case 51866:                                 // Kick Nass
+                /*case 51866:                                 // Kick Nass
                 {
                     // It is possible that Nass Heartbeat (spell id 61438) is involved in this
                     // If so, unclear how it should work and using the below instead (even though it could be a bit hack-ish)
@@ -1584,7 +1584,7 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                     }
 
                     return;
-                }
+                }*/
                 case 51872:                                 // Hair Sample Collected
                 {
                     if (!unitTarget || unitTarget->GetTypeId() != TYPEID_UNIT)
