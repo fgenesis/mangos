@@ -519,8 +519,6 @@ Player::Player (WorldSession *session): Unit(), m_achievementMgr(this), m_reputa
     m_anti_Last_HSpeed =  7.0f;   //horizontal speed, default RUN speed
     m_anti_Last_VSpeed = -2.3f;   //vertical speed, default max jump height
 
-    m_anti_TransportGUID = 0;     //current transport GUID
-
     m_anti_JustTeleported = 0;    //seted when player was teleported
     m_anti_TeleToPlane_Count = 0; //Teleport To Plane alarm counter
 
@@ -12901,21 +12899,26 @@ void Player::OnGossipSelect(WorldObject* pSource, uint32 gossipListId, uint32 me
     uint64 guid = pSource->GetGUID();
     uint32 moneyTake = menu_item.m_gBoxMoney;
 
-    // if this function called and player have money for pay MoneyTake or cheating, proccess both cases
-    if (moneyTake > 0)
-    {
-        if (GetMoney() >= moneyTake)
-            ModifyMoney(-int32(moneyTake));
-        else
-            return;                                         // cheating
-    }
-
     if (pSource->GetTypeId() == TYPEID_GAMEOBJECT)
     {
         if (gossipOptionId > GOSSIP_OPTION_QUESTGIVER)
         {
             sLog.outError("Player guid %u request invalid gossip option for GameObject entry %u", GetGUIDLow(), pSource->GetEntry());
             return;
+        }
+    }
+
+    // FG: moved this down, for safety + some improvements
+    // if this function called and player have money for pay MoneyTake or cheating, proccess both cases
+    if (moneyTake > 0)
+    {
+        if (GetMoney() >= moneyTake)
+            ModifyMoney(-int32(moneyTake));
+        else
+        {
+            SendBuyError( BUY_ERR_NOT_ENOUGHT_MONEY, 0, 0, 0);
+            PlayerTalkClass->CloseGossip();
+            return;                                         // cheating
         }
     }
 
@@ -12965,15 +12968,16 @@ void Player::OnGossipSelect(WorldObject* pSource, uint32 gossipListId, uint32 me
         case GOSSIP_OPTION_LEARNDUALSPEC:
             if(GetSpecsCount() == 1 && !(getLevel() < sWorld.getConfig(CONFIG_UINT32_MIN_DUALSPEC_LEVEL)))
             {
-                if (GetMoney() < 10000000)
+                // FG: this is already checked above
+                /*if (GetMoney() < 10000000)
                 {
                     SendBuyError( BUY_ERR_NOT_ENOUGHT_MONEY, 0, 0, 0);
                     PlayerTalkClass->CloseGossip();
                     break;
                 }
-                else
+                else*/
                 {
-                    ModifyMoney(-10000000);
+                    //ModifyMoney(-10000000); // and this too...
 
                     // Cast spells that teach dual spec
                     // Both are also ImplicitTarget self and must be cast by player
