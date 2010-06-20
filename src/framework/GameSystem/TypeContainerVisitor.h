@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 
 /*
  * @class TypeContainerVisitor is implemented as a visitor pattern.  It is
- * a visitor to the TypeContainerList or TypeContainerMapList.  The visitor has
+ * a visitor to the TypeMapContainer or ContainerMapList.  The visitor has
  * to overload its types as a visit method is called.
  */
 
@@ -32,64 +32,35 @@
 template<class T, class Y> class TypeContainerVisitor;
 
 // visitor helper
-template<class VISITOR, class TYPE_CONTAINER> void VisitorHelper(VISITOR &v, TYPE_CONTAINER &c)
+template<class VISITOR, class TYPE_CONTAINER>
+void VisitorHelper(VISITOR &v, TYPE_CONTAINER &c)
 {
     v.Visit(c);
-};
-
-// terminate condition for container list
-template<class VISITOR> void VisitorHelper(VISITOR &v, ContainerList<TypeNull> &c)
-{
-}
-
-template<class VISITOR, class T> void VisitorHelper(VISITOR &v, ContainerList<T> &c)
-{
-    v.Visit(c._element);
-}
-
-// recursion for container list
-template<class VISITOR, class H, class T> void VisitorHelper(VISITOR &v, ContainerList<TypeList<H, T> > &c)
-{
-    VisitorHelper(v, c._elements);
-    VisitorHelper(v, c._TailElements);
 }
 
 // terminate condition container map list
-template<class VISITOR> void VisitorHelper(VISITOR &/*v*/, ContainerMapList<TypeNull> &/*c*/)
+template<class VISITOR>
+void VisitorHelper(VISITOR &/*v*/, ContainerMapList<TypeNull> &/*c*/)
 {
 }
 
-template<class VISITOR, class T> void VisitorHelper(VISITOR &v, ContainerMapList<T> &c)
+template<class VISITOR, class T>
+void VisitorHelper(VISITOR &v, ContainerMapList<T> &c)
 {
     v.Visit(c._element);
 }
 
 // recursion container map list
-template<class VISITOR, class H, class T> void VisitorHelper(VISITOR &v, ContainerMapList<TypeList<H, T> > &c)
-{
-    VisitorHelper(v, c._elements);
-    VisitorHelper(v, c._TailElements);
-}
-
-// array list
-template<class VISITOR, class T> void VisitorHelper(VISITOR &v, ContainerArrayList<T> &c)
-{
-    v.Visit(c._element);
-}
-
-template<class VISITOR> void VisitorHelper(VISITOR &/*v*/, ContainerArrayList<TypeNull> &/*c*/)
-{
-}
-
-// recursion
-template<class VISITOR, class H, class T> void VisitorHelper(VISITOR &v, ContainerArrayList<TypeList<H, T> > &c)
+template<class VISITOR, class H, class T>
+void VisitorHelper(VISITOR &v, ContainerMapList<TypeList<H, T> > &c)
 {
     VisitorHelper(v, c._elements);
     VisitorHelper(v, c._TailElements);
 }
 
 // for TypeMapContainer
-template<class VISITOR, class OBJECT_TYPES> void VisitorHelper(VISITOR &v, TypeMapContainer<OBJECT_TYPES> &c)
+template<class VISITOR, class OBJECT_TYPES>
+void VisitorHelper(VISITOR &v, TypeMapContainer<OBJECT_TYPES> &c)
 {
     VisitorHelper(v, c.GetElements());
 }
@@ -98,7 +69,11 @@ template<class VISITOR, class TYPE_CONTAINER>
 class MANGOS_DLL_DECL TypeContainerVisitor
 {
     public:
-        TypeContainerVisitor(VISITOR &v) : i_visitor(v) {}
+
+        TypeContainerVisitor(VISITOR &v)
+            : i_visitor(v)
+        {
+        }
 
         void Visit(TYPE_CONTAINER &c)
         {
@@ -111,6 +86,8 @@ class MANGOS_DLL_DECL TypeContainerVisitor
         }
 
     private:
+
         VISITOR &i_visitor;
 };
+
 #endif

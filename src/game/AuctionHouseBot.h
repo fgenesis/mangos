@@ -1,24 +1,31 @@
 #ifndef AUCTION_HOUSE_BOT_H
 #define AUCTION_HOUSE_BOT_H
-#include "Common.h"
-#include "Log.h"
+
+#include "World.h"
 #include "Config/ConfigEnv.h"
+#include "ace/Vector_T.h"
+
 #define AHB_GREY        0
 #define AHB_WHITE       1
 #define AHB_GREEN       2
 #define AHB_BLUE        3
 #define AHB_PURPLE      4
+#define AHB_ORANGE      5
+#define AHB_YELLOW      6
 #define AHB_GREY_TG     0
 #define AHB_WHITE_TG    1
 #define AHB_GREEN_TG    2
 #define AHB_BLUE_TG     3
 #define AHB_PURPLE_TG   4
-#define AHB_GREY_I      5
-#define AHB_WHITE_I     6
-#define AHB_GREEN_I     7
-#define AHB_BLUE_I      8
-#define AHB_PURPLE_I    9
-
+#define AHB_ORANGE_TG   5
+#define AHB_YELLOW_TG   6
+#define AHB_GREY_I      7
+#define AHB_WHITE_I     8
+#define AHB_GREEN_I     9
+#define AHB_BLUE_I      10
+#define AHB_PURPLE_I    11
+#define AHB_ORANGE_I    12
+#define AHB_YELLOW_I    13
 
 class AHBConfig
 {
@@ -29,14 +36,25 @@ private:
     uint32 maxItems;
     uint32 minTime;
     uint32 maxTime;
+    uint32 percentGreyTradeGoods;
     uint32 percentWhiteTradeGoods;
     uint32 percentGreenTradeGoods;
     uint32 percentBlueTradeGoods;
     uint32 percentPurpleTradeGoods;
+    uint32 percentOrangeTradeGoods;
+    uint32 percentYellowTradeGoods;
+    uint32 percentGreyItems;
     uint32 percentWhiteItems;
     uint32 percentGreenItems;
     uint32 percentBlueItems;
     uint32 percentPurpleItems;
+    uint32 percentOrangeItems;
+    uint32 percentYellowItems;
+    uint32 minPriceGrey;
+    uint32 maxPriceGrey;
+    uint32 minBidPriceGrey;
+    uint32 maxBidPriceGrey;
+    uint32 maxStackGrey;
     uint32 minPriceWhite;
     uint32 maxPriceWhite;
     uint32 minBidPriceWhite;
@@ -57,23 +75,42 @@ private:
     uint32 minBidPricePurple;
     uint32 maxBidPricePurple;
     uint32 maxStackPurple;
+    uint32 minPriceOrange;
+    uint32 maxPriceOrange;
+    uint32 minBidPriceOrange;
+    uint32 maxBidPriceOrange;
+    uint32 maxStackOrange;
+    uint32 minPriceYellow;
+    uint32 maxPriceYellow;
+    uint32 minBidPriceYellow;
+    uint32 maxBidPriceYellow;
+    uint32 maxStackYellow;
 
     uint32 buyerPriceGrey;
     uint32 buyerPriceWhite;
     uint32 buyerPriceGreen;
     uint32 buyerPriceBlue;
     uint32 buyerPricePurple;
+    uint32 buyerPriceOrange;
+    uint32 buyerPriceYellow;
     uint32 buyerBiddingInterval;
     uint32 buyerBidsPerInterval;
 
-    uint32 wtgp;
-    uint32 gtgp;
-    uint32 btgp;
-    uint32 ptgp;
-    uint32 wip;
-    uint32 gip;
-    uint32 bip;
-    uint32 pip;
+    uint32 greytgp;
+    uint32 whitetgp;
+    uint32 greentgp;
+    uint32 bluetgp;
+    uint32 purpletgp;
+    uint32 orangetgp;
+    uint32 yellowtgp;
+    uint32 greyip;
+    uint32 whiteip;
+    uint32 greenip;
+    uint32 blueip;
+    uint32 purpleip;
+    uint32 orangeip;
+    uint32 yellowip;
+
 public:
     AHBConfig(uint32 ahid)
     {
@@ -148,9 +185,9 @@ public:
     {
         return maxTime;
     }
-    void SetPercentages(uint32 wtg, uint32 gtg, uint32 btg, uint32 ptg, uint32 wi, uint32 gi, uint32 bi, uint32 pi)
+    void SetPercentages(uint32 greytg, uint32 whitetg, uint32 greentg, uint32 bluetg, uint32 purpletg, uint32 orangetg, uint32 yellowtg, uint32 greyi, uint32 whitei, uint32 greeni, uint32 bluei, uint32 purplei, uint32 orangei, uint32 yellowi)
     {
-        uint32 totalPercent = wtg + gtg + btg + ptg + wi + gi + bi + pi;
+        uint32 totalPercent = greytg + whitetg + greentg + bluetg + purpletg + orangetg + yellowtg + greyi + whitei + greeni + bluei + purplei + orangei + yellowi;
 
         if (totalPercent == 0)
         {
@@ -158,26 +195,35 @@ public:
         }
         else if (totalPercent != 100)
         {
-            double scale = (double) 100 / (double) totalPercent;
-
-            wtg = (uint32) (scale * (double) pi);
-            gtg = (uint32) (scale * (double) gtg);
-            btg = (uint32) (scale * (double) btg);
-            ptg = (uint32) (scale * (double) ptg);
-            wi = (uint32) (scale * (double) wi);
-            gi = (uint32) (scale * (double) gi);
-            bi = (uint32) (scale * (double) bi);
-            pi = 100 - wtg - gtg - btg - ptg - wi - gi - bi;
-
+            greytg = 0;
+            whitetg = 27;
+            greentg = 12;
+            bluetg = 10;
+            purpletg = 1;
+            orangetg = 0;
+            yellowtg = 0;
+            greyi = 0;
+            whitei = 10;
+            greeni = 30;
+            bluei = 8;
+            purplei = 2;
+            orangei = 0;
+            yellowi = 0;
         }
-        percentWhiteTradeGoods = wtg;
-        percentGreenTradeGoods = gtg;
-        percentBlueTradeGoods = btg;
-        percentPurpleTradeGoods = ptg;
-        percentWhiteItems = wi;
-        percentGreenItems = gi;
-        percentBlueItems = bi;
-        percentPurpleItems = pi;
+        percentGreyTradeGoods = greytg;
+        percentWhiteTradeGoods = whitetg;
+        percentGreenTradeGoods = greentg;
+        percentBlueTradeGoods = bluetg;
+        percentPurpleTradeGoods = purpletg;
+        percentOrangeTradeGoods = orangetg;
+        percentYellowTradeGoods = yellowtg;
+        percentGreyItems = greyi;
+        percentWhiteItems = whitei;
+        percentGreenItems = greeni;
+        percentBlueItems = bluei;
+        percentPurpleItems = purplei;
+        percentOrangeItems = orangei;
+        percentYellowItems = yellowi;
         CalculatePercents();
     }
     uint32 GetPercentages(uint32 color)
@@ -185,7 +231,7 @@ public:
         switch(color)
         {
         case AHB_GREY_TG:
-            return 0;
+            return percentGreyTradeGoods;
             break;
         case AHB_WHITE_TG:
             return percentWhiteTradeGoods;
@@ -199,8 +245,14 @@ public:
         case AHB_PURPLE_TG:
             return percentPurpleTradeGoods;
             break;
+        case AHB_ORANGE_TG:
+            return percentOrangeTradeGoods;
+            break;
+        case AHB_YELLOW_TG:
+            return percentYellowTradeGoods;
+            break;
         case AHB_GREY_I:
-            return 0;
+            return percentGreyItems;
             break;
         case AHB_WHITE_I:
             return percentWhiteItems;
@@ -214,6 +266,12 @@ public:
         case AHB_PURPLE_I:
             return percentPurpleItems;
             break;
+        case AHB_ORANGE_I:
+            return percentOrangeItems;
+            break;
+        case AHB_YELLOW_I:
+            return percentYellowItems;
+            break;
         default:
             return 0;
             break;
@@ -224,6 +282,7 @@ public:
         switch(color)
         {
         case AHB_GREY:
+            minPriceGrey = value;
             break;
         case AHB_WHITE:
             minPriceWhite = value;
@@ -237,6 +296,12 @@ public:
         case AHB_PURPLE:
             minPricePurple = value;
             break;
+        case AHB_ORANGE:
+            minPriceOrange = value;
+            break;
+        case AHB_YELLOW:
+            minPriceYellow = value;
+            break;
         default:
             break;
         }
@@ -247,7 +312,12 @@ public:
         {
         case AHB_GREY:
             {
-                return 0;
+                if (minPriceGrey == 0)
+                    return 100;
+                else if (minPriceGrey > maxPriceGrey)
+                    return maxPriceGrey;
+                else
+                    return minPriceGrey;
                 break;
             }
         case AHB_WHITE:
@@ -290,6 +360,26 @@ public:
                     return minPricePurple;
                 break;
             }
+        case AHB_ORANGE:
+            {
+                if (minPriceOrange == 0)
+                    return 400;
+                else if (minPriceOrange > maxPriceOrange)
+                    return maxPriceOrange;
+                else
+                    return minPriceOrange;
+                break;
+            }
+        case AHB_YELLOW:
+            {
+                if (minPriceYellow == 0)
+                    return 500;
+                else if (minPriceYellow > maxPriceYellow)
+                    return maxPriceYellow;
+                else
+                    return minPriceYellow;
+                break;
+            }
         default:
             {
                 return 0;
@@ -302,6 +392,7 @@ public:
         switch(color)
         {
         case AHB_GREY:
+            maxPriceGrey = value;
             break;
         case AHB_WHITE:
             maxPriceWhite = value;
@@ -315,6 +406,12 @@ public:
         case AHB_PURPLE:
             maxPricePurple = value;
             break;
+        case AHB_ORANGE:
+            maxPriceOrange = value;
+            break;
+        case AHB_YELLOW:
+            maxPriceYellow = value;
+            break;
         default:
             break;
         }
@@ -325,7 +422,10 @@ public:
         {
         case AHB_GREY:
             {
-                return 0;
+                if (maxPriceGrey == 0)
+                    return 150;
+                else
+                    return maxPriceGrey;
                 break;
             }
         case AHB_WHITE:
@@ -360,6 +460,22 @@ public:
                     return maxPricePurple;
                 break;
             }
+        case AHB_ORANGE:
+            {
+                if (maxPriceOrange == 0)
+                    return 550;
+                else
+                    return maxPriceOrange;
+                break;
+            }
+        case AHB_YELLOW:
+            {
+                if (maxPriceYellow == 0)
+                    return 650;
+                else
+                    return maxPriceYellow;
+                break;
+            }
         default:
             {
                 return 0;
@@ -372,6 +488,7 @@ public:
         switch(color)
         {
         case AHB_GREY:
+            minBidPriceGrey = value;
             break;
         case AHB_WHITE:
             minBidPriceWhite = value;
@@ -385,6 +502,12 @@ public:
         case AHB_PURPLE:
             minBidPricePurple = value;
             break;
+        case AHB_ORANGE:
+            minBidPriceOrange = value;
+            break;
+        case AHB_YELLOW:
+            minBidPriceYellow = value;
+            break;
         default:
             break;
         }
@@ -395,7 +518,10 @@ public:
         {
         case AHB_GREY:
             {
-                return 0;
+                if (minBidPriceGrey > 100)
+                    return 100;
+                else
+                    return minBidPriceGrey;
                 break;
             }
         case AHB_WHITE:
@@ -430,6 +556,22 @@ public:
                     return minBidPricePurple;
                 break;
             }
+        case AHB_ORANGE:
+            {
+                if (minBidPriceOrange > 100)
+                    return 100;
+                else
+                    return minBidPriceOrange;
+                break;
+            }
+        case AHB_YELLOW:
+            {
+                if (minBidPriceYellow > 100)
+                    return 100;
+                else
+                    return minBidPriceYellow;
+                break;
+            }
         default:
             {
                 return 0;
@@ -442,6 +584,7 @@ public:
         switch(color)
         {
         case AHB_GREY:
+            maxBidPriceGrey = value;
             break;
         case AHB_WHITE:
             maxBidPriceWhite = value;
@@ -455,6 +598,12 @@ public:
         case AHB_PURPLE:
             maxBidPricePurple = value;
             break;
+        case AHB_ORANGE:
+            maxBidPriceOrange = value;
+            break;
+        case AHB_YELLOW:
+            maxBidPriceYellow = value;
+            break;
         default:
             break;
         }
@@ -465,7 +614,10 @@ public:
         {
         case AHB_GREY:
             {
-                return 0;
+                if (maxBidPriceGrey > 100)
+                    return 100;
+                else
+                    return maxBidPriceGrey;
                 break;
             }
         case AHB_WHITE:
@@ -500,6 +652,22 @@ public:
                     return maxBidPricePurple;
                 break;
             }
+        case AHB_ORANGE:
+            {
+                if (maxBidPriceOrange > 100)
+                    return 100;
+                else
+                    return maxBidPriceOrange;
+                break;
+            }
+        case AHB_YELLOW:
+            {
+                if (maxBidPriceYellow > 100)
+                    return 100;
+                else
+                    return maxBidPriceYellow;
+                break;
+            }
         default:
             {
                 return 0;
@@ -512,6 +680,7 @@ public:
         switch(color)
         {
         case AHB_GREY:
+            maxStackGrey = value;
             break;
         case AHB_WHITE:
             maxStackWhite = value;
@@ -525,6 +694,12 @@ public:
         case AHB_PURPLE:
             maxStackPurple = value;
             break;
+        case AHB_ORANGE:
+            maxStackOrange = value;
+            break;
+        case AHB_YELLOW:
+            maxStackYellow = value;
+            break;
         default:
             break;
         }
@@ -535,7 +710,7 @@ public:
         {
         case AHB_GREY:
             {
-                return 0;
+                return maxStackGrey;
                 break;
             }
         case AHB_WHITE:
@@ -556,6 +731,16 @@ public:
         case AHB_PURPLE:
             {
                 return maxStackPurple;
+                break;
+            }
+        case AHB_ORANGE:
+            {
+                return maxStackOrange;
+                break;
+            }
+        case AHB_YELLOW:
+            {
+                return maxStackYellow;
                 break;
             }
         default:
@@ -584,6 +769,12 @@ public:
         case AHB_PURPLE:
             buyerPricePurple = value;
             break;
+        case AHB_ORANGE:
+            buyerPriceOrange = value;
+            break;
+        case AHB_YELLOW:
+            buyerPriceYellow = value;
+            break;
         default:
             break;
         }
@@ -607,6 +798,12 @@ public:
         case AHB_PURPLE:
             return buyerPricePurple;
             break;
+        case AHB_ORANGE:
+            return buyerPriceOrange;
+            break;
+        case AHB_YELLOW:
+            return buyerPriceYellow;
+            break;
         default:
             return 0;
             break;
@@ -622,62 +819,79 @@ public:
     }
     void CalculatePercents()
     {
-        wtgp = (uint32) (((double)percentWhiteTradeGoods / 100.0) * maxItems);
-        gtgp = (uint32) (((double)percentGreenTradeGoods / 100.0) * maxItems);
-        btgp = (uint32) (((double)percentBlueTradeGoods / 100.0) * maxItems);
-        ptgp = (uint32) (((double)percentPurpleTradeGoods / 100.0) * maxItems);
-        wip = (uint32) (((double)percentWhiteItems / 100.0) * maxItems);
-        gip = (uint32) (((double)percentGreenItems / 100.0) * maxItems);
-        bip = (uint32) (((double)percentBlueItems / 100.0) * maxItems);
-        pip = (uint32) (((double)percentPurpleItems / 100.0) * maxItems);
-        uint32 total = wtgp + gtgp + btgp + ptgp + wip + gip + bip + pip;
-        if (total != maxItems)
+        greytgp = (uint32) (((double)percentGreyTradeGoods / 100.0) * maxItems);
+        whitetgp = (uint32) (((double)percentWhiteTradeGoods / 100.0) * maxItems);
+        greentgp = (uint32) (((double)percentGreenTradeGoods / 100.0) * maxItems);
+        bluetgp = (uint32) (((double)percentBlueTradeGoods / 100.0) * maxItems);
+        purpletgp = (uint32) (((double)percentPurpleTradeGoods / 100.0) * maxItems);
+        orangetgp = (uint32) (((double)percentOrangeTradeGoods / 100.0) * maxItems);
+        yellowtgp = (uint32) (((double)percentYellowTradeGoods / 100.0) * maxItems);
+        greyip = (uint32) (((double)percentGreyItems / 100.0) * maxItems);
+        whiteip = (uint32) (((double)percentWhiteItems / 100.0) * maxItems);
+        greenip = (uint32) (((double)percentGreenItems / 100.0) * maxItems);
+        blueip = (uint32) (((double)percentBlueItems / 100.0) * maxItems);
+        purpleip = (uint32) (((double)percentPurpleItems / 100.0) * maxItems);
+        orangeip = (uint32) (((double)percentOrangeItems / 100.0) * maxItems);
+        yellowip = (uint32) (((double)percentYellowItems / 100.0) * maxItems);
+        uint32 total = greytgp + whitetgp + greentgp + bluetgp + purpletgp + orangetgp + yellowtgp + greyip + whiteip + greenip + blueip + purpleip + orangeip + yellowip;
+        int32 diff = (maxItems - total);
+        if (diff < 0)
         {
-            wtgp = (uint32) (maxItems * (double) wtgp);
-            gtgp = (uint32) (maxItems * (double) gtgp);
-            btgp = (uint32) (maxItems * (double) btgp);
-            ptgp = (uint32) (maxItems * (double) ptgp);
-            wip = (uint32) (maxItems * (double) wip);
-            gip = (uint32) (maxItems * (double) gip);
-            bip = (uint32) (maxItems * (double) bip);
-            pip = (maxItems - (wtgp + gtgp + btgp + ptgp + wip + gip + bip));
-            total = wtgp + gtgp + btgp + ptgp + wip + gip + bip + pip;
+            if ((whiteip - diff) > 0)
+                whiteip -= diff;
+            else if ((greenip - diff) > 0)
+                greenip -= diff;
         }
-        //sLog.outString("%u %u %u %u %u %u %u %u", wtgp, gtgp, btgp, ptgp, wip, gip, bip, pip);
+        else if (diff < 0)
+        {
+            whiteip += diff;
+        }
     }
     uint32 GetPercents(uint32 color)
     {
         switch(color)
         {
         case AHB_GREY_TG:
-            return 0;
+            return greytgp;
             break;
         case AHB_WHITE_TG:
-            return wtgp;
+            return whitetgp;
             break;
         case AHB_GREEN_TG:
-            return gtgp;
+            return greentgp;
             break;
         case AHB_BLUE_TG:
-            return btgp;
+            return bluetgp;
             break;
         case AHB_PURPLE_TG:
-            return ptgp;
+            return purpletgp;
+            break;
+        case AHB_ORANGE_TG:
+            return orangetgp;
+            break;
+        case AHB_YELLOW_TG:
+            return yellowtgp;
             break;
         case AHB_GREY_I:
-            return 0;
+            return greyip;
             break;
         case AHB_WHITE_I:
-            return wip;
+            return whiteip;
             break;
         case AHB_GREEN_I:
-            return gip;
+            return greenip;
             break;
         case AHB_BLUE_I:
-            return bip;
+            return blueip;
             break;
         case AHB_PURPLE_I:
-            return pip;
+            return purpleip;
+            break;
+        case AHB_ORANGE_I:
+            return orangeip;
+            break;
+        case AHB_YELLOW_I:
+            return yellowip;
             break;
         default:
             return 0;
@@ -696,9 +910,70 @@ public:
     {
     }
 };
-void AuctionHouseBot();
-void AuctionHouseBotInit();
-void AuctionHouseBotLoadValues(AHBConfig*);
-void AuctionHouseBotCommands(uint32, uint32, uint32, char*);
-uint32 AuctionHouseBotPlayerGUID(void);
+
+class AuctionHouseBot
+{
+private:
+    ACE_Vector<uint32> npcItems;
+    ACE_Vector<uint32> lootItems;
+    ACE_Vector<uint32> greyTradeGoodsBin;
+    ACE_Vector<uint32> whiteTradeGoodsBin;
+    ACE_Vector<uint32> greenTradeGoodsBin;
+    ACE_Vector<uint32> blueTradeGoodsBin;
+    ACE_Vector<uint32> purpleTradeGoodsBin;
+    ACE_Vector<uint32> orangeTradeGoodsBin;
+    ACE_Vector<uint32> yellowTradeGoodsBin;
+    ACE_Vector<uint32> greyItemsBin;
+    ACE_Vector<uint32> whiteItemsBin;
+    ACE_Vector<uint32> greenItemsBin;
+    ACE_Vector<uint32> blueItemsBin;
+    ACE_Vector<uint32> purpleItemsBin;
+    ACE_Vector<uint32> orangeItemsBin;
+    ACE_Vector<uint32> yellowItemsBin;
+
+    bool AHBSeller;
+    bool AHBBuyer;
+    bool BuyMethod;
+    bool SellMethod;
+
+    uint32 AHBplayerAccount;
+    uint32 AHBplayerGUID;
+    uint32 ItemsPerCycle;
+
+    bool debug_Out;
+
+    bool Vendor_Items;
+    bool Loot_Items;
+    bool Other_Items;
+
+    bool No_Bind;
+    bool Bind_When_Picked_Up;
+    bool Bind_When_Equipped;
+    bool Bind_When_Use;
+    bool Bind_Quest_Item;
+
+    AHBConfig AllianceConfig;
+    AHBConfig HordeConfig;
+    AHBConfig NeutralConfig;
+
+    time_t _lastrun_a;
+    time_t _lastrun_h;
+    time_t _lastrun_n;
+
+    inline uint32 minValue(uint32 a, uint32 b) { return a <= b ? a : b; };
+    void addNewAuctions(Player *AHBplayer, AHBConfig *config);
+    void addNewAuctionBuyerBotBid(Player *AHBplayer, AHBConfig *config, WorldSession *session);
+
+public:
+    AuctionHouseBot();
+    ~AuctionHouseBot();
+    void Update();
+    void Initialize();
+    void LoadValues(AHBConfig*);
+    void Commands(uint32, uint32, uint32, char*);
+    uint32 GetAHBplayerGUID() { return AHBplayerGUID; };
+};
+
+#define auctionbot MaNGOS::Singleton<AuctionHouseBot>::Instance()
+
 #endif

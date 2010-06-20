@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,7 +56,7 @@ ObjectGridRespawnMover::Visit(CreatureMapType &m)
 
         Creature * c = iter->getSource();
 
-        assert((!c->isPet() || !c->isVehicle()) && "ObjectGridRespawnMover don't must be called for pets");
+        ASSERT((!c->isPet() || !c->isVehicle()) && "ObjectGridRespawnMover don't must be called for pets");
 
         Cell const& cur_cell  = c->GetCurrentCell();
 
@@ -232,7 +232,7 @@ void ObjectGridLoader::LoadN(void)
             loader.Load(i_grid(x, y), *this);
         }
     }
-    sLog.outDebug("%u GameObjects, %u Creatures, and %u Corpses/Bones loaded for grid %u on map %u", i_gameObjects, i_creatures, i_corpses,i_grid.GetGridId(), i_map->GetId());
+    DEBUG_LOG("%u GameObjects, %u Creatures, and %u Corpses/Bones loaded for grid %u on map %u", i_gameObjects, i_creatures, i_corpses,i_grid.GetGridId(), i_map->GetId());
 }
 
 void ObjectGridUnloader::MoveToRespawnN()
@@ -266,7 +266,7 @@ ObjectGridUnloader::Visit(GridRefManager<T> &m)
     {
         T *obj = m.getFirst()->getSource();
         // if option set then object already saved at this moment
-        if(!sWorld.getConfig(CONFIG_SAVE_RESPAWN_TIME_IMMEDIATLY))
+        if(!sWorld.getConfig(CONFIG_BOOL_SAVE_RESPAWN_TIME_IMMEDIATLY))
             obj->SaveRespawnTime();
         ///- object must be out of world before delete
         obj->RemoveFromWorld();

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,27 +26,10 @@
 #include <map>
 #include <vector>
 
-enum RollType
-{
-    ROLL_PASS         = 0,
-    ROLL_NEED         = 1,
-    ROLL_GREED        = 2,
-    MAX_ROLL_TYPE     = 3
-};
-
 #define MAX_NR_LOOT_ITEMS 16
 // note: the client cannot show more than 16 items total
 #define MAX_NR_QUEST_ITEMS 32
 // unrelated to the number of quest items shown, just for reserve
-
-enum LootMethod
-{
-    FREE_FOR_ALL      = 0,
-    ROUND_ROBIN       = 1,
-    MASTER_LOOT       = 2,
-    GROUP_LOOT        = 3,
-    NEED_BEFORE_GREED = 4
-};
 
 enum PermissionTypes
 {
@@ -86,7 +69,7 @@ struct LootStoreItem
 
     // Constructor, converting ChanceOrQuestChance -> (chance, needs_quest)
     // displayid is filled in IsValid() which must be called after
-    LootStoreItem(uint32 _itemid, float _chanceOrQuestChance, int8 _group, uint8 _conditionId, int32 _mincountOrRef, uint8 _maxcount)
+    LootStoreItem(uint32 _itemid, float _chanceOrQuestChance, int8 _group, uint16 _conditionId, int32 _mincountOrRef, uint8 _maxcount)
         : itemid(_itemid), chance(fabs(_chanceOrQuestChance)), mincountOrRef(_mincountOrRef),
         group(_group), needs_quest(_chanceOrQuestChance < 0), maxcount(_maxcount), conditionId(_conditionId)
          {}
@@ -117,6 +100,8 @@ struct LootItem
     // Basic checks for player/item compatibility - if false no chance to see the item in the loot
     bool AllowedForPlayer(Player const * player) const;
 };
+
+typedef std::vector<LootItem> LootItemList;
 
 struct QuestItem
 {
@@ -237,7 +222,7 @@ struct Loot
     QuestItemMap const& GetPlayerFFAItems() const { return PlayerFFAItems; }
     QuestItemMap const& GetPlayerNonQuestNonFFAConditionalItems() const { return PlayerNonQuestNonFFAConditionalItems; }
 
-    std::vector<LootItem> items;
+    LootItemList items;
     uint32 gold;
     uint8 unlootedCount;
     LootType loot_type;                                     // required for achievement system
@@ -298,7 +283,7 @@ struct Loot
         QuestItemList* FillQuestLoot(Player* player);
         QuestItemList* FillNonQuestNonFFAConditionalLoot(Player* player);
 
-        std::vector<LootItem> quest_items;
+        LootItemList quest_items;
         std::set<uint64> PlayersLooting;
         QuestItemMap PlayerQuestItems;
         QuestItemMap PlayerFFAItems;

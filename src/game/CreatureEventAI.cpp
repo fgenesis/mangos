@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2009-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -211,7 +211,7 @@ bool CreatureEventAI::ProcessEvent(CreatureEventAIHolder& pHolder, Unit* pAction
             if (!m_creature->isInCombat())
                 return false;
 
-            Unit* pUnit = DoSelectLowestHpFriendly(event.friendly_hp.radius, event.friendly_hp.hpDeficit);
+            Unit* pUnit = DoSelectLowestHpFriendly((float)event.friendly_hp.radius, event.friendly_hp.hpDeficit);
             if (!pUnit)
                 return false;
 
@@ -227,7 +227,7 @@ bool CreatureEventAI::ProcessEvent(CreatureEventAIHolder& pHolder, Unit* pAction
                 return false;
 
             std::list<Creature*> pList;
-            DoFindFriendlyCC(pList, event.friendly_is_cc.radius);
+            DoFindFriendlyCC(pList, (float)event.friendly_is_cc.radius);
 
             //List is empty
             if (pList.empty())
@@ -243,7 +243,7 @@ bool CreatureEventAI::ProcessEvent(CreatureEventAIHolder& pHolder, Unit* pAction
         case EVENT_T_FRIENDLY_MISSING_BUFF:
         {
             std::list<Creature*> pList;
-            DoFindFriendlyMissingBuff(pList, event.friendly_buff.radius, event.friendly_buff.spellId);
+            DoFindFriendlyMissingBuff(pList, (float)event.friendly_buff.radius, event.friendly_buff.spellId);
 
             //List is empty
             if (pList.empty())
@@ -257,17 +257,19 @@ bool CreatureEventAI::ProcessEvent(CreatureEventAIHolder& pHolder, Unit* pAction
             break;
         }
         case EVENT_T_SUMMONED_UNIT:
+        case EVENT_T_SUMMONED_JUST_DIED:
+        case EVENT_T_SUMMONED_JUST_DESPAWN:
         {
             //Prevent event from occuring on no unit or non creatures
             if (!pActionInvoker || pActionInvoker->GetTypeId()!=TYPEID_UNIT)
                 return false;
 
             //Creature id doesn't match up
-            if (((Creature*)pActionInvoker)->GetEntry() != event.summon_unit.creatureId)
+            if (((Creature*)pActionInvoker)->GetEntry() != event.summoned.creatureId)
                 return false;
 
             //Repeat Timers
-            pHolder.UpdateRepeatTimer(m_creature,event.summon_unit.repeatMin,event.summon_unit.repeatMax);
+            pHolder.UpdateRepeatTimer(m_creature,event.summoned.repeatMin,event.summoned.repeatMax);
             break;
         }
         case EVENT_T_TARGET_MANA:
@@ -291,7 +293,7 @@ bool CreatureEventAI::ProcessEvent(CreatureEventAIHolder& pHolder, Unit* pAction
         {
             //Note: checked only aura for effect 0, if need check aura for effect 1/2 then
             // possible way: pack in event.buffed.amount 2 uint16 (ammount+effectIdx)
-            Aura* aura = m_creature->GetAura(event.buffed.spellId,0);
+            Aura* aura = m_creature->GetAura(event.buffed.spellId, EFFECT_INDEX_0);
             if (!aura || aura->GetStackAmount() < event.buffed.amount)
                 return false;
 
@@ -307,7 +309,7 @@ bool CreatureEventAI::ProcessEvent(CreatureEventAIHolder& pHolder, Unit* pAction
 
             //Note: checked only aura for effect 0, if need check aura for effect 1/2 then
             // possible way: pack in event.buffed.amount 2 uint16 (ammount+effectIdx)
-            Aura* aura = pActionInvoker->GetAura(event.buffed.spellId,0);
+            Aura* aura = pActionInvoker->GetAura(event.buffed.spellId, EFFECT_INDEX_0);
             if(!aura || aura->GetStackAmount() < event.buffed.amount)
                 return false;
 
@@ -422,7 +424,7 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
             m_creature->PlayDirectSound(action.sound.soundId);
             break;
         case ACTION_T_EMOTE:
-            m_creature->HandleEmoteCommand(action.emote.emoteId);
+            m_creature->HandleEmote(action.emote.emoteId);
             break;
         case ACTION_T_RANDOM_SOUND:
         {
@@ -435,7 +437,7 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
         {
             int32 temp = GetRandActionParam(rnd, action.random_emote.emoteId1, action.random_emote.emoteId2, action.random_emote.emoteId3);
             if (temp >= 0)
-                m_creature->HandleEmoteCommand(temp);
+                m_creature->HandleEmote(temp);
             break;
         }
         case ACTION_T_CAST:
@@ -450,13 +452,13 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
                 caster = target;
 
             //Allowed to cast only if not casting (unless we interrupt ourself) or if spell is triggered
-            bool canCast = !caster->IsNonMeleeSpellCasted(false) || (action.cast.castFlags & (CAST_TRIGGERED | CAST_INTURRUPT_PREVIOUS));
+            bool canCast = !caster->IsNonMeleeSpellCasted(false) || (action.cast.castFlags & (CAST_TRIGGERED | CAST_INTERRUPT_PREVIOUS));
 
             // If cast flag CAST_AURA_NOT_PRESENT is active, check if target already has aura on them
             if(action.cast.castFlags & CAST_AURA_NOT_PRESENT)
             {
-                for(uint8 i = 0; i < 3; ++i)
-                    if(target->HasAura(action.cast.spellId, i))
+                for(int i = 0; i < MAX_EFFECT_INDEX; ++i)
+                    if(target->HasAura(action.cast.spellId, SpellEffectIndex(i)))
                         return;
             }
 
@@ -474,13 +476,16 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
                         //Melee current victim if flag not set
                         if (!(action.cast.castFlags & CAST_NO_MELEE_IF_OOM))
                         {
-                            if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() == TARGETED_MOTION_TYPE)
+                            switch(m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType())
                             {
-                                AttackDistance = 0.0f;
-                                AttackAngle = 0.0f;
+                                case CHASE_MOTION_TYPE:
+                                case FOLLOW_MOTION_TYPE:
+                                    AttackDistance = 0.0f;
+                                    AttackAngle = 0.0f;
 
-                                m_creature->GetMotionMaster()->Clear(false);
-                                m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim(), AttackDistance, AttackAngle);
+                                    m_creature->GetMotionMaster()->Clear(false);
+                                    m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim(), AttackDistance, AttackAngle);
+                                    break;
                             }
                         }
 
@@ -488,7 +493,7 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
                     else
                     {
                         //Interrupt any previous spell
-                        if (caster->IsNonMeleeSpellCasted(false) && action.cast.castFlags & CAST_INTURRUPT_PREVIOUS)
+                        if (caster->IsNonMeleeSpellCasted(false) && action.cast.castFlags & CAST_INTERRUPT_PREVIOUS)
                             caster->InterruptNonMeleeSpells(false);
 
                         caster->CastSpell(target, action.cast.spellId, (action.cast.castFlags & CAST_TRIGGERED));
@@ -537,7 +542,7 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
         case ACTION_T_CAST_EVENT:
             if (Unit* target = GetTargetByType(action.cast_event.target, pActionInvoker))
                 if (target->GetTypeId() == TYPEID_PLAYER)
-                    ((Player*)target)->CastedCreatureOrGO(action.cast_event.creatureId, m_creature->GetGUID(), action.cast_event.spellId);
+                    ((Player*)target)->CastedCreatureOrGO(action.cast_event.creatureId, m_creature->GetObjectGuid(), action.cast_event.spellId);
             break;
         case ACTION_T_SET_UNIT_FIELD:
         {
@@ -589,7 +594,7 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
                     if(Unit* victim = m_creature->getVictim())
                         m_creature->SendMeleeAttackStop(victim);
 
-                if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() == TARGETED_MOTION_TYPE)
+                if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() == CHASE_MOTION_TYPE)
                 {
                     m_creature->GetMotionMaster()->Clear(false);
                     m_creature->GetMotionMaster()->MoveIdle();
@@ -638,7 +643,7 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
             for (ThreatList::const_iterator i = threatList.begin(); i != threatList.end(); ++i)
                 if (Unit* Temp = Unit::GetUnit(*m_creature,(*i)->getUnitGuid()))
                     if (Temp->GetTypeId() == TYPEID_PLAYER)
-                        ((Player*)Temp)->CastedCreatureOrGO(action.cast_event_all.creatureId, m_creature->GetGUID(), action.cast_event_all.spellId);
+                        ((Player*)Temp)->CastedCreatureOrGO(action.cast_event_all.creatureId, m_creature->GetObjectGuid(), action.cast_event_all.spellId);
             break;
         }
         case ACTION_T_REMOVEAURASFROMSPELL:
@@ -647,11 +652,11 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
             break;
         case ACTION_T_RANGED_MOVEMENT:
             AttackDistance = (float)action.ranged_movement.distance;
-            AttackAngle = action.ranged_movement.angle/180.0f*M_PI;
+            AttackAngle = action.ranged_movement.angle/180.0f*M_PI_F;
 
             if (CombatMovementEnabled)
             {
-                if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() == TARGETED_MOTION_TYPE)
+                if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() == CHASE_MOTION_TYPE)
                 {
                     //Drop current movement gen
                     m_creature->GetMotionMaster()->Clear(false);
@@ -693,7 +698,7 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
             break;
         }
         case ACTION_T_KILLED_MONSTER:
-            //first attempt player who tapped creature
+            //first attempt player/group who tapped creature
             if (Player* pPlayer = m_creature->GetLootRecipient())
                 pPlayer->RewardPlayerAndGroupAtEvent(action.killed_monster.creatureId, m_creature);
             else
@@ -706,7 +711,7 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
             break;
         case ACTION_T_SET_INST_DATA:
         {
-            InstanceData* pInst = (InstanceData*)m_creature->GetInstanceData();
+            InstanceData* pInst = m_creature->GetInstanceData();
             if (!pInst)
             {
                 sLog.outErrorDb("CreatureEventAI: Event %d attempt to set instance data without instance script. Creature %d", EventId, m_creature->GetEntry());
@@ -725,7 +730,7 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
                 return;
             }
 
-            InstanceData* pInst = (InstanceData*)m_creature->GetInstanceData();
+            InstanceData* pInst = m_creature->GetInstanceData();
             if (!pInst)
             {
                 sLog.outErrorDb("CreatureEventAI: Event %d attempt to set instance data64 without instance script. Creature %d", EventId, m_creature->GetEntry());
@@ -761,7 +766,7 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
         }
         case ACTION_T_CALL_FOR_HELP:
         {
-            m_creature->CallForHelp(action.call_for_help.radius);
+            m_creature->CallForHelp((float)action.call_for_help.radius);
             break;
         }
         case ACTION_T_SET_SHEATH:
@@ -771,7 +776,7 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
         }
         case ACTION_T_FORCE_DESPAWN:
         {
-            m_creature->ForcedDespawn();
+            m_creature->ForcedDespawn(action.forced_despawn.msDelay);
             break;
         }
         case ACTION_T_SET_INVINCIBILITY_HP_LEVEL:
@@ -871,6 +876,13 @@ void CreatureEventAI::JustDied(Unit* killer)
 {
     Reset();
 
+    if (m_creature->isGuard())
+    {
+        //Send Zone Under Attack message to the LocalDefense and WorldDefense Channels
+        if (Player* pKiller = killer->GetCharmerOrOwnerPlayerOrPlayerItself())
+            m_creature->SendZoneUnderAttackMessage(pKiller);
+    }
+
     if (bEmptyList)
         return;
 
@@ -905,6 +917,30 @@ void CreatureEventAI::JustSummoned(Creature* pUnit)
     for (std::list<CreatureEventAIHolder>::iterator i = CreatureEventAIList.begin(); i != CreatureEventAIList.end(); ++i)
     {
         if ((*i).Event.event_type == EVENT_T_SUMMONED_UNIT)
+            ProcessEvent(*i, pUnit);
+    }
+}
+
+void CreatureEventAI::SummonedCreatureJustDied(Creature* pUnit)
+{
+    if (bEmptyList || !pUnit)
+        return;
+
+    for (std::list<CreatureEventAIHolder>::iterator i = CreatureEventAIList.begin(); i != CreatureEventAIList.end(); ++i)
+    {
+        if ((*i).Event.event_type == EVENT_T_SUMMONED_JUST_DIED)
+            ProcessEvent(*i, pUnit);
+    }
+}
+
+void CreatureEventAI::SummonedCreatureDespawn(Creature* pUnit)
+{
+    if (bEmptyList || !pUnit)
+        return;
+
+    for (std::list<CreatureEventAIHolder>::iterator i = CreatureEventAIList.begin(); i != CreatureEventAIList.end(); ++i)
+    {
+        if ((*i).Event.event_type == EVENT_T_SUMMONED_JUST_DESPAWN)
             ProcessEvent(*i, pUnit);
     }
 }
@@ -977,7 +1013,7 @@ void CreatureEventAI::MoveInLineOfSight(Unit *who)
             if ((*itr).Event.event_type == EVENT_T_OOC_LOS)
             {
                 //can trigger if closer than fMaxAllowedRange
-                float fMaxAllowedRange = (*itr).Event.ooc_los.maxRange;
+                float fMaxAllowedRange = (float)(*itr).Event.ooc_los.maxRange;
 
                 //if range is ok and we are actually in LOS
                 if (m_creature->IsWithinDistInMap(who, fMaxAllowedRange) && m_creature->IsWithinLOSInMap(who))
@@ -994,7 +1030,7 @@ void CreatureEventAI::MoveInLineOfSight(Unit *who)
     if (m_creature->isCivilian() || m_creature->IsNeutralToAll())
         return;
 
-    if (!m_creature->hasUnitState(UNIT_STAT_STUNNED | UNIT_STAT_DIED) && who->isTargetableForAttack() &&
+    if (m_creature->CanInitiateAttack() && who->isTargetableForAttack() &&
         m_creature->IsHostileTo(who) && who->isInAccessablePlaceFor(m_creature))
     {
         if (!m_creature->canFly() && m_creature->GetDistanceZ(who) > CREATURE_Z_ATTACK_RANGE)
@@ -1108,39 +1144,8 @@ void CreatureEventAI::UpdateAI(const uint32 diff)
 
 bool CreatureEventAI::IsVisible(Unit *pl) const
 {
-    return m_creature->IsWithinDist(pl,sWorld.getConfig(CONFIG_SIGHT_MONSTER))
+    return m_creature->IsWithinDist(pl,sWorld.getConfig(CONFIG_FLOAT_SIGHT_MONSTER))
         && pl->isVisibleForOrDetect(m_creature,m_creature,true);
-}
-
-inline Unit* CreatureEventAI::SelectUnit(AttackingTarget target, uint32 position) const
-{
-    //ThreatList m_threatlist;
-    ThreatList const& threatlist = m_creature->getThreatManager().getThreatList();
-    ThreatList::const_iterator i = threatlist.begin();
-    ThreatList::const_reverse_iterator r = threatlist.rbegin();
-
-    if (position >= threatlist.size() || !threatlist.size())
-        return NULL;
-
-    switch (target)
-    {
-        case ATTACKING_TARGET_RANDOM:
-        {
-            advance ( i , position +  (rand() % (threatlist.size() - position ) ));
-            return Unit::GetUnit(*m_creature,(*i)->getUnitGuid());
-        }
-        case ATTACKING_TARGET_TOPAGGRO:
-        {
-            advance ( i , position);
-            return Unit::GetUnit(*m_creature,(*i)->getUnitGuid());
-        }
-        case ATTACKING_TARGET_BOTTOMAGGRO:
-        {
-            advance ( r , position);
-            return Unit::GetUnit(*m_creature,(*r)->getUnitGuid());
-        }
-    }
-    return NULL;
 }
 
 inline uint32 CreatureEventAI::GetRandActionParam(uint32 rnd, uint32 param1, uint32 param2, uint32 param3)
@@ -1174,13 +1179,13 @@ inline Unit* CreatureEventAI::GetTargetByType(uint32 Target, Unit* pActionInvoke
         case TARGET_T_HOSTILE:
             return m_creature->getVictim();
         case TARGET_T_HOSTILE_SECOND_AGGRO:
-            return SelectUnit(ATTACKING_TARGET_TOPAGGRO,1);
+            return m_creature->SelectAttackingTarget(ATTACKING_TARGET_TOPAGGRO, 1);
         case TARGET_T_HOSTILE_LAST_AGGRO:
-            return SelectUnit(ATTACKING_TARGET_BOTTOMAGGRO,0);
+            return m_creature->SelectAttackingTarget(ATTACKING_TARGET_BOTTOMAGGRO, 0);
         case TARGET_T_HOSTILE_RANDOM:
-            return SelectUnit(ATTACKING_TARGET_RANDOM,0);
+            return m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0);
         case TARGET_T_HOSTILE_RANDOM_NOT_TOP:
-            return SelectUnit(ATTACKING_TARGET_RANDOM,1);
+            return m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 1);
         case TARGET_T_ACTION_INVOKER:
             return pActionInvoker;
         default:
@@ -1190,11 +1195,6 @@ inline Unit* CreatureEventAI::GetTargetByType(uint32 Target, Unit* pActionInvoke
 
 Unit* CreatureEventAI::DoSelectLowestHpFriendly(float range, uint32 MinHPDiff)
 {
-    CellPair p(MaNGOS::ComputeCellPair(m_creature->GetPositionX(), m_creature->GetPositionY()));
-    Cell cell(p);
-    cell.data.Part.reserved = ALL_DISTRICT;
-    cell.SetNoCreate();
-
     Unit* pUnit = NULL;
 
     MaNGOS::MostHPMissingInRange u_check(m_creature, range, MinHPDiff);
@@ -1204,43 +1204,22 @@ Unit* CreatureEventAI::DoSelectLowestHpFriendly(float range, uint32 MinHPDiff)
     typedef TYPELIST_4(GameObject, Creature*except pets*, DynamicObject, Corpse*Bones*) AllGridObjectTypes;
     This means that if we only search grid then we cannot possibly return pets or players so this is safe
     */
-    TypeContainerVisitor<MaNGOS::UnitLastSearcher<MaNGOS::MostHPMissingInRange>, GridTypeMapContainer >  grid_unit_searcher(searcher);
-
-    CellLock<GridReadGuard> cell_lock(cell, p);
-    cell_lock->Visit(cell_lock, grid_unit_searcher, *m_creature->GetMap(), *m_creature, range);
+    Cell::VisitGridObjects(m_creature, searcher, range);
     return pUnit;
 }
 
 void CreatureEventAI::DoFindFriendlyCC(std::list<Creature*>& _list, float range)
 {
-    CellPair p(MaNGOS::ComputeCellPair(m_creature->GetPositionX(), m_creature->GetPositionY()));
-    Cell cell(p);
-    cell.data.Part.reserved = ALL_DISTRICT;
-    cell.SetNoCreate();
-
     MaNGOS::FriendlyCCedInRange u_check(m_creature, range);
     MaNGOS::CreatureListSearcher<MaNGOS::FriendlyCCedInRange> searcher(m_creature, _list, u_check);
-
-    TypeContainerVisitor<MaNGOS::CreatureListSearcher<MaNGOS::FriendlyCCedInRange>, GridTypeMapContainer >  grid_creature_searcher(searcher);
-
-    CellLock<GridReadGuard> cell_lock(cell, p);
-    cell_lock->Visit(cell_lock, grid_creature_searcher, *m_creature->GetMap(), *m_creature, range);
+    Cell::VisitGridObjects(m_creature, searcher, range);
 }
 
 void CreatureEventAI::DoFindFriendlyMissingBuff(std::list<Creature*>& _list, float range, uint32 spellid)
 {
-    CellPair p(MaNGOS::ComputeCellPair(m_creature->GetPositionX(), m_creature->GetPositionY()));
-    Cell cell(p);
-    cell.data.Part.reserved = ALL_DISTRICT;
-    cell.SetNoCreate();
-
     MaNGOS::FriendlyMissingBuffInRange u_check(m_creature, range, spellid);
     MaNGOS::CreatureListSearcher<MaNGOS::FriendlyMissingBuffInRange> searcher(m_creature, _list, u_check);
-
-    TypeContainerVisitor<MaNGOS::CreatureListSearcher<MaNGOS::FriendlyMissingBuffInRange>, GridTypeMapContainer >  grid_creature_searcher(searcher);
-
-    CellLock<GridReadGuard> cell_lock(cell, p);
-    cell_lock->Visit(cell_lock, grid_creature_searcher, *m_creature->GetMap(), *m_creature, range);
+    Cell::VisitGridObjects(m_creature,searcher, range);
 }
 
 //*********************************
@@ -1268,7 +1247,7 @@ void CreatureEventAI::DoScriptText(int32 textEntry, WorldObject* pSource, Unit* 
         return;
     }
 
-    sLog.outDebug("CreatureEventAI: DoScriptText: text entry=%i, Sound=%u, Type=%u, Language=%u, Emote=%u",textEntry,(*i).second.SoundId,(*i).second.Type,(*i).second.Language,(*i).second.Emote);
+    DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "CreatureEventAI: DoScriptText: text entry=%i, Sound=%u, Type=%u, Language=%u, Emote=%u",textEntry,(*i).second.SoundId,(*i).second.Type,(*i).second.Language,(*i).second.Emote);
 
     if((*i).second.SoundId)
     {
@@ -1282,7 +1261,7 @@ void CreatureEventAI::DoScriptText(int32 textEntry, WorldObject* pSource, Unit* 
     {
         if (pSource->GetTypeId() == TYPEID_UNIT || pSource->GetTypeId() == TYPEID_PLAYER)
         {
-            ((Unit*)pSource)->HandleEmoteCommand((*i).second.Emote);
+            ((Unit*)pSource)->HandleEmote((*i).second.Emote);
         }
         else
             sLog.outErrorDb("CreatureEventAI: DoScriptText entry %i tried to process emote for invalid TypeId (%u).",textEntry,pSource->GetTypeId());
@@ -1341,8 +1320,8 @@ bool CreatureEventAI::CanCast(Unit* Target, SpellEntry const *Spell, bool Trigge
         return false;
 
     //Silenced so we can't cast
-    if (!Triggered && (m_creature->hasUnitState(UNIT_STAT_CONFUSED | UNIT_STAT_STUNNED | UNIT_STAT_FLEEING | UNIT_STAT_DIED)
-        || m_creature->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PACIFIED)))
+    if (!Triggered && (m_creature->hasUnitState(UNIT_STAT_CAN_NOT_REACT) ||
+        m_creature->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PACIFIED)))
         return false;
 
     //Check for power
@@ -1379,14 +1358,14 @@ void CreatureEventAI::ReceiveEmote(Player* pPlayer, uint32 text_emote)
             PlayerCondition pcon((*itr).Event.receive_emote.condition,(*itr).Event.receive_emote.conditionValue1,(*itr).Event.receive_emote.conditionValue2);
             if (pcon.Meets(pPlayer))
             {
-                sLog.outDebug("CreatureEventAI: ReceiveEmote CreatureEventAI: Condition ok, processing");
+                DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "CreatureEventAI: ReceiveEmote CreatureEventAI: Condition ok, processing");
                 ProcessEvent(*itr, pPlayer);
             }
         }
     }
 }
 
-void CreatureEventAI::DamageTaken( Unit* done_by, uint32& damage )
+void CreatureEventAI::DamageTaken( Unit* /*done_by*/, uint32& damage )
 {
     if(InvinceabilityHpLevel > 0 && m_creature->GetHealth() < InvinceabilityHpLevel+damage)
     {

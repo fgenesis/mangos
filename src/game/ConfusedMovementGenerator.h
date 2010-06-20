@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,8 +16,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef MANGOS_RANDOMMOTIONGENERATOR_H
-#define MANGOS_RANDOMMOTIONGENERATOR_H
+#ifndef MANGOS_CONFUSEDMOVEMENTGENERATOR_H
+#define MANGOS_CONFUSEDMOVEMENTGENERATOR_H
 
 #include "MovementGenerator.h"
 #include "DestinationHolder.h"
@@ -34,10 +34,11 @@ class MANGOS_DLL_SPEC ConfusedMovementGenerator
 
         void Initialize(T &);
         void Finalize(T &);
+        void Interrupt(T &);
         void Reset(T &);
         bool Update(T &, const uint32 &);
 
-        MovementGeneratorType GetMovementGeneratorType() { return CONFUSED_MOTION_TYPE; }
+        MovementGeneratorType GetMovementGeneratorType() const { return CONFUSED_MOTION_TYPE; }
     private:
         void _InitSpecific(T &, bool &, bool &);
         TimeTracker i_nextMoveTime;

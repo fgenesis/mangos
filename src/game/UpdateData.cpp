@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,18 +23,19 @@
 #include "Log.h"
 #include "Opcodes.h"
 #include "World.h"
+#include "ObjectGuid.h"
 #include <zlib/zlib.h>
 
 UpdateData::UpdateData() : m_blockCount(0)
 {
 }
 
-void UpdateData::AddOutOfRangeGUID(std::set<uint64>& guids)
+void UpdateData::AddOutOfRangeGUID(ObjectGuidSet& guids)
 {
     m_outOfRangeGUIDs.insert(guids.begin(),guids.end());
 }
 
-void UpdateData::AddOutOfRangeGUID(const uint64 &guid)
+void UpdateData::AddOutOfRangeGUID(ObjectGuid const &guid)
 {
     m_outOfRangeGUIDs.insert(guid);
 }
@@ -54,7 +55,7 @@ void UpdateData::Compress(void* dst, uint32 *dst_size, void* src, int src_size)
     c_stream.opaque = (voidpf)0;
 
     // default Z_BEST_SPEED (1)
-    int z_res = deflateInit(&c_stream, sWorld.getConfig(CONFIG_COMPRESSION));
+    int z_res = deflateInit(&c_stream, sWorld.getConfig(CONFIG_UINT32_COMPRESSION));
     if (z_res != Z_OK)
     {
         sLog.outError("Can't compress update packet (zlib: deflateInit) Error code: %i (%s)",z_res,zError(z_res));
@@ -114,10 +115,8 @@ bool UpdateData::BuildPacket(WorldPacket *packet)
         buf << (uint8) UPDATETYPE_OUT_OF_RANGE_OBJECTS;
         buf << (uint32) m_outOfRangeGUIDs.size();
 
-        for(std::set<uint64>::const_iterator i = m_outOfRangeGUIDs.begin(); i != m_outOfRangeGUIDs.end(); ++i)
-        {
-            buf.appendPackGUID(*i);
-        }
+        for(ObjectGuidSet::const_iterator i = m_outOfRangeGUIDs.begin(); i != m_outOfRangeGUIDs.end(); ++i)
+            buf << i->WriteAsPacked();
     }
 
     buf.append(m_data);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,10 +39,11 @@ class MANGOS_DLL_SPEC HomeMovementGenerator<Creature>
 
         void Initialize(Creature &);
         void Finalize(Creature &) {}
+        void Interrupt(Creature &) {}
         void Reset(Creature &);
         bool Update(Creature &, const uint32 &);
         void modifyTravelTime(uint32 travel_time) { i_travel_timer = travel_time; }
-        MovementGeneratorType GetMovementGeneratorType() { return HOME_MOTION_TYPE; }
+        MovementGeneratorType GetMovementGeneratorType() const { return HOME_MOTION_TYPE; }
 
         bool GetDestination(float& x, float& y, float& z) const { i_destinationHolder.GetDestination(x,y,z); return true; }
     private:

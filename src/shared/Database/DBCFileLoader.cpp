@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -242,6 +242,7 @@ char* DBCFileLoader::AutoProduceStrings(const char* format, char* dataTable)
                 offset+=1;
                 break;
             case FT_STRING:
+            {
                 // fill only not filled entries
                 char** slot = (char**)(&dataTable[offset]);
                 if(!*slot || !**slot)
@@ -251,6 +252,13 @@ char* DBCFileLoader::AutoProduceStrings(const char* format, char* dataTable)
                 }
                 offset+=sizeof(char*);
                 break;
+            }
+            case FT_NA:
+            case FT_NA_BYTE:
+            case FT_SORT:
+                break;
+            default:
+                assert(false && "unknown format character");
         }
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -141,7 +141,7 @@ bool DatabaseMysql::Initialize(const char *infoString)
 
     if (mMysql)
     {
-        sLog.outDetail( "Connected to MySQL database at %s",
+        DETAIL_LOG( "Connected to MySQL database at %s",
             host.c_str());
         sLog.outString( "MySQL client library: %s", mysql_get_client_info());
         sLog.outString( "MySQL server ver: %s ", mysql_get_server_info( mMysql));
@@ -155,15 +155,31 @@ bool DatabaseMysql::Initialize(const char *infoString)
         // autocommit is turned of during it.
         // Setting it to on makes atomic updates work
         if (!mysql_autocommit(mMysql, 1))
-            sLog.outDetail("AUTOCOMMIT SUCCESSFULLY SET TO 1");
+            DETAIL_LOG("AUTOCOMMIT SUCCESSFULLY SET TO 1");
         else
-            sLog.outDetail("AUTOCOMMIT NOT SET TO 1");
+            DETAIL_LOG("AUTOCOMMIT NOT SET TO 1");
         /*-------------------------------------*/
 
         // set connection properties to UTF8 to properly handle locales for different
         // server configs - core sends data in UTF8, so MySQL must expect UTF8 too
         PExecute("SET NAMES `utf8`");
         PExecute("SET CHARACTER SET `utf8`");
+
+#if MYSQL_VERSION_ID >= 50003
+         my_bool my_true = (my_bool)1;
+         if (mysql_options(mMysql, MYSQL_OPT_RECONNECT, &my_true))
+         {
+             sLog.outDetail("Failed to turn on MYSQL_OPT_RECONNECT.");
+         }
+         else
+         {
+             sLog.outDetail("Successfully turned on MYSQL_OPT_RECONNECT.");
+         }
+#else
+         sLog.outDetail("Your mySQL client lib version does not support reconnecting after a timeout.");
+         sLog.outDetail("If this causes you any trouble we advice you to upgrade");
+         sLog.outDetail("Your mySQL client libs to at least mySQL 5.0.13 to resolve this problem.");
+#endif
 
         return true;
     }
@@ -184,9 +200,9 @@ bool DatabaseMysql::_Query(const char *sql, MYSQL_RES **pResult, MYSQL_FIELD **p
     {
         // guarded block for thread-safe mySQL request
         ACE_Guard<ACE_Thread_Mutex> query_connection_guard(mMutex);
-        #ifdef MANGOS_DEBUG
+
         uint32 _s = getMSTime();
-        #endif
+
         if(mysql_query(mMysql, sql))
         {
             sLog.outErrorDb( "SQL: %s", sql );
@@ -195,9 +211,7 @@ bool DatabaseMysql::_Query(const char *sql, MYSQL_RES **pResult, MYSQL_FIELD **p
         }
         else
         {
-            #ifdef MANGOS_DEBUG
-            sLog.outDebug("[%u ms] SQL: %s", getMSTimeDiff(_s,getMSTime()), sql );
-            #endif
+            DEBUG_FILTER_LOG(LOG_FILTER_SQL_TEXT, "[%u ms] SQL: %s", getMSTimeDiff(_s,getMSTime()), sql );
         }
 
         *pResult = mysql_store_result(mMysql);
@@ -289,9 +303,8 @@ bool DatabaseMysql::DirectExecute(const char* sql)
         // guarded block for thread-safe mySQL request
         ACE_Guard<ACE_Thread_Mutex> query_connection_guard(mMutex);
 
-        #ifdef MANGOS_DEBUG
         uint32 _s = getMSTime();
-        #endif
+
         if(mysql_query(mMysql, sql))
         {
             sLog.outErrorDb("SQL: %s", sql);
@@ -300,9 +313,7 @@ bool DatabaseMysql::DirectExecute(const char* sql)
         }
         else
         {
-            #ifdef MANGOS_DEBUG
-            sLog.outDebug("[%u ms] SQL: %s", getMSTimeDiff(_s,getMSTime()), sql );
-            #endif
+            DEBUG_FILTER_LOG(LOG_FILTER_SQL_TEXT, "[%u ms] SQL: %s", getMSTimeDiff(_s,getMSTime()), sql );
         }
         // end guarded block
     }
@@ -320,7 +331,7 @@ bool DatabaseMysql::_TransactionCmd(const char *sql)
     }
     else
     {
-        DEBUG_LOG("SQL: %s", sql);
+        DEBUG_FILTER_LOG(LOG_FILTER_SQL_TEXT, "SQL: %s", sql);
     }
     return true;
 }

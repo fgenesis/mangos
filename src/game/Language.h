@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -83,7 +83,7 @@ enum MangosStrings
     LANG_USING_WORLD_DB                 = 57,
     LANG_USING_SCRIPT_LIB               = 58,
     LANG_USING_EVENT_AI                 = 59,
-    LANG_RA_BUSY                        = 60,
+    //LANG_RA_BUSY                      = 60, not used
     LANG_RA_USER                        = 61,
     LANG_RA_PASS                        = 62,
     // Room for more level 0              63-99 not used
@@ -277,7 +277,7 @@ enum MangosStrings
     LANG_COMMAND_TICKETVIEW             = 290,
     LANG_COMMAND_TICKETON               = 291,
     LANG_COMMAND_TICKETOFF              = 292,
-    LANG_COMMAND_TICKENOTEXIST          = 293,
+    LANG_COMMAND_TICKETNOTEXIST         = 293,
     LANG_COMMAND_ALLTICKETDELETED       = 294,
     LANG_COMMAND_TICKETPLAYERDEL        = 295,
     LANG_COMMAND_TICKETDEL              = 296,
@@ -480,7 +480,7 @@ enum MangosStrings
     LANG_CREATURE_ENTRY_LIST_CHAT       = 514,
     LANG_CREATURE_LIST_CHAT             = 515,
     LANG_GO_ENTRY_LIST_CHAT             = 516,
-    LANG_GO_LIST_CHAT                   = 517,
+    LANG_GO_MIXED_LIST_CHAT             = 517,
     LANG_ITEMSET_LIST_CHAT              = 518,
     LANG_TELE_LIST                      = 519,
     LANG_SPELL_LIST                     = 520,
@@ -498,9 +498,9 @@ enum MangosStrings
     LANG_MOVEGENS_WAYPOINT              = 529,
     LANG_MOVEGENS_ANIMAL_RANDOM         = 530,
     LANG_MOVEGENS_CONFUSED              = 531,
-    LANG_MOVEGENS_TARGETED_PLAYER       = 532,
-    LANG_MOVEGENS_TARGETED_CREATURE     = 533,
-    LANG_MOVEGENS_TARGETED_NULL         = 534,
+    LANG_MOVEGENS_CHASE_PLAYER          = 532,
+    LANG_MOVEGENS_CHASE_CREATURE        = 533,
+    LANG_MOVEGENS_CHASE_NULL            = 534,
     LANG_MOVEGENS_HOME_CREATURE         = 535,
     LANG_MOVEGENS_HOME_PLAYER           = 536,
     LANG_MOVEGENS_FLIGHT                = 537,
@@ -776,12 +776,25 @@ enum MangosStrings
     LANG_ACCOUNT_NOT_CREATED            = 1008,
     LANG_CHARACTER_DELETED              = 1009,
     LANG_ACCOUNT_LIST_HEADER            = 1010,
-    LANG_ACCOUNT_LIST_ERROR             = 1011,
+    //                                  = 1011, not used
     LANG_ACCOUNT_LIST_BAR               = 1012,
-    LANG_ACCOUNT_LIST_LINE              = 1013,
+    LANG_ACCOUNT_LIST_LINE_CONSOLE      = 1013,
     LANG_ACCOUNT_LIST_EMPTY             = 1014,
     LANG_QUIT_WRONG_USE_ERROR           = 1015,
-    // Room for more level 4              1016-1099 not used
+    LANG_CHARACTER_DELETED_LIST_HEADER  = 1016,
+    LANG_CHARACTER_DELETED_LIST_LINE_CONSOLE = 1017,
+    LANG_CHARACTER_DELETED_LIST_BAR     = 1018,
+    LANG_CHARACTER_DELETED_LIST_EMPTY   = 1019,
+    LANG_CHARACTER_DELETED_RESTORE      = 1020,
+    LANG_CHARACTER_DELETED_DELETE       = 1021,
+    LANG_CHARACTER_DELETED_ERR_RENAME   = 1022,
+    LANG_CHARACTER_DELETED_SKIP_ACCOUNT = 1023,
+    LANG_CHARACTER_DELETED_SKIP_FULL    = 1024,
+    LANG_CHARACTER_DELETED_SKIP_NAME    = 1025,
+    LANG_CHARACTER_DELETED_LIST_LINE_CHAT = 1026,
+    LANG_LOG_FILTERS_STATE_HEADER       = 1027,
+    LANG_ALL_LOG_FILTERS_SET_TO_S       = 1028,
+    // Room for more level 4              1029-1099 not used
 
     // Level 3 (continue)
     LANG_ACCOUNT_SETADDON               = 1100,
@@ -816,7 +829,18 @@ enum MangosStrings
     LANG_TAXINODE_ENTRY_LIST_CONSOLE    = 1129,
     LANG_EVENT_STARTED                  = 1130,
     LANG_EVENT_STOPPED                  = 1131,
-    // Room for more level 3              1132-1199 not used
+    LANG_MOVEGENS_FOLLOW_PLAYER         = 1132,
+    LANG_MOVEGENS_FOLLOW_CREATURE       = 1133,
+    LANG_MOVEGENS_FOLLOW_NULL           = 1134,
+    LANG_LIST_TALENTS_TITLE             = 1135,
+    LANG_LIST_TALENTS_COUNT             = 1136,
+    LANG_GO_LIST_CHAT                   = 1137,
+    LANG_CHARACTERS_LIST_BAR            = 1138,
+    LANG_CHARACTERS_LIST_HEADER         = 1139,
+    LANG_CHARACTERS_LIST_LINE_CONSOLE   = 1140,
+    LANG_CHARACTERS_LIST_LINE_CHAT      = 1141,
+    LANG_ACCOUNT_LIST_LINE_CHAT         = 1142,
+    // Room for more level 3              1143-1199 not used
 
     // Debug commands
     LANG_CINEMATIC_NOT_EXIST            = 1200,

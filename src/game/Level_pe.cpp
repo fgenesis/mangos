@@ -39,7 +39,7 @@ bool ChatHandler::UnlockMove(const char* args)
         player = m_session->GetPlayer();
     WorldPacket data;
     data.Initialize( SMSG_FORCE_MOVE_UNROOT );
-    data.append(player->GetPackGUID());
+    data.appendPackGUID(player->GetGUID());
     player->GetSession()->SendPacket( &data );
     return true;
 }
@@ -51,7 +51,7 @@ bool ChatHandler::LockMove(const char* args)
         player = m_session->GetPlayer();
     WorldPacket data;
     data.Initialize( SMSG_FORCE_MOVE_ROOT );
-    data.append(player->GetPackGUID());
+    data.appendPackGUID(player->GetGUID());
     data << (uint32)2;
     player->GetSession()->SendPacket( &data );
     return true;
@@ -902,7 +902,7 @@ bool ChatHandler::HandleBanAutoCommand(const char *args)
                 uint32 banid = atoi(oldreason.c_str() + 10);
                 max_banid = std::max(max_banid, banid);
             }
-            else if(bandiff >= sWorld.getConfig(CONFIG_AUTOBAN_MIN_COUNTED_BANTIME) || bandiff == 0)
+            else if(bandiff >= (int32)sWorld.getConfig(CONFIG_UINT32_AUTOBAN_MIN_COUNTED_BANTIME) || bandiff == 0)
             {
                 ++counted_extra_bans;
             }
@@ -928,8 +928,56 @@ bool ChatHandler::HandleBanAutoCommand(const char *args)
     case BAN_NOTFOUND:
         PSendSysMessage(LANG_BAN_NOTFOUND,"character",name.c_str());
         SetSentErrorMessage(true);
-        return false;  
+        return false;
     }
 
+    return true;
+}
+
+bool ChatHandler::HandleCharacterAutodumpCommand(const char *args)
+{
+    char* cname = strtok ((char*)args, " ");
+    if (!cname || !*cname)
+        return false;
+    uint64 guid = 0;
+    uint32 accid = 0;
+    Player *target = sObjectMgr.GetPlayer(cname);
+    std::string normalName;
+    if(target)
+    {
+        // player online
+        guid = target->GetGUID();
+        accid = target->GetSession()->GetAccountId();
+        normalName = target->GetName();
+    }
+    else
+    {
+        // player offline, ask DB
+        guid = sObjectMgr.GetPlayerGUIDByName(cname);
+        accid = sObjectMgr.GetPlayerAccountIdByGUID(guid);
+        if(guid && accid)
+        {
+            normalName = cname;
+            normalizePlayerName(normalName);
+        }
+        else // nothing found or wrong data
+        {
+            PSendSysMessage(LANG_NO_PLAYER, cname);
+            SetSentErrorMessage(true);
+            return false;
+        }
+    }
+
+    std::string dump = PlayerDumpWriter().GetDump(GUID_LOPART(guid));
+    std::string outfile;
+    bool result = sLog.outCharDumpExtra(dump.c_str(),accid,GUID_LOPART(guid),normalName.c_str(),&outfile);
+    if(!result)
+    {
+        PSendSysMessage(LANG_FILE_OPEN_FAIL, outfile.c_str());
+        SetSentErrorMessage(true);
+        return false;
+    }
+
+    PSendSysMessage("Dump of '%s' saved to: %s", normalName.c_str(), outfile.c_str());
     return true;
 }

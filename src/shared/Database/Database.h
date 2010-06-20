@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -130,8 +130,11 @@ class MANGOS_DLL_SPEC Database
         void SetResultQueue(SqlResultQueue * queue);
 
         bool CheckRequiredField(char const* table_name, char const* required_name);
+        uint32 GetPingIntervall() { return m_pingIntervallms;}
+
     private:
         bool m_logSQL;
         std::string m_logsDir;
+        uint32 m_pingIntervallms;
 };
 #endif

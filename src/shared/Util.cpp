@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,10 +18,10 @@
 
 #include "Util.h"
 
-#include "sockets/socket_include.h"
 #include "utf8cpp/utf8.h"
 #include "mersennetwister/MersenneTwister.h"
 #include <ace/TSS_T.h>
+#include <ace/INET_Addr.h>
 
 typedef ACE_TSS<MTRand> MTRandTSS;
 static MTRandTSS mtRand;
@@ -46,9 +46,19 @@ double rand_norm(void)
     return mtRand->randExc ();
 }
 
+float rand_norm_f(void)
+{
+    return (float)mtRand->randExc ();
+}
+
 double rand_chance (void)
 {
     return mtRand->randExc (100.0);
+}
+
+float rand_chance_f(void)
+{
+    return (float)mtRand->randExc (100.0);
 }
 
 Tokens StrSplit(const std::string &src, const std::string &sep)
@@ -69,6 +79,23 @@ Tokens StrSplit(const std::string &src, const std::string &sep)
     }
     if (s.length()) r.push_back(s);
     return r;
+}
+
+uint32 GetUInt32ValueFromArray(Tokens const& data, uint16 index)
+{
+    if(index >= data.size())
+        return 0;
+
+    return (uint32)atoi(data[index].c_str());
+}
+
+float GetFloatValueFromArray(Tokens const& data, uint16 index)
+{
+    float result;
+    uint32 temp = GetUInt32ValueFromArray(data,index);
+    memcpy(&result, &temp, sizeof(result));
+
+    return result;
 }
 
 void stripLineInvisibleChars(std::string &str)
@@ -102,12 +129,12 @@ void stripLineInvisibleChars(std::string &str)
         str.erase(wpos,str.size());
 }
 
-std::string secsToTimeString(uint32 timeInSecs, bool shortText, bool hoursOnly)
+std::string secsToTimeString(time_t timeInSecs, bool shortText, bool hoursOnly)
 {
-    uint32 secs    = timeInSecs % MINUTE;
-    uint32 minutes = timeInSecs % HOUR / MINUTE;
-    uint32 hours   = timeInSecs % DAY  / HOUR;
-    uint32 days    = timeInSecs / DAY;
+    time_t secs    = timeInSecs % MINUTE;
+    time_t minutes = timeInSecs % HOUR / MINUTE;
+    time_t hours   = timeInSecs % DAY  / HOUR;
+    time_t days    = timeInSecs / DAY;
 
     std::ostringstream ss;
     if(days)
@@ -179,7 +206,7 @@ bool IsIPAddress(char const* ipaddress)
 
     // FG: support IP ranges to be valid IP addresses, e.g. 192.168.0.%, 127.%.%.%, 1.2.3.4
     Tokens tok = StrSplit(ipaddress, ".");
-    if(tok.size() < 4)
+    if(tok.size() != 4)
         return false;
 
     for(Tokens::iterator it = tok.begin(); it != tok.end(); it++)
@@ -202,7 +229,7 @@ bool IsIPAddress(char const* ipaddress)
 
     // Let the big boys do it.
     // Drawback: all valid ip address formats are recognized e.g.: 12.23,121234,0xABCD)
-    //return inet_addr(ipaddress) != INADDR_NONE;
+    //return ACE_OS::inet_addr(ipaddress) != INADDR_NONE;
 }
 
 /// create PID file
@@ -483,4 +510,3 @@ void hexEncodeByteArray(uint8* bytes, uint32 arrayLen, std::string& result)
     }
     result = ss.str();
 }
-

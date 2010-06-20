@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,6 +42,7 @@
 
 #include "Common.h"
 #include "Auth/AuthCrypt.h"
+#include "Auth/BigNumber.h"
 
 class ACE_Message_Block;
 class WorldPacket;
@@ -120,6 +121,9 @@ class WorldSocket : protected WorldHandler
 
         /// Remove reference to this object.
         long RemoveReference (void);
+
+        /// Return the session key
+        BigNumber& GetSessionKey() { return m_s; }
 
     protected:
         /// things called by ACE framework.
@@ -212,6 +216,8 @@ class WorldSocket : protected WorldHandler
         bool m_OutActive;
 
         uint32 m_Seed;
+
+        BigNumber m_s;
 };
 
 #endif  /* _WORLDSOCKET_H */

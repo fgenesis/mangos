@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -312,7 +312,7 @@ class BattleGroundAV : public BattleGround
         virtual void StartingEventCloseDoors();
         virtual void StartingEventOpenDoors();
         // world states
-        virtual void FillInitialWorldStates(WorldPacket& data);
+        virtual void FillInitialWorldStates(WorldPacket& data, uint32& count);
 
         void RemovePlayer(Player *plr,uint64 guid);
         void HandleAreaTrigger(Player *Source, uint32 Trigger);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@
 //==============================================================
 
 // The pHatingUnit is not used yet
-float ThreatCalcHelper::calcThreat(Unit* pHatedUnit, Unit* pHatingUnit, float pThreat, bool crit, SpellSchoolMask schoolMask, SpellEntry const *pThreatSpell)
+float ThreatCalcHelper::calcThreat(Unit* pHatedUnit, Unit* /*pHatingUnit*/, float pThreat, bool crit, SpellSchoolMask schoolMask, SpellEntry const *pThreatSpell)
 {
     // all flat mods applied early
     if(!pThreat)
@@ -296,7 +296,7 @@ HostileReference* ThreatContainer::selectNextVictim(Creature* pAttacker, Hostile
         currentRef = (*iter);
 
         Unit* target = currentRef->getTarget();
-        assert(target);                                     // if the ref has status online the target must be there !
+        ASSERT(target);                                     // if the ref has status online the target must be there !
 
         // some units are prefered in comparison to others
         if(!noPriorityTargetFound && (target->IsImmunedToDamage(pAttacker->GetMeleeDamageSchoolMask()) || target->hasNegativeAuraWithInterruptFlag(AURA_INTERRUPT_FLAG_DAMAGE)) )
@@ -393,7 +393,7 @@ void ThreatManager::addThreat(Unit* pVictim, float pThreat, bool crit, SpellScho
     if(!pVictim->isAlive() || !getOwner()->isAlive() )
         return;
 
-    assert(getOwner()->GetTypeId()== TYPEID_UNIT);
+    ASSERT(getOwner()->GetTypeId()== TYPEID_UNIT);
 
     float threat = ThreatCalcHelper::calcThreat(pVictim, iOwner, pThreat, crit, schoolMask, pThreatSpell);
 
@@ -517,6 +517,7 @@ void ThreatManager::processThreatEvent(ThreatRefStatusChangeEvent* threatRefStat
                     setCurrentVictim(NULL);
                     setDirty(true);
                 }
+                iOwner->SendThreatRemove(hostileReference);
                 iThreatContainer.remove(hostileReference);
                 iUpdateNeed = true;
                 iThreatOfflineContainer.addReference(hostileReference);
@@ -536,9 +537,9 @@ void ThreatManager::processThreatEvent(ThreatRefStatusChangeEvent* threatRefStat
                 setCurrentVictim(NULL);
                 setDirty(true);
             }
-            iOwner->SendThreatRemove(hostileReference);
             if(hostileReference->isOnline())
             {
+                iOwner->SendThreatRemove(hostileReference);
                 iThreatContainer.remove(hostileReference);
                 iUpdateNeed = true;
             }

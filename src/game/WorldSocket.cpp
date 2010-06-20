@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,11 +37,11 @@
 #include "ByteBuffer.h"
 #include "Opcodes.h"
 #include "Database/DatabaseEnv.h"
-#include "Auth/BigNumber.h"
 #include "Auth/Sha1.h"
 #include "WorldSession.h"
 #include "WorldSocketMgr.h"
 #include "Log.h"
+#include "DBCStores.h"
 
 // FG
 #include "ObjectMgr.h"
@@ -62,7 +62,7 @@ struct ServerPktHeader
         uint8 headerIndex=0;
         if(isLargePacket())
         {
-            sLog.outDebug("initializing large server to client packet. Size: %u, cmd: %u", size, cmd);
+            DEBUG_LOG("initializing large server to client packet. Size: %u, cmd: %u", size, cmd);
             header[headerIndex++] = 0x80|(0xFF &(size>>16));
         }
         header[headerIndex++] = 0xFF &(size>>8);
@@ -250,10 +250,14 @@ int WorldSocket::open (void *a)
     WorldPacket packet (SMSG_AUTH_CHALLENGE, 24);
     packet << uint32(1);                                    // 1...31
     packet << m_Seed;
-    packet << uint32(0xF3539DA3);                           // random data
-    packet << uint32(0x6E8547B9);                           // random data
-    packet << uint32(0x9A6AA2F8);                           // random data
-    packet << uint32(0xA4F170F4);                           // random data
+
+    BigNumber seed1;
+    seed1.SetRand(16 * 8);
+    packet.append(seed1.AsByteArray(16), 16);               // new encryption seeds
+
+    BigNumber seed2;
+    seed2.SetRand(16 * 8);
+    packet.append(seed2.AsByteArray(16), 16);               // new encryption seeds
 
     if (SendPacket (packet) == -1)
         return -1;
@@ -345,7 +349,7 @@ int WorldSocket::handle_output (ACE_HANDLE)
 
         return -1;
     }
-    else if (n < send_len) //now n > 0
+    else if (n < (ssize_t)send_len) //now n > 0
     {
         m_OutBuffer->rd_ptr (static_cast<size_t> (n));
 
@@ -402,7 +406,7 @@ int WorldSocket::handle_output_queue (GuardType& g)
         mblk->release();
         return -1;
     }
-    else if (n < send_len) //now n > 0
+    else if (n < (ssize_t)send_len) //now n > 0
     {
         mblk->rd_ptr (static_cast<size_t> (n));
 
@@ -478,7 +482,7 @@ int WorldSocket::handle_input_header (void)
 
     if ((header.size < 4) || (header.size > 10240) || (header.cmd  > 10240))
     {
-        sLog.outError ("WorldSocket::handle_input_header: client sent mailformed packet size = %d , cmd = %d",
+        sLog.outError ("WorldSocket::handle_input_header: client sent malformed packet size = %d , cmd = %d",
                        header.size, header.cmd);
 
         errno = EINVAL;
@@ -547,7 +551,7 @@ int WorldSocket::handle_input_missing_data (void)
                                           recv_size);
 
     if (n <= 0)
-        return n;
+        return (int)n;
 
     message_block.wr_ptr (n);
 
@@ -689,7 +693,7 @@ int WorldSocket::ProcessIncoming (WorldPacket* new_pct)
 
                 return HandleAuthSession (*new_pct);
             case CMSG_KEEP_ALIVE:
-                DEBUG_LOG ("CMSG_KEEP_ALIVE ,size: %d", new_pct->size ());
+                DEBUG_LOG ("CMSG_KEEP_ALIVE ,size: "SIZEFMTD" ", new_pct->size ());
 
                 return 0;
             default:
@@ -715,15 +719,23 @@ int WorldSocket::ProcessIncoming (WorldPacket* new_pct)
     }
     catch (ByteBufferException &)
     {
-        sLog.outError("WorldSocket::ProcessIncoming ByteBufferException occured while parsing an instant handled packet (opcode: %u) from client %s, accountid=%i. Disconnected client.",
+        sLog.outError("WorldSocket::ProcessIncoming ByteBufferException occured while parsing an instant handled packet (opcode: %u) from client %s, accountid=%i.",
                 opcode, GetRemoteAddress().c_str(), m_Session?m_Session->GetAccountId():-1);
-        if(sLog.IsOutDebug())
+        if (sLog.HasLogLevelOrHigher(LOG_LVL_DEBUG))
         {
             sLog.outDebug("Dumping error-causing packet:");
             new_pct->hexlike();
         }
 
-        return -1;
+        if (sWorld.getConfig(CONFIG_BOOL_KICK_PLAYER_ON_BAD_PACKET))
+        {
+            DETAIL_LOG("Disconnecting session [account id %i / address %s] for badly formatted packet.",
+                m_Session?m_Session->GetAccountId():-1, GetRemoteAddress().c_str());
+
+            return -1;
+        }
+        else
+            return 0;
     }
 
     ACE_NOTREACHED (return 0);
@@ -736,7 +748,7 @@ int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
     uint32 clientSeed;
     uint32 unk2, unk3;
     uint64 unk4;
-    uint32 BuiltNumberClient;
+    uint32 ClientBuild;
     uint32 id, security;
     uint8 expansion = 0;
     LocaleConstant locale;
@@ -748,7 +760,7 @@ int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
     BigNumber K;
 
     // Read the content of the packet
-    recvPacket >> BuiltNumberClient;
+    recvPacket >> ClientBuild;
     recvPacket >> unk2;
     recvPacket >> account;
     recvPacket >> unk3;
@@ -757,25 +769,14 @@ int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
     recvPacket.read (digest, 20);
 
     DEBUG_LOG ("WorldSocket::HandleAuthSession: client %u, unk2 %u, account %s, unk3 %u, clientseed %u",
-                BuiltNumberClient,
+                ClientBuild,
                 unk2,
                 account.c_str (),
                 unk3,
                 clientSeed);
 
     // Check the version of client trying to connect
-    bool valid_version = false;
-    int accepted_versions[] = EXPECTED_MANGOSD_CLIENT_BUILD;
-    for(int i = 0; accepted_versions[i]; ++i)
-    {
-        if(BuiltNumberClient == accepted_versions[i])
-        {
-            valid_version = true;
-            break;
-        }
-    }
-
-    if(!valid_version)
+    if(!IsAcceptableClientBuild(ClientBuild))
     {
         packet.Initialize (SMSG_AUTH_RESPONSE, 1);
         packet << uint8 (AUTH_VERSION_MISMATCH);
@@ -821,13 +822,14 @@ int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
 
     Field* fields = result->Fetch ();
 
-    expansion = ((sWorld.getConfig(CONFIG_EXPANSION) > fields[7].GetUInt8()) ? fields[7].GetUInt8() : sWorld.getConfig(CONFIG_EXPANSION));
+    expansion = ((sWorld.getConfig(CONFIG_UINT32_EXPANSION) > fields[7].GetUInt8()) ? fields[7].GetUInt8() : sWorld.getConfig(CONFIG_UINT32_EXPANSION));
 
     N.SetHexStr ("894B645E89E1535BBDAD5B8B290650530801B18EBFBF5E8FAB3C82872A3E9BB7");
     g.SetDword (7);
 
     v.SetHexStr(fields[5].GetString());
-    s.SetHexStr (fields[6].GetString ());
+    s.SetHexStr (fields[6].GetString());
+    m_s = s;
 
     const char* sStr = s.AsHexStr ();                       //Must be freed by OPENSSL_free()
     const char* vStr = v.AsHexStr ();                       //Must be freed by OPENSSL_free()
@@ -849,7 +851,7 @@ int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
             SendPacket (packet);
 
             delete result;
-            sLog.outBasic ("WorldSocket::HandleAuthSession: Sent Auth Response (Account IP differs).");
+            BASIC_LOG("WorldSocket::HandleAuthSession: Sent Auth Response (Account IP differs).");
             return -1;
         }
     }
@@ -860,7 +862,7 @@ int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
         security = SEC_ADMINISTRATOR;
 
     // FG: prevent login if GM account isnt allowed in this realm
-    if(sWorld.getConfig(CONFIG_LIMIT_GM_ACCOUNTS) && security >= SEC_MODERATOR)
+    if(sWorld.getConfig(CONFIG_BOOL_LIMIT_GM_ACCOUNTS) && security >= SEC_MODERATOR)
     {
         if(!sObjectMgr.IsAllowedGMAccount(id))
         {
@@ -913,7 +915,7 @@ int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
 
         SendPacket (packet);
 
-        sLog.outBasic ("WorldSocket::HandleAuthSession: User tries to login but his security level is not enough");
+        BASIC_LOG("WorldSocket::HandleAuthSession: User tries to login but his security level is not enough");
         return -1;
     }
 
@@ -996,7 +998,7 @@ int WorldSocket::HandlePing (WorldPacket& recvPacket)
         {
             ++m_OverSpeedPings;
 
-            uint32 max_count = sWorld.getConfig (CONFIG_MAX_OVERSPEED_PINGS);
+            uint32 max_count = sWorld.getConfig (CONFIG_UINT32_MAX_OVERSPEED_PINGS);
 
             if (max_count && m_OverSpeedPings > max_count)
             {

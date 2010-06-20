@@ -1,4 +1,4 @@
-# Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+# Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -34,10 +34,11 @@ libmangosgame_a_SOURCES = \
 	AchievementMgr.cpp \
 	AggressorAI.cpp \
 	AggressorAI.h \
-	AnimalRandomMovementGenerator.h \
 	ArenaTeam.cpp \
 	ArenaTeam.h \
 	ArenaTeamHandler.cpp \
+	AuctionHouseBot.cpp \
+	AuctionHouseBot.h \
 	AuctionHouseHandler.cpp \
 	AuctionHouseMgr.cpp \
 	AuctionHouseMgr.h \
@@ -46,7 +47,7 @@ libmangosgame_a_SOURCES = \
 	BattleGround.cpp \
 	BattleGroundAA.cpp \
 	BattleGroundAB.cpp \
-	BattleGroundABG.cpp \
+	BattleGroundRB.cpp \
 	BattleGroundAV.cpp \
 	BattleGroundBE.cpp \
 	BattleGroundDS.cpp \
@@ -60,7 +61,7 @@ libmangosgame_a_SOURCES = \
 	BattleGround.h \
 	BattleGroundAA.h \
 	BattleGroundAB.h \
-	BattleGroundABG.h \
+	BattleGroundRB.h \
 	BattleGroundAV.h \
 	BattleGroundBE.h \
 	BattleGroundDS.h \
@@ -84,6 +85,8 @@ libmangosgame_a_SOURCES = \
 	ChannelHandler.cpp \
 	ChannelMgr.cpp \
 	ChannelMgr.h \
+	CharacterDatabaseCleaner.cpp \
+	CharacterDatabaseCleaner.h \
 	CharacterHandler.cpp \
 	Chat.cpp \
 	Chat.h \
@@ -125,14 +128,14 @@ libmangosgame_a_SOURCES = \
 	GameEventMgr.h \
 	GameObject.cpp \
 	GameObject.h \
-	GlobalEvents.cpp \
-	GlobalEvents.h \
 	GMTicketHandler.cpp \
 	GMTicketMgr.cpp \
 	GMTicketMgr.h \
 	GossipDef.cpp \
 	GossipDef.h \
 	GridDefines.h \
+	GridMap.cpp \
+	GridMap.h \
 	GridNotifiers.cpp \
 	GridNotifiers.h \
 	GridNotifiersImpl.h \
@@ -195,7 +198,8 @@ libmangosgame_a_SOURCES = \
 	ObjectAccessor.cpp \
 	ObjectAccessor.h \
 	Object.cpp \
-	ObjectDefines.h \
+	ObjectGuid.cpp \
+	ObjectGuid.h \
 	ObjectGridLoader.cpp \
 	ObjectGridLoader.h \
 	Object.h \

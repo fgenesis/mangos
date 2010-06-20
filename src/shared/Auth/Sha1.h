@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,7 +31,6 @@ class Sha1Hash
         Sha1Hash();
         ~Sha1Hash();
 
-        void UpdateFinalizeBigNumbers(BigNumber *bn0, ...);
         void UpdateBigNumbers(BigNumber *bn0, ...);
 
         void UpdateData(const uint8 *dta, int len);

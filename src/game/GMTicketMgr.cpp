@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,11 +21,10 @@
 #include "Database/SQLStorage.h"
 #include "GMTicketMgr.h"
 #include "ObjectMgr.h"
-#include "ObjectDefines.h"
+#include "ObjectGuid.h"
 #include "ProgressBar.h"
 #include "Policies/SingletonImp.h"
 #include "Player.h"
-#include "ObjectDefines.h"
 
 INSTANTIATE_SINGLETON_1(GMTicketMgr);
 
@@ -34,8 +33,8 @@ void GMTicketMgr::LoadGMTickets()
     m_GMTicketMap.clear();                                  // For reload case
 
     QueryResult *result = CharacterDatabase.Query(
-        //      0     1           2
-        "SELECT guid, ticket_text,UNIX_TIMESTAMP(ticket_lastchange) FROM character_ticket");
+        //      0     1            2              3
+        "SELECT guid, ticket_text, response_text, UNIX_TIMESTAMP(ticket_lastchange) FROM character_ticket");
 
     if( !result )
     {
@@ -48,7 +47,7 @@ void GMTicketMgr::LoadGMTickets()
         return;
     }
 
-    barGoLink bar( result->GetRowCount() );
+    barGoLink bar( (int)result->GetRowCount() );
 
     uint32 count = 0;
 
@@ -59,7 +58,7 @@ void GMTicketMgr::LoadGMTickets()
         Field* fields = result->Fetch();
 
         uint32 guid = fields[0].GetUInt32();
-        m_GMTicketMap[guid] = GMTicket(guid, fields[1].GetCppString(), time_t(fields[2].GetUInt64()));
+        m_GMTicketMap[guid] = GMTicket(guid, fields[1].GetCppString(), fields[2].GetCppString(), time_t(fields[3].GetUInt64()));
         ++count;
 
     } while (result->NextRow());
@@ -73,9 +72,9 @@ void GMTicketMgr::DeleteAll()
 {
     for(GMTicketMap::const_iterator itr = m_GMTicketMap.begin(); itr != m_GMTicketMap.end(); ++itr)
     {
-        if(Player* owner = sObjectMgr.GetPlayer(MAKE_NEW_GUID(itr->first,0,HIGHGUID_PLAYER)))
-            owner->GetSession()->SendGMTicketGetTicket(0x0A,0);
+        if(Player* owner = sObjectMgr.GetPlayer(MAKE_NEW_GUID(itr->first, 0, HIGHGUID_PLAYER)))
+            owner->GetSession()->SendGMTicketGetTicket(0x0A, 0);
     }
-    CharacterDatabase.PExecute("DELETE FROM character_ticket");
+    CharacterDatabase.Execute("DELETE FROM character_ticket");
     m_GMTicketMap.clear();
 }

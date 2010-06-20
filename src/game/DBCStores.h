@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,11 +25,15 @@
 
 #include <list>
 
+bool IsAcceptableClientBuild(uint32 build);
+std::string AcceptableClientBuildsListStr();
+
 typedef std::list<uint32> SimpleFactionsList;
 
 SimpleFactionsList const* GetFactionTeamList(uint32 faction);
-char* GetPetName(uint32 petfamily, uint32 dbclang);
+char const* GetPetName(uint32 petfamily, uint32 dbclang);
 uint32 GetTalentSpellCost(uint32 spellId);
+uint32 GetTalentSpellCost(TalentSpellPos const* pos);
 TalentSpellPos const* GetTalentSpellPos(uint32 spellId);
 
 int32 GetAreaFlagByAreaID(uint32 area_id);                  // -1 if not found
@@ -52,13 +56,18 @@ ChatChannelsEntry const* GetChannelEntryFor(uint32 channel_id);
 
 bool IsTotemCategoryCompatiableWith(uint32 itemTotemCategoryId, uint32 requiredTotemCategoryId);
 
-void Zone2MapCoordinates(float& x,float& y,uint32 zone);
-void Map2ZoneCoordinates(float& x,float& y,uint32 zone);
+bool Zone2MapCoordinates(float& x,float& y,uint32 zone);
+bool Map2ZoneCoordinates(float& x,float& y,uint32 zone);
 
 typedef std::map<uint32/*pair32(map,diff)*/,MapDifficulty> MapDifficultyMap;
 MapDifficulty const* GetMapDifficultyData(uint32 mapId, Difficulty difficulty);
 
 uint32 const* /*[3]*/ GetTalentTabPages(uint32 cls);
+
+bool IsPointInAreaTriggerZone(AreaTriggerEntry const* atEntry, uint32 mapid, float x, float y, float z, float delta = 0.0f);
+
+PvPDifficultyEntry const* GetBattlegroundBracketByLevel(uint32 mapid, uint32 level);
+PvPDifficultyEntry const* GetBattlegroundBracketById(uint32 mapid, BattleGroundBracketId id);
 
 extern DBCStorage <AchievementEntry>             sAchievementStore;
 extern DBCStorage <AchievementCriteriaEntry>     sAchievementCriteriaStore;
@@ -116,7 +125,10 @@ extern DBCStorage <MapEntry>                     sMapStore;
 //extern DBCStorage <MapDifficultyEntry>           sMapDifficultyStore; -- use GetMapDifficultyData insteed
 extern MapDifficultyMap                          sMapDifficultyMap;
 extern DBCStorage <MovieEntry>                   sMovieStore;
+extern DBCStorage <QuestFactionRewardEntry>      sQuestFactionRewardStore;
 extern DBCStorage <QuestSortEntry>               sQuestSortStore;
+extern DBCStorage <QuestXPLevel>                 sQuestXPLevelStore;
+//extern DBCStorage <PvPDifficultyEntry>           sPvPDifficultyStore; -- use GetBattlegroundSlotByLevel for access
 extern DBCStorage <RandomPropertiesPointsEntry>  sRandomPropertiesPointsStore;
 extern DBCStorage <ScalingStatDistributionEntry> sScalingStatDistributionStore;
 extern DBCStorage <ScalingStatValuesEntry>       sScalingStatValuesStore;
@@ -124,6 +136,7 @@ extern DBCStorage <SkillLineEntry>               sSkillLineStore;
 extern DBCStorage <SkillLineAbilityEntry>        sSkillLineAbilityStore;
 extern DBCStorage <SoundEntriesEntry>            sSoundEntriesStore;
 extern DBCStorage <SpellCastTimesEntry>          sSpellCastTimesStore;
+extern DBCStorage <SpellDifficultyEntry>         sSpellDifficultyStore;
 extern DBCStorage <SpellDurationEntry>           sSpellDurationStore;
 extern DBCStorage <SpellFocusObjectEntry>        sSpellFocusObjectStore;
 extern DBCStorage <SpellItemEnchantmentEntry>    sSpellItemEnchantmentStore;

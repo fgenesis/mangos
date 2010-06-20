@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,15 @@
  */
 
 #include "MovementGenerator.h"
+#include "Unit.h"
 
 MovementGenerator::~MovementGenerator()
 {
+}
+
+bool MovementGenerator::IsActive( Unit& u )
+{
+    // When movement generator list modified from Update movegen object erase delayed,
+    // so pointer still valid and be used for check
+    return !u.GetMotionMaster()->empty() && u.GetMotionMaster()->top() == this;
 }

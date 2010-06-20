@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ void BattleGroundAV::HandleKillPlayer(Player *player, Player *killer)
 
 void BattleGroundAV::HandleKillUnit(Creature *creature, Player *killer)
 {
-    sLog.outDebug("BattleGroundAV: HandleKillUnit %i", creature->GetEntry());
+    DEBUG_LOG("BattleGroundAV: HandleKillUnit %i", creature->GetEntry());
     if (GetStatus() != STATUS_IN_PROGRESS)
         return;
     uint8 event1 = (sBattleGroundMgr.GetCreatureEventIndex(creature->GetDBTableGUIDLow())).event1;
@@ -115,7 +115,7 @@ void BattleGroundAV::HandleQuestComplete(uint32 questid, Player *player)
             reputation = 1;
             if( m_Team_QuestStatus[team][0] == 500 || m_Team_QuestStatus[team][0] == 1000 || m_Team_QuestStatus[team][0] == 1500 ) //25,50,75 turn ins
             {
-                sLog.outDebug("BattleGroundAV: Quest %i completed starting with unit upgrading..", questid);
+                DEBUG_LOG("BattleGroundAV: Quest %i completed starting with unit upgrading..", questid);
                 for (BG_AV_Nodes i = BG_AV_NODES_FIRSTAID_STATION; i <= BG_AV_NODES_FROSTWOLF_HUT; ++i)
                     if (m_Nodes[i].Owner == team && m_Nodes[i].State == POINT_CONTROLLED)
                         PopulateNode(i);
@@ -126,14 +126,14 @@ void BattleGroundAV::HandleQuestComplete(uint32 questid, Player *player)
             m_Team_QuestStatus[team][1]++;
             reputation = 1;
             if (m_Team_QuestStatus[team][1] == 120)
-                sLog.outDebug("BattleGroundAV: Quest %i completed (need to implement some events here", questid);
+                DEBUG_LOG("BattleGroundAV: Quest %i completed (need to implement some events here", questid);
             break;
         case BG_AV_QUEST_A_COMMANDER2:
         case BG_AV_QUEST_H_COMMANDER2:
             m_Team_QuestStatus[team][2]++;
             reputation = 2;
             if (m_Team_QuestStatus[team][2] == 60)
-                sLog.outDebug("BattleGroundAV: Quest %i completed (need to implement some events here", questid);
+                DEBUG_LOG("BattleGroundAV: Quest %i completed (need to implement some events here", questid);
             break;
         case BG_AV_QUEST_A_COMMANDER3:
         case BG_AV_QUEST_H_COMMANDER3:
@@ -141,7 +141,7 @@ void BattleGroundAV::HandleQuestComplete(uint32 questid, Player *player)
             reputation = 5;
             RewardReputationToTeam(team, 1, player->GetTeam());
             if (m_Team_QuestStatus[team][1] == 30)
-                sLog.outDebug("BattleGroundAV: Quest %i completed (need to implement some events here", questid);
+                DEBUG_LOG("BattleGroundAV: Quest %i completed (need to implement some events here", questid);
             break;
         case BG_AV_QUEST_A_BOSS1:
         case BG_AV_QUEST_H_BOSS1:
@@ -152,7 +152,7 @@ void BattleGroundAV::HandleQuestComplete(uint32 questid, Player *player)
             m_Team_QuestStatus[team][4]++;
             reputation += 1;
             if (m_Team_QuestStatus[team][4] >= 200)
-                sLog.outDebug("BattleGroundAV: Quest %i completed (need to implement some events here", questid);
+                DEBUG_LOG("BattleGroundAV: Quest %i completed (need to implement some events here", questid);
             break;
         case BG_AV_QUEST_A_NEAR_MINE:
         case BG_AV_QUEST_H_NEAR_MINE:
@@ -160,9 +160,9 @@ void BattleGroundAV::HandleQuestComplete(uint32 questid, Player *player)
             reputation = 2;
             if (m_Team_QuestStatus[team][5] == 28)
             {
-                sLog.outDebug("BattleGroundAV: Quest %i completed (need to implement some events here", questid);
+                DEBUG_LOG("BattleGroundAV: Quest %i completed (need to implement some events here", questid);
                 if (m_Team_QuestStatus[team][6] == 7)
-                    sLog.outDebug("BattleGroundAV: Quest %i completed (need to implement some events here - ground assault ready", questid);
+                    DEBUG_LOG("BattleGroundAV: Quest %i completed (need to implement some events here - ground assault ready", questid);
             }
             break;
         case BG_AV_QUEST_A_OTHER_MINE:
@@ -171,9 +171,9 @@ void BattleGroundAV::HandleQuestComplete(uint32 questid, Player *player)
             reputation = 3;
             if (m_Team_QuestStatus[team][6] == 7)
             {
-                sLog.outDebug("BattleGroundAV: Quest %i completed (need to implement some events here", questid);
+                DEBUG_LOG("BattleGroundAV: Quest %i completed (need to implement some events here", questid);
                 if (m_Team_QuestStatus[team][5] == 20)
-                    sLog.outDebug("BattleGroundAV: Quest %i completed (need to implement some events here - ground assault ready", questid);
+                    DEBUG_LOG("BattleGroundAV: Quest %i completed (need to implement some events here - ground assault ready", questid);
             }
             break;
         case BG_AV_QUEST_A_RIDER_HIDE:
@@ -182,9 +182,9 @@ void BattleGroundAV::HandleQuestComplete(uint32 questid, Player *player)
             reputation = 1;
             if (m_Team_QuestStatus[team][7] == 25)
             {
-                sLog.outDebug("BattleGroundAV: Quest %i completed (need to implement some events here", questid);
+                DEBUG_LOG("BattleGroundAV: Quest %i completed (need to implement some events here", questid);
                 if (m_Team_QuestStatus[team][8] == 25)
-                    sLog.outDebug("BattleGroundAV: Quest %i completed (need to implement some events here - rider assault ready", questid);
+                    DEBUG_LOG("BattleGroundAV: Quest %i completed (need to implement some events here - rider assault ready", questid);
             }
             break;
         case BG_AV_QUEST_A_RIDER_TAME:
@@ -193,13 +193,13 @@ void BattleGroundAV::HandleQuestComplete(uint32 questid, Player *player)
             reputation = 1;
             if (m_Team_QuestStatus[team][8] == 25)
             {
-                sLog.outDebug("BattleGroundAV: Quest %i completed (need to implement some events here", questid);
+                DEBUG_LOG("BattleGroundAV: Quest %i completed (need to implement some events here", questid);
                 if (m_Team_QuestStatus[team][7] == 25)
-                    sLog.outDebug("BattleGroundAV: Quest %i completed (need to implement some events here - rider assault ready", questid);
+                    DEBUG_LOG("BattleGroundAV: Quest %i completed (need to implement some events here - rider assault ready", questid);
             }
             break;
         default:
-            sLog.outDebug("BattleGroundAV: Quest %i completed but is not interesting for us", questid);
+            DEBUG_LOG("BattleGroundAV: Quest %i completed but is not interesting for us", questid);
             return;
             break;
     }
@@ -210,7 +210,7 @@ void BattleGroundAV::HandleQuestComplete(uint32 questid, Player *player)
 void BattleGroundAV::UpdateScore(BattleGroundTeamId team, int32 points )
 {
     // note: to remove reinforcements points must be negative, for adding reinforcements points must be positive
-    assert( team == BG_TEAM_ALLIANCE || team == BG_TEAM_HORDE);
+    ASSERT( team == BG_TEAM_ALLIANCE || team == BG_TEAM_HORDE);
     m_TeamScores[team] += points;                      // m_TeamScores is int32 - so no problems here
 
     if (points < 0)
@@ -265,14 +265,14 @@ void BattleGroundAV::Update(uint32 diff)
             if (m_Nodes[i].Timer > diff)
                 m_Nodes[i].Timer -= diff;
             else
-                 EventPlayerDestroyedPoint(i);
+                EventPlayerDestroyedPoint(i);
         }
     }
 }
 
 void BattleGroundAV::StartingEventCloseDoors()
 {
-    sLog.outDebug("BattleGroundAV: entering state STATUS_WAIT_JOIN ...");
+    DEBUG_LOG("BattleGroundAV: entering state STATUS_WAIT_JOIN ...");
 }
 
 void BattleGroundAV::StartingEventOpenDoors()
@@ -326,7 +326,7 @@ void BattleGroundAV::EndBattleGround(uint32 winner)
             RewardReputationToTeam(faction[i], tower_survived[i] * m_RepSurviveTower, team[i]);
             RewardHonorToTeam(GetBonusHonorFromKill(tower_survived[i] * BG_AV_KILL_SURVIVING_TOWER), team[i]);
         }
-        sLog.outDebug("BattleGroundAV: EndbattleGround: bgteam: %u towers:%u honor:%u rep:%u", i, tower_survived[i], GetBonusHonorFromKill(tower_survived[i] * BG_AV_KILL_SURVIVING_TOWER), tower_survived[i] * BG_AV_REP_SURVIVING_TOWER);
+        DEBUG_LOG("BattleGroundAV: EndbattleGround: bgteam: %u towers:%u honor:%u rep:%u", i, tower_survived[i], GetBonusHonorFromKill(tower_survived[i] * BG_AV_KILL_SURVIVING_TOWER), tower_survived[i] * BG_AV_REP_SURVIVING_TOWER);
         if (graves_owned[i])
             RewardReputationToTeam(faction[i], graves_owned[i] * m_RepOwnedGrave, team[i]);
         if (mines_owned[i])
@@ -348,7 +348,7 @@ void BattleGroundAV::EndBattleGround(uint32 winner)
     BattleGround::EndBattleGround(winner);
 }
 
-void BattleGroundAV::RemovePlayer(Player* plr,uint64 /*guid*/)
+void BattleGroundAV::RemovePlayer(Player* /*plr*/,uint64 /*guid*/)
 {
 }
 
@@ -379,7 +379,7 @@ void BattleGroundAV::HandleAreaTrigger(Player *Source, uint32 Trigger)
             //Source->Unmount();
             break;
         default:
-            sLog.outDebug("BattleGroundAV: WARNING: Unhandled AreaTrigger in Battleground: %u", Trigger);
+            DEBUG_LOG("BattleGroundAV: WARNING: Unhandled AreaTrigger in Battleground: %u", Trigger);
 //            Source->GetSession()->SendAreaTriggerMessage("Warning: Unhandled AreaTrigger in Battleground: %u", Trigger);
             break;
     }
@@ -418,7 +418,7 @@ void BattleGroundAV::UpdatePlayerScore(Player* Source, uint32 type, uint32 value
 void BattleGroundAV::EventPlayerDestroyedPoint(BG_AV_Nodes node)
 {
 
-    sLog.outDebug("BattleGroundAV: player destroyed point node %i", node);
+    DEBUG_LOG("BattleGroundAV: player destroyed point node %i", node);
 
     // despawn banner
     DestroyNode(node);
@@ -449,7 +449,7 @@ void BattleGroundAV::ChangeMineOwner(uint8 mine, uint32 team)
     // TODO implement quest 7122
     // mine=0 northmine, mine=1 southmine
     // TODO changing the owner should result in setting respawntime to infinite for current creatures (they should fight the new ones), spawning new mine owners creatures and changing the chest - objects so that the current owning team can use them
-    assert(mine == BG_AV_NORTH_MINE || mine == BG_AV_SOUTH_MINE);
+    ASSERT(mine == BG_AV_NORTH_MINE || mine == BG_AV_SOUTH_MINE);
     if (m_Mine_Owner[mine] == int8(team))
         return;
 
@@ -477,9 +477,9 @@ void BattleGroundAV::ChangeMineOwner(uint8 mine, uint32 team)
 bool BattleGroundAV::PlayerCanDoMineQuest(int32 GOId, uint32 team)
 {
     if (GOId == BG_AV_OBJECTID_MINE_N)
-         return (m_Mine_Owner[BG_AV_NORTH_MINE] == GetTeamIndexByTeamId(team));
+        return (m_Mine_Owner[BG_AV_NORTH_MINE] == GetTeamIndexByTeamId(team));
     if (GOId == BG_AV_OBJECTID_MINE_S)
-         return (m_Mine_Owner[BG_AV_SOUTH_MINE] == GetTeamIndexByTeamId(team));
+        return (m_Mine_Owner[BG_AV_SOUTH_MINE] == GetTeamIndexByTeamId(team));
     return true;                                            // cause it's no mine'object it is ok if this is true
 }
 
@@ -513,7 +513,7 @@ void BattleGroundAV::EventPlayerClickedOnFlag(Player *source, GameObject* target
 {
     if (GetStatus() != STATUS_IN_PROGRESS)
         return;
-    sLog.outDebug("BattleGroundAV: using gameobject %i", target_obj->GetEntry());
+    DEBUG_LOG("BattleGroundAV: using gameobject %i", target_obj->GetEntry());
     uint8 event = (sBattleGroundMgr.GetGameObjectEventIndex(target_obj->GetDBTableGUIDLow())).event1;
     if (event >= BG_AV_NODES_MAX)                           // not a node
         return;
@@ -533,7 +533,7 @@ void BattleGroundAV::EventPlayerClickedOnFlag(Player *source, GameObject* target
 
 void BattleGroundAV::EventPlayerDefendsPoint(Player* player, BG_AV_Nodes node)
 {
-    assert(GetStatus() == STATUS_IN_PROGRESS);
+    ASSERT(GetStatus() == STATUS_IN_PROGRESS);
 
     uint32 team = GetTeamIndexByTeamId(player->GetTeam());
 
@@ -543,11 +543,11 @@ void BattleGroundAV::EventPlayerDefendsPoint(Player* player, BG_AV_Nodes node)
     {
         // until snowfall doesn't belong to anyone it is better handled in assault - code (best would be to have a special function
         // for neutral nodes.. but doing this just for snowfall will be a bit to much i think
-        assert(node == BG_AV_NODES_SNOWFALL_GRAVE);         // currently the only neutral grave
+        ASSERT(node == BG_AV_NODES_SNOWFALL_GRAVE);         // currently the only neutral grave
         EventPlayerAssaultsPoint(player, node);
         return;
     }
-    sLog.outDebug("BattleGroundAV: player defends node: %i", node);
+    DEBUG_LOG("BattleGroundAV: player defends node: %i", node);
     if (m_Nodes[node].PrevOwner != team)
     {
         sLog.outError("BattleGroundAV: player defends point which doesn't belong to his team %i", node);
@@ -581,7 +581,7 @@ void BattleGroundAV::EventPlayerAssaultsPoint(Player* player, BG_AV_Nodes node)
 {
     // TODO implement quest 7101, 7081
     uint32 team  = GetTeamIndexByTeamId(player->GetTeam());
-    sLog.outDebug("BattleGroundAV: player assaults node %i", node);
+    DEBUG_LOG("BattleGroundAV: player assaults node %i", node);
     if (m_Nodes[node].Owner == team || team == m_Nodes[node].TotalOwner)
         return;
 
@@ -608,7 +608,7 @@ void BattleGroundAV::EventPlayerAssaultsPoint(Player* player, BG_AV_Nodes node)
     PlaySoundToAll((team == BG_TEAM_ALLIANCE) ? BG_AV_SOUND_ALLIANCE_ASSAULTS : BG_AV_SOUND_HORDE_ASSAULTS);
 }
 
-void BattleGroundAV::FillInitialWorldStates(WorldPacket& data)
+void BattleGroundAV::FillInitialWorldStates(WorldPacket& data, uint32& count)
 {
     bool stateok;
     for (uint32 i = BG_AV_NODES_FIRSTAID_STATION; i < BG_AV_NODES_MAX; ++i)
@@ -616,28 +616,36 @@ void BattleGroundAV::FillInitialWorldStates(WorldPacket& data)
         for (uint8 j = 0; j < BG_AV_MAX_STATES; j++)
         {
             stateok = (m_Nodes[i].State == j);
-            data << uint32(BG_AV_NodeWorldStates[i][GetWorldStateType(j, BG_TEAM_ALLIANCE)]) << uint32((m_Nodes[i].Owner == BG_TEAM_ALLIANCE && stateok) ? 1 : 0);
-            data << uint32(BG_AV_NodeWorldStates[i][GetWorldStateType(j, BG_TEAM_HORDE)]) << uint32((m_Nodes[i].Owner == BG_TEAM_HORDE && stateok) ? 1 : 0);
+            FillInitialWorldState(data, count, BG_AV_NodeWorldStates[i][GetWorldStateType(j, BG_TEAM_ALLIANCE)],
+                m_Nodes[i].Owner == BG_TEAM_ALLIANCE && stateok);
+            FillInitialWorldState(data, count, BG_AV_NodeWorldStates[i][GetWorldStateType(j, BG_TEAM_HORDE)],
+                m_Nodes[i].Owner == BG_TEAM_HORDE && stateok);
         }
     }
 
     if( m_Nodes[BG_AV_NODES_SNOWFALL_GRAVE].Owner == BG_AV_NEUTRAL_TEAM )   // cause neutral teams aren't handled generic
-        data << uint32(AV_SNOWFALL_N) << uint32(1);
+        FillInitialWorldState(data, count, AV_SNOWFALL_N, 1);
 
-    data << uint32(BG_AV_Alliance_Score)  << uint32(m_TeamScores[BG_TEAM_ALLIANCE]);
-    data << uint32(BG_AV_Horde_Score) << uint32(m_TeamScores[BG_TEAM_HORDE]);
+    FillInitialWorldState(data, count, BG_AV_Alliance_Score, m_TeamScores[BG_TEAM_ALLIANCE]);
+    FillInitialWorldState(data, count, BG_AV_Horde_Score,    m_TeamScores[BG_TEAM_HORDE]);
     if( GetStatus() == STATUS_IN_PROGRESS )                 // only if game is running the teamscores are displayed
     {
-        data << uint32(BG_AV_SHOW_A_SCORE) << uint32(1);
-        data << uint32(BG_AV_SHOW_H_SCORE) << uint32(1);
+        FillInitialWorldState(data, count, BG_AV_SHOW_A_SCORE, 1);
+        FillInitialWorldState(data, count, BG_AV_SHOW_H_SCORE, 1);
     }
     else
     {
-        data << uint32(BG_AV_SHOW_A_SCORE) << uint32(0);
-        data << uint32(BG_AV_SHOW_H_SCORE) << uint32(0);
+        FillInitialWorldState(data, count, BG_AV_SHOW_A_SCORE, 0);
+        FillInitialWorldState(data, count, BG_AV_SHOW_H_SCORE, 0);
     }
-    SendMineWorldStates(BG_AV_NORTH_MINE);
-    SendMineWorldStates(BG_AV_SOUTH_MINE);
+
+    FillInitialWorldState(data, count, BG_AV_MineWorldStates[BG_AV_NORTH_MINE][m_Mine_Owner[BG_AV_NORTH_MINE]], 1);
+    if (m_Mine_Owner[BG_AV_NORTH_MINE] != m_Mine_PrevOwner[BG_AV_NORTH_MINE])
+        FillInitialWorldState(data, count, BG_AV_MineWorldStates[BG_AV_NORTH_MINE][m_Mine_PrevOwner[BG_AV_NORTH_MINE]], 0);
+
+    FillInitialWorldState(data, count, BG_AV_MineWorldStates[BG_AV_SOUTH_MINE][m_Mine_Owner[BG_AV_SOUTH_MINE]], 1);
+    if (m_Mine_Owner[BG_AV_SOUTH_MINE] != m_Mine_PrevOwner[BG_AV_SOUTH_MINE])
+        FillInitialWorldState(data, count, BG_AV_MineWorldStates[BG_AV_SOUTH_MINE][m_Mine_PrevOwner[BG_AV_SOUTH_MINE]], 0);
 }
 
 void BattleGroundAV::UpdateNodeWorldState(BG_AV_Nodes node)
@@ -651,9 +659,9 @@ void BattleGroundAV::UpdateNodeWorldState(BG_AV_Nodes node)
 
 void BattleGroundAV::SendMineWorldStates(uint32 mine)
 {
-    assert(mine == BG_AV_NORTH_MINE || mine == BG_AV_SOUTH_MINE);
-    assert(m_Mine_PrevOwner[mine] == BG_TEAM_ALLIANCE || m_Mine_PrevOwner[mine] == BG_TEAM_HORDE || m_Mine_PrevOwner[mine] == BG_AV_NEUTRAL_TEAM);
-    assert(m_Mine_Owner[mine] == BG_TEAM_ALLIANCE || m_Mine_Owner[mine] == BG_TEAM_HORDE || m_Mine_Owner[mine] == BG_AV_NEUTRAL_TEAM);
+    ASSERT(mine == BG_AV_NORTH_MINE || mine == BG_AV_SOUTH_MINE);
+    ASSERT(m_Mine_PrevOwner[mine] == BG_TEAM_ALLIANCE || m_Mine_PrevOwner[mine] == BG_TEAM_HORDE || m_Mine_PrevOwner[mine] == BG_AV_NEUTRAL_TEAM);
+    ASSERT(m_Mine_Owner[mine] == BG_TEAM_ALLIANCE || m_Mine_Owner[mine] == BG_TEAM_HORDE || m_Mine_Owner[mine] == BG_AV_NEUTRAL_TEAM);
 
     UpdateWorldState(BG_AV_MineWorldStates[mine][m_Mine_Owner[mine]], 1);
     if (m_Mine_Owner[mine] != m_Mine_PrevOwner[mine])
@@ -717,11 +725,11 @@ uint32 BattleGroundAV::GetNodeName(BG_AV_Nodes node)
 
 void BattleGroundAV::AssaultNode(BG_AV_Nodes node, uint32 team)
 {
-    assert(team < 3);                                       // alliance:0, horde:1, neutral:2
-    assert(m_Nodes[node].TotalOwner != team);
-    assert(m_Nodes[node].Owner != team);
+    ASSERT(team < 3);                                       // alliance:0, horde:1, neutral:2
+    ASSERT(m_Nodes[node].TotalOwner != team);
+    ASSERT(m_Nodes[node].Owner != team);
     // only assault an assaulted node if no totalowner exists:
-    assert(m_Nodes[node].State != POINT_ASSAULTED || m_Nodes[node].TotalOwner == BG_AV_NEUTRAL_TEAM);
+    ASSERT(m_Nodes[node].State != POINT_ASSAULTED || m_Nodes[node].TotalOwner == BG_AV_NEUTRAL_TEAM);
     // the timer gets another time, if the previous owner was 0 == Neutral
     m_Nodes[node].Timer      = (m_Nodes[node].PrevOwner != BG_AV_NEUTRAL_TEAM) ? BG_AV_CAPTIME : BG_AV_SNOWFALL_FIRSTCAP;
     m_Nodes[node].PrevOwner  = m_Nodes[node].Owner;
@@ -732,7 +740,7 @@ void BattleGroundAV::AssaultNode(BG_AV_Nodes node, uint32 team)
 
 void BattleGroundAV::DestroyNode(BG_AV_Nodes node)
 {
-    assert(m_Nodes[node].State == POINT_ASSAULTED);
+    ASSERT(m_Nodes[node].State == POINT_ASSAULTED);
 
     m_Nodes[node].TotalOwner = m_Nodes[node].Owner;
     m_Nodes[node].PrevOwner  = m_Nodes[node].Owner;
@@ -743,7 +751,7 @@ void BattleGroundAV::DestroyNode(BG_AV_Nodes node)
 
 void BattleGroundAV::InitNode(BG_AV_Nodes node, uint32 team, bool tower)
 {
-    assert(team < 3);                                       // alliance:0, horde:1, neutral:2
+    ASSERT(team < 3);                                       // alliance:0, horde:1, neutral:2
     m_Nodes[node].TotalOwner = team;
     m_Nodes[node].Owner      = team;
     m_Nodes[node].PrevOwner  = team;
@@ -759,10 +767,10 @@ void BattleGroundAV::InitNode(BG_AV_Nodes node, uint32 team, bool tower)
 
 void BattleGroundAV::DefendNode(BG_AV_Nodes node, uint32 team)
 {
-    assert(team < 3);                                       // alliance:0, horde:1, neutral:2
-    assert(m_Nodes[node].TotalOwner == team);
-    assert(m_Nodes[node].Owner != team);
-    assert(m_Nodes[node].State != POINT_CONTROLLED);
+    ASSERT(team < 3);                                       // alliance:0, horde:1, neutral:2
+    ASSERT(m_Nodes[node].TotalOwner == team);
+    ASSERT(m_Nodes[node].Owner != team);
+    ASSERT(m_Nodes[node].State != POINT_CONTROLLED);
     m_Nodes[node].PrevOwner  = m_Nodes[node].Owner;
     m_Nodes[node].Owner      = team;
     m_Nodes[node].PrevState  = m_Nodes[node].State;

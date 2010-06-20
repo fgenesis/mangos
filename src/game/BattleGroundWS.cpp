@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -86,6 +86,31 @@ void BattleGroundWS::Update(uint32 diff)
                 RespawnFlagAfterDrop(HORDE);
             }
         }
+
+        if (m_EndTimer <= diff)
+        {
+            uint32 allianceScore = GetTeamScore(ALLIANCE);
+            uint32 hordeScore    = GetTeamScore(HORDE);
+
+            if (allianceScore > hordeScore)
+                EndBattleGround(ALLIANCE);
+            else if (allianceScore < hordeScore)
+                EndBattleGround(HORDE);
+            else
+            {
+                // if 0 => tie
+                EndBattleGround(m_LastCapturedFlagTeam);
+            }
+        }
+        else
+        {
+            uint32 minutesLeftPrev = GetRemainingTimeInMinutes();
+            m_EndTimer -= diff;
+            uint32 minutesLeft = GetRemainingTimeInMinutes();
+
+            if (minutesLeft != minutesLeftPrev)
+                UpdateWorldState(BG_WS_TIME_REMAINING, minutesLeft);
+        }
     }
 }
 
@@ -117,13 +142,13 @@ void BattleGroundWS::RespawnFlag(uint32 Team, bool captured)
 {
     if (Team == ALLIANCE)
     {
-        sLog.outDebug("Respawn Alliance flag");
+        DEBUG_LOG("Respawn Alliance flag");
         m_FlagState[BG_TEAM_ALLIANCE] = BG_WS_FLAG_STATE_ON_BASE;
         SpawnEvent(WS_EVENT_FLAG_A, 0, true);
     }
     else
     {
-        sLog.outDebug("Respawn Horde flag");
+        DEBUG_LOG("Respawn Horde flag");
         m_FlagState[BG_TEAM_HORDE] = BG_WS_FLAG_STATE_ON_BASE;
         SpawnEvent(WS_EVENT_FLAG_H, 0, true);
     }
@@ -164,6 +189,8 @@ void BattleGroundWS::EventPlayerCapturedFlag(Player *Source)
 {
     if (GetStatus() != STATUS_IN_PROGRESS)
         return;
+
+    m_LastCapturedFlagTeam = Source->GetTeam();
 
     uint32 winner = 0;
 
@@ -526,6 +553,8 @@ void BattleGroundWS::Reset()
     m_HonorWinKills = (isBGWeekend) ? 3 : 1;
     m_HonorEndKills = (isBGWeekend) ? 4 : 2;
 
+    m_EndTimer = BG_WS_TIME_LIMIT;
+    m_LastCapturedFlagTeam = 0;
 }
 
 void BattleGroundWS::EndBattleGround(uint32 winner)
@@ -596,35 +625,37 @@ WorldSafeLocsEntry const* BattleGroundWS::GetClosestGraveYard(Player* player)
     }
 }
 
-void BattleGroundWS::FillInitialWorldStates(WorldPacket& data)
+void BattleGroundWS::FillInitialWorldStates(WorldPacket& data, uint32& count)
 {
-    data << uint32(BG_WS_FLAG_CAPTURES_ALLIANCE) << uint32(GetTeamScore(ALLIANCE));
-    data << uint32(BG_WS_FLAG_CAPTURES_HORDE) << uint32(GetTeamScore(HORDE));
+    FillInitialWorldState(data, count, BG_WS_FLAG_CAPTURES_ALLIANCE, GetTeamScore(ALLIANCE));
+    FillInitialWorldState(data, count, BG_WS_FLAG_CAPTURES_HORDE, GetTeamScore(HORDE));
 
     if (m_FlagState[BG_TEAM_ALLIANCE] == BG_WS_FLAG_STATE_ON_GROUND)
-        data << uint32(BG_WS_FLAG_UNK_ALLIANCE) << uint32(-1);
+        FillInitialWorldState(data, count, BG_WS_FLAG_UNK_ALLIANCE, -1);
     else if (m_FlagState[BG_TEAM_ALLIANCE] == BG_WS_FLAG_STATE_ON_PLAYER)
-        data << uint32(BG_WS_FLAG_UNK_ALLIANCE) << uint32(1);
+        FillInitialWorldState(data, count, BG_WS_FLAG_UNK_ALLIANCE, 1);
     else
-        data << uint32(BG_WS_FLAG_UNK_ALLIANCE) << uint32(0);
+        FillInitialWorldState(data, count, BG_WS_FLAG_UNK_ALLIANCE, 0);
 
     if (m_FlagState[BG_TEAM_HORDE] == BG_WS_FLAG_STATE_ON_GROUND)
-        data << uint32(BG_WS_FLAG_UNK_HORDE) << uint32(-1);
+        FillInitialWorldState(data, count, BG_WS_FLAG_UNK_HORDE, -1);
     else if (m_FlagState[BG_TEAM_HORDE] == BG_WS_FLAG_STATE_ON_PLAYER)
-        data << uint32(BG_WS_FLAG_UNK_HORDE) << uint32(1);
+        FillInitialWorldState(data, count, BG_WS_FLAG_UNK_HORDE, 1);
     else
-        data << uint32(BG_WS_FLAG_UNK_HORDE) << uint32(0);
+        FillInitialWorldState(data, count, BG_WS_FLAG_UNK_HORDE, 0);
 
-    data << uint32(BG_WS_FLAG_CAPTURES_MAX) << uint32(BG_WS_MAX_TEAM_SCORE);
+    FillInitialWorldState(data, count, BG_WS_FLAG_CAPTURES_MAX, BG_WS_MAX_TEAM_SCORE);
 
     if (m_FlagState[BG_TEAM_HORDE] == BG_WS_FLAG_STATE_ON_PLAYER)
-        data << uint32(BG_WS_FLAG_STATE_HORDE) << uint32(2);
+        FillInitialWorldState(data, count, BG_WS_FLAG_STATE_HORDE, 2);
     else
-        data << uint32(BG_WS_FLAG_STATE_HORDE) << uint32(1);
+        FillInitialWorldState(data, count, BG_WS_FLAG_STATE_HORDE, 1);
 
     if (m_FlagState[BG_TEAM_ALLIANCE] == BG_WS_FLAG_STATE_ON_PLAYER)
-        data << uint32(BG_WS_FLAG_STATE_ALLIANCE) << uint32(2);
+        FillInitialWorldState(data, count, BG_WS_FLAG_STATE_ALLIANCE, 2);
     else
-        data << uint32(BG_WS_FLAG_STATE_ALLIANCE) << uint32(1);
+        FillInitialWorldState(data, count, BG_WS_FLAG_STATE_ALLIANCE, 1);
 
+    FillInitialWorldState(data, count, BG_WS_TIME_ENABLED, 1);
+    FillInitialWorldState(data, count, BG_WS_TIME_REMAINING, GetRemainingTimeInMinutes());
 }

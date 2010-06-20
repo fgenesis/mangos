@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -60,7 +60,8 @@ void BigNumber::SetQword(uint64 val)
 void BigNumber::SetBinary(const uint8 *bytes, int len)
 {
     uint8 t[1000];
-    for (int i = 0; i < len; i++) t[i] = bytes[len - 1 - i];
+    for (int i = 0; i < len; i++)
+        t[i] = bytes[len - 1 - i];
     BN_bin2bn(t, len, _bn);
 }
 
@@ -164,7 +165,7 @@ bool BigNumber::isZero() const
     return BN_is_zero(_bn)!=0;
 }
 
-uint8 *BigNumber::AsByteArray(int minSize)
+uint8 *BigNumber::AsByteArray(int minSize, bool reverse)
 {
     int length = (minSize >= GetNumBytes()) ? minSize : GetNumBytes();
 
@@ -181,7 +182,8 @@ uint8 *BigNumber::AsByteArray(int minSize)
 
     BN_bn2bin(_bn, (unsigned char *)_array);
 
-    std::reverse(_array, _array + length);
+    if (reverse)
+        std::reverse(_array, _array + length);
 
     return _array;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@
 #include "BattleGroundMgr.h"
 #include <fstream>
 #include "ObjectMgr.h"
-#include "ObjectDefines.h"
+#include "ObjectGuid.h"
 #include "SpellMgr.h"
 
 bool ChatHandler::HandleDebugSendSpellFailCommand(const char* args)
@@ -87,7 +87,7 @@ bool ChatHandler::HandleDebugSendPoiCommand(const char* args)
     uint32 icon = atol(icon_text);
     uint32 flags = atol(flags_text);
 
-    sLog.outDetail("Command : POI, NPC = %u, icon = %u flags = %u", target->GetGUIDLow(), icon,flags);
+    DETAIL_LOG("Command : POI, NPC = %u, icon = %u flags = %u", target->GetGUIDLow(), icon,flags);
     pPlayer->PlayerTalkClass->SendPointOfInterest(target->GetPositionX(), target->GetPositionY(), Poi_Icon(icon), flags, 30, "Test POI");
     return true;
 }
@@ -98,7 +98,7 @@ bool ChatHandler::HandleDebugSendEquipErrorCommand(const char* args)
         return false;
 
     uint8 msg = atoi(args);
-    m_session->GetPlayer()->SendEquipError(msg, 0, 0);
+    m_session->GetPlayer()->SendEquipError(msg, NULL, NULL);
     return true;
 }
 
@@ -183,16 +183,16 @@ bool ChatHandler::HandleDebugSendOpcodeCommand(const char* /*args*/)
         }
         else if(type == "pguid")
         {
-            data.append(unit->GetPackGUID());
+            data << unit->GetPackGUID();
         }
         else
         {
-            sLog.outDebug("Sending opcode: unknown type '%s'", type.c_str());
+            DEBUG_LOG("Sending opcode: unknown type '%s'", type.c_str());
             break;
         }
     }
     ifs.close();
-    sLog.outDebug("Sending opcode %u", data.GetOpcode());
+    DEBUG_LOG("Sending opcode %u", data.GetOpcode());
     data.hexlike();
     ((Player*)unit)->GetSession()->SendPacket(&data);
     PSendSysMessage(LANG_COMMAND_OPCODESENT, data.GetOpcode(), unit->GetName());
@@ -344,7 +344,16 @@ bool ChatHandler::HandleDebugGetLootRecipientCommand(const char* /*args*/)
     if (!target)
         return false;
 
-    PSendSysMessage("loot recipient: %s", target->hasLootRecipient()?(target->GetLootRecipient()?target->GetLootRecipient()->GetName():"offline"):"no loot recipient");
+    if (!target->HasLootRecipient())
+        SendSysMessage("loot recipient: no loot recipient");
+    else if(Player* recipient = target->GetLootRecipient())
+        PSendSysMessage("loot recipient: %s with raw data %s from group %u",
+            recipient->GetObjectGuid().GetString().c_str(),
+            target->GetLootRecipientGuid().GetString().c_str(),
+            target->GetLootGroupRecipientId());
+    else
+        SendSysMessage("loot recipient: offline ");
+
     return true;
 }
 
@@ -692,7 +701,7 @@ bool ChatHandler::HandleDebugGetItemValueCommand(const char* args)
     uint32 guid = (uint32)atoi(e);
     uint32 index = (uint32)atoi(f);
 
-    Item *i = m_session->GetPlayer()->GetItemByGuid(MAKE_NEW_GUID(guid, 0, HIGHGUID_ITEM));
+    Item *i = m_session->GetPlayer()->GetItemByGuid(ObjectGuid(HIGHGUID_ITEM, guid));
 
     if (!i)
         return false;
@@ -723,7 +732,7 @@ bool ChatHandler::HandleDebugSetItemValueCommand(const char* args)
     uint32 index = (uint32)atoi(f);
     uint32 value = (uint32)atoi(g);
 
-    Item *i = m_session->GetPlayer()->GetItemByGuid(MAKE_NEW_GUID(guid, 0, HIGHGUID_ITEM));
+    Item *i = m_session->GetPlayer()->GetItemByGuid(ObjectGuid(HIGHGUID_ITEM, guid));
 
     if (!i)
         return false;
@@ -813,14 +822,14 @@ bool ChatHandler::HandleDebugSetValueCommand(const char* args)
     if(isint32)
     {
         iValue = (uint32)atoi(py);
-        sLog.outDebug(GetMangosString(LANG_SET_UINT), GUID_LOPART(guid), Opcode, iValue);
+        DEBUG_LOG(GetMangosString(LANG_SET_UINT), GUID_LOPART(guid), Opcode, iValue);
         target->SetUInt32Value( Opcode , iValue );
         PSendSysMessage(LANG_SET_UINT_FIELD, GUID_LOPART(guid), Opcode,iValue);
     }
     else
     {
         fValue = (float)atof(py);
-        sLog.outDebug(GetMangosString(LANG_SET_FLOAT), GUID_LOPART(guid), Opcode, fValue);
+        DEBUG_LOG(GetMangosString(LANG_SET_FLOAT), GUID_LOPART(guid), Opcode, fValue);
         target->SetFloatValue( Opcode , fValue );
         PSendSysMessage(LANG_SET_FLOAT_FIELD, GUID_LOPART(guid), Opcode,fValue);
     }
@@ -864,13 +873,13 @@ bool ChatHandler::HandleDebugGetValueCommand(const char* args)
     if(isint32)
     {
         iValue = target->GetUInt32Value( Opcode );
-        sLog.outDebug(GetMangosString(LANG_GET_UINT), GUID_LOPART(guid), Opcode, iValue);
+        DEBUG_LOG(GetMangosString(LANG_GET_UINT), GUID_LOPART(guid), Opcode, iValue);
         PSendSysMessage(LANG_GET_UINT_FIELD, GUID_LOPART(guid), Opcode,    iValue);
     }
     else
     {
         fValue = target->GetFloatValue( Opcode );
-        sLog.outDebug(GetMangosString(LANG_GET_FLOAT), GUID_LOPART(guid), Opcode, fValue);
+        DEBUG_LOG(GetMangosString(LANG_GET_FLOAT), GUID_LOPART(guid), Opcode, fValue);
         PSendSysMessage(LANG_GET_FLOAT_FIELD, GUID_LOPART(guid), Opcode, fValue);
     }
 
@@ -897,7 +906,7 @@ bool ChatHandler::HandleDebugMod32ValueCommand(const char* args)
         return false;
     }
 
-    sLog.outDebug(GetMangosString(LANG_CHANGE_32BIT), Opcode, Value);
+    DEBUG_LOG(GetMangosString(LANG_CHANGE_32BIT), Opcode, Value);
 
     int CurrentValue = (int)m_session->GetPlayer( )->GetUInt32Value( Opcode );
 

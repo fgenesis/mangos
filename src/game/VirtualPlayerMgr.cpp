@@ -609,7 +609,7 @@ void VirtualPlayer::Init(void)
 {
     uint32 curtime = time(NULL);
     lvlup_xp = sObjectMgr.GetXPForLevel(lvl);
-    next_savetime = urand(0, sWorld.getConfig(CONFIG_INTERVAL_SAVE) / 1000);
+    next_savetime = urand(0, sWorld.getConfig(CONFIG_UINT32_INTERVAL_SAVE) / 1000);
     next_questtime = urand(traits.questtime_min, traits.questtime_max);
     if(lvl < 23)
         next_questtime *= 0.6;
@@ -650,7 +650,7 @@ void VirtualPlayer::HandleKill(uint32 mlvl)
     {
         newxp *= 2; // 8% chance for elite kill
     }
-    newxp *= sWorld.getRate(RATE_XP_KILL);
+    newxp *= sWorld.getConfig(CONFIG_FLOAT_RATE_XP_KILL);
     newxp *= traits.xp_kill;
     if(newxp)
         AddXP(newxp);
@@ -704,7 +704,7 @@ void VirtualPlayer::FinishQuest(uint32 questId)
              endxp = (uint32)(fullxp * 0.1f);
     }
     DEBUG_LOG("VP: %s: quest %u returned %u XP",name.c_str(),questId, endxp);
-    endxp *= sWorld.getRate(RATE_XP_QUEST);
+    endxp *= sWorld.getConfig(CONFIG_FLOAT_RATE_XP_QUEST);
     endxp *= traits.xp_quest;
     AddXP(endxp);
 }
@@ -1156,7 +1156,7 @@ void VirtualPlayerMgr::Update(void)
             {
                 // position change
                 _Save(vp);
-                vp->next_savetime = sWorld.getConfig(CONFIG_INTERVAL_SAVE) / 1000;
+                vp->next_savetime = sWorld.getConfig(CONFIG_UINT32_INTERVAL_SAVE) / 1000;
             }
             else vp->next_savetime -= difftime;
 

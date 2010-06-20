@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 #include "Database/DatabaseEnv.h"
 #include "DBCEnums.h"
 #include "DBCStores.h"
+#include "SharedDefines.h"
 
 #include <map>
 #include <string>
@@ -60,10 +61,11 @@ enum AchievementCriteriaRequirementType
     ACHIEVEMENT_CRITERIA_REQUIRE_S_DRUNK             = 15,  // drunken_state  0             (enum DrunkenState) of player
     ACHIEVEMENT_CRITERIA_REQUIRE_HOLIDAY             = 16,  // holiday_id     0             event in holiday time
     ACHIEVEMENT_CRITERIA_REQUIRE_BG_LOSS_TEAM_SCORE  = 17,  // min_score      max_score     player's team win bg and opposition team have team score in range
-    ACHIEVEMENT_CRITERIA_REQUIRE_INSTANCE_SCRIPT     = 18,  // 0              0             maker instance script call for check curent criteria requirements fit
+    ACHIEVEMENT_CRITERIA_REQUIRE_INSTANCE_SCRIPT     = 18,  // 0              0             maker instance script call for check current criteria requirements fit
+    ACHIEVEMENT_CRITERIA_REQUIRE_S_EQUIPED_ITEM_LVL  = 19,  // item_level     item_quality  fir equipped item in slot `misc1` to item level and quality
 };
 
-#define MAX_ACHIEVEMENT_CRITERIA_REQUIREMENT_TYPE      19 // maximum value in AchievementCriteriaRequirementType enum
+#define MAX_ACHIEVEMENT_CRITERIA_REQUIREMENT_TYPE      20   // maximum value in AchievementCriteriaRequirementType enum
 
 class Player;
 class Unit;
@@ -154,6 +156,13 @@ struct AchievementCriteriaRequirement
             uint32 min_score;
             uint32 max_score;
         } bg_loss_team_score;
+        // ACHIEVEMENT_CRITERIA_REQUIRE_INSTANCE_SCRIPT   = 18 (no data)
+        // ACHIEVEMENT_CRITERIA_REQUIRE_S_EQUIPED_ITEM    = 19
+        struct
+        {
+            uint32 item_level;
+            uint32 item_quality;
+        } equipped_item;
         // ...
         struct
         {
@@ -182,10 +191,10 @@ struct AchievementCriteriaRequirement
 struct AchievementCriteriaRequirementSet
 {
         AchievementCriteriaRequirementSet() : criteria_id(0) {}
-        explicit AchievementCriteriaRequirementSet(uint32 id) : criteria_id(id) {}
         typedef std::vector<AchievementCriteriaRequirement> Storage;
         void Add(AchievementCriteriaRequirement const& data) { storage.push_back(data); }
         bool Meets(Player const* source, Unit const* target, uint32 miscvalue = 0) const;
+        void SetCriteriaId(uint32 id) {criteria_id = id;}
     private:
         uint32 criteria_id;
         Storage storage;
@@ -195,6 +204,7 @@ typedef std::map<uint32,AchievementCriteriaRequirementSet> AchievementCriteriaRe
 
 struct AchievementReward
 {
+    Gender gender;
     uint32 titleId[2];
     uint32 itemId;
     uint32 sender;
@@ -202,15 +212,16 @@ struct AchievementReward
     std::string text;
 };
 
-typedef std::map<uint32,AchievementReward> AchievementRewards;
+typedef std::multimap<uint32,AchievementReward> AchievementRewards;
 
 struct AchievementRewardLocale
 {
+    Gender gender;
     std::vector<std::string> subject;
     std::vector<std::string> text;
 };
 
-typedef std::map<uint32,AchievementRewardLocale> AchievementRewardLocales;
+typedef std::multimap<uint32,AchievementRewardLocale> AchievementRewardLocales;
 
 
 struct CompletedAchievementData
@@ -276,16 +287,26 @@ class AchievementGlobalMgr
             return itr != m_AchievementListByReferencedId.end() ? &itr->second : NULL;
         }
 
-        AchievementReward const* GetAchievementReward(AchievementEntry const* achievement) const
+        AchievementReward const* GetAchievementReward(AchievementEntry const* achievement, uint8 gender) const
         {
-            AchievementRewards::const_iterator iter = m_achievementRewards.find(achievement->ID);
-            return iter!=m_achievementRewards.end() ? &iter->second : NULL;
+            AchievementRewards::const_iterator iter_low = m_achievementRewards.lower_bound(achievement->ID);
+            AchievementRewards::const_iterator iter_up  = m_achievementRewards.upper_bound(achievement->ID);
+            for (AchievementRewards::const_iterator iter = iter_low; iter != iter_up; ++iter)
+                if(iter->second.gender == GENDER_NONE || uint8(iter->second.gender) == gender)
+                    return &iter->second;
+
+            return NULL;
         }
 
-        AchievementRewardLocale const* GetAchievementRewardLocale(AchievementEntry const* achievement) const
+        AchievementRewardLocale const* GetAchievementRewardLocale(AchievementEntry const* achievement, uint8 gender) const
         {
-            AchievementRewardLocales::const_iterator iter = m_achievementRewardLocales.find(achievement->ID);
-            return iter!=m_achievementRewardLocales.end() ? &iter->second : NULL;
+            AchievementRewardLocales::const_iterator iter_low = m_achievementRewardLocales.lower_bound(achievement->ID);
+            AchievementRewardLocales::const_iterator iter_up  = m_achievementRewardLocales.upper_bound(achievement->ID);
+            for (AchievementRewardLocales::const_iterator iter = iter_low; iter != iter_up; ++iter)
+                if(iter->second.gender == GENDER_NONE || uint8(iter->second.gender) == gender)
+                    return &iter->second;
+
+            return NULL;
         }
 
         AchievementCriteriaRequirementSet const* GetCriteriaRequirementSet(AchievementCriteriaEntry const *achievementCriteria)

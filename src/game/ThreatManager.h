@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@ class Creature;
 class ThreatManager;
 struct SpellEntry;
 
-#define THREAT_UPDATE_INTERVAL 1 * IN_MILISECONDS    // Server should send threat update to client periodically each second
+#define THREAT_UPDATE_INTERVAL 1 * IN_MILLISECONDS    // Server should send threat update to client periodically each second
 
 //==============================================================
 // Class to calculate the real threat based

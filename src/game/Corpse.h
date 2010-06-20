@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -59,7 +59,6 @@ class Corpse : public WorldObject
         bool Create( uint32 guidlow, Player *owner );
 
         void SaveToDB();
-        bool LoadFromDB(uint32 guid, QueryResult *result);
         bool LoadFromDB(uint32 guid, Field *fields);
 
         void DeleteBonesFromWorld();
@@ -70,6 +69,9 @@ class Corpse : public WorldObject
         time_t const& GetGhostTime() const { return m_time; }
         void ResetGhostTime() { m_time = time(NULL); }
         CorpseType GetType() const { return m_type; }
+
+        bool IsHostileTo(Unit const* unit) const;
+        bool IsFriendlyTo(Unit const* unit) const;
 
         GridPair const& GetGrid() const { return m_grid; }
         void SetGrid(GridPair const& grid) { m_grid = grid; }
@@ -89,6 +91,8 @@ class Corpse : public WorldObject
         GridReference<Corpse> &GetGridRef() { return m_gridRef; }
 
         bool isActiveObject() const { return false; }
+
+        bool IsExpired(time_t t) const;
     private:
         GridReference<Corpse> m_gridRef;
 

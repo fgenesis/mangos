@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
 class SARC4
 {
     public:
-        SARC4();
-        SARC4(uint8 *seed);
+        SARC4(uint8 len);
+        SARC4(uint8 *seed, uint8 len);
         ~SARC4();
         void Init(uint8 *seed);
         void UpdateData(int len, uint8 *data);

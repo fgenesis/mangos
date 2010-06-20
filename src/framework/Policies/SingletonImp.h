@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,20 +31,21 @@ class ThreadingModel,
 class CreatePolicy,
 class LifeTimePolicy
 >
-T&
-MaNGOS::Singleton<T, ThreadingModel, CreatePolicy, LifeTimePolicy >::Instance()
+T& MaNGOS::Singleton<T, ThreadingModel, CreatePolicy, LifeTimePolicy>::Instance()
 {
-    if( !si_instance )
+    if (!si_instance)
     {
         // double-checked Locking pattern
         Guard();
-        if( !si_instance )
+
+        if (!si_instance)
         {
-            if( si_destroyed )
+            if (si_destroyed)
             {
                 si_destroyed = false;
                 LifeTimePolicy::OnDeadReference();
             }
+
             si_instance = CreatePolicy::Create();
             LifeTimePolicy::ScheduleCall(&DestroySingleton);
         }
@@ -60,8 +61,7 @@ class ThreadingModel,
 class CreatePolicy,
 class LifeTimePolicy
 >
-void
-MaNGOS::Singleton<T, ThreadingModel, CreatePolicy, LifeTimePolicy>::DestroySingleton()
+void MaNGOS::Singleton<T, ThreadingModel, CreatePolicy, LifeTimePolicy>::DestroySingleton()
 {
     CreatePolicy::Destroy(si_instance);
     si_instance = NULL;
@@ -87,4 +87,5 @@ MaNGOS::Singleton<T, ThreadingModel, CreatePolicy, LifeTimePolicy>::DestroySingl
     template class MANGOS_DLL_DECL MaNGOS::Singleton<TYPE, THREADINGMODEL, CREATIONPOLICY, OBJECTLIFETIME >; \
     template<> TYPE* MaNGOS::Singleton<TYPE, THREADINGMODEL, CREATIONPOLICY, OBJECTLIFETIME >::si_instance = 0; \
     template<> bool MaNGOS::Singleton<TYPE, THREADINGMODEL, CREATIONPOLICY, OBJECTLIFETIME >::si_destroyed = false
+
 #endif

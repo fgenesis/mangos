@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -124,7 +124,7 @@ class ReputationMgr
         void SendStates() const;
 
     private:                                                // internal helper functions
-        void Initilize();
+        void Initialize();
         uint32 GetDefaultStateFlags(const FactionEntry *factionEntry) const;
         bool SetReputation(FactionEntry const* factionEntry, int32 standing, bool incremental);
         bool SetOneFactionReputation(FactionEntry const* factionEntry, int32 standing, bool incremental);

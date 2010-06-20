@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -73,7 +73,7 @@ namespace FactorySelector
             {
                 const CreatureAICreator *factory = iter->second;
                 const SelectableAI *p = dynamic_cast<const SelectableAI *>(factory);
-                assert( p != NULL );
+                ASSERT( p != NULL );
                 int val = p->Permit(creature);
                 if( val > best_val )
                 {
@@ -86,14 +86,14 @@ namespace FactorySelector
         // select NullCreatureAI if not another cases
         ainame = (ai_factory == NULL) ? "NullCreatureAI" : ai_factory->key();
 
-        DEBUG_LOG("Creature %u used AI is %s.", creature->GetGUIDLow(), ainame.c_str() );
+        DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "Creature %u used AI is %s.", creature->GetGUIDLow(), ainame.c_str() );
         return ( ai_factory == NULL ? new NullCreatureAI(creature) : ai_factory->Create(creature) );
     }
 
     MovementGenerator* selectMovementGenerator(Creature *creature)
     {
         MovementGeneratorRegistry &mv_registry(MovementGeneratorRepository::Instance());
-        assert( creature->GetCreatureInfo() != NULL );
+        ASSERT( creature->GetCreatureInfo() != NULL );
         const MovementGeneratorCreator *mv_factory = mv_registry.GetRegistryItem( creature->GetDefaultMovementType());
 
         /* if( mv_factory == NULL  )
@@ -105,7 +105,7 @@ namespace FactorySelector
             {
             const MovementGeneratorCreator *factory = mv_registry.GetRegistryItem((*iter).c_str());
             const SelectableMovement *p = dynamic_cast<const SelectableMovement *>(factory);
-            assert( p != NULL );
+            ASSERT( p != NULL );
             int val = p->Permit(creature);
             if( val > best_val )
             {

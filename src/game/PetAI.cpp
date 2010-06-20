@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,9 +44,16 @@ PetAI::PetAI(Creature *c) : CreatureAI(c), i_tracker(TIME_INTERVAL_LOOK), inComb
 
 void PetAI::MoveInLineOfSight(Unit *u)
 {
-    if( !m_creature->getVictim() && m_creature->GetCharmInfo() &&
-        m_creature->GetCharmInfo()->HasReactState(REACT_AGGRESSIVE) &&
-        u->isTargetableForAttack() && m_creature->IsHostileTo( u ) &&
+    if (m_creature->getVictim())
+        return;
+
+    if (m_creature->isPet() && ((Pet*)m_creature)->GetModeFlags() & PET_MODE_DISABLE_ACTIONS)
+        return;
+
+    if (!m_creature->GetCharmInfo() || !m_creature->GetCharmInfo()->HasReactState(REACT_AGGRESSIVE))
+        return;
+
+    if (u->isTargetableForAttack() && m_creature->IsHostileTo( u ) &&
         u->isInAccessablePlaceFor(m_creature))
     {
         float attackRadius = m_creature->GetAttackDistance(u);
@@ -68,7 +75,6 @@ void PetAI::AttackStart(Unit *u)
 
     if(m_creature->Attack(u,true))
     {
-        m_creature->clearUnitState(UNIT_STAT_FOLLOW);
         // TMGs call CreatureRelocation which via MoveInLineOfSight can call this function
         // thus with the following clear the original TMG gets invalidated and crash, doh
         // hope it doesn't start to leak memory without this :-/
@@ -101,7 +107,7 @@ void PetAI::_stopAttack()
     inCombat = false;
     if( !m_creature->isAlive() )
     {
-        DEBUG_LOG("PetAI (guid = %u) stopped attack, he is dead.", m_creature->GetGUIDLow());
+        DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "PetAI (guid = %u) stopped attack, he is dead.", m_creature->GetGUIDLow());
         m_creature->StopMoving();
         m_creature->GetMotionMaster()->Clear();
         m_creature->GetMotionMaster()->MoveIdle();
@@ -119,8 +125,7 @@ void PetAI::_stopAttack()
     }
     else
     {
-        m_creature->clearUnitState(UNIT_STAT_FOLLOW);
-        m_creature->GetMotionMaster()->Clear();
+        m_creature->GetMotionMaster()->Clear(false);
         m_creature->GetMotionMaster()->MoveIdle();
     }
     m_creature->AttackStop();
@@ -139,7 +144,7 @@ void PetAI::UpdateAI(const uint32 diff)
     else
         m_updateAlliesTimer -= diff;
 
-    if (inCombat && !m_creature->getVictim())
+    if (inCombat && (!m_creature->getVictim() || m_creature->isPet() && ((Pet*)m_creature)->GetModeFlags() & PET_MODE_DISABLE_ACTIONS))
         _stopAttack();
 
     // i_pet.getVictim() can't be used for check in case stop fighting, i_pet.getVictim() clear at Unit death etc.
@@ -147,7 +152,7 @@ void PetAI::UpdateAI(const uint32 diff)
     {
         if (_needToStop())
         {
-            DEBUG_LOG("PetAI (guid = %u) is stopping attack.", m_creature->GetGUIDLow());
+            DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "PetAI (guid = %u) is stopping attack.", m_creature->GetGUIDLow());
             _stopAttack();
             return;
         }
@@ -156,7 +161,7 @@ void PetAI::UpdateAI(const uint32 diff)
             // required to be stopped cases
             if (m_creature->IsStopped() && m_creature->IsNonMeleeSpellCasted(false))
             {
-                if (m_creature->hasUnitState(UNIT_STAT_FOLLOW))
+                if (m_creature->hasUnitState(UNIT_STAT_FOLLOW_MOVE))
                     m_creature->InterruptNonMeleeSpells(false);
                 else
                     return;
@@ -283,7 +288,7 @@ void PetAI::UpdateAI(const uint32 diff)
             SpellCastTargets targets;
             targets.setUnitTarget( target );
 
-            if (!m_creature->HasInArc(M_PI, target))
+            if (!m_creature->HasInArc(M_PI_F, target))
             {
                 m_creature->SetInFront(target);
                 if (target->GetTypeId() == TYPEID_PLAYER)
@@ -306,7 +311,7 @@ void PetAI::UpdateAI(const uint32 diff)
 
 bool PetAI::_isVisible(Unit *u) const
 {
-    return m_creature->IsWithinDist(u,sWorld.getConfig(CONFIG_SIGHT_GUARDER))
+    return m_creature->IsWithinDist(u,sWorld.getConfig(CONFIG_FLOAT_SIGHT_GUARDER))
         && u->isVisibleForOrDetect(m_creature,m_creature,true);
 }
 
@@ -315,7 +320,7 @@ void PetAI::UpdateAllies()
     Unit* owner = m_creature->GetCharmerOrOwner();
     Group *pGroup = NULL;
 
-    m_updateAlliesTimer = 10*IN_MILISECONDS;                //update friendly targets every 10 seconds, lesser checks increase performance
+    m_updateAlliesTimer = 10*IN_MILLISECONDS;                //update friendly targets every 10 seconds, lesser checks increase performance
 
     if(!owner)
         return;

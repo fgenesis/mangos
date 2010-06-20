@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -103,13 +103,13 @@ void Player::ApplySpellPowerBonus(int32 amount, bool apply)
 
 void Player::UpdateSpellDamageAndHealingBonus()
 {
-    // Magic damage modifiers implemented in Unit::SpellDamageBonus
+    // Magic damage modifiers implemented in Unit::SpellDamageBonusDone
     // This information for client side use only
     // Get healing bonus for all schools
-    SetStatInt32Value(PLAYER_FIELD_MOD_HEALING_DONE_POS, SpellBaseHealingBonus(SPELL_SCHOOL_MASK_ALL));
+    SetStatInt32Value(PLAYER_FIELD_MOD_HEALING_DONE_POS, SpellBaseHealingBonusDone(SPELL_SCHOOL_MASK_ALL));
     // Get damage bonus for all schools
     for(int i = SPELL_SCHOOL_HOLY; i < MAX_SPELL_SCHOOL; ++i)
-        SetStatInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS+i, SpellBaseDamageBonus(SpellSchoolMask(1 << i)));
+        SetStatInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS+i, SpellBaseDamageBonusDone(SpellSchoolMask(1 << i)));
 }
 
 bool Player::UpdateAllStats()
@@ -128,6 +128,7 @@ bool Player::UpdateAllStats()
     for(int i = POWER_MANA; i < MAX_POWERS; ++i)
         UpdateMaxPower(Powers(i));
 
+    UpdateAllRatings();
     UpdateAllCritPercentages();
     UpdateAllSpellCritChances();
     UpdateDefenseBonusesMod();
@@ -292,7 +293,8 @@ void Player::UpdateAttackPowerAndDamage(bool ranged )
             case CLASS_DRUID:
             {
                 //Check if Predatory Strikes is skilled
-                float mLevelMult = 0.0;
+                float mLevelBonus = 0.0f;
+                float mBonusWeaponAtt = 0.0f;
                 switch(m_form)
                 {
                     case FORM_CAT:
@@ -303,12 +305,18 @@ void Player::UpdateAttackPowerAndDamage(bool ranged )
                         Unit::AuraList const& mDummy = GetAurasByType(SPELL_AURA_DUMMY);
                         for(Unit::AuraList::const_iterator itr = mDummy.begin(); itr != mDummy.end(); ++itr)
                         {
+                            if((*itr)->GetSpellProto()->SpellIconID != 1563)
+                                continue;
+
                             // Predatory Strikes (effect 0)
-                            if ((*itr)->GetEffIndex()==0 && (*itr)->GetSpellProto()->SpellIconID == 1563)
-                            {
-                                mLevelMult = (*itr)->GetModifier()->m_amount / 100.0f;
+                            if ((*itr)->GetEffIndex() == EFFECT_INDEX_0 && IsInFeralForm())
+                                mLevelBonus = getLevel() * (*itr)->GetModifier()->m_amount / 100.0f;
+                            // Predatory Strikes (effect 1)
+                            else if ((*itr)->GetEffIndex() == EFFECT_INDEX_1)
+                                mBonusWeaponAtt = (*itr)->GetModifier()->m_amount * m_baseFeralAP / 100.0f;
+
+                            if (mLevelBonus != 0.0f && mBonusWeaponAtt != 0.0f)
                                 break;
-                            }
                         }
                         break;
                     }
@@ -318,12 +326,12 @@ void Player::UpdateAttackPowerAndDamage(bool ranged )
                 switch(m_form)
                 {
                     case FORM_CAT:
-                        val2 = getLevel()*(mLevelMult+2.0f) + GetStat(STAT_STRENGTH)*2.0f + GetStat(STAT_AGILITY) - 20.0f + m_baseFeralAP; break;
+                        val2 = GetStat(STAT_STRENGTH)*2.0f + GetStat(STAT_AGILITY) - 20.0f + mLevelBonus + m_baseFeralAP + mBonusWeaponAtt; break;
                     case FORM_BEAR:
                     case FORM_DIREBEAR:
-                        val2 = getLevel()*(mLevelMult+3.0f) + GetStat(STAT_STRENGTH)*2.0f - 20.0f + m_baseFeralAP; break;
+                        val2 = GetStat(STAT_STRENGTH)*2.0f - 20.0f + mLevelBonus + m_baseFeralAP + mBonusWeaponAtt; break;
                     case FORM_MOONKIN:
-                        val2 = getLevel()*(mLevelMult+1.5f) + GetStat(STAT_STRENGTH)*2.0f - 20.0f + m_baseFeralAP; break;
+                        val2 = GetStat(STAT_STRENGTH)*2.0f - 20.0f + m_baseFeralAP + mBonusWeaponAtt; break;
                     default:
                         val2 = GetStat(STAT_STRENGTH)*2.0f - 20.0f; break;
                 }
@@ -390,7 +398,7 @@ void Player::UpdateShieldBlockValue()
     SetUInt32Value(PLAYER_SHIELD_BLOCK, GetShieldBlockValue());
 }
 
-void Player::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, bool addTotalPct, float& min_damage, float& max_damage)
+void Player::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, float& min_damage, float& max_damage)
 {
     UnitMods unitMod;
     UnitMods attPower;
@@ -417,7 +425,7 @@ void Player::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, bo
     float base_value  = GetModifierValue(unitMod, BASE_VALUE) + GetTotalAttackPowerValue(attType)/ 14.0f * att_speed;
     float base_pct    = GetModifierValue(unitMod, BASE_PCT);
     float total_value = GetModifierValue(unitMod, TOTAL_VALUE);
-    float total_pct   = addTotalPct ? GetModifierValue(unitMod, TOTAL_PCT) : 1.0f;
+    float total_pct   = GetModifierValue(unitMod, TOTAL_PCT);
 
     float weapon_mindamage = GetWeaponDamageRange(attType, MINDAMAGE);
     float weapon_maxdamage = GetWeaponDamageRange(attType, MAXDAMAGE);
@@ -427,8 +435,8 @@ void Player::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, bo
         uint32 lvl = getLevel();
         if ( lvl > 60 ) lvl = 60;
 
-        weapon_mindamage = lvl*0.85*att_speed;
-        weapon_maxdamage = lvl*1.25*att_speed;
+        weapon_mindamage = lvl*0.85f*att_speed;
+        weapon_maxdamage = lvl*1.25f*att_speed;
     }
     else if(!IsUseEquipedWeapon(attType==BASE_ATTACK))      //check if player not in form but still can't use weapon (broken/etc)
     {
@@ -450,7 +458,7 @@ void Player::UpdateDamagePhysical(WeaponAttackType attType)
     float mindamage;
     float maxdamage;
 
-    CalculateMinMaxDamage(attType,false,true,mindamage,maxdamage);
+    CalculateMinMaxDamage(attType,false,mindamage,maxdamage);
 
     switch(attType)
     {
@@ -868,7 +876,23 @@ bool Pet::UpdateStats(Stats stat)
     if ( stat == STAT_STAMINA )
     {
         if(owner)
-            value += float(owner->GetStat(stat)) * 0.3f;
+         {
+         float scale_coeff = 0.3f;
+         switch (owner->getClass())
+         {
+             case CLASS_HUNTER:
+                 scale_coeff = 0.45f;
+				break;
+             case CLASS_WARLOCK:
+                 scale_coeff = 0.7f;
+                 break;
+             case CLASS_DEATH_KNIGHT:
+                 scale_coeff = 0.3928f;
+                 break;
+         }
+         value += float(owner->GetStat(stat)) * scale_coeff;
+         }
+
     }
                                                             //warlock's and mage's pets gain 30% of owner's intellect
     else if ( stat == STAT_INTELLECT && getPetType() == SUMMON_PET )
@@ -947,7 +971,9 @@ void Pet::UpdateArmor()
 void Pet::UpdateMaxHealth()
 {
     UnitMods unitMod = UNIT_MOD_HEALTH;
+    UnitMods unitModStam = UNIT_MOD_STAT_STAMINA;
     float stamina = GetStat(STAT_STAMINA) - GetCreateStat(STAT_STAMINA);
+    stamina  *= GetModifierValue(unitModStam, TOTAL_PCT);
 
     float value   = GetModifierValue(unitMod, BASE_VALUE) + GetCreateHealth();
     value  *= GetModifierValue(unitMod, BASE_PCT);
@@ -1059,16 +1085,16 @@ void Pet::UpdateDamagePhysical(WeaponAttackType attType)
         {
             case HAPPY:
                 // 125% of normal damage
-                mindamage = mindamage * 1.25;
-                maxdamage = maxdamage * 1.25;
+                mindamage = mindamage * 1.25f;
+                maxdamage = maxdamage * 1.25f;
                 break;
             case CONTENT:
                 // 100% of normal damage, nothing to modify
                 break;
             case UNHAPPY:
                 // 75% of normal damage
-                mindamage = mindamage * 0.75;
-                maxdamage = maxdamage * 0.75;
+                mindamage = mindamage * 0.75f;
+                maxdamage = maxdamage * 0.75f;
                 break;
         }
     }

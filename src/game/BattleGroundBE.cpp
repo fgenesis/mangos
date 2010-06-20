@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -105,7 +105,7 @@ void BattleGroundBE::HandleKillPlayer(Player *player, Player *killer)
 
 bool BattleGroundBE::HandlePlayerUnderMap(Player *player)
 {
-    player->TeleportTo(GetMapId(),6238.930176,262.963470,0.889519,player->GetOrientation(),false);
+    player->TeleportTo(GetMapId(),6238.930176f,262.963470f,0.889519f,player->GetOrientation(),false);
     return true;
 }
 
@@ -135,11 +135,11 @@ void BattleGroundBE::HandleAreaTrigger(Player *Source, uint32 Trigger)
     //    HandleTriggerBuff(buff_guid,Source);
 }
 
-void BattleGroundBE::FillInitialWorldStates(WorldPacket &data)
+void BattleGroundBE::FillInitialWorldStates(WorldPacket &data, uint32& count)
 {
-    data << uint32(0x9f1) << uint32(GetAlivePlayersCountByTeam(ALLIANCE));           // 7
-    data << uint32(0x9f0) << uint32(GetAlivePlayersCountByTeam(HORDE));           // 8
-    data << uint32(0x9f3) << uint32(1);           // 9
+    FillInitialWorldState(data, count, 0x9f1, GetAlivePlayersCountByTeam(ALLIANCE));
+    FillInitialWorldState(data, count, 0x9f0, GetAlivePlayersCountByTeam(HORDE));
+    FillInitialWorldState(data, count, 0x9f3, 1);
 }
 
 void BattleGroundBE::Reset()

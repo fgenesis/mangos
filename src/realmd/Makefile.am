@@ -1,4 +1,4 @@
-# Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+# Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,7 +25,11 @@ mangos_realmd_SOURCES = \
 	AuthCodes.h \
 	AuthSocket.cpp \
 	AuthSocket.h \
+	BufferedSocket.h \
+	BufferedSocket.cpp \
 	Main.cpp \
+	PatchHandler.h \
+	PatchHandler.cpp \
 	RealmList.cpp \
 	RealmList.h
 
@@ -35,10 +39,9 @@ mangos_realmd_LDADD = \
 	../shared/Config/libmangosconfig.a \
 	../shared/Auth/libmangosauth.a \
 	../shared/libmangosshared.a \
-	../framework/libmangosframework.a \
-	../../dep/src/sockets/libmangossockets.a
+	../framework/libmangosframework.a
 
-mangos_realmd_LDFLAGS = -L../../dep/src/sockets -L$(libdir) $(MANGOS_LIBS)
+mangos_realmd_LDFLAGS = -L$(libdir) $(MANGOS_LIBS)
 
 ## Additional files to include when running 'make dist'
 #  Include realm list daemon configuration

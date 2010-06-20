@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ class Player;
 
 #define CENTER_GRID_OFFSET      (SIZE_OF_GRIDS/2)
 
-#define MIN_GRID_DELAY          (MINUTE*IN_MILISECONDS)
+#define MIN_GRID_DELAY          (MINUTE*IN_MILLISECONDS)
 #define MIN_MAP_UPDATE_DELAY    50
 
 #define MAX_NUMBER_OF_CELLS     8

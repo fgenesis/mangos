@@ -1,4 +1,4 @@
-# Copyright (C) 2005-2008 MaNGOS <http://getmangos.com/>
+# Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -160,34 +160,6 @@ EXTRA_DIST += \
 	postgre/pg_type.h \
 	postgre/postgres_ext.h
 
-#  Sockets header files for Win32 builds
-EXTRA_DIST += \
-	sockets\Base64.h \
-	sockets\CircularBuffer.h \
-	sockets\IFile.h \
-	sockets\Ipv4Address.h \
-	sockets\Ipv6Address.h \
-	sockets\ISocketHandler.h \
-	sockets\ListenSocket.h \
-	sockets\Mutex.h \
-	sockets\Parse.h \
-	sockets\RandomNumber.h \
-	sockets\ResolvServer.h \
-	sockets\ResolvSocket.h \
-	sockets\SctpSocket.h \
-	sockets\Socket.h \
-	sockets\socket_include.h \
-	sockets\SocketAddress.h \
-	sockets\SocketHandler.h \
-	sockets\sockets-config.h \
-	sockets\StdLog.h \
-	sockets\StdoutLog.h \
-	sockets\TcpSocket.h \
-	sockets\Thread.h \
-	sockets\UdpSocket.h \
-	sockets\Uid.h \
-	sockets\Utility.h
-
 #  VLD header files for Win32 builds
 EXTRA_DIST += \
 	vld/vld.h
@@ -207,3 +179,8 @@ EXTRA_DIST += \
 	utf8cpp/utf8/checked.h \
 	utf8cpp/utf8/core.h \
 	utf8cpp/utf8/unchecked.h
+
+# gsoap header file
+EXTRA_DIST += \
+	gsoap/stdsoap2.h
+

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,9 +41,9 @@ void WorldSession::HandleDuelAcceptedOpcode(WorldPacket& recvPacket)
     if(pl == pl->duel->initiator || !plTarget || pl == plTarget || pl->duel->startTime != 0 || plTarget->duel->startTime != 0)
         return;
 
-    //sLog.outDebug( "WORLD: received CMSG_DUEL_ACCEPTED" );
-    DEBUG_LOG("Player 1 is: %u (%s)", pl->GetGUIDLow(), pl->GetName());
-    DEBUG_LOG("Player 2 is: %u (%s)", plTarget->GetGUIDLow(), plTarget->GetName());
+    DEBUG_FILTER_LOG(LOG_FILTER_COMBAT, "WORLD: received CMSG_DUEL_ACCEPTED" );
+    DEBUG_FILTER_LOG(LOG_FILTER_COMBAT, "Player 1 is: %u (%s)", pl->GetGUIDLow(), pl->GetName());
+    DEBUG_FILTER_LOG(LOG_FILTER_COMBAT, "Player 2 is: %u (%s)", plTarget->GetGUIDLow(), plTarget->GetName());
 
     time_t now = time(NULL);
     pl->duel->startTimer = now;
@@ -55,7 +55,7 @@ void WorldSession::HandleDuelAcceptedOpcode(WorldPacket& recvPacket)
 
 void WorldSession::HandleDuelCancelledOpcode(WorldPacket& recvPacket)
 {
-    //sLog.outDebug( "WORLD: received CMSG_DUEL_CANCELLED" );
+    //DEBUG_LOG( "WORLD: received CMSG_DUEL_CANCELLED" );
 
     // no duel requested
     if(!GetPlayer()->duel)

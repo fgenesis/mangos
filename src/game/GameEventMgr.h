@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,12 +31,12 @@ class GameObject;
 
 struct GameEventData
 {
-    GameEventData() : start(1),end(0),occurence(0),length(0) {}
+    GameEventData() : start(1),end(0),occurence(0),length(0), holiday_id(HOLIDAY_NONE) {}
     time_t start;
     time_t end;
-    uint32 occurence;
-    uint32 length;
-    uint32 holiday_id;
+    uint32 occurence;                                       // Delay in minutes between occurences of the event
+    uint32 length;                                          // Length in minutes of the event
+    HolidayIds holiday_id;
     std::string description;
 
     bool isValid() const { return length > 0; }
@@ -76,6 +76,7 @@ class GameEventMgr
         void GameEventUnspawn(int16 event_id);
         void ChangeEquipOrModel(int16 event_id, bool activate);
         void UpdateEventQuests(uint16 event_id, bool Activate);
+        void UpdateWorldStates(uint16 event_id, bool Activate);
     protected:
         typedef std::list<uint32> GuidList;
         typedef std::list<uint16> IdList;

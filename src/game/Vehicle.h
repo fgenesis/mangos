@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 #ifndef MANGOSSERVER_VEHICLE_H
 #define MANGOSSERVER_VEHICLE_H
 
-#include "ObjectDefines.h"
+#include "ObjectGuid.h"
 #include "Creature.h"
 #include "Unit.h"
 
@@ -48,11 +48,11 @@ class Vehicle : public Creature
     private:
         void SaveToDB(uint32, uint8)                        // overwrited of Creature::SaveToDB     - don't must be called
         {
-            assert(false);
+            ASSERT(false);
         }
         void DeleteFromDB()                                 // overwrited of Creature::DeleteFromDB - don't must be called
         {
-            assert(false);
+            ASSERT(false);
         }
 };
 #endif

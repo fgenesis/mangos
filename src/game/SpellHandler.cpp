@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,44 +47,51 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
 
     recvPacket >> bagIndex >> slot >> cast_count >> spellid >> item_guid >> glyphIndex >> unk_flags;
 
+    // reject fake data
+    if (glyphIndex >= MAX_GLYPH_SLOT_INDEX)
+    {
+        pUser->SendEquipError(EQUIP_ERR_ITEM_NOT_FOUND, NULL, NULL );
+        return;
+    }
+
     Item *pItem = pUser->GetItemByPos(bagIndex, slot);
-    if(!pItem)
+    if (!pItem)
     {
         pUser->SendEquipError(EQUIP_ERR_ITEM_NOT_FOUND, NULL, NULL );
         return;
     }
 
-    if(pItem->GetGUID() != item_guid)
+    if (pItem->GetGUID() != item_guid)
     {
         pUser->SendEquipError(EQUIP_ERR_ITEM_NOT_FOUND, NULL, NULL );
         return;
     }
 
-    sLog.outDetail("WORLD: CMSG_USE_ITEM packet, bagIndex: %u, slot: %u, cast_count: %u, spellid: %u, Item: %u, glyphIndex: %u, unk_flags: %u, data length = %i", bagIndex, slot, cast_count, spellid, pItem->GetEntry(), glyphIndex, unk_flags, (uint32)recvPacket.size());
+    DETAIL_LOG("WORLD: CMSG_USE_ITEM packet, bagIndex: %u, slot: %u, cast_count: %u, spellid: %u, Item: %u, glyphIndex: %u, unk_flags: %u, data length = %i", bagIndex, slot, cast_count, spellid, pItem->GetEntry(), glyphIndex, unk_flags, (uint32)recvPacket.size());
 
     ItemPrototype const *proto = pItem->GetProto();
-    if(!proto)
+    if (!proto)
     {
         pUser->SendEquipError(EQUIP_ERR_ITEM_NOT_FOUND, pItem, NULL );
         return;
     }
 
     // some item classes can be used only in equipped state
-    if(proto->InventoryType != INVTYPE_NON_EQUIP && !pItem->IsEquipped())
+    if (proto->InventoryType != INVTYPE_NON_EQUIP && !pItem->IsEquipped())
     {
         pUser->SendEquipError(EQUIP_ERR_ITEM_NOT_FOUND, pItem, NULL );
         return;
     }
 
     uint8 msg = pUser->CanUseItem(pItem);
-    if( msg != EQUIP_ERR_OK )
+    if (msg != EQUIP_ERR_OK)
     {
         pUser->SendEquipError( msg, pItem, NULL );
         return;
     }
 
     // only allow conjured consumable, bandage, poisons (all should have the 2^21 item flag set in DB)
-    if( proto->Class == ITEM_CLASS_CONSUMABLE &&
+    if (proto->Class == ITEM_CLASS_CONSUMABLE &&
         !(proto->Flags & ITEM_FLAGS_USEABLE_IN_ARENA) &&
         pUser->InArena())
     {
@@ -105,6 +112,13 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
                 }
             }
         }
+
+        // Prevent potion drink if another potion in processing (client have potions disabled in like case)
+        if (pItem->IsPotion() && pUser->GetLastPotionId())
+        {
+            pUser->SendEquipError(EQUIP_ERR_OBJECT_IS_BUSY,pItem,NULL);
+            return;
+        }
     }
 
     // check also  BIND_WHEN_PICKED_UP and BIND_QUEST_ITEM for .additem or .additemset case by GM (not binded at adding to inventory)
@@ -118,8 +132,8 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
     }
 
     SpellCastTargets targets;
-    if (!targets.read(&recvPacket, pUser))
-        return;
+
+    recvPacket >> targets.ReadForCaster(pUser);
 
     targets.Update(pUser);
 
@@ -132,8 +146,8 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
         if (SpellEntry const* spellInfo = sSpellStore.LookupEntry(spellid))
         {
             // for implicit area/coord target spells
-            if (IsPointEffectTarget(Targets(spellInfo->EffectImplicitTargetA[0])) ||
-                IsAreaEffectTarget(Targets(spellInfo->EffectImplicitTargetA[0])))
+            if (IsPointEffectTarget(Targets(spellInfo->EffectImplicitTargetA[EFFECT_INDEX_0])) ||
+                IsAreaEffectTarget(Targets(spellInfo->EffectImplicitTargetA[EFFECT_INDEX_0])))
                 Spell::SendCastResult(_player,spellInfo,cast_count,SPELL_FAILED_NO_VALID_TARGETS);
             // for explicit target spells
             else
@@ -158,7 +172,7 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
 
 void WorldSession::HandleOpenItemOpcode(WorldPacket& recvPacket)
 {
-    sLog.outDetail("WORLD: CMSG_OPEN_ITEM packet, data length = %i",(uint32)recvPacket.size());
+    DETAIL_LOG("WORLD: CMSG_OPEN_ITEM packet, data length = %i",(uint32)recvPacket.size());
 
     Player* pUser = _player;
 
@@ -170,7 +184,7 @@ void WorldSession::HandleOpenItemOpcode(WorldPacket& recvPacket)
 
     recvPacket >> bagIndex >> slot;
 
-    sLog.outDetail("bagIndex: %u, slot: %u",bagIndex,slot);
+    DETAIL_LOG("bagIndex: %u, slot: %u",bagIndex,slot);
 
     Item *pItem = pUser->GetItemByPos(bagIndex, slot);
     if(!pItem)
@@ -240,7 +254,7 @@ void WorldSession::HandleGameObjectUseOpcode( WorldPacket & recv_data )
 
     recv_data >> guid;
 
-    sLog.outDebug( "WORLD: Recvd CMSG_GAMEOBJ_USE Message [guid=%u]", GUID_LOPART(guid));
+    DEBUG_LOG( "WORLD: Recvd CMSG_GAMEOBJ_USE Message [guid=%u]", GUID_LOPART(guid));
 
     // ignore for remote control state
     if(_player->m_mover != _player)
@@ -251,9 +265,6 @@ void WorldSession::HandleGameObjectUseOpcode( WorldPacket & recv_data )
     if(!obj)
         return;
 
-    if (Script->GOHello(_player, obj))
-        return;
-
     obj->Use(_player);
 }
 
@@ -262,7 +273,7 @@ void WorldSession::HandleGameobjectReportUse(WorldPacket& recvPacket)
     uint64 guid;
     recvPacket >> guid;
 
-    sLog.outDebug( "WORLD: Recvd CMSG_GAMEOBJ_REPORT_USE Message [in game guid: %u]", GUID_LOPART(guid));
+    DEBUG_LOG( "WORLD: Recvd CMSG_GAMEOBJ_REPORT_USE Message [in game guid: %u]", GUID_LOPART(guid));
 
     // ignore for remote control state
     if(_player->m_mover != _player)
@@ -294,7 +305,7 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
         return;
     }
 
-    sLog.outDebug("WORLD: got cast spell packet, spellId - %u, cast_count: %u, unk_flags %u, data length = %i",
+    DEBUG_LOG("WORLD: got cast spell packet, spellId - %u, cast_count: %u, unk_flags %u, data length = %i",
         spellId, cast_count, unk_flags, (uint32)recvPacket.size());
 
     SpellEntry const *spellInfo = sSpellStore.LookupEntry(spellId );
@@ -330,28 +341,25 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
 
     // client provided targets
     SpellCastTargets targets;
-    if(!targets.read(&recvPacket,mover))
-    {
-        recvPacket.rpos(recvPacket.wpos());                 // prevent spam at ignore packet
-        return;
-    }
+
+    recvPacket >> targets.ReadForCaster(mover);
 
     // some spell cast packet including more data (for projectiles?)
     if (unk_flags & 0x02)
     {
-        recvPacket.read_skip<float>();                      // unk1, coords?
-        recvPacket.read_skip<float>();                      // unk1, coords?
         uint8 unk1;
+
+        recvPacket >> Unused<float>();                      // unk1, coords?
+        recvPacket >> Unused<float>();                      // unk1, coords?
         recvPacket >> unk1;                                 // >> 1 or 0
         if(unk1)
         {
-            recvPacket.read_skip<uint32>();                 // >> MSG_MOVE_STOP
-            uint64 guid;                                    // guid - unused
-            if(!recvPacket.readPackGUID(guid))
-                return;
-
+            ObjectGuid guid;                                // guid - unused
             MovementInfo movementInfo;
-            ReadMovementInfo(recvPacket, &movementInfo);
+
+            recvPacket >> Unused<uint32>();                 // >> MSG_MOVE_STOP
+            recvPacket >> guid.ReadAsPacked();
+            recvPacket >> movementInfo;
         }
     }
 
@@ -409,7 +417,7 @@ void WorldSession::HandleCancelAuraOpcode( WorldPacket& recvPacket)
         {
             // except own aura spells
             bool allow = false;
-            for(int k = 0; k < 3; ++k)
+            for(int k = 0; k < MAX_EFFECT_INDEX; ++k)
             {
                 if (spellInfo->EffectApplyAuraName[k] == SPELL_AURA_MOD_POSSESS ||
                     spellInfo->EffectApplyAuraName[k] == SPELL_AURA_MOD_POSSESS_PET)
@@ -491,9 +499,9 @@ void WorldSession::HandleCancelGrowthAuraOpcode( WorldPacket& /*recvPacket*/)
 
 void WorldSession::HandleCancelAutoRepeatSpellOpcode( WorldPacket& /*recvPacket*/)
 {
-    // may be better send SMSG_CANCEL_AUTO_REPEAT?
     // cancel and prepare for deleting
-    _player->m_mover->InterruptSpell(CURRENT_AUTOREPEAT_SPELL);
+    // do not send SMSG_CANCEL_AUTO_REPEAT! client will send this Opcode again (loop)
+    _player->m_mover->InterruptSpell(CURRENT_AUTOREPEAT_SPELL, true, false);
 }
 
 void WorldSession::HandleCancelChanneling( WorldPacket & recv_data)
@@ -518,26 +526,22 @@ void WorldSession::HandleTotemDestroyed( WorldPacket& recvPacket)
 
     recvPacket >> slotId;
 
-    if (slotId >= MAX_TOTEM)
+    if (int(slotId) >= MAX_TOTEM_SLOT)
         return;
 
-    if(!_player->m_TotemSlot[slotId])
-        return;
-
-    Creature* totem = GetPlayer()->GetMap()->GetCreature(_player->m_TotemSlot[slotId]);
-    if(totem && totem->isTotem())
-        ((Totem*)totem)->UnSummon();
+    if (Totem* totem = GetPlayer()->GetTotem(TotemSlot(slotId)))
+        totem->UnSummon();
 }
 
 void WorldSession::HandleSelfResOpcode( WorldPacket & /*recv_data*/ )
 {
-    sLog.outDebug("WORLD: CMSG_SELF_RES");                  // empty opcode
+    DEBUG_FILTER_LOG(LOG_FILTER_SPELL_CAST, "WORLD: CMSG_SELF_RES");                  // empty opcode
 
     if(_player->GetUInt32Value(PLAYER_SELF_RES_SPELL))
     {
         SpellEntry const *spellInfo = sSpellStore.LookupEntry(_player->GetUInt32Value(PLAYER_SELF_RES_SPELL));
         if(spellInfo)
-            _player->CastSpell(_player,spellInfo,false,0);
+            _player->CastSpell(_player, spellInfo, false);
 
         _player->SetUInt32Value(PLAYER_SELF_RES_SPELL, 0);
     }
@@ -568,3 +572,83 @@ void WorldSession::HandleSpellClick( WorldPacket & recv_data )
     }
 }
 
+void WorldSession::HandleMirrrorImageDataRequest( WorldPacket & recv_data )
+{
+    sLog.outDebug("WORLD: CMSG_GET_MIRRORIMAGE_DATA");
+    uint64 guid;
+    recv_data >> guid;
+
+    // Get unit for which data is needed by client
+    Unit *unit = ObjectAccessor::GetUnit(*_player, guid);
+    if (!unit)
+        return;
+
+    // Get creator of the unit
+    Unit *creator = ObjectAccessor::GetUnit(*_player, unit->GetCreatorGUID());
+    if (!creator)
+        creator = unit;
+
+    if (!creator)
+        return;
+
+    WorldPacket data(SMSG_MIRRORIMAGE_DATA, 68);
+    data << (uint64)guid;
+    data << (uint32)creator->GetDisplayId();
+    if (creator->GetTypeId() == TYPEID_PLAYER)
+    {
+        Player* pCreator = (Player *)creator;
+        data << (uint8)pCreator->getRace();                         // race
+        data << (uint8)pCreator->getGender();                       // gender
+        data << (uint8)pCreator->getClass();                        // class
+        data << (uint8)pCreator->GetByteValue(PLAYER_BYTES, 0);     // skin
+        data << (uint8)pCreator->GetByteValue(PLAYER_BYTES, 1);     // face
+        data << (uint8)pCreator->GetByteValue(PLAYER_BYTES, 2);     // hair
+        data << (uint8)pCreator->GetByteValue(PLAYER_BYTES, 3);     // haircolor
+        data << (uint8)pCreator->GetByteValue(PLAYER_BYTES_2, 0);   // facialhair
+
+        data << (uint32)0;                    // unknown
+
+        static const EquipmentSlots ItemSlots[] =
+        {
+            EQUIPMENT_SLOT_HEAD,
+            EQUIPMENT_SLOT_SHOULDERS,
+            EQUIPMENT_SLOT_BODY,
+            EQUIPMENT_SLOT_CHEST,
+            EQUIPMENT_SLOT_WAIST,
+            EQUIPMENT_SLOT_LEGS,
+            EQUIPMENT_SLOT_FEET,
+            EQUIPMENT_SLOT_WRISTS,
+            EQUIPMENT_SLOT_HANDS,
+            EQUIPMENT_SLOT_BACK,
+            EQUIPMENT_SLOT_TABARD,
+            EQUIPMENT_SLOT_END
+        };
+
+        // Display items in visible slots
+        for (EquipmentSlots const* itr = &ItemSlots[0]; *itr != EQUIPMENT_SLOT_END; ++itr)
+            if (Item const* item =  pCreator->GetItemByPos(INVENTORY_SLOT_BAG_0, *itr))
+                data << (uint32)item->GetProto()->DisplayInfoID;    // display id
+            else
+                data << (uint32)0;                    // no item found, so no id
+    }
+    else
+    {
+        // Skip player data for creatures
+        data << (uint32)0;
+        data << (uint32)0;
+        data << (uint32)0;
+        data << (uint32)0;
+        data << (uint32)0;
+        data << (uint32)0;
+        data << (uint32)0;
+        data << (uint32)0;
+        data << (uint32)0;
+        data << (uint32)0;
+        data << (uint32)0;
+        data << (uint32)0;
+        data << (uint32)0;
+        data << (uint32)0;
+    }
+
+    SendPacket( &data );
+}

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
 #include "ObjectMgr.h"
 #include "ProgressBar.h"
 #include "Policies/SingletonImp.h"
-#include "ObjectDefines.h"
+#include "ObjectGuid.h"
 #include "GridDefines.h"
 
 INSTANTIATE_SINGLETON_1(CreatureEventAIMgr);
@@ -44,7 +44,7 @@ void CreatureEventAIMgr::LoadCreatureEventAI_Texts(bool check_entry_use)
     sLog.outString("Loading EventAI Texts additional data...");
     if (result)
     {
-        barGoLink bar(result->GetRowCount());
+        barGoLink bar((int)result->GetRowCount());
         uint32 count = 0;
 
         do
@@ -159,7 +159,7 @@ void CreatureEventAIMgr::LoadCreatureEventAI_Summons(bool check_entry_use)
     QueryResult *result = WorldDatabase.Query("SELECT id, position_x, position_y, position_z, orientation, spawntimesecs FROM creature_ai_summons");
     if (result)
     {
-        barGoLink bar(result->GetRowCount());
+        barGoLink bar((int)result->GetRowCount());
         uint32 Count = 0;
 
         do
@@ -261,7 +261,7 @@ void CreatureEventAIMgr::LoadCreatureEventAI_Scripts()
         "FROM %s", tables[tid]);
     if (result)
     {
-        barGoLink bar(result->GetRowCount());
+        barGoLink bar((int)result->GetRowCount());
         uint32 Count = 0;
 
         do
@@ -376,11 +376,11 @@ void CreatureEventAIMgr::LoadCreatureEventAI_Scripts()
                             break;
                         case SPAWNED_EVENT_MAP:
                             if(!sMapStore.LookupEntry(temp.spawned.conditionValue1))
-                                sLog.outErrorDb("CreatureEventAI:  Creature %u are using spawned event(%u) with param1 = %u 'map specific' but with not existed map (%u) in param2. Event will never repeat.", temp.creature_id, i, temp.spawned.condition, temp.spawned.conditionValue1);
+                                sLog.outErrorDb("CreatureEventAI:  Creature %u are using spawned event(%u) with param1 = %u 'map specific' but map (param2: %u) does not exist. Event will never repeat.", temp.creature_id, i, temp.spawned.condition, temp.spawned.conditionValue1);
                             break;
                         case SPAWNED_EVENT_ZONE:
                             if(!GetAreaEntryByAreaID(temp.spawned.conditionValue1))
-                                sLog.outErrorDb("CreatureEventAI:  Creature %u are using spawned event(%u) with param1 = %u 'area specific' but with not existed area (%u) in param2. Event will never repeat.", temp.creature_id, i, temp.spawned.condition, temp.spawned.conditionValue1);
+                                sLog.outErrorDb("CreatureEventAI:  Creature %u are using spawned event(%u) with param1 = %u 'area specific' but area (param2: %u) does not exist. Event will never repeat.", temp.creature_id, i, temp.spawned.condition, temp.spawned.conditionValue1);
                         default:
                             sLog.outErrorDb("CreatureEventAI:  Creature %u are using invalid spawned event %u mode (%u) in param1", temp.creature_id, i, temp.spawned.condition);
                             break;
@@ -415,9 +415,11 @@ void CreatureEventAIMgr::LoadCreatureEventAI_Scripts()
                         sLog.outErrorDb("CreatureEventAI:  Creature %u are using event(%u) with param2 < param1 (RepeatMax < RepeatMin). Event will never repeat.", temp.creature_id, i);
                     break;
                 case EVENT_T_SUMMONED_UNIT:
-                    if (!sCreatureStorage.LookupEntry<CreatureInfo>(temp.summon_unit.creatureId))
-                        sLog.outErrorDb("CreatureEventAI:  Creature %u are using event(%u) with not existed creature template id (%u) in param1, skipped.", temp.creature_id, i, temp.summon_unit.creatureId);
-                    if (temp.summon_unit.repeatMax < temp.summon_unit.repeatMin)
+                case EVENT_T_SUMMONED_JUST_DIED:
+                case EVENT_T_SUMMONED_JUST_DESPAWN:
+                    if (!sCreatureStorage.LookupEntry<CreatureInfo>(temp.summoned.creatureId))
+                        sLog.outErrorDb("CreatureEventAI:  Creature %u are using event(%u) with not existed creature template id (%u) in param1, skipped.", temp.creature_id, i, temp.summoned.creatureId);
+                    if (temp.summoned.repeatMax < temp.summoned.repeatMin)
                         sLog.outErrorDb("CreatureEventAI:  Creature %u are using event(%u) with param2 < param1 (RepeatMax < RepeatMin). Event will never repeat.", temp.creature_id, i);
                     break;
                 case EVENT_T_QUEST_ACCEPT:
@@ -599,7 +601,7 @@ void CreatureEventAIMgr::LoadCreatureEventAI_Scripts()
                             {
                                 //output as debug for now, also because there's no general rule all spells have RecoveryTime
                                 if (temp.event_param3 < spell->RecoveryTime)
-                                    sLog.outDebug("CreatureEventAI:  Event %u Action %u uses SpellID %u but cooldown is longer(%u) than minumum defined in event param3(%u).", i, j+1,action.cast.spellId, spell->RecoveryTime, temp.event_param3);
+                                    DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "CreatureEventAI:  Event %u Action %u uses SpellID %u but cooldown is longer(%u) than minumum defined in event param3(%u).", i, j+1,action.cast.spellId, spell->RecoveryTime, temp.event_param3);
                             }
                         }
                         */

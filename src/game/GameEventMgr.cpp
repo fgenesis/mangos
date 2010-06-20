@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,12 +19,13 @@
 #include "GameEventMgr.h"
 #include "World.h"
 #include "ObjectMgr.h"
-#include "ObjectDefines.h"
+#include "ObjectGuid.h"
 #include "PoolManager.h"
 #include "ProgressBar.h"
 #include "Language.h"
 #include "Log.h"
 #include "MapManager.h"
+#include "BattleGroundMgr.h"
 #include "Policies/SingletonImp.h"
 
 INSTANTIATE_SINGLETON_1(GameEventMgr);
@@ -50,7 +51,7 @@ uint32 GameEventMgr::NextCheck(uint16 entry) const
 
     // never started event, we return delay before start
     if (mGameEvent[entry].start > currenttime)
-        return (mGameEvent[entry].start - currenttime);
+        return uint32(mGameEvent[entry].start - currenttime);
 
     uint32 delay;
     // in event, we return the end of it
@@ -61,7 +62,7 @@ uint32 GameEventMgr::NextCheck(uint16 entry) const
         delay = (mGameEvent[entry].occurence * MINUTE) - ((currenttime - mGameEvent[entry].start) % (mGameEvent[entry].occurence * MINUTE));
     // In case the end is before next check
     if (mGameEvent[entry].end  < time_t(currenttime + delay))
-        return (mGameEvent[entry].end - currenttime);
+        return uint32(mGameEvent[entry].end - currenttime);
     else
         return delay;
 }
@@ -121,7 +122,7 @@ void GameEventMgr::LoadFromDB()
     uint32 count = 0;
 
     {
-        barGoLink bar( result->GetRowCount() );
+        barGoLink bar( (int)result->GetRowCount() );
         do
         {
             ++count;
@@ -143,7 +144,7 @@ void GameEventMgr::LoadFromDB()
             pGameEvent.end          = time_t(endtime);
             pGameEvent.occurence    = fields[3].GetUInt32();
             pGameEvent.length       = fields[4].GetUInt32();
-            pGameEvent.holiday_id   = fields[5].GetUInt32();
+            pGameEvent.holiday_id   = HolidayIds(fields[5].GetUInt32());
 
 
             if(pGameEvent.length==0)                            // length>0 is validity check
@@ -152,12 +153,12 @@ void GameEventMgr::LoadFromDB()
                 continue;
             }
 
-            if(pGameEvent.holiday_id)
+            if(pGameEvent.holiday_id != HOLIDAY_NONE)
             {
                 if(!sHolidaysStore.LookupEntry(pGameEvent.holiday_id))
                 {
                     sLog.outErrorDb("`game_event` game event id (%i) have not existed holiday id %u.",event_id,pGameEvent.holiday_id);
-                    pGameEvent.holiday_id = 0;
+                    pGameEvent.holiday_id = HOLIDAY_NONE;
                 }
             }
 
@@ -187,7 +188,7 @@ void GameEventMgr::LoadFromDB()
     else
     {
 
-        barGoLink bar( result->GetRowCount() );
+        barGoLink bar( (int)result->GetRowCount() );
         do
         {
             Field *fields = result->Fetch();
@@ -233,7 +234,7 @@ void GameEventMgr::LoadFromDB()
     else
     {
 
-        barGoLink bar( result->GetRowCount() );
+        barGoLink bar( (int)result->GetRowCount() );
         do
         {
             Field *fields = result->Fetch();
@@ -281,7 +282,7 @@ void GameEventMgr::LoadFromDB()
     else
     {
 
-        barGoLink bar( result->GetRowCount() );
+        barGoLink bar( (int)result->GetRowCount() );
         do
         {
             Field *fields = result->Fetch();
@@ -338,7 +339,7 @@ void GameEventMgr::LoadFromDB()
     else
     {
 
-        barGoLink bar( result->GetRowCount() );
+        barGoLink bar( (int)result->GetRowCount() );
         do
         {
             Field *fields = result->Fetch();
@@ -382,7 +383,7 @@ void GameEventMgr::LoadFromDB()
     else
     {
 
-        barGoLink bar2( result->GetRowCount() );
+        barGoLink bar2( (int)result->GetRowCount() );
         do
         {
             Field *fields = result->Fetch();
@@ -421,7 +422,7 @@ uint32 GameEventMgr::Initialize()                           // return the next e
 {
     m_ActiveEvents.clear();
     uint32 delay = Update();
-    sLog.outBasic("Game Event system initialized." );
+    BASIC_LOG("Game Event system initialized." );
     m_IsGameEventsInit = true;
     return delay;
 }
@@ -435,13 +436,13 @@ uint32 GameEventMgr::Update()                               // return the next e
         //sLog.outErrorDb("Checking event %u",itr);
         if (CheckOneGameEvent(itr))
         {
-            //sLog.outDebug("GameEvent %u is active",itr->first);
+            //DEBUG_LOG("GameEvent %u is active",itr->first);
             if (!IsActiveEvent(itr))
                 StartEvent(itr);
         }
         else
         {
-            //sLog.outDebug("GameEvent %u is not active",itr->first);
+            //DEBUG_LOG("GameEvent %u is not active",itr->first);
             if (IsActiveEvent(itr))
                 StopEvent(itr);
             else
@@ -454,6 +455,7 @@ uint32 GameEventMgr::Update()                               // return the next e
 
                     // disable any event specific quest (for cases where creature is spawned, but event not active).
                     UpdateEventQuests(itr, false);
+                    UpdateWorldStates(itr, false);
                 }
             }
         }
@@ -461,8 +463,8 @@ uint32 GameEventMgr::Update()                               // return the next e
         if (calcDelay < nextEventDelay)
             nextEventDelay = calcDelay;
     }
-    sLog.outBasic("Next game event check in %u seconds.", nextEventDelay + 1);
-    return (nextEventDelay + 1) * IN_MILISECONDS;           // Add 1 second to be sure event has started/stopped at next call
+    BASIC_LOG("Next game event check in %u seconds.", nextEventDelay + 1);
+    return (nextEventDelay + 1) * IN_MILLISECONDS;           // Add 1 second to be sure event has started/stopped at next call
 }
 
 void GameEventMgr::UnApplyEvent(uint16 event_id)
@@ -477,18 +479,13 @@ void GameEventMgr::UnApplyEvent(uint16 event_id)
     ChangeEquipOrModel(event_id, false);
     // Remove quests that are events only to non event npc
     UpdateEventQuests(event_id, false);
+    UpdateWorldStates(event_id, false);
 }
 
 void GameEventMgr::ApplyNewEvent(uint16 event_id)
 {
-    switch(sWorld.getConfig(CONFIG_EVENT_ANNOUNCE))
-    {
-        case 0:                                             // disable
-            break;
-        case 1:                                             // announce events
-            sWorld.SendWorldText(LANG_EVENTMESSAGE, mGameEvent[event_id].description.c_str());
-            break;
-    }
+    if (sWorld.getConfig(CONFIG_BOOL_EVENT_ANNOUNCE))
+        sWorld.SendWorldText(LANG_EVENTMESSAGE, mGameEvent[event_id].description.c_str());
 
     sLog.outString("GameEvent %u \"%s\" started.", event_id, mGameEvent[event_id].description.c_str());
     // spawn positive event tagget objects
@@ -500,6 +497,7 @@ void GameEventMgr::ApplyNewEvent(uint16 event_id)
     ChangeEquipOrModel(event_id, true);
     // Add quests that are events only to non event npc
     UpdateEventQuests(event_id, true);
+    UpdateWorldStates(event_id, true);
 }
 
 void GameEventMgr::GameEventSpawn(int16 event_id)
@@ -526,7 +524,7 @@ void GameEventMgr::GameEventSpawn(int16 event_id)
             if(!map->Instanceable() && map->IsLoaded(data->posX,data->posY))
             {
                 Creature* pCreature = new Creature;
-                //sLog.outDebug("Spawning creature %u",*itr);
+                //DEBUG_LOG("Spawning creature %u",*itr);
                 if (!pCreature->LoadFromDB(*itr, map))
                 {
                     delete pCreature;
@@ -559,7 +557,7 @@ void GameEventMgr::GameEventSpawn(int16 event_id)
             if(!map->Instanceable() && map->IsLoaded(data->posX, data->posY))
             {
                 GameObject* pGameobject = new GameObject;
-                //sLog.outDebug("Spawning gameobject %u", *itr);
+                //DEBUG_LOG("Spawning gameobject %u", *itr);
                 if (!pGameobject->LoadFromDB(*itr, map))
                 {
                     delete pGameobject;
@@ -580,11 +578,7 @@ void GameEventMgr::GameEventSpawn(int16 event_id)
     }
 
     for (IdList::iterator itr = mGameEventPoolIds[internal_event_id].begin();itr != mGameEventPoolIds[internal_event_id].end();++itr)
-    {
-        sPoolMgr.SpawnPool(*itr, 0, 0);
-        sPoolMgr.SpawnPool(*itr, 0, TYPEID_GAMEOBJECT);
-        sPoolMgr.SpawnPool(*itr, 0, TYPEID_UNIT);
-    }
+        sPoolMgr.SpawnPool(*itr, true);
 }
 
 void GameEventMgr::GameEventUnspawn(int16 event_id)
@@ -604,7 +598,7 @@ void GameEventMgr::GameEventUnspawn(int16 event_id)
         {
             sObjectMgr.RemoveCreatureFromGrid(*itr, data);
 
-            if( Creature* pCreature = ObjectAccessor::GetCreatureInWorld(MAKE_NEW_GUID(*itr, data->id, HIGHGUID_UNIT)) )
+            if (Creature* pCreature = ObjectAccessor::GetCreatureInWorld(ObjectGuid(HIGHGUID_UNIT, data->id, *itr)))
                 pCreature->AddObjectToRemoveList();
         }
     }
@@ -622,7 +616,7 @@ void GameEventMgr::GameEventUnspawn(int16 event_id)
         {
             sObjectMgr.RemoveGameobjectFromGrid(*itr, data);
 
-            if( GameObject* pGameobject = ObjectAccessor::GetGameObjectInWorld(MAKE_NEW_GUID(*itr, data->id, HIGHGUID_GAMEOBJECT)) )
+            if( GameObject* pGameobject = ObjectAccessor::GetGameObjectInWorld(ObjectGuid(HIGHGUID_GAMEOBJECT, data->id, *itr)) )
                 pGameobject->AddObjectToRemoveList();
         }
     }
@@ -648,8 +642,7 @@ void GameEventMgr::ChangeEquipOrModel(int16 event_id, bool activate)
             continue;
 
         // Update if spawned
-        Creature* pCreature = ObjectAccessor::GetCreatureInWorld(MAKE_NEW_GUID(itr->first, data->id,HIGHGUID_UNIT));
-        if (pCreature)
+        if (Creature* pCreature = ObjectAccessor::GetCreatureInWorld(ObjectGuid(HIGHGUID_UNIT, data->id, itr->first)))
         {
             if (activate)
             {
@@ -744,6 +737,25 @@ void GameEventMgr::UpdateEventQuests(uint16 event_id, bool Activate)
     }
 }
 
+void GameEventMgr::UpdateWorldStates(uint16 event_id, bool Activate)
+{
+    GameEventData const& event = mGameEvent[event_id];
+    if (event.holiday_id != HOLIDAY_NONE)
+    {
+        BattleGroundTypeId bgTypeId = BattleGroundMgr::WeekendHolidayIdToBGType(event.holiday_id);
+        if (bgTypeId != BATTLEGROUND_TYPE_NONE)
+        {
+            BattlemasterListEntry const * bl = sBattlemasterListStore.LookupEntry(bgTypeId);
+            if (bl && bl->HolidayWorldStateId)
+            {
+                WorldPacket data;
+                sBattleGroundMgr.BuildUpdateWorldStatePacket(&data, bl->HolidayWorldStateId, Activate ? 1 : 0);
+                sWorld.SendGlobalMessage(&data);
+            }
+        }
+    }
+}
+
 GameEventMgr::GameEventMgr()
 {
     m_IsGameEventsInit = false;
@@ -751,6 +763,9 @@ GameEventMgr::GameEventMgr()
 
 MANGOS_DLL_SPEC bool IsHolidayActive( HolidayIds id )
 {
+    if (id == HOLIDAY_NONE)
+        return false;
+
     GameEventMgr::GameEventDataMap const& events = sGameEventMgr.GetEventMap();
     GameEventMgr::ActiveEvents const& ae = sGameEventMgr.GetActiveEventList();
 

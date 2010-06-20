@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,9 +34,7 @@ class MANGOS_DLL_DECL MapInstanced : public Map
 
         // functions overwrite Map versions
         void Update(const uint32&);
-        void MoveAllCreaturesInMoveList();
         void RemoveAllObjectsInRemoveList();
-        bool RemoveBones(uint64 guid, float x, float y);
         void UnloadAll(bool pForce);
 
         Map* CreateInstance(const uint32 mapId, Player * player);
@@ -59,11 +57,11 @@ class MANGOS_DLL_DECL MapInstanced : public Map
 
         InstancedMaps &GetInstancedMaps() { return m_InstancedMaps; }
         virtual void InitVisibilityDistance();
+        BattleGroundMap* CreateBattleGroundMap(uint32 InstanceId, BattleGround* bg);
 
     private:
 
         InstanceMap* CreateInstance(uint32 InstanceId, InstanceSave *save, Difficulty difficulty);
-        BattleGroundMap* CreateBattleGroundMap(uint32 InstanceId, BattleGround* bg);
 
         InstancedMaps m_InstancedMaps;
 

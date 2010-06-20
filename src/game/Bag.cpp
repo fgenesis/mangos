@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
 
 Bag::Bag( ): Item()
 {
-    m_objectType |= TYPEMASK_CONTAINER;
+    m_objectType |= (TYPEMASK_ITEM | TYPEMASK_CONTAINER);
     m_objectTypeId = TYPEID_CONTAINER;
 
     m_valuesCount = CONTAINER_END;
@@ -136,7 +136,7 @@ uint32 Bag::GetFreeSlots() const
 
 void Bag::RemoveItem( uint8 slot, bool /*update*/ )
 {
-    assert(slot < MAX_BAG_SIZE);
+    ASSERT(slot < MAX_BAG_SIZE);
 
     if (m_bagslot[slot])
         m_bagslot[slot]->SetContainer(NULL);
@@ -147,7 +147,7 @@ void Bag::RemoveItem( uint8 slot, bool /*update*/ )
 
 void Bag::StoreItem( uint8 slot, Item *pItem, bool /*update*/ )
 {
-    assert(slot < MAX_BAG_SIZE);
+    ASSERT(slot < MAX_BAG_SIZE);
 
     if( pItem )
     {
@@ -179,6 +179,24 @@ bool Bag::IsEmpty() const
     return true;
 }
 
+Item* Bag::GetItemByEntry( uint32 item ) const
+{
+    for(uint32 i = 0; i < GetBagSize(); ++i)
+        if (m_bagslot[i] && m_bagslot[i]->GetEntry() == item)
+            return m_bagslot[i];
+
+    return NULL;
+}
+
+Item* Bag::GetItemByLimitedCategory(uint32 limitedCategory) const
+{
+    for(uint32 i = 0; i < GetBagSize(); ++i)
+        if (m_bagslot[i] && m_bagslot[i]->GetProto()->ItemLimitCategory == limitedCategory)
+            return m_bagslot[i];
+
+    return NULL;
+}
+
 uint32 Bag::GetItemCount( uint32 item, Item* eItem ) const
 {
     Item *pItem;
@@ -199,6 +217,17 @@ uint32 Bag::GetItemCount( uint32 item, Item* eItem ) const
                 count += pItem->GetGemCountWithID(item);
         }
     }
+
+    return count;
+}
+
+uint32 Bag::GetItemCountWithLimitCategory(uint32 limitCategory) const
+{
+    uint32 count = 0;
+    for(uint32 i = 0; i < GetBagSize(); ++i)
+        if (m_bagslot[i])
+            if (m_bagslot[i]->GetProto()->ItemLimitCategory == limitCategory )
+                count += m_bagslot[i]->GetCount();
 
     return count;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,10 +23,10 @@ namespace MaNGOS
 {
     extern "C" void external_wrapper(void *p)
     {
-        std::atexit( (void (*)())p );
+        std::atexit((void (*)())p);
     }
 
-    void MANGOS_DLL_SPEC at_exit( void (*func)() )
+    void MANGOS_DLL_SPEC at_exit(void (*func)())
     {
         external_wrapper((void*)func);
     }

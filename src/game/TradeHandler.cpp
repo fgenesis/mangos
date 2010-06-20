@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -94,13 +94,13 @@ void WorldSession::SendTradeStatus(uint32 status)
 
 void WorldSession::HandleIgnoreTradeOpcode(WorldPacket& /*recvPacket*/)
 {
-    sLog.outDebug( "WORLD: Ignore Trade %u",_player->GetGUIDLow());
+    DEBUG_LOG( "WORLD: Ignore Trade %u",_player->GetGUIDLow());
     // recvPacket.print_storage();
 }
 
 void WorldSession::HandleBusyTradeOpcode(WorldPacket& /*recvPacket*/)
 {
-    sLog.outDebug( "WORLD: Busy Trade %u",_player->GetGUIDLow());
+    DEBUG_LOG( "WORLD: Busy Trade %u",_player->GetGUIDLow());
     // recvPacket.print_storage();
 }
 
@@ -149,8 +149,8 @@ void WorldSession::SendUpdateTrade()
                                                             // gift creator
             data << (uint64) item->GetUInt64Value(ITEM_FIELD_GIFTCREATOR);
             data << (uint32) item->GetEnchantmentId(PERM_ENCHANTMENT_SLOT);
-            for(uint8 j = 0; j < 3; ++j)
-                data << (uint32) 0;                         // enchantment id (permanent/gems?)
+            for(uint32 enchant_slot = SOCK_ENCHANTMENT_SLOT; enchant_slot < SOCK_ENCHANTMENT_SLOT+MAX_GEM_SOCKETS; ++enchant_slot)
+                data << (uint32) item->GetEnchantmentId(EnchantmentSlot(enchant_slot));
                                                             // creator
             data << (uint64) item->GetUInt64Value(ITEM_FIELD_CREATOR);
             data << (uint32) item->GetSpellCharges();       // charges
@@ -191,8 +191,8 @@ void WorldSession::moveItems(Item* myItems[], Item* hisItems[])
             if(myItems[i])
             {
                 // logging
-                sLog.outDebug("partner storing: %u",myItems[i]->GetGUIDLow());
-                if( _player->GetSession()->GetSecurity() >= SEC_MODERATOR && sWorld.getConfig(CONFIG_GM_LOG_TRADE) )
+                DEBUG_LOG("partner storing: %u",myItems[i]->GetGUIDLow());
+                if( _player->GetSession()->GetSecurity() >= SEC_MODERATOR && sWorld.getConfig(CONFIG_BOOL_GM_LOG_TRADE) )
                 {
                     sLog.outCommand(_player->GetSession()->GetAccountId(),"GM %s (Account: %u) trade: %s (Entry: %d Count: %u) to player: %s (Account: %u)",
                         _player->GetName(),_player->GetSession()->GetAccountId(),
@@ -206,8 +206,8 @@ void WorldSession::moveItems(Item* myItems[], Item* hisItems[])
             if(hisItems[i])
             {
                 // logging
-                sLog.outDebug("player storing: %u",hisItems[i]->GetGUIDLow());
-                if( _player->pTrader->GetSession()->GetSecurity() >= SEC_MODERATOR && sWorld.getConfig(CONFIG_GM_LOG_TRADE) )
+                DEBUG_LOG("player storing: %u",hisItems[i]->GetGUIDLow());
+                if( _player->pTrader->GetSession()->GetSecurity() >= SEC_MODERATOR && sWorld.getConfig(CONFIG_BOOL_GM_LOG_TRADE) )
                 {
                     sLog.outCommand(_player->pTrader->GetSession()->GetAccountId(),"GM %s (Account: %u) trade: %s (Entry: %d Count: %u) to player: %s (Account: %u)",
                         _player->pTrader->GetName(),_player->pTrader->GetSession()->GetAccountId(),
@@ -313,7 +313,7 @@ void WorldSession::HandleAcceptTradeOpcode(WorldPacket& /*recvPacket*/)
         {
             if(_player->tradeItems[i] != NULL_SLOT )
             {
-                sLog.outDebug("player trade item bag: %u slot: %u",_player->tradeItems[i] >> 8, _player->tradeItems[i] & 255 );
+                DEBUG_LOG("player trade item bag: %u slot: %u",_player->tradeItems[i] >> 8, _player->tradeItems[i] & 255 );
                                                             //Can return NULL
                 myItems[i]=_player->GetItemByPos( _player->tradeItems[i] );
                 if (myItems[i])
@@ -321,7 +321,7 @@ void WorldSession::HandleAcceptTradeOpcode(WorldPacket& /*recvPacket*/)
             }
             if(_player->pTrader->tradeItems[i] != NULL_SLOT)
             {
-                sLog.outDebug("partner trade item bag: %u slot: %u",_player->pTrader->tradeItems[i] >> 8,_player->pTrader->tradeItems[i] & 255);
+                DEBUG_LOG("partner trade item bag: %u slot: %u",_player->pTrader->tradeItems[i] >> 8,_player->pTrader->tradeItems[i] & 255);
                                                             //Can return NULL
                 hisItems[i]=_player->pTrader->GetItemByPos( _player->pTrader->tradeItems[i]);
                 if(hisItems[i])
@@ -377,7 +377,7 @@ void WorldSession::HandleAcceptTradeOpcode(WorldPacket& /*recvPacket*/)
         moveItems(myItems, hisItems);
 
         // logging money
-        if(sWorld.getConfig(CONFIG_GM_LOG_TRADE))
+        if(sWorld.getConfig(CONFIG_BOOL_GM_LOG_TRADE))
         {
             if( _player->GetSession()->GetSecurity() >= SEC_MODERATOR && _player->tradeGold > 0)
             {

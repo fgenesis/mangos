@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,7 +42,10 @@ class Bag : public Item
         void RemoveItem( uint8 slot, bool update );
 
         Item* GetItemByPos( uint8 slot ) const;
+        Item* GetItemByEntry( uint32 item ) const;
+        Item* GetItemByLimitedCategory(uint32 limitedCategory) const;
         uint32 GetItemCount( uint32 item, Item* eItem = NULL ) const;
+        uint32 GetItemCountWithLimitCategory(uint32 limitCategory) const;
 
         uint8 GetSlotByItemGUID(uint64 guid) const;
         bool IsEmpty() const;
@@ -53,7 +56,7 @@ class Bag : public Item
         // overwrite virtual Item::SaveToDB
         void SaveToDB();
         // overwrite virtual Item::LoadFromDB
-        bool LoadFromDB(uint32 guid, uint64 owner_guid, QueryResult *result = NULL);
+        bool LoadFromDB(uint32 guid, uint64 owner_guid, QueryResult *result);
         // overwrite virtual Item::DeleteFromDB
         void DeleteFromDB();
 
