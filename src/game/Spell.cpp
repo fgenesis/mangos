@@ -5223,7 +5223,8 @@ SpellCastResult Spell::CheckCast(bool strict)
             case SPELL_AURA_DUMMY:
             {
                 // Mind Flay
-                if (m_spellInfo->SpellIconID == 548 && m_spellInfo->SpellFamilyName == SPELLFAMILY_PRIEST)
+                if (m_spellInfo->SpellIconID == 548 && m_spellInfo->SpellFamilyName == SPELLFAMILY_PRIEST
+                    && m_targets.getUnitTarget() )
                 {
                     if (m_targets.getUnitTarget()->isDead())
                         return SPELL_FAILED_BAD_TARGETS;
