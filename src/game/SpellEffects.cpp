@@ -5397,6 +5397,20 @@ void Spell::EffectWeaponDmg(SpellEffectIndex eff_idx)
             }
             break;
         }
+        case SPELLFAMILY_DRUID:
+        {
+            // Rend and Tear (on Maul / Shred)
+            if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x8800))
+            {
+                if (unitTarget->HasAuraState(AURA_STATE_BLEEDING))
+                {
+                    if (Aura* aura = m_caster->GetAura(SPELL_AURA_DUMMY, SPELLFAMILY_DRUID, 2859, EFFECT_INDEX_0))
+                        totalDamagePercentMod += (totalDamagePercentMod * aura->GetModifier()->m_amount) / 100.0f;
+                }
+            }
+
+            break;
+        }
         case SPELLFAMILY_ROGUE:
         {
             // Mutilate (for each hand)

@@ -4988,7 +4988,7 @@ SpellCastResult Spell::CheckCast(bool strict)
                 // FG: hunger for blood requires bleed effect on target
                 if (m_spellInfo->Id == 51662)
                 {
-                    if(!m_targets.getUnitTarget() || !m_targets.getUnitTarget()->HasAuraState(AURA_STATE_MECHANIC_BLEED))
+                    if(!m_targets.getUnitTarget() || !m_targets.getUnitTarget()->HasAuraState(AURA_STATE_BLEEDING))
                         return SPELL_FAILED_PREVENTED_BY_MECHANIC; // FG: i guess its the wrong one
                 }
             }

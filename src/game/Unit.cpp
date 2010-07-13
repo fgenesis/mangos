@@ -4335,7 +4335,7 @@ bool Unit::RemoveNoStackAurasDueToAuraHolder(SpellAuraHolder *holder)
         bool is_spellSpecPerTarget = IsSingleFromSpellSpecificPerTarget(spellId_spec,i_spellId_spec);
         if( is_spellSpecPerTarget || is_spellSpecPerTargetPerCaster && holder->GetCasterGUID() == (*i).second->GetCasterGUID() )
         {
-            if (i_spellId_spec == SPELL_BLESSING && Aur->GetCasterGUID() != (*i).second->GetCasterGUID())
+            if (i_spellId_spec == SPELL_BLESSING && holder->GetCasterGUID() != (*i).second->GetCasterGUID())
                 if (spellProto->SpellFamilyFlags != i_spellProto->SpellFamilyFlags)
                     continue;
 
@@ -6890,6 +6890,19 @@ bool Unit::IsSpellCrit(Unit *pVictim, SpellEntry const *spellProto, SpellSchoolM
             break;
         }
         case SPELL_DAMAGE_CLASS_MELEE:
+        {
+            // Ferocious Bite crit chance with Rend and Tear
+            if (spellProto->SpellFamilyName == SPELLFAMILY_DRUID && (spellProto->SpellFamilyFlags & UI64LIT(0x800000)) && spellProto->SpellIconID == 1680)
+            {
+                if (pVictim->HasAuraState(AURA_STATE_BLEEDING))
+                {
+                    if (Aura* aura = GetAura(SPELL_AURA_DUMMY, SPELLFAMILY_DRUID, 2859, EFFECT_INDEX_1))
+                        crit_chance += aura->GetModifier()->m_amount;
+                }
+            }
+
+            // do not use break here
+        }
         case SPELL_DAMAGE_CLASS_RANGED:
         {
             if (pVictim)
