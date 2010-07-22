@@ -46,8 +46,8 @@ static t_Locations PortalLoc[]=
 {"Teleport to Deathbringer's Rise",-549.131, 2211.29, 539.291,70858,false,true,TYPE_FLIGHT_WAR}, //
 {"Teleport to the Plagueworks",4198.42, 2769.22, 351.065,70859,false,true,TYPE_SAURFANG}, //
 {"Teleport to the Crimson Halls",4490.205566, 2769.275635, 403.983765,0,false,true,TYPE_BLOOD_COUNCIL}, //
-{"Teleport to Valithria",4356.580078, 2565.75, 220.401993,70861,false,true,TYPE_VALITHRIA}, //
-{"Teleport to Sindragosa",529.3, -2124.7, 1041, 70860,false,true,TYPE_SINDRAGOSA}, //
+{"Teleport to the Frost Queen's Lair",4356.580078, 2565.75, 220.401993,70861,false,true,TYPE_VALITHRIA}, //
+{"Teleport to the Frozen Throne",529.3, -2124.7, 1041, 70860,false,true,TYPE_SINDRAGOSA}, //
 };
 
 
