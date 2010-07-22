@@ -40,11 +40,11 @@ struct t_Locations
 
 static t_Locations PortalLoc[]=
 {
-{"Teleport to Light's Hammer",-17.1928, 2211.44, 30.1158,0,true,true,TYPE_TELEPORT}, //
+{"Teleport to the Light's Hammer",-17.1928, 2211.44, 30.1158,0,true,true,TYPE_TELEPORT}, //
 {"Teleport to the Oratory of the Damned",-503.62, 2211.47, 62.8235,70856,false,true,TYPE_MARROWGAR},  //
 {"Teleport to the Rampart of Skulls",-615.145, 2211.47, 199.972,70857,false,true,TYPE_DEATHWHISPER}, //
-{"Teleport to Deathbringer's Rise",-549.131, 2211.29, 539.291,70858,false,true,TYPE_FLIGHT_WAR}, //
-{"Teleport to the Plagueworks",4198.42, 2769.22, 351.065,70859,false,true,TYPE_SAURFANG}, //
+{"Teleport to the Deathbringer's Rise",-549.131, 2211.29, 539.291,70858,false,true,TYPE_FLIGHT_WAR}, //
+{"Teleport to the Upper Reaches",4198.42, 2769.22, 351.065,70859,false,true,TYPE_SAURFANG}, //
 {"Teleport to the Crimson Halls",4490.205566, 2769.275635, 403.983765,0,false,true,TYPE_BLOOD_COUNCIL}, //
 {"Teleport to the Frost Queen's Lair",4356.580078, 2565.75, 220.401993,70861,false,true,TYPE_VALITHRIA}, //
 {"Teleport to the Frozen Throne",529.3, -2124.7, 1041, 70860,false,true,TYPE_SINDRAGOSA}, //
