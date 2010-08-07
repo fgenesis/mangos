@@ -31,11 +31,9 @@
 template<class T>
 inline void MaNGOS::VisibleNotifier::Visit(GridRefManager<T> &m)
 {
-    WorldObject const* viewPoint = i_player.GetViewPoint();
-
     for(typename GridRefManager<T>::iterator iter = m.begin(); iter != m.end(); ++iter)
     {
-        i_player.UpdateVisibilityOf(viewPoint,iter->getSource(), i_data, i_visibleNow);
+        i_camera.UpdateVisibilityOf(iter->getSource(), i_data, i_visibleNow);
         i_clientGUIDs.erase(iter->getSource()->GetGUID());
     }
 }
@@ -69,7 +67,7 @@ inline void PlayerCreatureRelocationWorker(Player* pl, WorldObject const* viewPo
     pl->UpdateVisibilityOf(viewPoint,c);
 
     // Creature AI reaction
-    if (!c->hasUnitState(UNIT_STAT_FLEEING))
+    if (!c->hasUnitState(UNIT_STAT_LOST_CONTROL))
     {
         if (c->AI() && c->AI()->IsVisible(pl) && !c->IsInEvadeMode())
             c->AI()->MoveInLineOfSight(pl);
@@ -78,13 +76,13 @@ inline void PlayerCreatureRelocationWorker(Player* pl, WorldObject const* viewPo
 
 inline void CreatureCreatureRelocationWorker(Creature* c1, Creature* c2)
 {
-    if (!c1->hasUnitState(UNIT_STAT_FLEEING))
+    if (!c1->hasUnitState(UNIT_STAT_LOST_CONTROL))
     {
         if (c1->AI() && c1->AI()->IsVisible(c2) && !c1->IsInEvadeMode())
             c1->AI()->MoveInLineOfSight(c2);
     }
 
-    if (!c2->hasUnitState(UNIT_STAT_FLEEING))
+    if (!c2->hasUnitState(UNIT_STAT_LOST_CONTROL))
     {
         if (c2->AI() && c2->AI()->IsVisible(c1) && !c2->IsInEvadeMode())
             c2->AI()->MoveInLineOfSight(c1);
@@ -93,10 +91,10 @@ inline void CreatureCreatureRelocationWorker(Creature* c1, Creature* c2)
 
 inline void MaNGOS::PlayerRelocationNotifier::Visit(CreatureMapType &m)
 {
-    if (!i_player.isAlive() || i_player.isInFlight())
+    if (!i_player.isAlive() || i_player.IsTaxiFlying())
         return;
 
-    WorldObject const* viewPoint = i_player.GetViewPoint();
+    WorldObject const* viewPoint = i_player.GetCamera().GetBody();
 
     for(CreatureMapType::iterator iter = m.begin(); iter != m.end(); ++iter)
         if (iter->getSource()->isAlive())
@@ -106,13 +104,13 @@ inline void MaNGOS::PlayerRelocationNotifier::Visit(CreatureMapType &m)
 template<>
 inline void MaNGOS::CreatureRelocationNotifier::Visit(PlayerMapType &m)
 {
-    if(!i_creature.isAlive())
+    if (!i_creature.isAlive())
         return;
 
     for(PlayerMapType::iterator iter=m.begin(); iter != m.end(); ++iter)
         if (Player* player = iter->getSource())
-            if (player->isAlive() && !player->isInFlight())
-                PlayerCreatureRelocationWorker(player, player->GetViewPoint(), &i_creature);
+            if (player->isAlive() && !player->IsTaxiFlying())
+                PlayerCreatureRelocationWorker(player, player->GetCamera().GetBody(), &i_creature);
 }
 
 template<>
@@ -131,7 +129,7 @@ inline void MaNGOS::CreatureRelocationNotifier::Visit(CreatureMapType &m)
 
 inline void MaNGOS::DynamicObjectUpdater::VisitHelper(Unit* target)
 {
-    if (!target->isAlive() || target->isInFlight() )
+    if (!target->isAlive() || target->IsTaxiFlying() )
         return;
 
     if (target->GetTypeId() == TYPEID_UNIT && ((Creature*)target)->isTotem())
@@ -174,8 +172,29 @@ inline void MaNGOS::DynamicObjectUpdater::VisitHelper(Unit* target)
         return;
 
     // Apply PersistentAreaAura on target
-    PersistentAreaAura* Aur = new PersistentAreaAura(spellInfo, eff_index, NULL, target, i_dynobject.GetCaster());
-    target->AddAura(Aur);
+
+    SpellAuraHolder *holder = target->GetSpellAuraHolder(spellInfo->Id, i_dynobject.GetCaster()->GetGUID());
+                   
+    bool addedToExisting = true;
+    if (!holder)
+    {
+        holder = CreateSpellAuraHolder(spellInfo, target, i_dynobject.GetCaster());
+        addedToExisting = false;
+    
+    }
+    PersistentAreaAura* Aur = new PersistentAreaAura(spellInfo, eff_index, NULL, holder, target, i_dynobject.GetCaster());
+    holder->AddAura(Aur, eff_index);
+
+    if (addedToExisting)
+    {
+        target->AddAuraToModList(Aur);
+        holder->SetInUse(true);
+        Aur->ApplyModifier(true,true);
+        holder->SetInUse(false);
+    }
+    else
+        target->AddSpellAuraHolder(holder);
+
     i_dynobject.AddAffected(target);
 }
 

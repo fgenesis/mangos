@@ -34,16 +34,15 @@
 
 bool ChatHandler::HandleHelpCommand(const char* args)
 {
-    char* cmd = strtok((char*)args, " ");
-    if(!cmd)
+    if(!*args)
     {
         ShowHelpForCommand(getCommandTable(), "help");
         ShowHelpForCommand(getCommandTable(), "");
     }
     else
     {
-        if(!ShowHelpForCommand(getCommandTable(), cmd))
-            SendSysMessage(LANG_NO_HELP_CMD);
+        if (!ShowHelpForCommand(getCommandTable(), args))
+            SendSysMessage(LANG_NO_CMD);
     }
 
     return true;
@@ -55,8 +54,12 @@ bool ChatHandler::HandleCommandsCommand(const char* /*args*/)
     return true;
 }
 
-bool ChatHandler::HandleAccountCommand(const char* /*args*/)
+bool ChatHandler::HandleAccountCommand(const char* args)
 {
+    // let show subcommands at unexpected data in args
+    if (*args)
+        return false;
+
     AccountTypes gmlevel = GetAccessLevel();
     PSendSysMessage(LANG_ACCOUNT_LEVEL, uint32(gmlevel));
     return true;
@@ -66,7 +69,7 @@ bool ChatHandler::HandleStartCommand(const char* /*args*/)
 {
     Player *chr = m_session->GetPlayer();
 
-    if(chr->isInFlight())
+    if(chr->IsTaxiFlying())
     {
         SendSysMessage(LANG_YOU_IN_FLIGHT);
         SetSentErrorMessage(true);
@@ -119,7 +122,7 @@ bool ChatHandler::HandleDismountCommand(const char* /*args*/)
         return false;
     }
 
-    if(m_session->GetPlayer( )->isInFlight())
+    if(m_session->GetPlayer( )->IsTaxiFlying())
     {
         SendSysMessage(LANG_YOU_IN_FLIGHT);
         SetSentErrorMessage(true);
@@ -153,7 +156,7 @@ bool ChatHandler::HandleSaveCommand(const char* /*args*/)
 
 bool ChatHandler::HandleGMListIngameCommand(const char* /*args*/)
 {
-    bool first = true;
+    std::list< std::pair<std::string, bool> > names;
 
     {
         HashMapHolder<Player>::ReadGuard g(HashMapHolder<Player>::GetLock());
@@ -163,19 +166,20 @@ bool ChatHandler::HandleGMListIngameCommand(const char* /*args*/)
             AccountTypes itr_sec = itr->second->GetSession()->GetSecurity();
             if ((itr->second->isGameMaster() || (itr_sec >= SEC_MODERATOR && itr_sec <= (AccountTypes)sWorld.getConfig(CONFIG_UINT32_GM_LEVEL_IN_GM_LIST))) &&
                 (!m_session || itr->second->IsVisibleGloballyFor(m_session->GetPlayer())))
-            {
-                if(first)
-                {
-                    SendSysMessage(LANG_GMS_ON_SRV);
-                    first = false;
-                }
-
-                SendSysMessage(GetNameLink(itr->second).c_str());
-            }
+                names.push_back(std::make_pair<std::string, bool>(GetNameLink(itr->second), itr->second->isAcceptWhispers()));
         }
     }
 
-    if(first)
+    if (!names.empty())
+    {
+        SendSysMessage(LANG_GMS_ON_SRV);
+
+        char const* accepts = GetMangosString(LANG_GM_ACCEPTS_WHISPER);
+        char const* not_accept = GetMangosString(LANG_GM_NO_WHISPER);
+        for(std::list<std::pair< std::string, bool> >::const_iterator iter = names.begin(); iter != names.end(); ++iter)
+            PSendSysMessage("%s - %s", iter->first.c_str(), iter->second ? accepts : not_accept);
+    }
+    else
         SendSysMessage(LANG_GMS_NOT_LOGGED);
 
     return true;
@@ -185,7 +189,11 @@ bool ChatHandler::HandleAccountPasswordCommand(const char* args)
 {
     // allow use from RA, but not from console (not have associated account id)
     if (!GetAccountId())
+    {
+        SendSysMessage (LANG_RA_ONLY_COMMAND);
+        SetSentErrorMessage (true);
         return false;
+    }
 
     if(!*args)
         return false;
@@ -240,7 +248,11 @@ bool ChatHandler::HandleAccountLockCommand(const char* args)
 {
     // allow use from RA, but not from console (not have associated account id)
     if (!GetAccountId())
+    {
+        SendSysMessage (LANG_RA_ONLY_COMMAND);
+        SetSentErrorMessage (true);
         return false;
+    }
 
     if (!*args)
     {
@@ -251,14 +263,14 @@ bool ChatHandler::HandleAccountLockCommand(const char* args)
     std::string argstr = (char*)args;
     if (argstr == "on")
     {
-        loginDatabase.PExecute( "UPDATE account SET locked = '1' WHERE id = '%d'",GetAccountId());
+        LoginDatabase.PExecute( "UPDATE account SET locked = '1' WHERE id = '%d'",GetAccountId());
         PSendSysMessage(LANG_COMMAND_ACCLOCKLOCKED);
         return true;
     }
 
     if (argstr == "off")
     {
-        loginDatabase.PExecute( "UPDATE account SET locked = '0' WHERE id = '%d'",GetAccountId());
+        LoginDatabase.PExecute( "UPDATE account SET locked = '0' WHERE id = '%d'",GetAccountId());
         PSendSysMessage(LANG_COMMAND_ACCLOCKUNLOCKED);
         return true;
     }

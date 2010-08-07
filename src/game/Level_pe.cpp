@@ -25,7 +25,6 @@
 #include "SkillDiscovery.h"
 #include "SkillExtraItems.h"
 #include "SystemConfig.h"
-#include "Config/ConfigEnv.h"
 #include "PlayerDropMgr.h"
 #include "VirtualPlayerMgr.h"
 #include "AuctionHouseMgr.h"
@@ -783,10 +782,10 @@ bool ChatHandler::CharacterDizintegrateHelper(Player *pl, const char* args)
         std::string bannedby = m_session->GetPlayerName();
         std::string banreason = "[auto-message] DIZINTEGRATED!";
 
-        loginDatabase.escape_string(bannedby);
-        loginDatabase.escape_string(banreason);
+        LoginDatabase.escape_string(bannedby);
+        LoginDatabase.escape_string(banreason);
 
-        loginDatabase.PExecute("INSERT INTO account_banned(id,bandate,unbandate,bannedby,banreason,active) VALUES (%u,UNIX_TIMESTAMP(),UNIX_TIMESTAMP()+1,'%s','%s',0)", pl->GetSession()->GetAccountId(), bannedby.c_str(), banreason.c_str() );
+        LoginDatabase.PExecute("INSERT INTO account_banned(id,bandate,unbandate,bannedby,banreason,active) VALUES (%u,UNIX_TIMESTAMP(),UNIX_TIMESTAMP()+1,'%s','%s',0)", pl->GetSession()->GetAccountId(), bannedby.c_str(), banreason.c_str() );
 
 
         SendSysMessage("All items removed");
@@ -887,7 +886,7 @@ bool ChatHandler::HandleBanAutoCommand(const char *args)
     int32 bandiff;
     uint32 max_banid = 0;
     uint32 counted_extra_bans = 0;
-    result = loginDatabase.PQuery("SELECT bandate,unbandate,banreason FROM account_banned WHERE id=%u", accId);
+    result = LoginDatabase.PQuery("SELECT bandate,unbandate,banreason FROM account_banned WHERE id=%u", accId);
     if(result)
     {
         do

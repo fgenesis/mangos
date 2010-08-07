@@ -983,6 +983,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\game\UnitAuraProcHandler.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\game\UpdateData.cpp"
 				>
 			</File>
@@ -1139,14 +1143,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\game\AuctionHouseBot.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\game\AuctionHouseBot.h"
-				>
-			</File>
-			<File
 				RelativePath="..\..\src\game\AuctionHouseMgr.cpp"
 				>
 			</File>
@@ -1168,6 +1164,14 @@
 			</File>
 			<File
 				RelativePath="..\..\src\game\Calendar.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\game\Camera.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\game\Camera.h"
 				>
 			</File>
 			<File

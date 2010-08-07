@@ -19,7 +19,7 @@
 #include "Common.h"
 #include "Log.h"
 #include "Policies/SingletonImp.h"
-#include "Config/ConfigEnv.h"
+#include "Config/Config.h"
 #include "Util.h"
 #include "ByteBuffer.h"
 #include "ProgressBar.h"
@@ -27,7 +27,7 @@
 #include "revision_nr.h"
 #include "../realmd/AuthCodes.h"
 
-#define EXPECTED_MANGOSD_CLIENT_BUILD        {11723, 0} // FG: TODO: update this!!!!
+#define EXPECTED_MANGOSD_CLIENT_BUILD        {12340, 0} // FG: TODO: update this!!!!
 
 #include <stdarg.h>
 #include <fstream>

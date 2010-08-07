@@ -186,7 +186,7 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recv_data )
             if(msg.empty())
                 break;
 
-            if (ChatHandler(this).ParseCommands(msg.c_str()) > 0)
+            if (ChatHandler(this).ParseCommands(msg.c_str()))
                 break;
 
             if (!processChatmessageFurtherAfterSecurityChecks(msg, lang))
@@ -280,7 +280,7 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recv_data )
             if(msg.empty())
                 break;
 
-            if (ChatHandler(this).ParseCommands(msg.c_str()) > 0)
+            if (ChatHandler(this).ParseCommands(msg.c_str()))
                 break;
 
             if (!processChatmessageFurtherAfterSecurityChecks(msg, lang))
@@ -314,7 +314,7 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recv_data )
             if(msg.empty())
                 break;
 
-            if (ChatHandler(this).ParseCommands(msg.c_str()) > 0)
+            if (ChatHandler(this).ParseCommands(msg.c_str()))
                 break;
 
             if (!processChatmessageFurtherAfterSecurityChecks(msg, lang))
@@ -336,7 +336,7 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recv_data )
             if(msg.empty())
                 break;
 
-            if (ChatHandler(this).ParseCommands(msg.c_str()) > 0)
+            if (ChatHandler(this).ParseCommands(msg.c_str()))
                 break;
 
             if (!processChatmessageFurtherAfterSecurityChecks(msg, lang))
@@ -358,7 +358,7 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recv_data )
             if(msg.empty())
                 break;
 
-            if (ChatHandler(this).ParseCommands(msg.c_str()) > 0)
+            if (ChatHandler(this).ParseCommands(msg.c_str()))
                 break;
 
             if (!processChatmessageFurtherAfterSecurityChecks(msg, lang))
@@ -388,7 +388,7 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recv_data )
             if(msg.empty())
                 break;
 
-            if (ChatHandler(this).ParseCommands(msg.c_str()) > 0)
+            if (ChatHandler(this).ParseCommands(msg.c_str()))
                 break;
 
             if (!processChatmessageFurtherAfterSecurityChecks(msg, lang))
@@ -600,9 +600,9 @@ void WorldSession::HandleTextEmoteOpcode( WorldPacket & recv_data )
     if (!em)
         return;
 
-    uint32 emote_anim = em->textid;
+    uint32 emote_id = em->textid;
 
-    switch(emote_anim)
+    switch(emote_id)
     {
         case EMOTE_STATE_SLEEP:
         case EMOTE_STATE_SIT:
@@ -610,7 +610,7 @@ void WorldSession::HandleTextEmoteOpcode( WorldPacket & recv_data )
         case EMOTE_ONESHOT_NONE:
             break;
         default:
-            GetPlayer()->HandleEmoteCommand(emote_anim);
+            GetPlayer()->HandleEmoteCommand(emote_id);
             break;
     }
 
@@ -618,7 +618,7 @@ void WorldSession::HandleTextEmoteOpcode( WorldPacket & recv_data )
 
     MaNGOS::EmoteChatBuilder emote_builder(*GetPlayer(), text_emote, emoteNum, unit);
     MaNGOS::LocalizedPacketDo<MaNGOS::EmoteChatBuilder > emote_do(emote_builder);
-    MaNGOS::PlayerDistWorker<MaNGOS::LocalizedPacketDo<MaNGOS::EmoteChatBuilder > > emote_worker(GetPlayer(), sWorld.getConfig(CONFIG_FLOAT_LISTEN_RANGE_TEXTEMOTE), emote_do);
+    MaNGOS::CameraDistWorker<MaNGOS::LocalizedPacketDo<MaNGOS::EmoteChatBuilder > > emote_worker(GetPlayer(), sWorld.getConfig(CONFIG_FLOAT_LISTEN_RANGE_TEXTEMOTE), emote_do);
     Cell::VisitWorldObjects(GetPlayer(), emote_worker,  sWorld.getConfig(CONFIG_FLOAT_LISTEN_RANGE_TEXTEMOTE));
 
     GetPlayer()->GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_DO_EMOTE, text_emote, 0, unit);

@@ -98,7 +98,7 @@ enum QuestStatus
     QUEST_STATUS_COMPLETE       = 1,
     QUEST_STATUS_UNAVAILABLE    = 2,
     QUEST_STATUS_INCOMPLETE     = 3,
-    QUEST_STATUS_AVAILABLE      = 4,
+    QUEST_STATUS_AVAILABLE      = 4,                        // unused in fact
     QUEST_STATUS_FAILED         = 5,
     MAX_QUEST_STATUS
 };
@@ -258,7 +258,7 @@ class Quest
         bool   IsWeekly() const { return QuestFlags & QUEST_FLAGS_WEEKLY; }
         bool   IsDailyOrWeekly() const { return QuestFlags & (QUEST_FLAGS_DAILY | QUEST_FLAGS_WEEKLY); }
         bool   IsAutoAccept() const { return QuestFlags & QUEST_FLAGS_AUTO_ACCEPT; }
-        bool   IsAllowedInRaid() const { return Type == QUEST_TYPE_RAID || Type == QUEST_TYPE_RAID_10 || Type == QUEST_TYPE_RAID_25; }
+        bool   IsAllowedInRaid() const;
 
         // multiple values
         std::string ObjectiveText[QUEST_OBJECTIVES_COUNT];

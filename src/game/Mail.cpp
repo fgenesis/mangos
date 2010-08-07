@@ -37,7 +37,6 @@
 #include "UpdateMask.h"
 #include "Unit.h"
 #include "Language.h"
-#include "AuctionHouseBot.h"
 #include "DBCStores.h"
 #include "BattleGroundMgr.h"
 #include "Item.h"
@@ -130,7 +129,7 @@ void WorldSession::HandleSendMail(WorldPacket & recv_data )
 
     if (!rc)
     {
-        DETAIL_LOG("Player %u is sending mail to %s (GUID: not existed!) with subject %s and body %s includes %u items, %u copper and %u COD copper with unk1 = %u, unk2 = %u",
+        DETAIL_LOG("Player %u is sending mail to %s (GUID: nonexistent!) with subject %s and body %s includes %u items, %u copper and %u COD copper with unk1 = %u, unk2 = %u",
             pl->GetGUIDLow(), receiver.c_str(), subject.c_str(), body.c_str(), items_count, money, COD, unk1, unk2);
         pl->SendMailResult(0, MAIL_SEND, MAIL_ERR_RECIPIENT_NOT_FOUND);
         return;
@@ -402,8 +401,8 @@ void WorldSession::HandleMailReturnToSender(WorldPacket & recv_data )
     CharacterDatabase.CommitTransaction();
     pl->RemoveMail(mailId);
 
-    // send back only to players and simple drop for other cases
-    if (m->messageType == MAIL_NORMAL)
+    // send back only to existing players and simple drop for other cases
+    if (m->messageType == MAIL_NORMAL && m->sender)
     {
         MailDraft draft(m->subject, m->body);
         if (m->mailTemplateId)
@@ -732,7 +731,7 @@ void WorldSession::HandleMailCreateTextItem(WorldPacket & recv_data )
     else
         bodyItem->SetText(m->body);
 
-    bodyItem->SetUInt32Value(ITEM_FIELD_CREATOR, m->sender);
+    bodyItem->SetGuidValue(ITEM_FIELD_CREATOR, ObjectGuid(HIGHGUID_PLAYER, m->sender));
     bodyItem->SetFlag(ITEM_FIELD_FLAGS, ITEM_FLAGS_WRAPPER | ITEM_FLAGS_UNK4 | ITEM_FLAGS_UNK1);
 
 
@@ -840,7 +839,7 @@ MailSender::MailSender( Object* sender, MailStationery stationery ) : m_statione
             break;
         default:
             m_messageType = MAIL_NORMAL;
-            m_senderId = 0;                                 // will show mail from not existed player
+            m_senderId = 0;                                 // will show mail from nonexistent player
             sLog.outError( "MailSender::MailSender - Mail have unexpected sender typeid (%u)", sender->GetTypeId());
             break;
     }
@@ -976,14 +975,8 @@ void MailDraft::SendReturnToSender(uint32 sender_acc, uint32 sender_guid, uint32
     uint32 deliver_delay = needItemDelay ? sWorld.getConfig(CONFIG_UINT32_MAIL_DELIVERY_DELAY) : 0;
 
     // will delete item or place to receiver mail list
-    if (sender_guid == auctionbot.GetAHBplayerGUID())
-    {
-        SendMailTo(MailReceiver(receiver,receiver_guid), MailSender(MAIL_CREATURE, sender_guid), MAIL_CHECK_MASK_RETURNED, deliver_delay);
-    }
-    else
-    {
-        SendMailTo(MailReceiver(receiver,receiver_guid), MailSender(MAIL_NORMAL, sender_guid), MAIL_CHECK_MASK_RETURNED, deliver_delay);
-    }
+    SendMailTo(MailReceiver(receiver,receiver_guid), MailSender(MAIL_NORMAL, sender_guid), MAIL_CHECK_MASK_RETURNED, deliver_delay);
+
 }
 /**
  * Sends a mail.
@@ -996,15 +989,6 @@ void MailDraft::SendReturnToSender(uint32 sender_acc, uint32 sender_guid, uint32
 void MailDraft::SendMailTo(MailReceiver const& receiver, MailSender const& sender, MailCheckMask checked, uint32 deliver_delay)
 {
     Player* pReceiver = receiver.GetPlayer();               // can be NULL
-
-    if (receiver.GetPlayerGUIDLow() == auctionbot.GetAHBplayerGUID())
-    {
-        if (sender.GetMailMessageType() == MAIL_AUCTION && !m_items.empty())
-        {
-            deleteIncludedItems(true);
-        }
-        return;
-    }
 
     if (pReceiver)
         prepareItems(pReceiver);                            // generate mail template items

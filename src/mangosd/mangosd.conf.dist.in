@@ -1,7 +1,9 @@
 #####################################
 # MaNGOS Configuration file         #
 #####################################
-ConfVersion=2010051901
+
+[MangosdConf]
+ConfVersion=2010062001
 
 ###################################################################################################################
 # CONNECTIONS AND DIRECTORIES
@@ -142,6 +144,13 @@ BindIP = "0.0.0.0"
 #        These spells are ignored for LoS calculation
 #        List of ids with delimiter ','
 #
+#    vmap.enableIndoorCheck
+#        Enable/Disable VMap based indoor check to remove outdoor-only auras (mounts etc.).
+#        Requires VMaps enabled to work.
+#        Default: 1 (Enabled)
+#                 0 (Disabled)
+#
+#
 #    DetectPosCollision
 #        Check final move position, summon position, etc for visible collision with other objects or
 #        wall (wall only if vmaps are enabled)
@@ -192,8 +201,9 @@ PlayerSave.Stats.MinLevel = 0
 PlayerSave.Stats.SaveOnlyOnLogout = 1
 vmap.enableLOS = 0
 vmap.enableHeight = 0
-vmap.ignoreMapIds = "369"
+vmap.ignoreMapIds = ""
 vmap.ignoreSpellIds = "7720"
+vmap.enableIndoorCheck = 1
 DetectPosCollision = 1
 TargetPosRecalculateRange = 1.5
 UpdateUptimeInterval = 10
@@ -599,6 +609,11 @@ LogColors = ""
 #        Hour in one from weekly days when weekly quests reset (0..23)
 #        Default: 6
 #
+#    Quests.IgnoreRaid
+#        Non-raid quests allowed in raids
+#        Default: 0 (not allowed)
+#                 1 (allowed)
+#
 #    Guild.EventLogRecordsCount
 #        Count of guild event log records stored in guild_eventlog table
 #        Increase to store more guild events in table, minimum is 100
@@ -736,6 +751,7 @@ Quests.HighLevelHideDiff = 7
 Quests.Daily.ResetHour = 6
 Quests.Weekly.ResetWeekDay = 3
 Quests.Weekly.ResetHour = 6
+Quests.IgnoreRaid = 0
 Guild.EventLogRecordsCount = 100
 Guild.BankEventLogRecordsCount = 25
 TimerBar.Fatigue.GMLevel = 4
@@ -1094,7 +1110,7 @@ GM.AllowAchievementGain  = 1
 #    Visibility.Distance.Grey.Unit
 #        Visibility grey distance for creatures/players (fast changing objects)
 #        addition to appropriate object type Visibility.Distance.* use in case visibility removing to
-#        object (except corpse around distences) If � is distance and G is grey distance then object
+#        object (except corpse around distances) If D is distance and G is grey distance then object
 #        make visible if distance to it <= D but make non visible if distance > D+G
 #        Default: 1 (yard)
 #
@@ -1124,6 +1140,7 @@ Visibility.Distance.Grey.Object = 10
 #    Rate.RunicPower.Income
 #    Rate.RunicPower.Loss
 #    Rate.Focus
+#    Rate.Energy (Rogue)
 #        Health and power regeneration and rage income from damage.
 #        Default: 1
 #
@@ -1161,6 +1178,10 @@ Visibility.Distance.Grey.Object = 10
 #    Rate.Auction.Deposit
 #    Rate.Auction.Cut
 #        Auction rates (auction time, deposit get at auction start, auction cut from price at auction end)
+#
+#    Auction.Deposit.Min
+#        Minimum auction deposit size in copper
+#        Default: 100 (1 silver)
 #
 #    Rate.Honor
 #        Honor gain rate
@@ -1253,6 +1274,7 @@ Rate.Rage.Loss = 1
 Rate.RunicPower.Income = 1
 Rate.RunicPower.Loss = 1
 Rate.Focus = 1
+Rate.Energy = 1
 Rate.Skill.Discovery = 1
 Rate.Drop.Item.Poor = 1
 Rate.Drop.Item.Normal = 1
@@ -1273,6 +1295,7 @@ Rate.Damage.Fall = 1
 Rate.Auction.Time = 1
 Rate.Auction.Deposit = 1
 Rate.Auction.Cut = 1
+Auction.Deposit.Min = 100
 Rate.Honor = 1
 Rate.Mining.Amount = 1
 Rate.Mining.Next   = 1
@@ -1388,6 +1411,14 @@ BattleGround.PremadeGroupWaitForMatch = 1800000
 #        Default: 1 (active)
 #                 0 (finished)
 #
+#    Arena.StartRating
+#        Default Rating at team creation
+#        Default: -1 (use season dependent default value)
+#
+#    Arena.StartPersonalRating
+#        Default Personal Rating at team creation
+#        Default: -1 (use season dependent default value)
+#
 ###################################################################################################################
 
 Arena.MaxRatingDifference = 150
@@ -1398,6 +1429,8 @@ Arena.QueueAnnouncer.Join = 0
 Arena.QueueAnnouncer.Exit = 0
 Arena.ArenaSeason.ID = 1
 Arena.ArenaSeason.InProgress = 1
+Arena.StartRating = -1
+Arena.StartPersonalRating = -1
 
 ###################################################################################################################
 # NETWORK CONFIG

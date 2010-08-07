@@ -670,6 +670,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\game\Camera.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\game\Camera.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\game\Cell.h"
 				>
 			</File>
@@ -955,6 +963,10 @@
 			</File>
 			<File
 				RelativePath="..\..\src\game\SpellAuras.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\game\UnitAuraProcHandler.cpp"
 				>
 			</File>
 			<File

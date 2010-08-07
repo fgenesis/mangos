@@ -86,7 +86,9 @@ enum MangosStrings
     //LANG_RA_BUSY                      = 60, not used
     LANG_RA_USER                        = 61,
     LANG_RA_PASS                        = 62,
-    // Room for more level 0              63-99 not used
+    LANG_GM_ACCEPTS_WHISPER             = 63,
+    LANG_GM_NO_WHISPER                  = 64,
+    // Room for more level 0              65-99 not used
 
     // level 1 chat
     LANG_GLOBAL_NOTIFY                  = 100,
@@ -253,7 +255,7 @@ enum MangosStrings
     LANG_COMMAND_TARGETOBJNOTFOUND      = 266,
     LANG_COMMAND_GOOBJNOTFOUND          = 267,
     LANG_COMMAND_GOCREATNOTFOUND        = 268,
-    LANG_COMMAND_GOCREATMULTIPLE        = 269,
+    //                                    269, not used
     LANG_COMMAND_DELCREATMESSAGE        = 270,
     LANG_COMMAND_CREATUREMOVED          = 271,
     LANG_COMMAND_CREATUREATSAMEMAP      = 272,
@@ -343,7 +345,22 @@ enum MangosStrings
     LANG_TITLE_REMOVE_RES               = 354,
     LANG_TITLE_CURRENT_RES              = 355,
     LANG_CURRENT_TITLE_RESET            = 356,
-    // Room for more level 2              357-399 not used
+    LANG_AREATRIGER_NOT_HAS_TARGET      = 357,
+    LANG_COMMAND_NOTRIGGERFOUND         = 358,
+    LANG_TRIGGER_TARGET_LIST_CHAT       = 359,
+    LANG_TRIGGER_TARGET_LIST_CONSOLE    = 360,
+    LANG_TRIGGER_LIST_CHAT              = 361,
+    LANG_TRIGGER_LIST_CONSOLE           = 362,
+    LANG_TRIGGER_DIST                   = 363,
+    LANG_TRIGGER_TAVERN                 = 364,
+    LANG_TRIGGER_QUEST                  = 365,
+    LANG_TRIGGER_EXPLORE_QUEST          = 366,
+    LANG_TRIGGER_REQ_LEVEL              = 367,
+    LANG_TRIGGER_REQ_ITEMS              = 368,
+    LANG_TRIGGER_REQ_QUEST_NORMAL       = 369,
+    LANG_TRIGGER_REQ_KEYS_HEROIC        = 370,
+    LANG_TRIGGER_REQ_QUEST_HEROIC       = 371,
+    // Room for more level 2              372-399 not used
 
     // level 3 chat
     LANG_SCRIPTS_RELOADED               = 400,
@@ -794,7 +811,8 @@ enum MangosStrings
     LANG_CHARACTER_DELETED_LIST_LINE_CHAT = 1026,
     LANG_LOG_FILTERS_STATE_HEADER       = 1027,
     LANG_ALL_LOG_FILTERS_SET_TO_S       = 1028,
-    // Room for more level 4              1029-1099 not used
+    LANG_RA_ONLY_COMMAND                = 1029,
+    // Room for more level 4              1030-1099 not used
 
     // Level 3 (continue)
     LANG_ACCOUNT_SETADDON               = 1100,
@@ -840,14 +858,28 @@ enum MangosStrings
     LANG_CHARACTERS_LIST_LINE_CONSOLE   = 1140,
     LANG_CHARACTERS_LIST_LINE_CHAT      = 1141,
     LANG_ACCOUNT_LIST_LINE_CHAT         = 1142,
-    // Room for more level 3              1143-1199 not used
+    LANG_NPC_GO_INFO_GAME_EVENT_S       = 1143,
+    LANG_NPC_GO_INFO_GAME_EVENT_D       = 1144,
+    LANG_NPC_GO_INFO_POOL               = 1145,
+    LANG_NPC_GO_INFO_TOP_POOL           = 1146,
+    LANG_NPC_GO_INFO_POOL_GAME_EVENT_S  = 1147,
+    LANG_NPC_GO_INFO_POOL_GAME_EVENT_D  = 1148,
+    LANG_NPC_GO_INFO_POOL_STRING        = 1149,
+    LANG_NPC_GO_INFO_EVENT_STRING       = 1150,
+    LANG_NPC_GO_INFO_POOL_EVENT_STRING  = 1151,
+    LANG_COMMAND_ITEM_USABLE            = 1152,
+    // Room for more level 3              1153-1199 not used
 
     // Debug commands
     LANG_CINEMATIC_NOT_EXIST            = 1200,
     LANG_MOVIE_NOT_EXIST                = 1201,
     // Room for more debug                1202-1299 not used
 
-    // FREE IDS                           1300-9999
+    // Reserved for old client release branches specific strings
+    // Room for old clients 2.x           1300-1399 not used
+    // Room for old clients 1.x           1400-1499 not used
+
+    // FREE IDS                           1500-9999
 
     // Use for not-in-offcial-sources patches
     //                                    10000-10999
