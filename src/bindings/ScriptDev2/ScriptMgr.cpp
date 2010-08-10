@@ -44,6 +44,7 @@ void LoadDatabase()
         pSystemMgr.LoadVersion();
         pSystemMgr.LoadScriptTexts();
         pSystemMgr.LoadScriptTextsCustom();
+        pSystemMgr.LoadScriptGossipTexts();
         pSystemMgr.LoadScriptWaypoints();
     }
     else
@@ -206,7 +207,7 @@ void DoScriptText(int32 iTextEntry, WorldObject* pSource, Unit* pTarget)
 //*********************************
 //*** Functions used internally ***
 
-void Script::RegisterSelf()
+void Script::RegisterSelf(bool bReportError)
 {
     int id = GetScriptId(Name.c_str());
     if (id != 0)
@@ -216,7 +217,9 @@ void Script::RegisterSelf()
     }
     else
     {
-        debug_log("SD2: RegisterSelf, but script named %s does not have ScriptName assigned in database.",(this)->Name.c_str());
+        if (bReportError)
+            error_log("SD2: Script registering but ScriptName %s is not assigned in database. Script will not be used.", (this)->Name.c_str());
+
         delete this;
     }
 }
@@ -464,7 +467,7 @@ bool GOChooseReward(Player* pPlayer, GameObject* pGo, const Quest* pQuest, uint3
 }
 
 MANGOS_DLL_EXPORT
-bool AreaTrigger(Player* pPlayer, AreaTriggerEntry * atEntry)
+bool AreaTrigger(Player* pPlayer, AreaTriggerEntry const* atEntry)
 {
     Script *tmpscript = m_scripts[GetAreaTriggerScriptId(atEntry->id)];
 
@@ -472,6 +475,17 @@ bool AreaTrigger(Player* pPlayer, AreaTriggerEntry * atEntry)
         return false;
 
     return tmpscript->pAreaTrigger(pPlayer, atEntry);
+}
+
+MANGOS_DLL_EXPORT
+bool ProcessEventId(uint32 uiEventId, Object* pSource, Object* pTarget, bool bIsStart)
+{
+    Script *tmpscript = m_scripts[GetEventIdScriptId(uiEventId)];
+    if (!tmpscript || !tmpscript->pProcessEventId)
+        return false;
+
+    // bIsStart may be false, when event is from taxi node events (arrival=false, departure=true)
+    return tmpscript->pProcessEventId(uiEventId, pSource, pTarget, bIsStart);
 }
 
 MANGOS_DLL_EXPORT

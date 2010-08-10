@@ -1,46 +1,76 @@
-/* Copyright (C) 2006 - 2010 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*/
+/* Copyright (C) 2006 - 2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
+/* ScriptData
+SDName: instance_halls_of_reflection
+SD%Complete: 70%
+SDComment:
+SDErrors:
+SDCategory: instance script
+SDAuthor: /dev/rsa, modified by MaxXx2021 aka Mioka
+EndScriptData */
 
 #include "precompiled.h"
 #include "def_halls.h"
+#include "World.h"
 
 struct MANGOS_DLL_DECL instance_halls_of_reflection : public ScriptedInstance
 {
     instance_halls_of_reflection(Map* pMap) : ScriptedInstance(pMap) 
     {
-        Regular = pMap->IsRegularDifficulty();
+        Difficulty = pMap->GetDifficulty();
         Initialize();
     }
 
-    bool Regular;
-    bool needSave;
+    uint32 m_auiEncounter[MAX_ENCOUNTERS+1];
+    uint32 m_auiLider;
     std::string strSaveData;
 
-    //Creatures GUID
-    uint32 m_auiEncounter[MAX_ENCOUNTERS+1];
-    uint64 m_uiFalrynGUID;
+    uint8 Difficulty;
+    uint8 m_uiSummons;
+
+    uint64 m_uiFalricGUID;
     uint64 m_uiMarwynGUID;
     uint64 m_uiLichKingGUID;
+    uint64 m_uiLiderGUID;
+
+    uint64 m_uiMainGateGUID;
+    uint64 m_uiExitGateGUID;
+    uint64 m_uiDoor2GUID;
+    uint64 m_uiDoor3GUID;
+
     uint64 m_uiFrostGeneralGUID;
     uint64 m_uiCaptainsChestHordeGUID;
     uint64 m_uiCaptainsChestAllianceGUID;
-    uint64 m_uiIcecrownDoorGUID;
-    uint64 m_uiImpenetrableDoorGUID;
     uint64 m_uiFrostmourneGUID;
     uint64 m_uiFrostmourneAltarGUID;
+    uint64 m_uiPortalGUID;
+
+    void Initialize()
+    {
+        for (uint8 i = 0; i < MAX_ENCOUNTERS; ++i)
+            m_auiEncounter[i] = NOT_STARTED;
+        m_uiMainGateGUID = 0;
+        m_uiFrostmourneGUID = 0;
+        m_uiFalricGUID = 0;
+        m_uiLiderGUID = 0;
+        m_uiLichKingGUID = 0;
+        m_uiExitGateGUID = 0;
+        m_uiSummons = 0;
+    }
 
     void OpenDoor(uint64 guid)
     {
@@ -56,83 +86,143 @@ struct MANGOS_DLL_DECL instance_halls_of_reflection : public ScriptedInstance
         if(pGo) pGo->SetGoState(GO_STATE_READY);
     }
 
-    void Initialize()
-    {
-        for (uint8 i = 0; i < MAX_ENCOUNTERS; ++i)
-            m_auiEncounter[i] = NOT_STARTED;
-    m_uiCaptainsChestHordeGUID = 0;
-    m_uiCaptainsChestAllianceGUID = 0;
-    }
-
     void OnCreatureCreate(Creature* pCreature)
     {
         switch(pCreature->GetEntry())
         {
-            case NPC_FALRYN: 
-                         m_uiFalrynGUID = pCreature->GetGUID();
-                         break;
-            case NPC_MARWYN: 
-                          m_uiMarwynGUID = pCreature->GetGUID();
-                          break;
-            case NPC_LICH_KING: 
-                          m_uiLichKingGUID = pCreature->GetGUID();
-                          break;
-            case NPC_FROST_GENERAL: 
-                          m_uiFrostGeneralGUID = pCreature->GetGUID();
-                          break;
+            case NPC_FALRIC:
+                   m_uiFalricGUID = pCreature->GetGUID();
+                   break;
+            case NPC_MARWYN:
+                   m_uiMarwynGUID = pCreature->GetGUID();
+                   break;
+            case BOSS_LICH_KING:
+                   m_uiLichKingGUID = pCreature->GetGUID();
+                   break;
+            case NPC_FROST_GENERAL:
+                   m_uiFrostGeneralGUID = pCreature->GetGUID();
+                   break;
         }
     }
+
+    void OnPlayerEnter(Player *pPlayer)
+    {
+
+    enum PhaseControl
+    {
+        HORDE_CONTROL_PHASE_SHIFT_1    = 55773,
+        HORDE_CONTROL_PHASE_SHIFT_2    = 60028,
+        ALLIANCE_CONTROL_PHASE_SHIFT_1 = 55774,
+        ALLIANCE_CONTROL_PHASE_SHIFT_2 = 60027,
+    };
+    /*
+        if (!sWorld.getConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_INTERACTION_GROUP)) return;
+
+        switch (pPlayer->GetTeam())
+        {
+            case ALLIANCE:
+                  if (pPlayer && pPlayer->IsInWorld() && pPlayer->HasAura(HORDE_CONTROL_PHASE_SHIFT_1))
+                      pPlayer->RemoveAurasDueToSpell(HORDE_CONTROL_PHASE_SHIFT_1);
+                  pPlayer->CastSpell(pPlayer, HORDE_CONTROL_PHASE_SHIFT_2, false);
+                  break;
+            case HORDE:
+                  if (pPlayer && pPlayer->IsInWorld() && pPlayer->HasAura(ALLIANCE_CONTROL_PHASE_SHIFT_1)) 
+                      pPlayer->RemoveAurasDueToSpell(ALLIANCE_CONTROL_PHASE_SHIFT_1);
+                  pPlayer->CastSpell(pPlayer, ALLIANCE_CONTROL_PHASE_SHIFT_2, false);
+                  break;
+        };
+        */
+
+    };
 
     void OnObjectCreate(GameObject* pGo)
     {
         switch(pGo->GetEntry())
         {
-        case GO_CAPTAIN_CHEST_1:
-                               if(Regular) m_uiCaptainsChestHordeGUID = pGo->GetGUID();
+            case GO_IMPENETRABLE_DOOR: m_uiMainGateGUID = pGo->GetGUID(); break;
+            case GO_FROSTMOURNE:       m_uiFrostmourneGUID = pGo->GetGUID(); break;
+            case GO_ICECROWN_DOOR:     m_uiExitGateGUID = pGo->GetGUID(); break;
+            case GO_ICECROWN_DOOR_2:   m_uiDoor2GUID = pGo->GetGUID(); break;
+            case GO_ICECROWN_DOOR_3:   m_uiDoor3GUID = pGo->GetGUID(); break;
+            case GO_PORTAL:            m_uiPortalGUID = pGo->GetGUID(); break;
+            case  GO_CAPTAIN_CHEST_1:
+                                  if (Difficulty == RAID_DIFFICULTY_10MAN_NORMAL)
+                                  m_uiCaptainsChestHordeGUID = pGo->GetGUID(); 
                                   break;
-        case GO_CAPTAIN_CHEST_2:
-                               if(Regular) m_uiCaptainsChestAllianceGUID = pGo->GetGUID();
+            case  GO_CAPTAIN_CHEST_3:
+                                  if (Difficulty == RAID_DIFFICULTY_25MAN_NORMAL)
+                                  m_uiCaptainsChestHordeGUID = pGo->GetGUID(); 
                                   break;
-        case GO_CAPTAIN_CHEST_3:
-                               if(!Regular) m_uiCaptainsChestHordeGUID = pGo->GetGUID();
+            case  GO_CAPTAIN_CHEST_2:
+                                  if (Difficulty == RAID_DIFFICULTY_10MAN_NORMAL)
+                                  m_uiCaptainsChestAllianceGUID = pGo->GetGUID(); 
                                   break;
-        case GO_CAPTAIN_CHEST_4:
-                               if(!Regular) m_uiCaptainsChestAllianceGUID = pGo->GetGUID();
+            case  GO_CAPTAIN_CHEST_4:
+                                  if (Difficulty == RAID_DIFFICULTY_25MAN_NORMAL)
+                                  m_uiCaptainsChestAllianceGUID = pGo->GetGUID(); 
                                   break;
-        case GO_ICECROWN_DOOR:     m_uiIcecrownDoorGUID = pGo->GetGUID(); break;
-        case GO_IMPENETRABLE_DOOR: m_uiImpenetrableDoorGUID = pGo->GetGUID(); break;
-        case GO_FROSTMOURNE:       m_uiFrostmourneGUID = pGo->GetGUID(); 
-                                   pGo->RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_UNK1);
-                                   break;
-        case GO_FROSTMOURNE_ALTAR: m_uiFrostmourneAltarGUID = pGo->GetGUID();
-                                   pGo->RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_UNK1);
-                                   break;
+
         }
     }
+
     void SetData(uint32 uiType, uint32 uiData)
     {
         switch(uiType)
         {
-            case TYPE_START_EVENT:   m_auiEncounter[0] = uiData;
-                                     if (uiData == DONE) {
-                                         CloseDoor(m_uiIcecrownDoorGUID);
-                                     }; break;
-            case TYPE_FALRYN:        m_auiEncounter[1] = uiData; break;
-            case TYPE_MARWYN:        m_auiEncounter[2] = uiData;
-                                     if (uiData == DONE) {
-                                         OpenDoor(m_uiImpenetrableDoorGUID);
-                                         OpenDoor(m_uiIcecrownDoorGUID);
-                            if (m_uiCaptainsChestHordeGUID)
-                                if (GameObject* pChest = instance->GetGameObject(m_uiCaptainsChestHordeGUID))
-                                    if (pChest && !pChest->isSpawned()) pChest->SetRespawnTime(7*DAY);
-                            if (m_uiCaptainsChestAllianceGUID)
-                                if (GameObject* pChest = instance->GetGameObject(m_uiCaptainsChestAllianceGUID))
-                                    if (pChest && !pChest->isSpawned()) pChest->SetRespawnTime(7*DAY);
-                                     }; break;
-            case TYPE_LICH_KING_1:   m_auiEncounter[3] = uiData; break;
-            case TYPE_FROST_GENERAL: m_auiEncounter[4] = uiData; break;
-            case TYPE_LICH_KING_BATTLE: m_auiEncounter[5] = uiData; break;
-            case TYPE_ESCAPE:        m_auiEncounter[6] = uiData; break;
+            case TYPE_PHASE:                m_auiEncounter[uiType] = uiData; break;
+            case TYPE_EVENT:                m_auiEncounter[uiType] = uiData;
+                                            uiData = NOT_STARTED;
+                break;
+            case TYPE_FALRIC:               m_auiEncounter[uiType] = uiData;
+                                            if(uiData == SPECIAL)
+                                                CloseDoor(m_uiExitGateGUID);
+                break;
+            case TYPE_MARWYN:               m_auiEncounter[uiType] = uiData;
+                                            if(uiData == DONE)
+                                            {
+                                               OpenDoor(m_uiMainGateGUID);
+                                               OpenDoor(m_uiExitGateGUID);
+                                            }
+                break;
+            case TYPE_FROST_GENERAL:        m_auiEncounter[uiType] = uiData; 
+                                            if(uiData == DONE)
+                                               OpenDoor(m_uiDoor2GUID);
+                break;
+            case TYPE_LICH_KING:            m_auiEncounter[uiType] = uiData;
+                                            if(uiData == IN_PROGRESS)
+                                               OpenDoor(m_uiDoor3GUID);
+                                            if(uiData == DONE)
+                                            {
+                                            if (m_auiLider == 1)
+                                            {
+                                            if (GameObject* pChest = instance->GetGameObject(m_uiCaptainsChestAllianceGUID))
+                                                if (pChest && !pChest->isSpawned()) {
+                                                    pChest->SetRespawnTime(DAY);
+                                                };
+                                            } else
+                                            if (GameObject* pChest = instance->GetGameObject(m_uiCaptainsChestHordeGUID))
+                                                if (pChest && !pChest->isSpawned()) {
+                                                    pChest->SetRespawnTime(DAY);
+                                                };
+                                            if (GameObject* pPortal = instance->GetGameObject(m_uiPortalGUID))
+                                                if (pPortal && !pPortal->isSpawned()) {
+                                                    pPortal->SetRespawnTime(DAY);
+                                                };
+                                            }
+                break;
+            case TYPE_ICE_WALL_01:          m_auiEncounter[uiType] = uiData; break;
+            case TYPE_ICE_WALL_02:          m_auiEncounter[uiType] = uiData; break;
+            case TYPE_ICE_WALL_03:          m_auiEncounter[uiType] = uiData; break;
+            case TYPE_ICE_WALL_04:          m_auiEncounter[uiType] = uiData; break;
+            case TYPE_HALLS:                m_auiEncounter[uiType] = uiData; break;
+            case DATA_LIDER:                m_auiLider = uiData;
+                                            uiData = NOT_STARTED;
+                break;
+            case DATA_SUMMONS:              if (uiData == 3) m_uiSummons = 0;
+                                            else if (uiData == 1) ++m_uiSummons;
+                                            else if (uiData == 0) --m_uiSummons;
+                                            uiData = NOT_STARTED;
+                break;
         }
 
         if (uiData == DONE)
@@ -160,25 +250,48 @@ struct MANGOS_DLL_DECL instance_halls_of_reflection : public ScriptedInstance
     {
         switch(uiType)
         {
-            case TYPE_START_EVENT:   return m_auiEncounter[0];
-            case TYPE_FALRYN:        return m_auiEncounter[1];
-            case TYPE_MARWYN:        return m_auiEncounter[2];
-            case TYPE_LICH_KING_1:   return m_auiEncounter[3];
-            case TYPE_FROST_GENERAL: return m_auiEncounter[4];
-            case TYPE_LICH_KING_BATTLE: return m_auiEncounter[5];
-            case TYPE_ESCAPE:        return m_auiEncounter[6];
+            case TYPE_PHASE:                return m_auiEncounter[uiType];
+            case TYPE_EVENT:                return m_auiEncounter[uiType];
+            case TYPE_FALRIC:               return m_auiEncounter[uiType];
+            case TYPE_MARWYN:               return m_auiEncounter[uiType];
+            case TYPE_LICH_KING:            return m_auiEncounter[uiType];
+            case TYPE_FROST_GENERAL:        return m_auiEncounter[uiType];
+            case TYPE_ICE_WALL_01:          return m_auiEncounter[uiType];
+            case TYPE_ICE_WALL_02:          return m_auiEncounter[uiType];
+            case TYPE_ICE_WALL_03:          return m_auiEncounter[uiType];
+            case TYPE_ICE_WALL_04:          return m_auiEncounter[uiType];
+            case TYPE_HALLS:                return m_auiEncounter[uiType];
+            case DATA_LIDER:                return m_auiLider;
+            case DATA_SUMMONS:              return m_uiSummons;
+            default:                        return 0;
         }
         return 0;
+    }
+
+    void SetData64(uint32 uiData, uint64 uiGuid)
+    {
+        switch(uiData)
+        {
+            case DATA_ESCAPE_LIDER:
+                   m_uiLiderGUID = uiGuid;
+                   break;
+        }
     }
 
     uint64 GetData64(uint32 uiData)
     {
         switch(uiData)
         {
-            case NPC_FALRYN: return  m_uiFalrynGUID;
-            case NPC_MARWYN: return  m_uiMarwynGUID;
-            case NPC_LICH_KING: return m_uiLichKingGUID;
-            case NPC_FROST_GENERAL: return m_uiFrostGeneralGUID;
+            case GO_IMPENETRABLE_DOOR: return m_uiMainGateGUID;
+            case GO_FROSTMOURNE:       return m_uiFrostmourneGUID;
+            case NPC_FALRIC:           return m_uiFalricGUID;
+            case NPC_MARWYN:           return m_uiMarwynGUID;
+            case BOSS_LICH_KING:       return m_uiLichKingGUID;
+            case DATA_ESCAPE_LIDER:    return m_uiLiderGUID;
+            case NPC_FROST_GENERAL:    return m_uiFrostGeneralGUID;
+            case GO_ICECROWN_DOOR:     return m_uiExitGateGUID;
+            case GO_ICECROWN_DOOR_2:   return m_uiDoor2GUID;
+            case GO_ICECROWN_DOOR_3:   return m_uiDoor3GUID;
         }
         return 0;
     }
@@ -199,13 +312,13 @@ struct MANGOS_DLL_DECL instance_halls_of_reflection : public ScriptedInstance
         {
             loadStream >> m_auiEncounter[i];
 
-            if (m_auiEncounter[i] != DONE)
+            if (m_auiEncounter[i] == IN_PROGRESS)
                 m_auiEncounter[i] = NOT_STARTED;
         }
 
         OUT_LOAD_INST_DATA_COMPLETE;
-        OpenDoor(m_uiIcecrownDoorGUID);
     }
+
 };
 
 InstanceData* GetInstanceData_instance_halls_of_reflection(Map* pMap)
@@ -213,72 +326,11 @@ InstanceData* GetInstanceData_instance_halls_of_reflection(Map* pMap)
     return new instance_halls_of_reflection(pMap);
 }
 
-
-bool GOHello_go_frostmourne_altar(Player *player, GameObject* pGo)
-{
-
-    ScriptedInstance *pInstance = (ScriptedInstance *) pGo->GetInstanceData();
-    if(!pInstance) return false;
-
-    switch(pGo->GetEntry())
-    {
-        case GO_FROSTMOURNE_ALTAR: {
-                              if (pInstance->GetData(TYPE_START_EVENT) != DONE) {
-                                           pInstance->SetData(TYPE_START_EVENT, DONE);
-                                           pInstance->SetData(TYPE_FALRYN, SPECIAL);
-                                           pGo->SetFlag(GAMEOBJECT_FLAGS, GO_FLAG_UNK1);
-                              };
-                              if (pInstance->GetData(TYPE_START_EVENT) == DONE
-                                  && pInstance->GetData(TYPE_FALRYN) != DONE) {
-                                           pInstance->SetData(TYPE_START_EVENT, DONE);
-                                           pInstance->SetData(TYPE_FALRYN, SPECIAL);
-                                           pGo->SetFlag(GAMEOBJECT_FLAGS, GO_FLAG_UNK1);
-                              };
-                              }  break;
-    }
-
-    pGo->SetFlag(GAMEOBJECT_FLAGS, GO_FLAG_UNK1);
-    return true;
-}
-
-bool GOHello_go_frostmourne(Player *player, GameObject* pGo)
-{
-
-    ScriptedInstance *pInstance = (ScriptedInstance *) pGo->GetInstanceData();
-    if(!pInstance) return false;
-
-    switch(pGo->GetEntry())
-    {
-        case GO_FROSTMOURNE:  {
-                              if (pInstance->GetData(TYPE_START_EVENT) == DONE
-                                  && pInstance->GetData(TYPE_FALRYN) == DONE
-                                  && pInstance->GetData(TYPE_MARWYN) != DONE) {
-                                           pInstance->SetData(TYPE_MARWYN, SPECIAL);
-                                           pGo->SetFlag(GAMEOBJECT_FLAGS, GO_FLAG_UNK1);
-                              };
-                              }  break;
-    }
-
-
-    return true;
-}
-
 void AddSC_instance_halls_of_reflection()
 {
-    Script* newscript;
+    Script *newscript;
     newscript = new Script;
     newscript->Name = "instance_halls_of_reflection";
     newscript->GetInstanceData = &GetInstanceData_instance_halls_of_reflection;
     newscript->RegisterSelf();
-
-    newscript = new Script;
-    newscript->Name = "go_frostmourne_altar";
-    newscript->pGOHello = &GOHello_go_frostmourne_altar;
-    newscript->RegisterSelf();
-
-    newscript = new Script;
-    newscript->Name = "go_frostmourne";
-    newscript->pGOHello = &GOHello_go_frostmourne;
-    newscript->RegisterSelf();
-
 }

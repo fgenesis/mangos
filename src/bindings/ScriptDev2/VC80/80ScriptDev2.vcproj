@@ -489,6 +489,10 @@
 					>
 				</File>
 				<File
+					RelativePath="..\scripts\eastern_kingdoms\swamp_of_sorrows.cpp"
+					>
+				</File>
+				<File
 					RelativePath="..\scripts\eastern_kingdoms\tirisfal_glades.cpp"
 					>
 				</File>
@@ -1068,6 +1072,10 @@
 					Name="uldaman"
 					>
 					<File
+						RelativePath="..\scripts\eastern_kingdoms\uldaman\boss_archaedas.cpp"
+						>
+					</File>
+					<File
 						RelativePath="..\scripts\eastern_kingdoms\uldaman\boss_ironaya.cpp"
 						>
 					</File>
@@ -1445,6 +1453,14 @@
 					>
 					<File
 						RelativePath="..\scripts\kalimdor\onyxias_lair\boss_onyxia.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\scripts\kalimdor\onyxias_lair\instance_onyxias_lair.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\scripts\kalimdor\onyxias_lair\onyxias_lair.h"
 						>
 					</File>
 				</Filter>
@@ -2001,6 +2017,26 @@
 					</File>
 					<File
 						RelativePath="..\scripts\northrend\obsidian_sanctum\obsidian_sanctum.h"
+						>
+					</File>
+				</Filter>
+				<Filter
+					Name="ruby_sanctum"
+					>
+					<File
+						RelativePath="..\scripts\northrend\ruby_sanctum\boss_halion.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\scripts\northrend\ruby_sanctum\boss_saviana.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\scripts\northrend\ruby_sanctum\boss_baltharus.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\scripts\northrend\ruby_sanctum\boss_zarithian.cpp"
 						>
 					</File>
 				</Filter>

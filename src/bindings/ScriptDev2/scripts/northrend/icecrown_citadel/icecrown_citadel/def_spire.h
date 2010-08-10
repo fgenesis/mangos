@@ -1,7 +1,11 @@
+/* Copyright (C) 2010 by /dev/rsa for ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
+ * This program is free software licensed under GPL version 2
+ * Please see the included DOCS/LICENSE.TXT for more information */
 
 #ifndef DEF_ICECROWN_SPIRE_H
 #define DEF_ICECROWN_SPIRE_H
-#include "sc_boss_spell_worker.h"
+
+#include "rsa_extra_defines.h"
 
 enum
 {
@@ -34,16 +38,26 @@ enum
     NPC_KELESETH                = 37972,
     NPC_LANATHEL                = 37955,
     NPC_VALITHRIA               = 36789,
-    NPC_VALITHRIA_H             = 38589,
+    NPC_VALITHRIA_QUEST         = 38589,
     NPC_SINDRAGOSA              = 36853,
     NPC_LICH_KING               = 36597,
 
     NPC_MURADIN                 = 36948,
 
+    NPC_TIRION                  = 38995,
+    NPC_MENETHIL                = 38579,
+    NPC_SPIRIT_WARDEN           = 38579,
+
+    NPC_FROSTMOURNE_TRIGGER     = 38584,
+    NPC_FROSTMOURNE_HOLDER      = 27880,
+
+    NPC_STINKY                  = 37025,
+    NPC_PRECIOUS                = 37217,
+
     NPC_RIMEFANG                = 37533,
     NPC_SPINESTALKER            = 37534,
 
-    NPC_RISEN_ARCHMAGE          = 37868,
+    NPC_TARGET_DUMMY            = 2673,
 
     GO_TELEPORT_GOSSIP_MESSAGE  = 99323,
     TELEPORT_GOSSIP_MESSAGE     = 99322,
@@ -78,6 +92,7 @@ enum
     GO_VALITHRIA_DOOR_4         = 201381, //1558
 
     GO_SINDRAGOSA_DOOR_1        = 201369, //1619
+    GO_SINDRAGOSA_DOOR_2        = 201379,
 
     GO_FROZENTRONE_TR           = 202223, //72061
 
@@ -97,17 +112,147 @@ enum
     GO_GUNSHIP_ARMORY_H_25H     = 202180, //
 
     GO_DREAMWALKER_CACHE_10      = 201959, //
-    GO_DREAMWALKER_CACHE_25      = 202338, //
-    GO_DREAMWALKER_CACHE_10_H    = 202339, //
+    GO_DREAMWALKER_CACHE_25      = 202339, //
+    GO_DREAMWALKER_CACHE_10_H    = 202338, //
     GO_DREAMWALKER_CACHE_25_H    = 202340, //
 
     GO_PLAGUE_SIGIL             = 202182,
     GO_FROSTWING_SIGIL          = 202181,
     GO_BLOODWING_SIGIL          = 202183,
 
-    TYPE_DIFFICULTY             = 1001,
+    GO_ICESHARD_1               = 202142, //8304
+    GO_ICESHARD_2               = 202141, //8364
+    GO_ICESHARD_3               = 202143, //8310
+    GO_ICESHARD_4               = 202144, //9007
+
+    GO_FROSTY_WIND              = 202188, //
+    GO_FROSTY_EDGE              = 202189, //
+    GO_SNOW_EDGE                = 202190, //
+    GO_ARTHAS_PLATFORM          = 202161, //
+    GO_ARTHAS_PRECIPICE         = 202078, //
+
+    TYPE_EVENT_TIMER            = 99,
+    TYPE_EVENT                  = 100,
+    TYPE_EVENT_NPC              = 101,
     MAP_NUM                     = 631,
+    TYPE_DIFFICULTY             = 1001,
     DATA_BLOOD_COUNCIL_HEALTH   = 1002,
+    DATA_BLOOD_INVOCATION       = 1003,
+    DESPAWN_TIME                = 300000,
+
+};
+
+class MANGOS_DLL_DECL instance_icecrown_spire : public ScriptedInstance
+{
+public:
+    instance_icecrown_spire(Map* pMap);
+    ~instance_icecrown_spire() {}
+
+    void Initialize();
+
+    void OnObjectCreate(GameObject* pGo);
+    void OnCreatureCreate(Creature* pCreature);
+
+    void OpenDoor(uint64 guid);
+    void CloseDoor(uint64 guid);
+    void OpenAllDoors();
+    void OnPlayerEnter(Player* pPlayer);
+    bool IsEncounterInProgress() const;
+
+    void SetData(uint32 uiType, uint32 uiData);
+    uint32 GetData(uint32 uiType);
+    uint64 GetData64(uint32 uiType);
+
+    const char* Save() { return strSaveData.c_str(); }
+    void Load(const char* chrIn);
+
+private:
+
+    uint8 Difficulty;
+    bool needSave;
+    std::string strSaveData;
+
+    //Creatures GUID
+    uint32 m_auiEncounter[MAX_ENCOUNTERS+1];
+    uint64 m_uiMarrogwarGUID;
+    uint64 m_uiDeathWhisperGUID;
+    uint64 m_uiSaurfangGUID;
+    uint64 m_uiRotfaceGUID;
+    uint64 m_uiFestergutGUID;
+    uint64 m_uiPutricideGUID;
+    uint64 m_uiTaldaramGUID;
+    uint64 m_uiValanarGUID;
+    uint64 m_uiKelesethGUID;
+    uint64 m_uiLanathelGUID;
+    uint64 m_uiValithriaGUID;
+    uint64 m_uiSindragosaGUID;
+    uint64 m_uiLichKingGUID;
+
+    uint64 m_uiRimefangGUID;
+    uint64 m_uiSpinestalkerGUID;
+
+    uint64 m_uiStinkyGUID;
+    uint64 m_uiPreciousGUID;
+
+    uint64 m_uidummyTargetGUID;
+
+    uint64 m_uiIcewall1GUID;
+    uint64 m_uiIcewall2GUID;
+    uint64 m_uiSaurfangDoorGUID;
+    uint64 m_uiOratoryDoorGUID;
+    uint64 m_uiDeathWhisperElevatorGUID;
+    uint64 m_uiOrangePlagueGUID;
+    uint64 m_uiGreenPlagueGUID;
+    uint64 m_uiSDoorGreenGUID;
+    uint64 m_uiSDoorOrangeGUID;
+    uint64 m_uiSDoorCollisionGUID;
+    uint64 m_uiScientistDoorGUID;
+    uint64 m_uiCrimsonDoorGUID;
+    uint64 m_uiBloodwingDoorGUID;
+    uint64 m_uiCounsilDoor1GUID;
+    uint64 m_uiCounsilDoor2GUID;
+    uint64 m_uiGreenDragonDoor1GUID;
+    uint64 m_uiGreenDragonDoor2GUID;
+    uint64 m_uiFrostwingDoorGUID;
+
+    uint64 m_uiValithriaDoor1GUID;
+    uint64 m_uiValithriaDoor2GUID;
+    uint64 m_uiValithriaDoor3GUID;
+    uint64 m_uiValithriaDoor4GUID;
+
+    uint64 m_uiSindragosaDoor1GUID;
+    uint64 m_uiSindragosaDoor2GUID;
+
+    uint64 m_uiIceShard1GUID;
+    uint64 m_uiIceShard2GUID;
+    uint64 m_uiIceShard3GUID;
+    uint64 m_uiIceShard4GUID;
+
+    uint64 m_uiFrostyWindGUID;
+    uint64 m_uiFrostyEdgeGUID;
+    uint64 m_uiSnowEdgeGUID;
+    uint64 m_uiArthasPlatformGUID;
+    uint64 m_uiArthasPrecipiceGUID;
+
+    uint64 m_uiFrostmourneGUID;
+    uint64 m_uiFrostmourneTriggerGUID;
+    uint64 m_uiFrostmourneHolderGUID;
+
+    uint64 m_uiSaurfangCacheGUID;
+    uint64 m_uiGunshipArmoryAGUID;
+    uint64 m_uiGunshipArmoryHGUID;
+    uint64 m_uiValitriaCacheGUID;
+
+    uint64 m_uiGunshipArmoryH_ID;
+    uint64 m_uiGunshipArmoryA_ID;
+
+    uint32 m_uiDataCouncilHealth;
+    uint32 m_uiCouncilInvocation;
+
+    uint32 m_auiEvent;
+    uint32 m_auiEventTimer;
+
+
 };
 
 #endif

@@ -143,9 +143,10 @@ extern void AddSC_sunken_temple();
 extern void AddSC_boss_brutallus();                         //sunwell_plateau
 extern void AddSC_boss_kalecgos();
 extern void AddSC_instance_sunwell_plateau();
-extern void AddSC_boss_ironaya();                           //uldaman
-extern void AddSC_uldaman();
+extern void AddSC_boss_archaedas();                         //uldaman
+extern void AddSC_boss_ironaya();
 extern void AddSC_instance_uldaman();
+extern void AddSC_uldaman();
 extern void AddSC_boss_akilzon();                           //zulaman
 extern void AddSC_boss_halazzi();
 extern void AddSC_boss_janalai();
@@ -190,6 +191,7 @@ extern void AddSC_silvermoon_city();
 extern void AddSC_silverpine_forest();
 extern void AddSC_stormwind_city();
 extern void AddSC_stranglethorn_vale();
+extern void AddSC_swamp_of_sorrows();
 extern void AddSC_tirisfal_glades();
 extern void AddSC_undercity();
 extern void AddSC_western_plaguelands();
@@ -218,6 +220,7 @@ extern void AddSC_boss_landslide();
 extern void AddSC_boss_noxxion();
 extern void AddSC_boss_ptheradras();
 extern void AddSC_boss_onyxia();                            //onyxias_lair
+extern void AddSC_instance_onyxias_lair();
 extern void AddSC_boss_amnennar_the_coldbringer();          //razorfen_downs
 extern void AddSC_razorfen_downs();
 extern void AddSC_instance_razorfen_kraul();                //razorfen_kraul
@@ -262,9 +265,9 @@ extern void AddSC_winterspring();
 
 //northrend
 extern void AddSC_trial_of_the_champion();                  //trial_of_the_champion
-extern void AddSC_boss_argent_challenge(); 
-extern void AddSC_boss_black_knight();
-extern void AddSC_boss_grand_champions();
+//extern void AddSC_boss_argent_challenge(); 
+//extern void AddSC_boss_black_knight();
+//extern void AddSC_boss_grand_champions();
 extern void AddSC_instance_trial_of_the_champion();
 
 extern void AddSC_boss_jedoga();                            //ahnkahet
@@ -281,7 +284,7 @@ extern void AddSC_instance_azjol_nerub();
 extern void AddSC_northrend_beasts();                       //Crusaders' Coliseum, trial_of_the_crusader
 extern void AddSC_boss_jaraxxus();
 extern void AddSC_boss_anubarak_trial();
-extern void AddSC_boss_faction_champions();
+//extern void AddSC_boss_faction_champions();
 extern void AddSC_twin_valkyr();
 extern void AddSC_instance_trial_of_the_crusader();
 extern void AddSC_trial_of_the_crusader();
@@ -331,7 +334,7 @@ extern void AddSC_boss_krystallus();
 extern void AddSC_halls_of_stone();
 extern void AddSC_instance_halls_of_stone();
 
-extern void AddSC_boss_leviathan();                         //ulduar
+/*extern void AddSC_boss_leviathan();                         //ulduar
 extern void AddSC_boss_ignis();
 extern void AddSC_boss_razorscale();
 extern void AddSC_boss_xt002();
@@ -344,7 +347,7 @@ extern void AddSC_boss_hodir();
 extern void AddSC_boss_freya();
 extern void AddSC_boss_vezax();
 extern void AddSC_boss_yogg_saron();
-extern void AddSC_boss_algalon();
+extern void AddSC_boss_algalon();*/
 extern void AddSC_ulduar_teleport();
 extern void AddSC_instance_ulduar();
 
@@ -374,29 +377,29 @@ extern void AddSC_zuldrak();
 
 //IceCrown Citadel
 extern void AddSC_instance_icecrown_spire();
-extern void AddSC_icecrown_spire();
+//extern void AddSC_icecrown_spire();
 extern void AddSC_icecrown_teleporter();
-extern void AddSC_boss_lord_marrowgar();
+/*extern void AddSC_boss_lord_marrowgar();
 extern void AddSC_boss_lady_deathwhisper();
 extern void AddSC_boss_deathbringer_saurfang();
 extern void AddSC_boss_rotface();
 extern void AddSC_boss_festergut();
 extern void AddSC_boss_proffesor_putricide();
 extern void AddSC_blood_prince_council();
-extern void AddSC_boss_blood_queen_lanathel();
+extern void AddSC_boss_blood_queen_lanathel();*/
 
 extern void AddSC_instance_forge_of_souls();
-extern void AddSC_boss_devourer_of_souls();
-extern void AddSC_boss_bronjahm();
+//extern void AddSC_boss_devourer_of_souls();
+//extern void AddSC_boss_bronjahm();
 
 extern void AddSC_instance_pit_of_saron();
-extern void AddSC_boss_forgemaster_gafrost();
-extern void AddSC_boss_krick();
-extern void AddSC_boss_scourgelord_tirannus();
+//extern void AddSC_boss_forgemaster_gafrost();
+//extern void AddSC_boss_krick();
+//extern void AddSC_boss_scourgelord_tirannus();
 
 extern void AddSC_instance_halls_of_reflection();
-extern void AddSC_boss_falryn();
-extern void AddSC_boss_marwyn();
+//extern void AddSC_boss_falryn();
+//extern void AddSC_boss_marwyn();
 //extern void AddSC_boss_lich_king_fh();
 
 //outland
@@ -618,9 +621,10 @@ void AddScripts()
     AddSC_boss_brutallus();                                 //sunwell_plateau
     AddSC_boss_kalecgos();
     AddSC_instance_sunwell_plateau();
-    AddSC_boss_ironaya();                                   //uldaman
-    AddSC_uldaman();
+    AddSC_boss_archaedas();                                 //uldaman
+    AddSC_boss_ironaya();
     AddSC_instance_uldaman();
+    AddSC_uldaman();
     AddSC_boss_akilzon();                                   //zulaman
     AddSC_boss_halazzi();
     AddSC_boss_janalai();
@@ -665,6 +669,7 @@ void AddScripts()
     AddSC_silverpine_forest();
     AddSC_stormwind_city();
     AddSC_stranglethorn_vale();
+    AddSC_swamp_of_sorrows();
     AddSC_tirisfal_glades();
     AddSC_undercity();
     AddSC_western_plaguelands();
@@ -693,6 +698,7 @@ void AddScripts()
     AddSC_boss_noxxion();
     AddSC_boss_ptheradras();
     AddSC_boss_onyxia();                                    //onyxias_lair
+    AddSC_instance_onyxias_lair();
     AddSC_boss_amnennar_the_coldbringer();                  //razorfen_downs
     AddSC_razorfen_downs();
     AddSC_instance_razorfen_kraul();                        //razorfen_kraul
@@ -748,7 +754,7 @@ void AddScripts()
     AddSC_northrend_beasts();                               //Crusaders' Coliseum, trial_of_the_crusader
     AddSC_boss_jaraxxus();
     AddSC_boss_anubarak_trial();
-    AddSC_boss_faction_champions();
+    //AddSC_boss_faction_champions();
     AddSC_twin_valkyr();
     AddSC_instance_trial_of_the_crusader();
     AddSC_trial_of_the_crusader();
@@ -793,7 +799,7 @@ void AddScripts()
     AddSC_halls_of_stone();
     AddSC_instance_halls_of_stone();
 
-    AddSC_boss_leviathan();                                 //ulduar
+    /*AddSC_boss_leviathan();                                 //ulduar
     AddSC_boss_ignis();
     AddSC_boss_razorscale();
     AddSC_boss_xt002();
@@ -806,7 +812,7 @@ void AddScripts()
     AddSC_boss_freya();
     AddSC_boss_vezax();
     AddSC_boss_yogg_saron();
-    AddSC_boss_algalon();
+    AddSC_boss_algalon();*/
     AddSC_ulduar_teleport();
     AddSC_instance_ulduar();
     AddSC_boss_ingvar();                                    //utgarde_keep
@@ -832,9 +838,9 @@ void AddScripts()
     AddSC_zuldrak();
 
     AddSC_instance_icecrown_spire();
-    AddSC_icecrown_spire();
+    //AddSC_icecrown_spire();
     AddSC_icecrown_teleporter();
-    AddSC_boss_lord_marrowgar();
+    /*AddSC_boss_lord_marrowgar();
     AddSC_boss_lady_deathwhisper();
     AddSC_boss_deathbringer_saurfang();
     AddSC_boss_rotface();
@@ -845,16 +851,16 @@ void AddScripts()
 
     AddSC_instance_forge_of_souls();
     AddSC_boss_devourer_of_souls();
-    AddSC_boss_bronjahm();
+    AddSC_boss_bronjahm();*/
 
     AddSC_instance_pit_of_saron();
-    AddSC_boss_forgemaster_gafrost();
-    AddSC_boss_krick();
-    AddSC_boss_scourgelord_tirannus();
+    //AddSC_boss_forgemaster_gafrost();
+    //AddSC_boss_krick();
+    //AddSC_boss_scourgelord_tirannus();
 
     AddSC_instance_halls_of_reflection();
-    AddSC_boss_falryn();
-    AddSC_boss_marwyn();
+    //AddSC_boss_falryn();
+    //AddSC_boss_marwyn();
     //    AddSC_boss_lich_king_fh();
 
     //outland

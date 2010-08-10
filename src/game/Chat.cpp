@@ -661,11 +661,11 @@ ChatCommand * ChatHandler::getCommandTable()
     // FG: setext. command table
     static ChatCommand setExtCommandTable[] =
     {
-        { "minloot",        SEC_ADMINISTRATOR,     false,    &ChatHandler::HandleSetExtMinlootCommand,     "", NULL },
-        { "spellmulti",        SEC_ADMINISTRATOR,  false,    &ChatHandler::HandleSetExtSpellmultiCommand,  "", NULL },
-        { "xpmulti",            SEC_ADMINISTRATOR, false, &ChatHandler::HandleSetExtXPMultiCommand,        "", NULL },
-        { "honor",               SEC_ADMINISTRATOR, false,     &ChatHandler::HandleSetExtHonorCommand,     "", NULL },
-        { NULL,             0,      true,            NULL,                                           "", NULL }
+        { "minloot",        SEC_ADMINISTRATOR, false,    &ChatHandler::HandleSetExtMinlootCommand,     "", NULL },
+        { "spellmulti",     SEC_ADMINISTRATOR, false,    &ChatHandler::HandleSetExtSpellmultiCommand,  "", NULL },
+        { "xpmulti",        SEC_ADMINISTRATOR, false,    &ChatHandler::HandleSetExtXPMultiCommand,     "", NULL },
+        { "honor",          SEC_ADMINISTRATOR, false,    &ChatHandler::HandleSetExtHonorCommand,       "", NULL },
+        { NULL,             0,                 true,      NULL,                                        "", NULL }
     };
 
     /*// FG: anticheat ext. cmd tablr

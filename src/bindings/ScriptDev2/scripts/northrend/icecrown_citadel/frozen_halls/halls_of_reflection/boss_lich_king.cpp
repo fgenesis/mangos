@@ -22,4 +22,3 @@ SDCategory: Halls of Reflection
 EndScriptData */
 
 #include "precompiled.h"
-#include "def_halls.h"
