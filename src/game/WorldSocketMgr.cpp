@@ -211,8 +211,7 @@ WorldSocketMgr::WorldSocketMgr () :
     m_NetThreads (0),
     m_SockOutKBuff (-1),
     m_SockOutUBuff (65536),
-    m_UseNoDelay (true),
-    m_Acceptor (0)
+    m_UseNoDelay (true)
 {
 }
 
@@ -221,14 +220,30 @@ WorldSocketMgr::~WorldSocketMgr ()
     if (m_NetThreads)
         delete [] m_NetThreads;
 
-    if(m_Acceptor)
-        delete m_Acceptor;
+    for (std::vector<ACE_Event_Handler*>::iterator it = m_Acceptors.begin(); it != m_Acceptors.end(); it++)
+        if (*it)
+            delete *it;
 }
 
 int
-WorldSocketMgr::StartReactiveIO (ACE_UINT16 port, const char* address)
+WorldSocketMgr::StartReactiveIO (const char* port, const char* address)
 {
     m_UseNoDelay = sConfig.GetBoolDefault ("Network.TcpNodelay", true);
+    Tokens porttok = StrSplit(port, ",");
+    std::vector<ACE_UINT16> portsv;
+    for(Tokens::iterator it = porttok.begin(); it != porttok.end(); it++)
+    {
+        if(ACE_UINT16 p = (ACE_UINT16)atoi(it->c_str()))
+        {
+            sLog.outBasic("Bind port: %u", p);
+            portsv.push_back(p);
+        }
+    }
+    if(portsv.empty())
+    {
+        sLog.outError("No usable WorldServerPort in config, exiting");
+        return -1;
+    }
 
     int num_threads = sConfig.GetIntDefault ("Network.Threads", 1);
 
@@ -255,15 +270,19 @@ WorldSocketMgr::StartReactiveIO (ACE_UINT16 port, const char* address)
         return -1;
     }
 
-    WorldSocket::Acceptor *acc = new WorldSocket::Acceptor;
-    m_Acceptor = acc;
-
-    ACE_INET_Addr listen_addr (port, address);
-
-    if (acc->open (listen_addr, m_NetThreads[0].GetReactor (), ACE_NONBLOCK) == -1)
+    for (std::vector<ACE_UINT16>::iterator it = portsv.begin(); it != portsv.end(); it++)
     {
-        sLog.outError ("Failed to open acceptor ,check if the port is free");
-        return -1;
+        ACE_UINT16 p = *it;
+        WorldSocket::Acceptor *acc = new WorldSocket::Acceptor;
+        m_Acceptors.push_back(acc);
+
+        ACE_INET_Addr listen_addr (p, address);
+
+        if (acc->open (listen_addr, m_NetThreads[0].GetReactor (), ACE_NONBLOCK) == -1)
+        {
+            sLog.outError ("Failed to open acceptor on port %u", p);
+            return -1;
+        }
     }
 
     for (size_t i = 0; i < m_NetThreadsCount; ++i)
@@ -273,15 +292,14 @@ WorldSocketMgr::StartReactiveIO (ACE_UINT16 port, const char* address)
 }
 
 int
-WorldSocketMgr::StartNetwork (ACE_UINT16 port, std::string& address)
+WorldSocketMgr::StartNetwork (std::string& port, std::string& address)
 {
     m_addr = address;
-    m_port = port;
 
     if (!sLog.HasLogLevelOrHigher(LOG_LVL_DEBUG))
         ACE_Log_Msg::instance ()->priority_mask (LM_ERROR, ACE_Log_Msg::PROCESS);
 
-    if (StartReactiveIO (port, address.c_str()) == -1)
+    if (StartReactiveIO (port.c_str(), address.c_str()) == -1)
         return -1;
 
     return 0;
@@ -290,12 +308,15 @@ WorldSocketMgr::StartNetwork (ACE_UINT16 port, std::string& address)
 void
 WorldSocketMgr::StopNetwork ()
 {
-    if (m_Acceptor)
+    for (std::vector<ACE_Event_Handler*>::iterator it = m_Acceptors.begin(); it != m_Acceptors.end(); it++)
     {
-        WorldSocket::Acceptor* acc = dynamic_cast<WorldSocket::Acceptor*> (m_Acceptor);
+        if (ACE_Event_Handler *evth = *it)
+        {
+            WorldSocket::Acceptor* acc = dynamic_cast<WorldSocket::Acceptor*> (evth);
 
-        if (acc)
-            acc->close ();
+            if (acc)
+                acc->close ();
+        }
     }
 
     if (m_NetThreadsCount != 0)

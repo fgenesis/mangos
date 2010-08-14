@@ -29,6 +29,7 @@
 #include <ace/Singleton.h>
 #include <ace/Thread_Mutex.h>
 
+#include <vector>
 #include <string>
 
 class WorldSocket;
@@ -43,7 +44,7 @@ public:
   friend class ACE_Singleton<WorldSocketMgr,ACE_Thread_Mutex>;
 
   /// Start network, listen at address:port .
-  int StartNetwork (ACE_UINT16 port, std::string& address);
+  int StartNetwork (std::string& port, std::string& address);
 
   /// Stops all network threads, It will wait for all running threads .
   void StopNetwork ();
@@ -52,7 +53,6 @@ public:
   void Wait ();
 
   std::string& GetBindAddress() { return m_addr; }
-  ACE_UINT16 GetBindPort() { return m_port; }
 
   /// Make this class singleton .
   static WorldSocketMgr* Instance ();
@@ -60,7 +60,7 @@ public:
 private:
   int OnSocketOpen(WorldSocket* sock);
 
-  int StartReactiveIO(ACE_UINT16 port, const char* address);
+  int StartReactiveIO(const char* port, const char* address);
 
 private:
   WorldSocketMgr ();
@@ -74,9 +74,8 @@ private:
   bool m_UseNoDelay;
 
   std::string m_addr;
-  ACE_UINT16 m_port;
 
-  ACE_Event_Handler* m_Acceptor;
+  std::vector<ACE_Event_Handler*> m_Acceptors;
 };
 
 #define sWorldSocketMgr WorldSocketMgr::Instance ()
