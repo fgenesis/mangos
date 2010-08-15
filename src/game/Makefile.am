@@ -300,8 +300,6 @@ libmangosgame_a_SOURCES = \
 	GroupReference.cpp \
 	GroupReference.h \
 	GroupRefManager.h \
-    AuctionHouseBot.cpp \
-	AuctionHouseBot.h \
 	Level_pe.cpp \
 	PlayerDropMgr.cpp \
 	PlayerDropMgr.h \
