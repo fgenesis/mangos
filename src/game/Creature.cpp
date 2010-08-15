@@ -199,25 +199,55 @@ bool Creature::InitEntry(uint32 Entry, uint32 team, const CreatureData *data )
     }
 
     // get difficulty 1 mode entry
-    uint32 actualEntry = Entry;
     CreatureInfo const *cinfo = normalInfo;
     // TODO correctly implement spawnmodes for non-bg maps
-    for (uint32 diff = 0; diff < MAX_DIFFICULTY - 1; ++diff)
+
+    // difficulty selection works like this:
+    // - dungeon normal / 10 man normal = entry
+    // - dungeon heroic / 25 man normal = difficulty_entry_1
+    // - 10 man heroic = difficulty_entry_2
+    // - 25 man heroic = difficulty_entry_3
+    // in raids it should work like: if difficulty_entry_2 not exists then use -> entry 
+    // if difficulty_entry_3 not exists then use -> difficulty_entry_1
+    uint32 diff = GetMap()->GetSpawnMode();
+    if (diff)
     {
-        if (normalInfo->DifficultyEntry[diff])
+        --diff; // the difficulty used as array index must be 1 lower then what the map returns
+        do
         {
-            // we already have valid Map pointer for current creature!
-            if (GetMap()->GetSpawnMode() > diff)
+            cinfo = NULL;
+            if (normalInfo->DifficultyEntry[diff])
             {
                 cinfo = ObjectMgr::GetCreatureTemplate(normalInfo->DifficultyEntry[diff]);
                 if (!cinfo)
                 {
                     // maybe check such things already at startup
-                    sLog.outErrorDb("Creature::UpdateEntry creature difficulty %u entry %u does not exist.", diff + 1, actualEntry);
+                    sLog.outErrorDb("Creature::UpdateEntry creature difficulty %u entry %u does not exist.", diff + 1, Entry);
                     return false;
+                }
+                break;
+            }
+            else
+            {
+                // if 0 in db -> select alt. entry
+                switch (diff)
+                {
+                    case 0: // difficutly_entry_1
+                    case 1: // difficutly_entry_2
+                        cinfo = normalInfo; // not found, leave the loop with default entry
+                        break;
+                    
+                    case 2: // difficutly_entry_3
+                        diff = 0;
+                        break;
+
+                    default:
+                        sLog.outError("Creature::UpdateEntry creature difficulty %u entry %u unhandled", diff + 1, Entry);
+                        cinfo = normalInfo;
                 }
             }
         }
+        while (!cinfo);
     }
 
     SetEntry(Entry);                                        // normal entry always
