@@ -40,6 +40,7 @@
 
 #include "Log.h"
 #include "Common.h"
+#include "Util.h"
 #include "Config/Config.h"
 #include "Database/DatabaseEnv.h"
 #include "WorldSocket.h"
