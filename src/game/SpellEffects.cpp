@@ -1292,15 +1292,20 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                     m_caster->CastSpell(m_caster, 45088, true);
                     return;
                 }
-                case 45449:
+                case 45449:                                // Arcane Prisoner Rescue
                 {
-                    // Arcane Prisoner Rescue triggering summon and giving Q credit
-                    if(m_caster->GetTypeId() == TYPEID_PLAYER)
+                    uint32 spellId=0;
+                    switch(rand() % 2)
                     {
-                        m_caster->CastSpell(m_caster, ((((Player*)m_caster)->GetTeam() == ALLIANCE) ? 45448 : 45446), true);
-                        m_caster->CastSpell(m_caster, 45456, true);
+                        case 0: spellId = 45446; break;    // Summon Arcane Prisoner - Male
+                        case 1: spellId = 45448; break;    // Summon Arcane Prisoner - Female
                     }
-                    return;
+                    //Spawn
+                    m_caster->CastSpell(m_caster, spellId, true);
+                    //Arcane Prisoner Kill Credit
+                    unitTarget->CastSpell(m_caster, 45456, true);
+
+                    break;
                 }
                 case 45980:                                 // Re-Cursive Transmatter Injection
                 {
@@ -2929,7 +2934,7 @@ void Spell::EffectJump(SpellEffectIndex eff_idx)
             else if(unitTarget->getVictim())
                 pTarget = m_caster->getVictim();
             else if(m_caster->GetTypeId() == TYPEID_PLAYER)
-                pTarget = ObjectAccessor::GetUnit(*m_caster, ((Player*)m_caster)->GetSelection());
+                pTarget = m_caster->GetMap()->GetUnit(((Player*)m_caster)->GetSelection());
 
             o = pTarget ? pTarget->GetOrientation() : m_caster->GetOrientation();
         }
@@ -2998,7 +3003,7 @@ void Spell::EffectTeleportUnits(SpellEffectIndex eff_idx)
             else if(unitTarget->getVictim())
                 pTarget = unitTarget->getVictim();
             else if(unitTarget->GetTypeId() == TYPEID_PLAYER)
-                pTarget = ObjectAccessor::GetUnit(*unitTarget, ((Player*)unitTarget)->GetSelection());
+                pTarget = unitTarget->GetMap()->GetUnit(((Player*)unitTarget)->GetSelection());
 
             // Init dest coordinates
             float x = m_targets.m_destX;

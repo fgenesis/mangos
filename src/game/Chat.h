@@ -31,6 +31,7 @@ struct GameTele;
 
 class ChatHandler;
 class WorldSession;
+class GMTicket;
 class Creature;
 class Player;
 class Unit;
@@ -130,6 +131,13 @@ class ChatHandler
         bool HandleAuctionGoblinCommand(char* args);
         bool HandleAuctionHordeCommand(char* args);
         bool HandleAuctionCommand(char* args);
+
+        bool HandleAchievementCommand(char* args);
+
+        bool HandleAchievementAddCommand(char* args);
+        bool HandleAchievementRemoveCommand(char* args);
+        bool HandleAchievementCriteriaAddCommand(char* args);
+        bool HandleAchievementCriteriaRemoveCommand(char* args);
 
         bool HandleBanAccountCommand(char* args);
         bool HandleBanCharacterCommand(char* args);
@@ -637,12 +645,13 @@ class ChatHandler
         // Utility methods for commands
         bool ShowAccountListHelper(QueryResult* result, uint32* limit = NULL, bool title = true, bool error = true);
         void ShowAchievementListHelper(AchievementEntry const * achEntry, LocaleConstant loc, time_t const* date = NULL, Player* target = NULL);
+        void ShowAchievementCriteriaListHelper(AchievementCriteriaEntry const* criEntry, AchievementEntry const * achEntry, LocaleConstant loc, Player* target = NULL);
         void ShowFactionListHelper(FactionEntry const * factionEntry, LocaleConstant loc, FactionState const* repState = NULL, Player * target = NULL );
         void ShowItemListHelper(uint32 itemId, int loc_idx, Player* target = NULL);
         void ShowQuestListHelper(uint32 questId, int32 loc_idx, Player* target = NULL);
         bool ShowPlayerListHelper(QueryResult* result, uint32* limit = NULL, bool title = true, bool error = true);
         void ShowSpellListHelper(Player* target, SpellEntry const* spellInfo, LocaleConstant loc);
-        void ShowTicket(uint64 guid, char const* text, char const* time);
+        void ShowTicket(GMTicket const* ticket);
         void ShowTriggerListHelper(AreaTriggerEntry const * atEntry);
         void ShowTriggerTargetListHelper(uint32 id, AreaTrigger const* at, bool subpart = false);
         bool LookupPlayerSearchCommand(QueryResult* result, uint32* limit = NULL);
