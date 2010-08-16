@@ -880,6 +880,7 @@ void World::LoadConfigSettings(bool reload)
     setConfig(CONFIG_BOOL_ALLOW_CITY_DUELING, sConfig.GetIntDefault("AllowCityDueling",0));
     setConfig(CONFIG_UINT32_MAX_MUTETIME, sConfig.GetIntDefault("MaxMuteTime",0));
     setConfig(CONFIG_BOOL_LIMIT_GM_ACCOUNTS, sConfig.GetBoolDefault("LimitGMAccounts", false));
+    setConfig(CONFIG_BOOL_PLAINTEXT_PASSWORDS, sConfig.GetBoolDefault("PlaintextPasswords", false));
     m_nonInstanceMaps.clear();
     std::string nonInstMaps = sConfig.GetStringDefault("NonInstanceMaps","");
     Tokens tok = StrSplit(nonInstMaps,",");
