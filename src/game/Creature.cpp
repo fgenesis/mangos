@@ -43,6 +43,7 @@
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
 #include "CellImpl.h"
+#include "Vehicle.h"
 
 // apply implementation of the singletons
 #include "Policies/SingletonImp.h"
@@ -1437,6 +1438,8 @@ void Creature::setDeathState(DeathState s)
         }
 
         Unit::setDeathState(CORPSE);
+        if(isVehicle())
+            ((Vehicle*)this)->Die();
     }
     if (s == JUST_ALIVED)
     {
@@ -1539,6 +1542,32 @@ bool Creature::IsImmunedToSpellEffect(SpellEntry const* spellInfo, SpellEffectIn
         // Spell effect taunt check
         else if (spellInfo->Effect[index] == SPELL_EFFECT_ATTACK_ME)
             return true;
+    }
+
+    // Heal immunity
+    if (isVehicle() && !(((Vehicle*)this)->GetVehicleFlags() & VF_CAN_BE_HEALED))
+    {
+        switch(spellInfo->Effect[index])
+        {
+            case SPELL_EFFECT_APPLY_AURA:
+                switch(spellInfo->EffectApplyAuraName[index])
+                {
+                    case SPELL_AURA_PERIODIC_HEAL:
+                    case SPELL_AURA_OBS_MOD_HEALTH:
+                    case SPELL_AURA_PERIODIC_HEALTH_FUNNEL:
+                    case SPELL_AURA_MOD_REGEN:
+                        return true;
+                    default: break;
+                }
+                break;
+            case SPELL_EFFECT_HEAL:
+            case SPELL_EFFECT_HEAL_MAX_HEALTH:
+            // NOTE : this too?
+            case SPELL_EFFECT_HEAL_MECHANICAL:
+            case SPELL_EFFECT_HEAL_PCT:
+                return true;
+            default : break;
+        }
     }
 
     return Unit::IsImmunedToSpellEffect(spellInfo, index);
@@ -2067,6 +2096,29 @@ bool Creature::HasSpellCooldown(uint32 spell_id) const
 bool Creature::IsInEvadeMode() const
 {
     return !i_motionMaster.empty() && i_motionMaster.GetCurrentMovementGeneratorType() == HOME_MOTION_TYPE;
+}
+
+float Creature::GetBaseSpeed() const
+{
+    if( isPet() )
+    {
+        switch( ((Pet*)this)->getPetType() )
+        {
+            case SUMMON_PET:
+            case HUNTER_PET:
+            {
+                //fixed speed fur hunter (and summon!?) pets
+                return 1.15f;
+            }
+            case GUARDIAN_PET:
+            case MINI_PET:
+            {
+                //speed of CreatureInfo for guardian- and minipets
+                break;
+            }
+        }
+    }
+    return m_creatureInfo->speed_run;
 }
 
 bool Creature::HasSpell(uint32 spellID) const

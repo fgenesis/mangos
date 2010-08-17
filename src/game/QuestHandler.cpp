@@ -661,7 +661,7 @@ void WorldSession::HandleQuestgiverStatusMultipleQuery(WorldPacket& /*recvPacket
         if (itr->IsCreatureOrPet())
         {
             // need also pet quests case support
-            Creature *questgiver = GetPlayer()->GetMap()->GetAnyTypeCreature(*itr);
+            Creature *questgiver = ObjectAccessor::GetAnyTypeCreature(*GetPlayer(),*itr);
 
             if (!questgiver || questgiver->IsHostileTo(_player))
                 continue;
