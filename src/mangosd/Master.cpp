@@ -436,12 +436,12 @@ bool Master::_StartDB()
         sLog.outError("Database not specified in configuration file");
         return false;
     }
-    sLog.outString("World Database: %s", dbstring.c_str());
+    //sLog.outString("World Database: %s", dbstring.c_str());
 
     ///- Initialise the world database
     if(!WorldDatabase.Initialize(dbstring.c_str()))
     {
-        sLog.outError("Cannot connect to world database %s",dbstring.c_str());
+        //sLog.outError("Cannot connect to world database %s",dbstring.c_str());
         return false;
     }
 
@@ -461,12 +461,12 @@ bool Master::_StartDB()
         WorldDatabase.HaltDelayThread();
         return false;
     }
-    sLog.outString("Character Database: %s", dbstring.c_str());
+    //sLog.outString("Character Database: %s", dbstring.c_str());
 
     ///- Initialise the Character database
     if(!CharacterDatabase.Initialize(dbstring.c_str()))
     {
-        sLog.outError("Cannot connect to Character database %s",dbstring.c_str());
+        //sLog.outError("Cannot connect to Character database %s",dbstring.c_str());
 
         ///- Wait for already started DB delay threads to end
         WorldDatabase.HaltDelayThread();
@@ -494,10 +494,10 @@ bool Master::_StartDB()
     }
 
     ///- Initialise the login database
-    sLog.outString("Login Database: %s", dbstring.c_str() );
+    //sLog.outString("Login Database: %s", dbstring.c_str() );
     if(!LoginDatabase.Initialize(dbstring.c_str()))
     {
-        sLog.outError("Cannot connect to login database %s",dbstring.c_str());
+        //sLog.outError("Cannot connect to login database %s",dbstring.c_str());
 
         ///- Wait for already started DB delay threads to end
         WorldDatabase.HaltDelayThread();
