@@ -669,7 +669,7 @@ void pe_andromedaAI::HandleSpellcasts(uint32 diff)
         for(ThreatList::const_iterator it = tlist.begin(); it != tlist.end(); it++)
         {
             HostileReference *ref = *it;
-            Unit *u =  Unit::GetUnit(*m_creature,ref->getUnitGuid());
+            Unit *u = m_creature->GetMap()->GetUnit(ref->getUnitGuid());
             // ...check if target is player...
             if(u && u->GetTypeId() == TYPEID_PLAYER)
             {
@@ -1372,7 +1372,7 @@ void pe_andromedaAI::UpdateEnergyLocks(uint32 diff)
             for(UnitList::iterator ulit = locklist.begin(); ulit != locklist.end(); ulit++)
             {
                 // free player from buffs (this is called multiple times, shouldnt be too bad)
-                victim = (Player*)Unit::GetUnit(*m_creature, ((pe_energylockGenericAI*)((Creature*)(*ulit))->AI())->target_guid);
+                victim = m_creature->GetMap()->GetPlayer(((pe_energylockGenericAI*)((Creature*)(*ulit))->AI())->target_guid);
                 if(victim)
                 {
                     victim->RemoveAurasDueToSpell(CAST_HEALINGREDUCE);
@@ -1404,7 +1404,7 @@ void pe_andromedaAI::UnsummonAllEnergyLocks(void)
         {
             ((TemporarySummon*)(*ulit))->UnSummon();
     
-            Player *victim = (Player*)Unit::GetUnit(*m_creature, ((pe_energylockGenericAI*)((Creature*)(*ulit))->AI())->target_guid);
+            Player *victim = m_creature->GetMap()->GetPlayer(((pe_energylockGenericAI*)((Creature*)(*ulit))->AI())->target_guid);
             if(victim)
             {
                 victim->RemoveAurasDueToSpell(CAST_HEALINGREDUCE);
@@ -1696,7 +1696,7 @@ struct MANGOS_DLL_DECL pe_energylock1AI : public pe_energylockGenericAI
             return;
 
         // player died... we are no longer needed
-        Unit *victim = Unit::GetUnit(*m_creature, target_guid);
+        Unit *victim = m_creature->GetMap()->GetUnit(target_guid);
         if(victim)
         {
             if(!victim->isAlive())
@@ -1786,7 +1786,7 @@ struct MANGOS_DLL_DECL pe_energylock2AI : public pe_energylockGenericAI
         }
 
         // player died... we are no longer needed
-        Unit *victim = Unit::GetUnit(*m_creature, target_guid);
+        Unit *victim = m_creature->GetMap()->GetUnit(target_guid);
         if(victim)
         {
             if(!victim->isAlive())
@@ -1857,7 +1857,7 @@ struct MANGOS_DLL_DECL pe_energylock2AI : public pe_energylockGenericAI
             return;
 
         // if we die, kill victim player too
-        if(Unit *victim = Unit::GetUnit(*m_creature, target_guid))
+        if(Unit *victim = m_creature->GetMap()->GetUnit(target_guid))
         {
             if(victim && victim->isAlive())
             {
@@ -2045,7 +2045,7 @@ struct MANGOS_DLL_DECL pe_andromeda_priestAI : public pe_andromeda_minionGeneric
             // if we have a target, check if we are near enough to cast psychic scream
             if(psychicScreamTarget)
             {
-                Unit *target = Unit::GetUnit(*m_creature, psychicScreamTarget);
+                Unit *target = m_creature->GetMap()->GetUnit(psychicScreamTarget);
                 if(target)
                 {
                     if(m_creature->GetDistance2d(target) <= 5.0f)

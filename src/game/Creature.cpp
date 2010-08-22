@@ -85,12 +85,12 @@ VendorItem const* VendorItemData::FindItemCostPair(uint32 item_id, uint32 extend
 
 bool AssistDelayEvent::Execute(uint64 /*e_time*/, uint32 /*p_time*/)
 {
-    if(Unit* victim = Unit::GetUnit(m_owner, m_victim))
+    if (Unit* victim = m_owner.GetMap()->GetUnit(m_victimGuid))
     {
-        while (!m_assistants.empty())
+        while (!m_assistantGuids.empty())
         {
-            Creature* assistant = (Creature*)Unit::GetUnit(m_owner, *m_assistants.begin());
-            m_assistants.pop_front();
+            Creature* assistant = m_owner.GetMap()->GetAnyTypeCreature(*m_assistantGuids.rbegin());
+            m_assistantGuids.pop_back();
 
             if (assistant && assistant->CanAssistTo(&m_owner, victim))
             {
@@ -101,6 +101,14 @@ bool AssistDelayEvent::Execute(uint64 /*e_time*/, uint32 /*p_time*/)
         }
     }
     return true;
+}
+
+AssistDelayEvent::AssistDelayEvent( ObjectGuid victim, Unit& owner, std::list<Creature*> const& assistants ) : BasicEvent(), m_victimGuid(victim), m_owner(owner)
+{
+    // Pushing guids because in delay can happen some creature gets despawned => invalid pointer
+    m_assistantGuids.reserve(assistants.size());
+    for (std::list<Creature*>::const_iterator itr = assistants.begin(); itr != assistants.end(); ++itr)
+        m_assistantGuids.push_back((*itr)->GetObjectGuid());
 }
 
 bool ForcedDespawnDelayEvent::Execute(uint64 /*e_time*/, uint32 /*p_time*/)
@@ -199,56 +207,31 @@ bool Creature::InitEntry(uint32 Entry, uint32 team, const CreatureData *data )
         return false;
     }
 
-    // get difficulty 1 mode entry
+    // difficulties for dungeons/battleground ordered in normal way
+    // and if more high version not exist must be used lesser version
+    // for raid order different:
+    // 10 man normal version must be used instead not existed 10 man heroic version
+    // 25 man normal version must be used instead not existed 25 man heroic version
     CreatureInfo const *cinfo = normalInfo;
-    // TODO correctly implement spawnmodes for non-bg maps
-
-    // difficulty selection works like this:
-    // - dungeon normal / 10 man normal = entry
-    // - dungeon heroic / 25 man normal = difficulty_entry_1
-    // - 10 man heroic = difficulty_entry_2
-    // - 25 man heroic = difficulty_entry_3
-    // in raids it should work like: if difficulty_entry_2 not exists then use -> entry 
-    // if difficulty_entry_3 not exists then use -> difficulty_entry_1
-    uint32 diff = GetMap()->GetSpawnMode();
-    if (diff)
+    for (uint8 diff = uint8(GetMap()->GetDifficulty()); diff > 0;)
     {
-        --diff; // the difficulty used as array index must be 1 lower then what the map returns
-        do
+        // we already have valid Map pointer for current creature!
+        if (normalInfo->DifficultyEntry[diff - 1])
         {
-            cinfo = NULL;
-            if (normalInfo->DifficultyEntry[diff])
-            {
-                cinfo = ObjectMgr::GetCreatureTemplate(normalInfo->DifficultyEntry[diff]);
-                if (!cinfo)
-                {
-                    // maybe check such things already at startup
-                    sLog.outErrorDb("Creature::UpdateEntry creature difficulty %u entry %u does not exist.", diff + 1, Entry);
-                    return false;
-                }
-                break;
-            }
-            else
-            {
-                // if 0 in db -> select alt. entry
-                switch (diff)
-                {
-                    case 0: // difficutly_entry_1
-                    case 1: // difficutly_entry_2
-                        cinfo = normalInfo; // not found, leave the loop with default entry
-                        break;
-                    
-                    case 2: // difficutly_entry_3
-                        diff = 0;
-                        break;
+            cinfo = ObjectMgr::GetCreatureTemplate(normalInfo->DifficultyEntry[diff - 1]);
+            if (cinfo)
+                break;                                      // template found
 
-                    default:
-                        sLog.outError("Creature::UpdateEntry creature difficulty %u entry %u unhandled", diff + 1, Entry);
-                        cinfo = normalInfo;
-                }
-            }
+            // check and reported at startup, so just ignore (restore normalInfo)
+            cinfo = normalInfo;
         }
-        while (!cinfo);
+
+        // for raid heroic to normal, for other to prev in normal order
+        if ((diff == int(RAID_DIFFICULTY_10MAN_HEROIC) || diff == int(RAID_DIFFICULTY_25MAN_HEROIC)) &&
+            GetMap()->IsRaid())
+            diff -= 2;                                      // to normal raid difficulty cases
+        else
+            --diff;
     }
 
     SetEntry(Entry);                                        // normal entry always
@@ -262,7 +245,7 @@ bool Creature::InitEntry(uint32 Entry, uint32 team, const CreatureData *data )
     // known valid are: CLASS_WARRIOR,CLASS_PALADIN,CLASS_ROGUE,CLASS_MAGE
     SetByteValue(UNIT_FIELD_BYTES_0, 1, uint8(cinfo->unit_class));
 
-    uint32 display_id = ChooseDisplayId(team, GetCreatureInfo(), data);
+    uint32 display_id = ChooseDisplayId(GetCreatureInfo(), data);
     if (!display_id)                                        // Cancel load if no display id
     {
         sLog.outErrorDb("Creature (Entry: %u) has no model defined in table `creature_template`, can't load.", Entry);
@@ -280,14 +263,7 @@ bool Creature::InitEntry(uint32 Entry, uint32 team, const CreatureData *data )
 
     SetNativeDisplayId(display_id);
 
-    // special case for totems (model for team==HORDE is stored in creature_template as the default)
-    if (team == ALLIANCE && cinfo->type == CREATURE_TYPE_TOTEM)
-    {
-        uint32 modelid_tmp = sObjectMgr.GetCreatureModelOtherTeamModel(display_id);
-        display_id = modelid_tmp ? modelid_tmp : display_id;
-    }
-
-    // normally the same as native, see above for the exeption
+    // normally the same as native, but some has exceptions (Spell::DoSummonTotem)
     SetDisplayId(display_id);
 
     SetByteValue(UNIT_FIELD_BYTES_0, 2, minfo->gender);
@@ -387,7 +363,7 @@ bool Creature::UpdateEntry(uint32 Entry, uint32 team, const CreatureData *data, 
     return true;
 }
 
-uint32 Creature::ChooseDisplayId(uint32 team, const CreatureInfo *cinfo, const CreatureData *data /*= NULL*/)
+uint32 Creature::ChooseDisplayId(const CreatureInfo *cinfo, const CreatureData *data /*= NULL*/)
 {
     // Use creature model explicit, override template (creature.modelid)
     if (data && data->modelid_override)
@@ -1224,31 +1200,31 @@ bool Creature::CreateFromProto(uint32 guidlow, uint32 Entry, uint32 team, const 
     return true;
 }
 
-bool Creature::LoadFromDB(uint32 guid, Map *map)
+bool Creature::LoadFromDB(uint32 guidlow, Map *map)
 {
-    CreatureData const* data = sObjectMgr.GetCreatureData(guid);
+    CreatureData const* data = sObjectMgr.GetCreatureData(guidlow);
 
     if(!data)
     {
-        sLog.outErrorDb("Creature (GUID: %u) not found in table `creature`, can't load. ",guid);
+        sLog.outErrorDb("Creature (GUID: %u) not found in table `creature`, can't load. ", guidlow);
         return false;
     }
 
-    m_DBTableGuid = guid;
+    m_DBTableGuid = guidlow;
     if (map->GetInstanceId() == 0)
     {
         // Creature can be loaded already in map if grid has been unloaded while creature walk to another grid
         // FIXME: until creature guids is global and for instances used dynamic generated guids
         // in instance possible load creature duplicates with same DB guid but different in game guids
         // This will be until implementing per-map creature guids
-        if (map->GetCreature(MAKE_NEW_GUID(guid, data->id, HIGHGUID_UNIT)))
+        if (map->GetCreature(ObjectGuid(HIGHGUID_UNIT, data->id, guidlow)))
             return false;
     }
     else
-        guid = sObjectMgr.GenerateLowGuid(HIGHGUID_UNIT);
+        guidlow = sObjectMgr.GenerateLowGuid(HIGHGUID_UNIT);
 
     uint16 team = 0;
-    if(!Create(guid, map, data->phaseMask, data->id, team, data))
+    if (!Create(guidlow, map, data->phaseMask, data->id, team, data))
         return false;
 
     Relocate(data->posX, data->posY, data->posZ, data->orientation);
@@ -1740,13 +1716,7 @@ void Creature::CallAssistance()
 
             if (!assistList.empty())
             {
-                AssistDelayEvent *e = new AssistDelayEvent(getVictim()->GetGUID(), *this);
-                while (!assistList.empty())
-                {
-                    // Pushing guids because in delay can happen some creature gets despawned => invalid pointer
-                    e->AddAssistant((*assistList.begin())->GetGUID());
-                    assistList.pop_front();
-                }
+                AssistDelayEvent *e = new AssistDelayEvent(getVictim()->GetObjectGuid(), *this, assistList);
                 m_Events.AddEvent(e, m_Events.CalculateTime(sWorld.getConfig(CONFIG_UINT32_CREATURE_FAMILY_ASSISTANCE_DELAY)));
             }
         }
@@ -2022,17 +1992,17 @@ Unit* Creature::SelectAttackingTarget(AttackingTarget target, uint32 position) c
         case ATTACKING_TARGET_RANDOM:
         {
             advance(i, position + (rand() % (threatlist.size() - position)));
-            return Unit::GetUnit(*this, (*i)->getUnitGuid());
+            return GetMap()->GetUnit((*i)->getUnitGuid());
         }
         case ATTACKING_TARGET_TOPAGGRO:
         {
             advance(i, position);
-            return Unit::GetUnit(*this, (*i)->getUnitGuid());
+            return GetMap()->GetUnit((*i)->getUnitGuid());
         }
         case ATTACKING_TARGET_BOTTOMAGGRO:
         {
             advance(r, position);
-            return Unit::GetUnit(*this, (*r)->getUnitGuid());
+            return GetMap()->GetUnit((*r)->getUnitGuid());
         }
         // TODO: implement these
         //case ATTACKING_TARGET_RANDOM_PLAYER:

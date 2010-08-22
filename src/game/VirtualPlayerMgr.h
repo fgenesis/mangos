@@ -94,7 +94,7 @@ public:
     uint32 zone;
     bool gender;
     std::string guild;
-    uint64 guid;
+    ObjectGuid guid;
 
     // calculated when loaded
     uint32 lvlup_xp;

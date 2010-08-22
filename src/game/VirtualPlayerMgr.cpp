@@ -325,7 +325,7 @@ uint32 VirtualPlayerMgr::_LoadChars(void)
             vp.zone                = fields[12].GetUInt32();
             vp.gender              = fields[13].GetBool();
             vp.guild               = fields[14].GetString();
-            vp.guid                = MAKE_NEW_GUID(fields[15].GetUInt32(), 0, HIGHGUID_PLAYER);
+            vp.guid                = ObjectGuid(HIGHGUID_PLAYER, fields[15].GetUInt32());
 
             // find correct traits
             VPTraitsMap::iterator it = _traits.find(vp.traits_id);
@@ -494,12 +494,12 @@ void VirtualPlayerMgr::_SetOffline(VirtualPlayer *vp)
     vp->online = false;
     _onlineIDs.erase(vp->id);
     CharacterDatabase.PExecute("DELETE FROM vp_online WHERE id=%u",vp->id);
-    CharacterDatabase.PExecute("UPDATE characters SET online=0 WHERE guid=%u",GUID_LOPART(vp->guid));
+    CharacterDatabase.PExecute("UPDATE characters SET online=0 WHERE guid=%u",vp->guid.GetCounter());
 }
 
 void VirtualPlayerMgr::_SetOnline(VirtualPlayer *vp)
 {
-    CharacterDatabase.PExecute("UPDATE characters SET online=1 WHERE guid=%u",GUID_LOPART(vp->guid));
+    CharacterDatabase.PExecute("UPDATE characters SET online=1 WHERE guid=%u",vp->guid.GetCounter());
     CharacterDatabase.PExecute("INSERT IGNORE INTO vp_online VALUES (%u)",vp->id);
     _onlineIDs.insert(vp->id);
     vp->online = true;
@@ -517,10 +517,12 @@ void VirtualPlayerMgr::_SaveToDB(VirtualPlayer *vp)
         vp->pz = zp.z;
         vp->map = zp.map;
     }
-    uint32 loguid = GUID_LOPART(vp->guid);
+    uint32 loguid = vp->guid.GetCounter();
 
     std::stringstream ss;
-    ss << "REPLACE INTO vp_chars ";
+    CharacterDatabase.BeginTransaction();
+    CharacterDatabase.PExecute("DELETE FROM vp_chars WHERE id = '%u'", vp->id);
+    ss << "INSERT INTO vp_chars ";
     //      0        1       2     3     4     5    6    7      8       9         10             11       12     13    14 15 16 17     18    19
     ss << "(id, traits_id, name, race, class, lvl, xp, honor, quests, info, planned_logout, last_logout, zone, gender, x, y, z, map, guild, guid) VALUES (";
     ss << vp->id << ", ";
@@ -550,46 +552,130 @@ void VirtualPlayerMgr::_SaveToDB(VirtualPlayer *vp)
 
 void VirtualPlayer::_Export(void)
 {
-    uint32 data[PLAYER_END];
-    for(uint32 i = 0; i < PLAYER_END; i++)
-        data[i] = 0;
-    data[OBJECT_FIELD_GUID] = *((uint32*)&guid);
-    data[OBJECT_FIELD_GUID+1] = *((uint32*)&guid + 1);
-    data[UNIT_FIELD_LEVEL] = lvl;
-    data[PLAYER_XP] = xp;
-    data[PLAYER_NEXT_LEVEL_XP] = lvlup_xp;
-    data[PLAYER_FIELD_HONOR_CURRENCY] = honor;
-    data[UNIT_FIELD_BYTES_0] = ( race ) | ( class_ << 8 ) | ( gender << 16 );
-    data[PLAYER_BYTES_3] = gender; // TODO: not 100% correct, should be byte value
     std::ostringstream ss, ss_del, ss2;
-    uint32 loguid = GUID_LOPART(guid);
+    uint32 loguid = guid.GetCounter();
     ss_del << "DELETE FROM characters WHERE account=1 AND guid=" << loguid;
     
     // from Player.cpp::SaveToDB()
-    ss << "INSERT INTO characters (guid,account,name,race,class,"
-        "map, position_x, position_y, position_z, data, "
-        "online, zone) VALUES (";
-    ss << loguid << ", ";
-    ss << "1, "; // acc is 1 to track exported virtual characters
-    ss << "'" << name << "', ";
-    ss << uint32(race) << ", ";
-    ss << uint32(class_) << ", ";
-    ss << map << ", ";
-    ss << px << ", ";
-    ss << py << ", ";
-    ss << pz << ", ";
-    ss << "'";
-    for(uint32 i = 0; i < PLAYER_END; i++)
+    std::string sql_name(name);
+    CharacterDatabase.escape_string(sql_name);
+
+    ss << "INSERT INTO characters (guid,account,name,race,class,gender,level,xp,money,playerBytes,playerBytes2,playerFlags,"
+        "map, dungeon_difficulty, position_x, position_y, position_z, orientation, "
+        "taximask, online, cinematic, "
+        "totaltime, leveltime, rest_bonus, logout_time, is_logout_resting, resettalents_cost, resettalents_time, "
+        "trans_x, trans_y, trans_z, trans_o, transguid, extra_flags, stable_slots, at_login, zone, "
+        "death_expire_time, taxi_path, arenaPoints, totalHonorPoints, todayHonorPoints, yesterdayHonorPoints, totalKills, "
+        "todayKills, yesterdayKills, chosenTitle, knownCurrencies, watchedFaction, drunk, health, power1, power2, power3, "
+        "power4, power5, power6, power7, specCount, activeSpec, exploredZones, equipmentCache, ammoId, knownTitles, actionBars) VALUES ("
+        << loguid << ", "
+        << uint32(1) << ", '" // account, always 1
+        << sql_name << "', "
+        << (uint32)race << ", "
+        << (uint32)class_ << ", "
+        << (uint32)gender << ", "
+        << (uint32)lvl << ", "
+        << (uint32)xp << ", "
+        << (uint32)0 << ", " // money
+        << (uint32)0 << ", " // PLAYER_BYTES
+        << (uint32)0 << ", " // PLAYER_BYTES_2
+        << (uint32)0 << ", "; // PLAYER_FLAGS
+
+    ss << map << ", "
+        << 0 << ", " // dungeon difficulty
+        << finiteAlways(px) << ", "
+        << finiteAlways(py) << ", "
+        << finiteAlways(pz) << ", "
+        << finiteAlways(0.0f) << ", "; // orientation
+
+    ss << "0 0 0 0 0 0 0 0 0 0 0 0" << ", "; // string with TaxiMaskSize numbers
+
+    ss << (online ? 1 : 0) << ", ";
+
+    ss << (uint32)0 << ", ";
+
+    ss << (uint32)0 << ", "; // TODO: played total time
+    ss << (uint32)0 << ", "; // TODO: played level time
+
+    ss << finiteAlways(0.0f) << ", ";
+    ss << (uint64)time(NULL) << ", ";
+    ss << (uint32)0 << ", "; // resting
+    ss << (uint32)0 << ", "; // reset talent cost
+    ss << (uint64)0 << ", "; // reset talent time
+
+    ss << finiteAlways(0.0f) << ", "; // transport pos
+    ss << finiteAlways(0.0f) << ", ";
+    ss << finiteAlways(0.0f) << ", ";
+    ss << finiteAlways(0.0f) << ", ";
+    ss << (uint32)0 << ", "; // transport guid
+
+    ss << (uint32)0 << ", "; // extraFlags
+
+    ss << uint32(0) << ", "; // stable slots
+
+    ss << uint32(0) << ", "; // at login flags
+
+    ss << (uint32)zone << ", ";
+
+    ss << (uint32)0 << ", '"; // death expire time
+
+    ss << "', "; // taxi destination (empty)
+
+    ss << (uint32)0 << ", "; // arena points
+
+    ss << (uint32)0 << ", "; // honor points
+
+    ss << (uint32)0  << ", "; // blarg...
+
+    ss << (uint32)0 << ", ";
+
+    ss << (uint32)0 << ", ";
+
+    ss << (uint32)0 << ", ";
+
+    ss << (uint32)0 << ", ";
+
+    ss << (uint32)0 << ", ";
+
+    ss << (uint32)0 << ", ";
+
+    // FIXME: at this moment send to DB as unsigned, including unit32(-1)
+    ss << (uint32)0 << ", ";
+
+    ss << (uint16)0 << ", "; // player_bytes_3
+
+    ss << (uint32)0; // health
+
+    for(uint32 i = 0; i < MAX_POWERS; ++i)
+        ss << "," << (uint32)0;
+
+    ss << ", ";
+    ss << uint32(1) << ", "; // spec count
+    ss << uint32(1) << ", '"; // active spec
+    for(uint32 i = 0; i < PLAYER_EXPLORED_ZONES_SIZE; ++i )
     {
-        ss << data[i] << " ";
+        ss << (uint32)0 << " ";
     }
-    ss << "', ";
-    ss << uint32(online) << ", ";
-    ss << zone << ")";
+
+    ss << "', '";
+    for(uint32 i = 0; i < EQUIPMENT_SLOT_END * 2; ++i )
+    {
+        ss << (uint32)0 << " ";
+    }
+
+    ss << "',";
+    ss << (uint32)0 << ", '"; // ammo id
+    for(uint32 i = 0; i < KNOWN_TITLES_SIZE*2; ++i )
+    {
+        ss << (uint32)0 << " ";
+    }
+    ss << "',";
+    ss << uint32(0); // action bars
+    ss << ")";
 
     // myinfo
     ss2 << "REPLACE INTO character_myinfo (guid,msg) VALUES (";
-    ss2 << guid << ", ";
+    ss2 << loguid << ", ";
     ss2 << "'" << info << "'";
     ss2 << ")";
 

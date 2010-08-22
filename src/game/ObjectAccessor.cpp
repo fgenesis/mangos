@@ -122,7 +122,7 @@ ObjectAccessor::SaveAllPlayers()
         itr->second->SaveToDB();
 }
 
-void ObjectAccessor::KickPlayer(uint64 guid)
+void ObjectAccessor::KickPlayer(ObjectGuid guid)
 {
     if (Player* p = HashMapHolder<Player>::Find(guid))
     {

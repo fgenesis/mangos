@@ -868,7 +868,7 @@ bool ChatHandler::HandleGameObjectTargetCommand(char* args)
         return false;
     }
 
-    GameObject* target = m_session->GetPlayer()->GetMap()->GetGameObject(MAKE_NEW_GUID(lowguid,id,HIGHGUID_GAMEOBJECT));
+    GameObject* target = m_session->GetPlayer()->GetMap()->GetGameObject(ObjectGuid(HIGHGUID_GAMEOBJECT, id, lowguid));
 
     PSendSysMessage(LANG_GAMEOBJECT_DETAIL, lowguid, goI->name, lowguid, id, x, y, z, mapid, o);
 
@@ -1063,7 +1063,7 @@ bool ChatHandler::HandleGameObjectAddCommand(char* args)
         return false;
 
     int32 spawntimeSecs;
-    if (!ExtractInt32(&args, spawntimeSecs))
+    if (!ExtractOptInt32(&args, spawntimeSecs, 0))
         return false;
 
     const GameObjectInfo *gInfo = ObjectMgr::GetGameObjectInfo(id);
@@ -1805,8 +1805,8 @@ bool ChatHandler::HandleNpcDeleteCommand(char* args)
         if (!lowguid)
             return false;
 
-        if (CreatureData const* cr_data = sObjectMgr.GetCreatureData(lowguid))
-            unit = m_session->GetPlayer()->GetMap()->GetCreature(MAKE_NEW_GUID(lowguid, cr_data->id, HIGHGUID_UNIT));
+        if (CreatureData const* data = sObjectMgr.GetCreatureData(lowguid))
+            unit = m_session->GetPlayer()->GetMap()->GetCreature(ObjectGuid(HIGHGUID_UNIT, data->id, lowguid));
     }
     else
         unit = getSelectedCreature();
@@ -2623,7 +2623,7 @@ void ChatHandler::ShowTicket(GMTicket const* ticket)
     std::string lastupdated = TimeToTimestampStr(ticket->GetLastUpdate());
 
     std::string name;
-    if (!sObjectMgr.GetPlayerNameByGUID(MAKE_NEW_GUID(ticket->GetPlayerLowGuid(), 0, HIGHGUID_PLAYER), name))
+    if (!sObjectMgr.GetPlayerNameByGUID(ObjectGuid(HIGHGUID_PLAYER, ticket->GetPlayerLowGuid()), name))
         name = GetMangosString(LANG_UNKNOWN);
 
     std::string nameLink = playerLink(name);
@@ -2818,7 +2818,7 @@ bool ChatHandler::HandleDelTicketCommand(char *args)
         //notify player
         if (Player* pl = sObjectMgr.GetPlayer(ObjectGuid(HIGHGUID_PLAYER, lowguid)))
         {
-            pl->GetSession()->SendGMTicketGetTicket(0x0A, 0);
+            pl->GetSession()->SendGMTicketGetTicket(0x0A);
             PSendSysMessage(LANG_COMMAND_TICKETPLAYERDEL, GetNameLink(pl).c_str());
         }
         else
@@ -2838,7 +2838,7 @@ bool ChatHandler::HandleDelTicketCommand(char *args)
 
     // notify players about ticket deleting
     if (target)
-        target->GetSession()->SendGMTicketGetTicket(0x0A, 0);
+        target->GetSession()->SendGMTicketGetTicket(0x0A);
 
     std::string nameLink = playerLink(target_name);
 
@@ -2939,7 +2939,7 @@ bool ChatHandler::HandleWpAddCommand(char* args)
                 return false;
             }
 
-            target = m_session->GetPlayer()->GetMap()->GetCreature(MAKE_NEW_GUID(lowguid,data->id,HIGHGUID_UNIT));
+            target = m_session->GetPlayer()->GetMap()->GetCreature(ObjectGuid(HIGHGUID_UNIT, data->id, lowguid));
             if (!target)
             {
                 PSendSysMessage(LANG_WAYPOINT_NOTFOUNDDBPROBLEM, lowguid);
@@ -2973,7 +2973,7 @@ bool ChatHandler::HandleWpAddCommand(char* args)
             return false;
         }
 
-        target = m_session->GetPlayer()->GetMap()->GetCreature(MAKE_NEW_GUID(lowguid,data->id,HIGHGUID_UNIT));
+        target = m_session->GetPlayer()->GetMap()->GetCreature(ObjectGuid(HIGHGUID_UNIT, data->id, lowguid));
         if (!target || target->isPet())
         {
             PSendSysMessage(LANG_WAYPOINT_CREATNOTFOUND, lowguid);
@@ -3188,7 +3188,7 @@ bool ChatHandler::HandleWpModifyCommand(char* args)
             return false;
         }
 
-        Creature* npcCreature = m_session->GetPlayer()->GetMap()->GetCreature(MAKE_NEW_GUID(lowguid, data->id, HIGHGUID_UNIT));
+        Creature* npcCreature = m_session->GetPlayer()->GetMap()->GetCreature(ObjectGuid(HIGHGUID_UNIT, data->id, lowguid));
 
         if (!npcCreature)
         {
@@ -3267,13 +3267,13 @@ bool ChatHandler::HandleWpModifyCommand(char* args)
             return false;
         }
 
-        Creature* npcCreature = m_session->GetPlayer()->GetMap()->GetCreature(MAKE_NEW_GUID(lowguid, data->id, HIGHGUID_UNIT));
+        Creature* npcCreature = m_session->GetPlayer()->GetMap()->GetCreature(ObjectGuid(HIGHGUID_UNIT, data->id, lowguid));
 
         // wpCreature
         Creature* wpCreature = NULL;
         if (wpGuid != 0)
         {
-            wpCreature = m_session->GetPlayer()->GetMap()->GetCreature(MAKE_NEW_GUID(wpGuid, VISUAL_WAYPOINT, HIGHGUID_UNIT));
+            wpCreature = m_session->GetPlayer()->GetMap()->GetCreature(ObjectGuid(HIGHGUID_UNIT, VISUAL_WAYPOINT, wpGuid));
             wpCreature->DeleteFromDB();
             wpCreature->AddObjectToRemoveList();
         }
@@ -3327,7 +3327,7 @@ bool ChatHandler::HandleWpModifyCommand(char* args)
                 return false;
             }
 
-            Creature* npcCreature = m_session->GetPlayer()->GetMap()->GetCreature(MAKE_NEW_GUID(lowguid, data->id, HIGHGUID_UNIT));
+            Creature* npcCreature = m_session->GetPlayer()->GetMap()->GetCreature(ObjectGuid(HIGHGUID_UNIT, data->id, lowguid));
 
             // wpCreature
             Creature* wpCreature = NULL;
@@ -3336,7 +3336,7 @@ bool ChatHandler::HandleWpModifyCommand(char* args)
             // Respawn the owner of the waypoints
             if (wpGuid != 0)
             {
-                wpCreature = m_session->GetPlayer()->GetMap()->GetCreature(MAKE_NEW_GUID(wpGuid, VISUAL_WAYPOINT, HIGHGUID_UNIT));
+                wpCreature = m_session->GetPlayer()->GetMap()->GetCreature(ObjectGuid(HIGHGUID_UNIT, VISUAL_WAYPOINT, wpGuid));
                 wpCreature->DeleteFromDB();
                 wpCreature->AddObjectToRemoveList();
                 // re-create
@@ -3398,7 +3398,7 @@ bool ChatHandler::HandleWpModifyCommand(char* args)
 
     sWaypointMgr.SetNodeText(lowguid, point, show_str, arg_str);
 
-    Creature* npcCreature = m_session->GetPlayer()->GetMap()->GetCreature(MAKE_NEW_GUID(lowguid, data->id, HIGHGUID_UNIT));
+    Creature* npcCreature = m_session->GetPlayer()->GetMap()->GetCreature(ObjectGuid(HIGHGUID_UNIT, data->id, lowguid));
     if (npcCreature)
     {
         npcCreature->SetDefaultMovementType(WAYPOINT_MOTION_TYPE);
@@ -3498,7 +3498,7 @@ bool ChatHandler::HandleWpShowCommand(char* args)
             return false;
         }
 
-        target = m_session->GetPlayer()->GetMap()->GetCreature(MAKE_NEW_GUID(lowguid,data->id,HIGHGUID_UNIT));
+        target = m_session->GetPlayer()->GetMap()->GetCreature(ObjectGuid(HIGHGUID_UNIT, data->id, lowguid));
 
         if (!target)
         {
@@ -3557,7 +3557,7 @@ bool ChatHandler::HandleWpShowCommand(char* args)
         do
         {
             Field *fields = result->Fetch();
-            uint32 creGUID          = fields[0].GetUInt32();
+            uint32 wpGuid           = fields[0].GetUInt32();
             uint32 point            = fields[1].GetUInt32();
             int waittime            = fields[2].GetUInt32();
             uint32 emote            = fields[3].GetUInt32();
@@ -3569,9 +3569,9 @@ bool ChatHandler::HandleWpShowCommand(char* args)
             uint32 model2           = fields[11].GetUInt32();
 
             // Get the creature for which we read the waypoint
-            Creature* wpCreature = m_session->GetPlayer()->GetMap()->GetCreature(MAKE_NEW_GUID(creGUID,VISUAL_WAYPOINT,HIGHGUID_UNIT));
+            Creature* wpCreature = m_session->GetPlayer()->GetMap()->GetCreature(ObjectGuid(HIGHGUID_UNIT, VISUAL_WAYPOINT, wpGuid));
 
-            PSendSysMessage(LANG_WAYPOINT_INFO_TITLE, point, (wpCreature ? wpCreature->GetName() : "<not found>"), creGUID);
+            PSendSysMessage(LANG_WAYPOINT_INFO_TITLE, point, (wpCreature ? wpCreature->GetName() : "<not found>"), wpGuid);
             PSendSysMessage(LANG_WAYPOINT_INFO_WAITTIME, waittime);
             PSendSysMessage(LANG_WAYPOINT_INFO_MODEL, 1, model1);
             PSendSysMessage(LANG_WAYPOINT_INFO_MODEL, 2, model2);
@@ -3605,14 +3605,14 @@ bool ChatHandler::HandleWpShowCommand(char* args)
             do
             {
                 Field *fields = result2->Fetch();
-                uint32 wpguid = fields[0].GetUInt32();
-                Creature* pCreature = m_session->GetPlayer()->GetMap()->GetCreature(MAKE_NEW_GUID(wpguid,VISUAL_WAYPOINT,HIGHGUID_UNIT));
+                uint32 wpGuid = fields[0].GetUInt32();
+                Creature* pCreature = m_session->GetPlayer()->GetMap()->GetCreature(ObjectGuid(HIGHGUID_UNIT, VISUAL_WAYPOINT, wpGuid));
 
                 if (!pCreature)
                 {
-                    PSendSysMessage(LANG_WAYPOINT_NOTREMOVED, wpguid);
+                    PSendSysMessage(LANG_WAYPOINT_NOTREMOVED, wpGuid);
                     hasError = true;
-                    WorldDatabase.PExecuteLog("DELETE FROM creature WHERE guid = '%u'", wpguid);
+                    WorldDatabase.PExecuteLog("DELETE FROM creature WHERE guid = '%u'", wpGuid);
                 }
                 else
                 {
@@ -3803,13 +3803,13 @@ bool ChatHandler::HandleWpShowCommand(char* args)
         do
         {
             Field *fields = result->Fetch();
-            uint32 guid = fields[0].GetUInt32();
-            Creature* pCreature = m_session->GetPlayer()->GetMap()->GetCreature(MAKE_NEW_GUID(guid,VISUAL_WAYPOINT,HIGHGUID_UNIT));
+            uint32 wpGuid = fields[0].GetUInt32();
+            Creature* pCreature = m_session->GetPlayer()->GetMap()->GetCreature(ObjectGuid(HIGHGUID_UNIT, VISUAL_WAYPOINT, wpGuid));
             if (!pCreature)
             {
-                PSendSysMessage(LANG_WAYPOINT_NOTREMOVED, guid);
+                PSendSysMessage(LANG_WAYPOINT_NOTREMOVED, wpGuid);
                 hasError = true;
-                WorldDatabase.PExecuteLog("DELETE FROM creature WHERE guid = '%u'", guid);
+                WorldDatabase.PExecuteLog("DELETE FROM creature WHERE guid = '%u'", wpGuid);
             }
             else
             {

@@ -152,7 +152,7 @@ bool ChatHandler::HandleTargetAndDeleteObjectCommand(char *args)
         return false;
     }
 
-    GameObject* obj = m_session->GetPlayer()->GetMap()->GetGameObject(MAKE_NEW_GUID(guid, id, HIGHGUID_GAMEOBJECT));
+    GameObject* obj = m_session->GetPlayer()->GetMap()->GetGameObject(ObjectGuid(HIGHGUID_GAMEOBJECT, guid, id));
 
     if(!obj)
     {
@@ -497,83 +497,6 @@ bool ChatHandler::HandlePDropCommand(char* args)
     return true;
 }
 
-bool ChatHandler::HandleBindCreatureCommand(char* args)
-{
-    Creature *target = getSelectedCreature();
-    if(!target)
-    {
-        SendSysMessage(LANG_SELECT_CREATURE);
-        return true;
-    }
-    uint32 r;
-    if(*args)
-        r = atoi((char*)args);
-    else
-        r = realmID;
-
-    WorldDatabase.PQuery("REPLACE INTO creature_realmbind (guid, realmid) VALUES (%u, %u)",target->GetGUIDLow(),r);
-    std::stringstream ss;
-    ss << target->GetGUIDLow() << " [" << target->GetName() << "] bound to realmID " << r;
-    if(r == realmID)
-        ss << " (this realm)";
-    SendSysMessage(ss.str().c_str());
-    return true;
-}
-
-bool ChatHandler::HandleBindObjectCommand(char *args)
-{
-    QueryResult *result;
-
-    result = WorldDatabase.PQuery("SELECT `guid`, `id`, `position_x`, `position_y`, `position_z`, `orientation`, `map`, (POW(`position_x` - %f, 2) + POW(`position_y` - %f, 2) + POW(`position_z` - %f, 2)) as `order` FROM `gameobject` WHERE `map` = %i ORDER BY `order` ASC LIMIT 1", m_session->GetPlayer()->GetPositionX(), m_session->GetPlayer()->GetPositionY(), m_session->GetPlayer()->GetPositionZ(), m_session->GetPlayer()->GetMapId());
-
-    if (!result)
-    {
-        SendSysMessage("Nothing found!");
-        return true;
-    }
-
-    Field *fields = result->Fetch();
-    uint32 guid = fields[0].GetUInt32();
-    uint32 id = fields[1].GetUInt32();
-    float x = fields[2].GetFloat();
-    float y = fields[3].GetFloat();
-    float z = fields[4].GetFloat();
-    float o = fields[5].GetFloat();
-    int mapid = fields[6].GetUInt16();
-    delete result;
-
-    const GameObjectInfo *goI = sObjectMgr.GetGameObjectInfo(id);
-
-    if (!goI)
-    {
-        PSendSysMessage(LANG_GAMEOBJECT_NOT_EXIST,id);
-        return false;
-    }
-
-    GameObject* obj = m_session->GetPlayer()->GetMap()->GetGameObject(MAKE_NEW_GUID(guid, id, HIGHGUID_GAMEOBJECT));
-
-    if(!obj)
-    {
-        PSendSysMessage("Game Object (GUID: %u) not found", guid);
-        return true;
-    }
-
-
-    uint32 r;
-    if(*args)
-        r = atoi((char*)args);
-    else
-        r = realmID;
-
-    WorldDatabase.PQuery("REPLACE INTO gameobject_realmbind (guid, realmid) VALUES (%u, %u)",obj->GetGUIDLow(),r);
-    std::stringstream ss;
-    ss << obj->GetGUIDLow() << " [" << obj->GetName() << "] bound to realmID " << r;
-    if(r == realmID)
-        ss << " (this realm)";
-    SendSysMessage(ss.str().c_str());
-    
-    return true;
-}
 /*
 bool ChatHandler::HandleAnticheatModeCommand(char* args)
 {

@@ -1315,7 +1315,7 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                         if (const SpellEntry *pSpell = sSpellStore.LookupEntry(46022))
                         {
                             m_caster->CastSpell(unitTarget, pSpell, true);
-                            ((Player*)m_caster)->KilledMonsterCredit(pSpell->EffectMiscValue[EFFECT_INDEX_0], 0);
+                            ((Player*)m_caster)->KilledMonsterCredit(pSpell->EffectMiscValue[EFFECT_INDEX_0]);
                         }
 
                         if (unitTarget->GetTypeId() == TYPEID_UNIT)
@@ -1391,7 +1391,7 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                         m_caster->CastSpell(unitTarget, pSpell, true);
 
                         if (const SpellEntry *pSpellCredit = sSpellStore.LookupEntry(pSpell->EffectMiscValue[EFFECT_INDEX_0]))
-                            ((Player*)m_caster)->KilledMonsterCredit(pSpellCredit->EffectMiscValue[EFFECT_INDEX_0], 0);
+                            ((Player*)m_caster)->KilledMonsterCredit(pSpellCredit->EffectMiscValue[EFFECT_INDEX_0]);
 
                         ((Creature*)unitTarget)->ForcedDespawn();
                     }
@@ -1836,7 +1836,7 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                     if( m_caster->GetTypeId() == TYPEID_PLAYER && unitTarget->GetTypeId() != TYPEID_PLAYER && unitTarget->GetEntry() == 26321 )
                     {
                         unitTarget->MonsterTextEmote("The Lothalor Acient gives you its thanks.", 0);
-                        ((Player*)m_caster)->KilledMonsterCredit(26321, 0);
+                        ((Player*)m_caster)->KilledMonsterCredit(26321, ObjectGuid());
                     }
                     return;
                 }
@@ -1849,7 +1849,7 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                 case 45607: // Q: Kaganishu
                 {
                     if(m_caster->GetTypeId() == TYPEID_PLAYER)
-                        ((Player*)m_caster)->KilledMonsterCredit(25425, 0);
+                        ((Player*)m_caster)->KilledMonsterCredit(25425, ObjectGuid());
                     return;
                 }
                 case 67019:                                 // Flask of the North
@@ -3875,9 +3875,9 @@ void Spell::EffectOpenLock(SpellEffectIndex eff_idx)
             if (gameObjTarget)
             {
                 // Allow one skill-up until respawned
-                if (!gameObjTarget->IsInSkillupList(player->GetGUIDLow()) &&
+                if (!gameObjTarget->IsInSkillupList(player) &&
                     player->UpdateGatherSkill(skillId, pureSkillValue, reqSkillValue))
-                    gameObjTarget->AddToSkillupList(player->GetGUIDLow());
+                    gameObjTarget->AddToSkillupList(player);
             }
             else if (itemTarget)
             {
@@ -7217,7 +7217,7 @@ void Spell::EffectStuck(SpellEffectIndex /*eff_idx*/)
     SpellEntry const *spellInfo = sSpellStore.LookupEntry(8690);
     if(!spellInfo)
         return;
-    Spell spell(pTarget, spellInfo, true, 0);
+    Spell spell(pTarget, spellInfo, true);
     spell.SendSpellCooldown();
 }
 
@@ -7312,6 +7312,13 @@ void Spell::DoSummonTotem(SpellEffectIndex eff_idx, uint8 slot_dbc)
     {
         delete pTotem;
         return;
+    }
+
+    // special model selection case for totems
+    if (m_caster->GetTypeId() == TYPEID_PLAYER)
+    {
+        if (uint32 modelid_race = sObjectMgr.GetModelForRace(pTotem->GetNativeDisplayId(), m_caster->getRaceMask()))
+            pTotem->SetDisplayId(modelid_race);
     }
 
     float angle = slot < MAX_TOTEM_SLOT ? M_PI_F/MAX_TOTEM_SLOT - (slot*2*M_PI_F/MAX_TOTEM_SLOT) : 0;
@@ -8317,7 +8324,7 @@ void Spell::EffectKillCreditPersonal(SpellEffectIndex eff_idx)
     if(!unitTarget || unitTarget->GetTypeId() != TYPEID_PLAYER)
         return;
 
-    ((Player*)unitTarget)->KilledMonsterCredit(m_spellInfo->EffectMiscValue[eff_idx], 0);
+    ((Player*)unitTarget)->KilledMonsterCredit(m_spellInfo->EffectMiscValue[eff_idx]);
 }
 
 void Spell::EffectKillCredit(SpellEffectIndex eff_idx)
