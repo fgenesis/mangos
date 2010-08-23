@@ -10494,21 +10494,26 @@ bool Unit::ApplySpellAura(uint32 spellID)
     SpellEntry const *spellInfo = sSpellStore.LookupEntry( spellID );
     if(spellInfo)
     {
-        SpellAuraHolder *holder = NULL;
-        if (IsSpellAppliesAura(spellInfo, (1 << EFFECT_INDEX_0) | (1 << EFFECT_INDEX_1) | (1 << EFFECT_INDEX_2)) || IsSpellHaveEffect(spellInfo, SPELL_EFFECT_PERSISTENT_AREA_AURA))
-            holder = CreateSpellAuraHolder(spellInfo, this, this);
+        if (!IsSpellAppliesAura(spellInfo, (1 << EFFECT_INDEX_0) | (1 << EFFECT_INDEX_1) | (1 << EFFECT_INDEX_2)) &&
+            !IsSpellHaveEffect(spellInfo, SPELL_EFFECT_PERSISTENT_AREA_AURA))
+        {
+            return false;
+        }
+
+        SpellAuraHolder *holder = CreateSpellAuraHolder(spellInfo, this, this);
 
         for(uint32 i = 0; i < MAX_EFFECT_INDEX; ++i)
         {
             uint8 eff = spellInfo->Effect[i];
             if (eff>=TOTAL_SPELL_EFFECTS)
                 continue;
-            if( IsAreaAuraEffect(eff)           ||
+            if (IsAreaAuraEffect(eff)           ||
                 eff == SPELL_EFFECT_APPLY_AURA  ||
-                eff == SPELL_EFFECT_PERSISTENT_AREA_AURA )
+                eff == SPELL_EFFECT_PERSISTENT_AREA_AURA)
             {
                 Aura *aur = CreateAura(spellInfo, SpellEffectIndex(i), NULL, holder, this);
                 holder->AddAura(aur, SpellEffectIndex(i));
+                added = true;
             }
         }
         AddSpellAuraHolder(holder);
