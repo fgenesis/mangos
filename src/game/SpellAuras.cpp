@@ -8518,7 +8518,7 @@ void SpellAuraHolder::SendFakeAuraUpdate(uint32 auraId, bool remove)
 {
     WorldPacket data(SMSG_AURA_UPDATE);
     data << m_target->GetPackGUID();
-    data << uint8(64);
+    data << uint8(MAX_AURAS); // use hidden aura slot
     data << uint32(remove ? 0 : auraId);
 
     if(remove)
@@ -8534,7 +8534,7 @@ void SpellAuraHolder::SendFakeAuraUpdate(uint32 auraId, bool remove)
 
     if(!(auraFlags & AFLAG_NOT_CASTER))
     {
-        data << uint8(0);                                   // pguid
+        data.appendPackGUID(GetCasterGUID());
     }
 
     if(auraFlags & AFLAG_DURATION)

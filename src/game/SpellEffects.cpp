@@ -5488,6 +5488,12 @@ void Spell::EffectWeaponDmg(SpellEffectIndex eff_idx)
                     if (m_targets.getUnitTarget() != unitTarget)
                         weaponDamagePercentMod /= 2.0f;
             }
+            // Rune Strike
+            if( m_spellInfo->SpellFamilyFlags & UI64LIT(0x2000000000000000))
+            {
+                // Unlike other reactive dependent spells, Rune Strike has no cooldown, so reactive must be cleared here to prevent >1 Rune Strike per dodge/parry
+                m_caster->ClearAllReactives();
+            }
             // Glyph of Blood Strike
             if( m_spellInfo->SpellFamilyFlags & UI64LIT(0x0000000000400000) &&
                 m_caster->HasAura(59332) &&

@@ -3467,6 +3467,13 @@ SpellAuraProcResult Unit::HandleProcTriggerSpellAuraProc(Unit *pVictim, uint32 d
                 basepoints[0] = triggerAmount * damage / 100;
                 trigger_spell_id = 50475;
             }
+            // Rune Strike enable proc
+            else if (auraSpellInfo->Id == 56816)
+            {
+                // Only send fake aura to client since triggered spell does not exist
+                triggeredByAura->GetHolder()->SendFakeAuraUpdate(trigger_spell_id, false);
+                return SPELL_AURA_PROC_OK;
+            }
             break;
         }
         default:

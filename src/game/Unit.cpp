@@ -10194,9 +10194,21 @@ void Unit::ClearAllReactives()
     for(int i=0; i < MAX_REACTIVE; ++i)
         m_reactiveTimer[i] = 0;
 
-    if (HasAuraState( AURA_STATE_DEFENSE))
+    if (HasAuraState(AURA_STATE_DEFENSE)) {
         ModifyAuraState(AURA_STATE_DEFENSE, false);
-    if (getClass() == CLASS_HUNTER && HasAuraState( AURA_STATE_HUNTER_PARRY))
+
+        if (getClass() == CLASS_DEATH_KNIGHT)
+        {
+            // Clear Rune Strike casterAuraSpell fake aura
+            const SpellEntry* runeStrikeProcAura = sSpellStore.LookupEntry(56816);
+            if (runeStrikeProcAura)
+            {
+                SpellAuraHolder* holder = GetSpellAuraHolder(runeStrikeProcAura->Id);
+                holder->SendFakeAuraUpdate(runeStrikeProcAura->EffectTriggerSpell[0], true);
+            }
+        }
+    }
+    if (getClass() == CLASS_HUNTER && HasAuraState(AURA_STATE_HUNTER_PARRY))
         ModifyAuraState(AURA_STATE_HUNTER_PARRY, false);
     if(getClass() == CLASS_WARRIOR && GetTypeId() == TYPEID_PLAYER)
         ((Player*)this)->ClearComboPoints();
@@ -10219,7 +10231,20 @@ void Unit::UpdateReactives( uint32 p_time )
             {
                 case REACTIVE_DEFENSE:
                     if (HasAuraState(AURA_STATE_DEFENSE))
+                    {
                         ModifyAuraState(AURA_STATE_DEFENSE, false);
+
+                        if (getClass() == CLASS_DEATH_KNIGHT)
+                        {
+                            // Clear Rune Strike casterAuraSpell fake aura
+                            const SpellEntry* runeStrikeProcAura = sSpellStore.LookupEntry(56816);
+                            if (runeStrikeProcAura)
+                            {
+                                SpellAuraHolder* holder = GetSpellAuraHolder(runeStrikeProcAura->Id);
+                                holder->SendFakeAuraUpdate(runeStrikeProcAura->EffectTriggerSpell[0], true);
+                            }
+                        }
+                    }
                     break;
                 case REACTIVE_HUNTER_PARRY:
                     if ( getClass() == CLASS_HUNTER && HasAuraState(AURA_STATE_HUNTER_PARRY))
