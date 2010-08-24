@@ -2574,9 +2574,9 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
             // Death Coil
             if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x002000))
             {
-                if (m_caster->IsFriendlyTo(unitTarget))
+                if (unitTarget && m_caster->IsFriendlyTo(unitTarget))
                 {
-                    if (!unitTarget || unitTarget->GetCreatureType() != CREATURE_TYPE_UNDEAD)
+                    if (unitTarget->GetCreatureType() != CREATURE_TYPE_UNDEAD)
                         return;
 
                     int32 bp = int32(damage * 1.5f);

@@ -5509,8 +5509,17 @@ SpellCastResult Spell::CheckCast(bool strict)
         // sated preventing bloodlust
         if(m_spellInfo->Id == 2825 && target->HasAura(57724))
             return SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW;
-
+        // Death Coil (DK) - interrupt self cast if not undead
+        if (m_spellInfo->SpellFamilyName == SPELLFAMILY_DEATHKNIGHT && m_spellInfo->SpellIconID == 88 && m_spellInfo->SpellFamilyFlags & UI64LIT(0x002000))
+        {
+            if (m_caster->IsFriendlyTo(target))
+            {
+                if (target->GetCreatureType() != CREATURE_TYPE_UNDEAD)
+                    return SPELL_FAILED_BAD_TARGETS;
+            }
+        }
     }
+
     // FG: -- spellfix end --
 
     // check trade slot case (last, for allow catch any another cast problems)
