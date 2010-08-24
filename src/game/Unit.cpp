@@ -6008,9 +6008,11 @@ Pet* Unit::GetPet() const
 {
     if(uint64 pet_guid = GetPetGUID())
     {
-        Pet *pet = GetMap()->GetPet(pet_guid);
-        if(IsInWorld() && pet)
-            return pet;
+        if (IsInWorld())
+        {
+            if (Pet* pet = GetMap()->GetPet(pet_guid))
+                return pet;
+        }
 
         sLog.outError("Unit::GetPet: Pet %u not exist.",GUID_LOPART(pet_guid));
         const_cast<Unit*>(this)->SetPet(0);
