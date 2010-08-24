@@ -4886,17 +4886,7 @@ void Aura::HandleAuraPeriodicDummy(bool apply, bool Real)
         case SPELLFAMILY_HUNTER:
         {
             Unit* caster = GetCaster();
-            switch (spell->Id)
-            {
-                case 48018:
-                    if (apply)
-                        GetHolder()->SendFakeAuraUpdate(62388,false);
-                    else
-                    {
-                        target->RemoveGameObject(spell->Id,true);
-                        GetHolder()->SendFakeAuraUpdate(62388,true);
-                    }
-            }
+
             // Explosive Shot
             if (apply && !loading && caster)
                 m_modifier.m_amount += int32(caster->GetTotalAttackPowerValue(RANGED_ATTACK) * 14 / 100);
@@ -7629,9 +7619,9 @@ void Aura::PeriodicDummyTick()
                     // We must take a range of teleport spell, not summon.
                     const SpellEntry* goToCircleSpell = sSpellStore.LookupEntry(48020);
                     if (target->IsWithinDist(obj,GetSpellMaxRange(sSpellRangeStore.LookupEntry(goToCircleSpell->rangeIndex))))
-                        GetHolder()->SendFakeAuraUpdate(62388,false);
+                        GetHolder()->SendFakeAuraUpdate(goToCircleSpell->casterAuraSpell, false);
                     else
-                        GetHolder()->SendFakeAuraUpdate(62388,true);
+                        GetHolder()->SendFakeAuraUpdate(goToCircleSpell->casterAuraSpell, true);
             }
             break;
         case SPELLFAMILY_ROGUE:
