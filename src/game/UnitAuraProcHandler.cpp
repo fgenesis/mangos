@@ -585,6 +585,10 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
                 case 9799:
                 case 25988:
                 {
+                    // FG: fix for rank 2 - silly typo by blizz - DBC bug
+                    if(dummySpell->Id == 25988)
+                        triggerAmount = 10;
+
                     // return damage % to attacker but < 50% own total health
                     basepoints[0] = triggerAmount*int32(damage)/100;
                     if (basepoints[0] > (int32)GetMaxHealth()/2)
@@ -737,6 +741,12 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
                     target = this;
                     triggered_spell_id = 33494;
                     break;
+                }
+                // Corpse Explode
+                case 49555:
+                {
+                     triggered_spell_id = 49618;
+                     break;
                 }
                 // Vampiric Aura (boss spell)
                 case 38196:
@@ -953,6 +963,67 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
                 case 63320:
                     triggered_spell_id = 63321;
                     break;
+                //Deathbringer's Will Proc
+                case 71519:                                 
+                case 71562:
+                {
+                    if(dummySpell->Id == 71519)
+                    {
+                        if(HasAura(71491) || HasAura(71484) || HasAura(71492) || HasAura(71486) || HasAura(71485))
+                            return SPELL_AURA_PROC_FAILED;
+                    }
+                    else 
+                    {
+                        if(HasAura(71559) || HasAura(71561) || HasAura(71560) || HasAura(71556) || HasAura(71558))
+                            return SPELL_AURA_PROC_FAILED;
+                    }
+                    switch(this->getClass())
+                    {
+                        case CLASS_WARRIOR:
+                        case CLASS_DEATH_KNIGHT:
+                        case CLASS_PALADIN:                                                                      
+                            switch(irand(1,3))
+                            {
+                                case 1: triggered_spell_id = (dummySpell->Id == 71519) ? 71491:71559; break;   //Crit
+                                case 2: triggered_spell_id = (dummySpell->Id == 71519) ? 71484:71561; break;  //Str
+                                case 3: triggered_spell_id = (dummySpell->Id == 71519) ? 71492:71560; break;  //Haste
+                            }
+                            break;
+                        case CLASS_ROGUE:
+                        case CLASS_SHAMAN:
+                            switch(irand(1,3))
+                            {
+                                case 1: triggered_spell_id = (dummySpell->Id == 71519) ? 71485:71556; break;  //Agi
+                                case 2: triggered_spell_id = (dummySpell->Id == 71519) ? 71486:71558; break;  //AP
+                                case 3: triggered_spell_id = (dummySpell->Id == 71519) ? 71492:71560; break;  //Haste
+                            }
+                            break;
+                        case CLASS_HUNTER:
+                            switch(irand(1,3))
+                            {
+                                case 1: triggered_spell_id = (dummySpell->Id == 71519) ? 71485:71556; break;  //Agi
+                                case 2: triggered_spell_id = (dummySpell->Id == 71519) ? 71491:71559; break;  //Crit
+                                case 3: triggered_spell_id = (dummySpell->Id == 71519) ? 71486:71558; break;  //AP
+                            }
+                            break;
+                        case CLASS_DRUID:
+                            switch(irand(1,3))
+                            {
+                                case 1:triggered_spell_id = (dummySpell->Id == 71519) ? 71485:71556; break;   //Agi
+                                case 2:triggered_spell_id = (dummySpell->Id == 71519) ? 71484:71561; break;  //Str
+                                case 3:triggered_spell_id = (dummySpell->Id == 71519) ? 71492:71560; break;  //Haste
+                            }
+                            break;
+                        case CLASS_PRIEST:
+                        case CLASS_MAGE:
+                        case CLASS_WARLOCK:
+                            break;                      //Unknown result for casters?
+                        default:
+                            break;
+                    }
+                    target = this;
+                    break;
+                }
                 // Item - Shadowmourne Legendary
                 case 71903:
                 {
@@ -1093,6 +1164,36 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
 
                     triggered_spell_id = 12654;
                     break;
+                }
+                // Empowered Fire ( mana regen )
+                case 12654:
+                {
+                    Unit* caster = triggeredByAura->GetCaster();
+                    // it should not be triggered from other ignites
+                    if ( caster && pVictim && caster->GetGUID() == pVictim->GetGUID() )
+                    {
+                        Unit::AuraList const& auras = caster->GetAurasByType(SPELL_AURA_ADD_FLAT_MODIFIER);
+                        for ( Unit::AuraList::const_iterator i = auras.begin(); i != auras.end(); i++ )
+                        {
+                            switch((*i)->GetId())
+                            {
+                                case 31656:
+                                case 31657:
+                                case 31658:
+                                {
+                                    if( roll_chance_i( int32((*i)->GetSpellProto()->procChance)) )
+                                    {
+                                        caster->CastSpell( caster, 67545, true );
+                                        return SPELL_AURA_PROC_OK;
+                                    }
+                                    else
+                                        return SPELL_AURA_PROC_FAILED;
+
+                                }
+                            }
+                        }
+                    }
+                    return SPELL_AURA_PROC_FAILED;
                 }
                 // Glyph of Ice Block
                 case 56372:
@@ -1537,6 +1638,39 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
                     triggered_spell_id = 32747;
                     break;
                 }
+                // King of the Jungle
+                case 48492:
+                case 48494:
+                case 48495:
+                {
+                    switch(m_form)
+                    {
+                        case FORM_BEAR:
+                        case FORM_DIREBEAR:
+                        {
+                            // Damage increase in Enrage
+                            if (effIndex == 0)
+                                triggered_spell_id = 51185;
+                            break;
+                       }
+                        case FORM_CAT:
+                        {
+                            // Energy restoration in Tiger's Fury
+                            if(effIndex == 1)
+                                triggered_spell_id = 51178;
+                            break;
+                        }
+                        default:
+                            break;
+                    }
+
+                    if (!triggered_spell_id)
+                        return SPELL_AURA_PROC_FAILED;
+
+                    basepoints[0] = triggerAmount;
+                    target = this;
+                    break;
+                }
                 // Glyph of Rejuvenation
                 case 54754:
                 {
@@ -1715,6 +1849,44 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
                         break;
                 }
                 break;
+            }
+            // Focused Fire, Kill Command increased crit % proc
+            if ( dummySpell->Id == 35029 || dummySpell->Id == 35030 )
+            {
+                triggered_spell_id = dummySpell->Id == 35029 ? 60110 : 60113;
+                target = this;
+                break;
+            }
+            // Misdirection
+            if (dummySpell->SpellFamilyFlags & UI64LIT(0x10000000000000))
+            {
+                if (GetTypeId() != TYPEID_PLAYER || !pVictim || !pVictim->CanHaveThreatList())
+                    return SPELL_AURA_PROC_FAILED;
+
+                if (Group* pGroup = ((Player*)this)->GetGroup())
+                {
+                    target = this;
+                    float threat = damage;
+
+                    if (procSpell && IsDamageToThreatSpell(procSpell))
+                        threat *= 2;
+
+                    for(GroupReference *itr = pGroup->GetFirstMember(); itr != NULL; itr = itr->next())
+                        if (itr->getSource() && itr->getSource()->GetGUID() != GetGUID() &&
+                            itr->getSource()->GetAura(SPELL_AURA_DUMMY, SPELLFAMILY_HUNTER, 0,0, GetGUID()))
+                        {
+                            target = itr->getSource();
+                            break;
+                        }
+
+                    if (target != this)
+                    {
+                        pVictim->AddThreat(this, -threat, false, procSpell ? SpellSchoolMask(procSpell->SchoolMask) : SPELL_SCHOOL_MASK_NORMAL, procSpell);
+                        pVictim->AddThreat(target, threat, false, procSpell ? SpellSchoolMask(procSpell->SchoolMask) : SPELL_SCHOOL_MASK_NORMAL, procSpell);
+                        return SPELL_AURA_PROC_OK;
+                    }
+                }
+                return SPELL_AURA_PROC_FAILED;
             }
             // Glyph of Mend Pet
             if(dummySpell->Id == 57870)
@@ -2231,6 +2403,13 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
                     triggered_spell_id = 71824;
                     break;
                 }
+                // Earthen Power (Rank 1,2)
+                case 51523:
+                case 51524:
+                {
+                    triggered_spell_id = 63532;
+                    break;
+                }
             }
             // Storm, Earth and Fire
             if (dummySpell->SpellIconID == 3063)
@@ -2466,7 +2645,7 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
                     runeBlade->DealDamage(runeBlade->getVictim(),procDmg,NULL,SPELL_DIRECT_DAMAGE,GetSpellSchoolMask(procSpell),procSpell,true);
                     break;
                 }
-                else 
+                else
                     return SPELL_AURA_PROC_FAILED;
             }
             // Mark of Blood
@@ -2611,6 +2790,50 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
                     return SPELL_AURA_PROC_FAILED;
 
                 // triggered_spell_id in spell data
+                break;
+            }
+            // Hungering Cold (51209 only)
+            if (dummySpell->SpellIconID == 2797)
+            {
+                // Damage from diseases does not break the freeze effect
+                if (procSpell && (GetAllSpellMechanicMask(procSpell) & (1 << MECHANIC_INFECTED)))
+                    return SPELL_AURA_PROC_FAILED;
+
+                break;
+            }
+            // Sudden Doom
+            if (dummySpell->SpellIconID == 1939)
+            {
+                int32 casterLevel = getLevel();
+                // cast correct rank
+                if (casterLevel > 79)
+                    triggered_spell_id = 49895;
+                else if (casterLevel > 75)
+                    triggered_spell_id = 49894;
+                else if (casterLevel > 67)
+                    triggered_spell_id = 49893;
+                else if (casterLevel > 61)
+                    triggered_spell_id = 49892;
+                else
+                    triggered_spell_id = 47541;
+                break;
+            }
+            break;
+        }
+        case SPELLFAMILY_PET:
+        {
+            // Guard Dog
+            if (dummySpell->SpellIconID == 201 && procSpell->SpellIconID == 201)
+            {
+                triggered_spell_id = 54445;
+                target = this;
+                break;
+            }
+            // Silverback
+            if (dummySpell->SpellIconID == 1582 && procSpell->SpellIconID == 201)
+            {
+                triggered_spell_id = dummySpell->Id == 62764 ? 62800 : 62801;
+                target = this;
                 break;
             }
             break;
@@ -3787,7 +4010,7 @@ SpellAuraProcResult Unit::HandlePeriodicDummyAuraProc(Unit* /*pVictim*/, uint32 
                             for(uint32 j = 0; j < MAX_RUNES; ++j)
                             {
                                 // convert only valid runes
-                                if (RuneType(i) != plr->GetCurrentRune(j) && 
+                                if (RuneType(i) != plr->GetCurrentRune(j) &&
                                     RuneType(i) != plr->GetBaseRune(j))
                                     continue;
 
