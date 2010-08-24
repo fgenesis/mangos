@@ -12,6 +12,7 @@ extern void AddSC_pe_npc_xmas();
 extern void AddSC_pe_npc_buffs();
 extern void AddSC_pe_andromeda();
 extern void AddSC_pe_customvendor();
+extern void AddSC_pe_npcs();
 
 //examples
 extern void AddSC_example_creature();
@@ -490,6 +491,7 @@ void AddScripts()
     AddSC_pe_npc_buffs();
     AddSC_pe_andromeda();
     AddSC_pe_customvendor();
+    AddSC_pe_npcs();
 
     //examples
     AddSC_example_creature();

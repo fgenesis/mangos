@@ -2629,6 +2629,21 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                 m_caster->CastCustomSpell(m_caster, 45470, &bp, NULL, NULL, true);
                 return;
             }
+            // Obliterate
+            else if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x0002000000000000))
+            {
+                // Search for Annihilation
+                Unit::AuraList const& dummyList = m_caster->GetAurasByType(SPELL_AURA_DUMMY);
+                for (Unit::AuraList::const_iterator itr = dummyList.begin(); itr != dummyList.end(); ++itr)
+                {
+                    if ((*itr)->GetSpellProto()->SpellFamilyName == SPELLFAMILY_DEATHKNIGHT &&
+                        (*itr)->GetSpellProto()->SpellIconID == 2710)
+                        if (roll_chance_i((*itr)->GetModifier()->m_amount)) // Don't consume if found
+                            return;
+                }
+                // Consume diseases
+                unitTarget->RemoveAurasWithDispelType(DISPEL_DISEASE);
+            }
             switch(m_spellInfo->Id)
             {
                 // Death Grip
@@ -3383,6 +3398,13 @@ void Spell::EffectHeal(SpellEffectIndex /*eff_idx*/)
                 unitTarget->RemoveAurasDueToSpell(targetAura->GetId());
 
             addhealth += tickheal * tickcount;
+        }
+        // Runic Healing Injector
+        else if (m_spellInfo->Id == 67489 && unitTarget->GetTypeId() == TYPEID_PLAYER)
+        {
+            Player* player = (Player*)unitTarget;
+            if (player->HasSkill(SKILL_ENGINERING))
+                addhealth *= 1.25;
         }
 
         // Chain Healing

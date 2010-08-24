@@ -535,6 +535,7 @@ scripts/pe/pe_structs.cpp \
 scripts/pe/pe_npc_buffs.cpp \
 scripts/pe/pe_yuyunator.cpp \
 scripts/pe/pe_customvendor.cpp \
+scripts/pe/pe_npcs.cpp \
 system/system.cpp \
 system/system.h \
 scripts/northrend/crusaders_coliseum/trial_of_the_champion/instance_trial_of_the_champion.cpp \

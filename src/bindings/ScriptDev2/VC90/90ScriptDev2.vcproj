@@ -2713,6 +2713,10 @@
 					>
 				</File>
 				<File
+					RelativePath="..\scripts\pe\pe_npcs.cpp"
+					>
+				</File>
+				<File
 					RelativePath="..\scripts\pe\pe_structs.cpp"
 					>
 				</File>
