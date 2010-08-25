@@ -21314,7 +21314,6 @@ void Player::InitRunes()
         SetBaseRune(i, runeSlotTypes[i]);                   // init base types
         SetCurrentRune(i, runeSlotTypes[i]);                // init current types
         SetRuneCooldown(i, 0);                              // reset cooldowns
-        m_runes->SetRuneState(i);
     }
 
     for(uint32 i = 0; i < NUM_RUNE_TYPES; ++i)
