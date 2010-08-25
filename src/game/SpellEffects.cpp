@@ -2851,6 +2851,13 @@ void Spell::EffectTriggerSpell(SpellEffectIndex effIndex)
         case 53258:
         {
             m_caster->ModifyPower(POWER_RUNIC_POWER, 25);
+            // FG: remove cooldown of all runes
+            if(m_caster->GetTypeId() == TYPEID_PLAYER)
+            {
+                for(uint32 i = 0; i < MAX_RUNES; i++)
+                    ((Player*)m_caster)->SetRuneCooldown(i, 0);
+                ((Player*)m_caster)->ResyncRunes(MAX_RUNES);
+            }
             return;
         }
     }

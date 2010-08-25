@@ -1,5 +1,7 @@
 #include "precompiled.h"
 
+#include "TemporarySummon.h"
+
 /*####
 ## npc_snake_trap_serpents - Summoned snake id are 19921 and 19833
 ## thx Loockas for this NPC script, original author unknown
@@ -13,7 +15,26 @@
 
 struct MANGOS_DLL_DECL npc_snake_trap_serpentsAI : public ScriptedAI
 {
-    npc_snake_trap_serpentsAI(Creature *c) : ScriptedAI(c) {Reset();}
+    npc_snake_trap_serpentsAI(Creature *c) : ScriptedAI(c)
+    {
+        // FG: hack to make them not totally useless
+        if(c->isTemporarySummon())
+        {
+            ObjectGuid g = ((TemporarySummon*)c)->GetSummonerGuid();
+            Unit *usumm = c->GetMap()->GetUnit(g); // GetSummoner() causes linker error, so we use this
+            if(usumm)
+            {
+                // wowwiki: "Snakes at level 80 have 107 hp and 9729 armor."
+                c->SetMaxHealth(27 + usumm->getLevel());
+                c->SetHealth(27 + usumm->getLevel());
+                // rough armor approximation formula
+                c->SetArmor(uint32(pow(1.0527f, (float)usumm->getLevel())) * 2 * usumm->getLevel());
+                c->SetLevel(usumm->getLevel());
+                c->setFaction(usumm->getFaction());
+            }
+        }
+        Reset();
+    }
 
     uint32 SpellTimer;
     bool IsViper;

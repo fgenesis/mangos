@@ -3381,10 +3381,10 @@ void Spell::finish(bool ok)
     // FG: --spellfixes start --
 
     //Avenging Wrath cannot be used within 30 sec. of being the target of Divine Shield, Divine Protection, or Hand of Protection.
-    if (m_spellInfo->SpellFamilyName == SPELLFAMILY_PALADIN && m_spellInfo->SpellFamilyFlags&0x0000000000400080LL)
-    {
-        m_targets.getUnitTarget()->CastSpell(m_targets.getUnitTarget(), 61987, true);
-    }
+    //if (m_spellInfo->SpellFamilyName == SPELLFAMILY_PALADIN && m_spellInfo->SpellFamilyFlags&0x0000000000400080LL)
+    //{
+    //    m_targets.getUnitTarget()->CastSpell(m_targets.getUnitTarget(), 61987, true);
+    //}
 
 
     // FG: -- spellfixes end --
@@ -5501,8 +5501,8 @@ SpellCastResult Spell::CheckCast(bool strict)
     if(Unit *target = m_targets.getUnitTarget())
     {
         // all paladin spells affected by avenging wrath marker
-        if (m_spellInfo->SpellFamilyName == SPELLFAMILY_PALADIN && (m_spellInfo->SpellFamilyFlags&0x0000000000400080LL || m_spellInfo->Id == 31884) && target->HasAura(61987))
-            return SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW;
+        //if (m_spellInfo->SpellFamilyName == SPELLFAMILY_PALADIN && (m_spellInfo->SpellFamilyFlags&0x0000000000400080LL || m_spellInfo->Id == 31884) && target->HasAura(61987))
+        //    return SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW;
         // exhaustion preventing heroism
         if(m_spellInfo->Id == 32182 && target->HasAura(57723))
             return SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW;
