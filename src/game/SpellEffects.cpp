@@ -2850,8 +2850,8 @@ void Spell::EffectTriggerSpell(SpellEffectIndex effIndex)
         // Empower Rune Weapon
         case 53258:
         {
-            m_caster->ModifyPower(POWER_RUNIC_POWER, 25);
-            // FG: remove cooldown of all runes
+            // remove cooldown of all runes and send update to client
+            // +25 runic power already added in Spell::CheckOrTakeRunePower() in Spell::cast()
             if(m_caster->GetTypeId() == TYPEID_PLAYER)
             {
                 for(uint32 i = 0; i < MAX_RUNES; i++)
