@@ -2093,11 +2093,9 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                 // Honor Among Thieves
                 if (GetId() == 52916)
                 {
-                    if (!target || target->HasAura(51699, EFFECT_INDEX_1) || target->GetTypeId() != TYPEID_PLAYER || target->getClass() != CLASS_ROGUE)
-                        return;
-
-                    Unit::AuraList const &aury = target->GetAurasByType(SPELL_AURA_PROC_TRIGGER_SPELL);
-                    for (Unit::AuraList::const_iterator i = aury.begin(); i != aury.end(); i++)
+                    // Get Honor Among Thieves party aura
+                    Unit::AuraList const &procTriggerSpellAuras = target->GetAurasByType(SPELL_AURA_PROC_TRIGGER_SPELL);
+                    for (Unit::AuraList::const_iterator i = procTriggerSpellAuras.begin(); i != procTriggerSpellAuras.end(); ++i)
                     {
                         SpellEntry const *spellInfo = (*i)->GetSpellProto();
 
@@ -2106,18 +2104,23 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
 
                         if (spellInfo->EffectTriggerSpell[0] == 52916)
                         {
-                            if (roll_chance_i(spellInfo->CalculateSimpleValue(EFFECT_INDEX_0)) )
-                            {
-                                Unit *pVictim = ObjectAccessor::GetUnit(*target,((Player*)target)->GetComboTarget());
-                                if (!pVictim)
-                                    pVictim = target->getVictim();
+                            // Get caster of aura
+                            if(!(*i)->GetCaster() || (*i)->GetCaster()->GetTypeId() != TYPEID_PLAYER)
+                                continue;
 
-                                if (pVictim)
-                                    target->CastSpell(pVictim, 51699, true );
-                                return;
-                            }
+                            Player *pCaster = (Player*)((*i)->GetCaster());
+
+                            // do not proc if player has CD, or if player has no target, or if player's target is not valid
+                            if (pCaster->HasAura(51699, EFFECT_INDEX_1) || !pCaster->getVictim() || pCaster->IsFriendlyTo(pCaster->getVictim()))
+                                continue;
+                            // give combo point and aura for cooldown on success
+                            else if (roll_chance_i(spellInfo->CalculateSimpleValue(EFFECT_INDEX_0)))
+                                pCaster->CastSpell(pCaster->getVictim(), 51699, true);
                         }
                     }
+
+                    // return after loop to make sure all rogues with Honor Among Thieves get the benefit of this proc rather than only first
+                    return;
                 }
                 break;
             }
