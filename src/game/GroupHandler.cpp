@@ -313,7 +313,7 @@ void WorldSession::HandleGroupUninviteOpcode(WorldPacket & recv_data)
     if (!grp)
         return;
 
-    ObjectGuid guid = grp->GetMemberGUID(membername);
+    ObjectGuid guid = grp->GetMemberGuid(membername);
     if (!guid.IsEmpty())
     {
         Player::RemoveFromGroup(grp, guid);
@@ -442,7 +442,7 @@ void WorldSession::HandleMinimapPingOpcode(WorldPacket& recv_data)
 
     // everything is fine, do it
     WorldPacket data(MSG_MINIMAP_PING, (8+4+4));
-    data << uint64(GetPlayer()->GetGUID());
+    data << GetPlayer()->GetObjectGuid();
     data << float(x);
     data << float(y);
     GetPlayer()->GetGroup()->BroadcastPacket(&data, true, -1, GetPlayer()->GetObjectGuid());
@@ -468,7 +468,7 @@ void WorldSession::HandleRandomRollOpcode(WorldPacket& recv_data)
     data << uint32(minimum);
     data << uint32(maximum);
     data << uint32(roll);
-    data << uint64(GetPlayer()->GetGUID());
+    data << GetPlayer()->GetObjectGuid();
     if(GetPlayer()->GetGroup())
         GetPlayer()->GetGroup()->BroadcastPacket(&data, false);
     else
@@ -646,7 +646,7 @@ void WorldSession::HandleRaidReadyCheckOpcode( WorldPacket & recv_data )
 
         // everything is fine, do it
         WorldPacket data(MSG_RAID_READY_CHECK_CONFIRM, 9);
-        data << uint64(GetPlayer()->GetGUID());
+        data << GetPlayer()->GetObjectGuid();
         data << uint8(state);
         group->BroadcastReadyCheck(&data);
     }
@@ -737,12 +737,7 @@ void WorldSession::BuildPartyMemberStatsChangedPacket(Player *player, WorldPacke
 
     Unit *pet = player->GetCharmOrPet();
     if (mask & GROUP_UPDATE_FLAG_PET_GUID)
-    {
-        if(pet)
-            *data << uint64(pet->GetGUID());
-        else
-            *data << uint64(0);
-    }
+        *data << (pet ? pet->GetObjectGuid() : ObjectGuid());
 
     if (mask & GROUP_UPDATE_FLAG_PET_NAME)
     {
@@ -884,7 +879,7 @@ void WorldSession::HandleRequestPartyMemberStatsOpcode( WorldPacket &recv_data )
     if(pet)
     {
         Powers petpowertype = pet->getPowerType();
-        data << uint64(pet->GetGUID());                     // GROUP_UPDATE_FLAG_PET_GUID
+        data << pet->GetObjectGuid();                       // GROUP_UPDATE_FLAG_PET_GUID
         data << pet->GetName();                             // GROUP_UPDATE_FLAG_PET_NAME
         data << uint16(pet->GetDisplayId());                // GROUP_UPDATE_FLAG_PET_MODEL_ID
         data << uint32(pet->GetHealth());                   // GROUP_UPDATE_FLAG_PET_CUR_HP
