@@ -3,6 +3,7 @@
 
 #include "Common.h"
 #include "Policies/Singleton.h"
+#include "ObjectGuid.h"
 
 struct VirtualPlayerTraits
 {
