@@ -10204,8 +10204,8 @@ void Unit::ClearAllReactives()
             const SpellEntry* runeStrikeProcAura = sSpellStore.LookupEntry(56816);
             if (runeStrikeProcAura)
             {
-                SpellAuraHolder* holder = GetSpellAuraHolder(runeStrikeProcAura->Id);
-                holder->SendFakeAuraUpdate(runeStrikeProcAura->EffectTriggerSpell[0], true);
+                if(SpellAuraHolder* holder = GetSpellAuraHolder(runeStrikeProcAura->Id))
+                    holder->SendFakeAuraUpdate(runeStrikeProcAura->EffectTriggerSpell[0], true);
             }
         }
     }
