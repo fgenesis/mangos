@@ -159,10 +159,17 @@ enum __QuestFlags
     QUEST_FLAGS_UNK6           = 0x00040000,                // use Objective text as Complete text
     QUEST_FLAGS_AUTO_ACCEPT    = 0x00080000,                // quests in starting areas
 
+    QUEST_FLAGS_CLIENT_MASK    = 0x00FFFFFF,
+
     // Mangos flags for set SpecialFlags in DB if required but used only at server
     QUEST_MANGOS_FLAGS_REPEATABLE           = 0x01000000,   // Set by 1 in SpecialFlags from DB
     QUEST_MANGOS_FLAGS_EXPLORATION_OR_EVENT = 0x02000000,   // Set by 2 in SpecialFlags from DB (if required area explore, spell SPELL_EFFECT_QUEST_COMPLETE casting, table `*_script` command SCRIPT_COMMAND_QUEST_EXPLORED use, set from script DLL)
-    QUEST_MANGOS_FLAGS_DB_ALLOWED = 0xFFFFFF | QUEST_MANGOS_FLAGS_REPEATABLE | QUEST_MANGOS_FLAGS_EXPLORATION_OR_EVENT,
+    
+    // FG: custom flags
+    QUEST_FG_FLAGS_CUSTOM_STRICT_MODE = 0x10000000, // strict mode check, account heroic objectives only in heroic mode and normal only in normal mode
+    QUEST_FG_FLAGS_USED = QUEST_FG_FLAGS_CUSTOM_STRICT_MODE,
+
+    QUEST_MANGOS_FLAGS_DB_ALLOWED = QUEST_FLAGS_CLIENT_MASK | QUEST_MANGOS_FLAGS_REPEATABLE | QUEST_MANGOS_FLAGS_EXPLORATION_OR_EVENT | QUEST_FG_FLAGS_USED,
 
     // Mangos flags for internal use only
     QUEST_MANGOS_FLAGS_DELIVER              = 0x04000000,   // Internal flag computed only
@@ -239,6 +246,7 @@ class Quest
         float GetRewHonorMultiplier() const { return RewHonorMultiplier; }
         uint32 GetRewMoneyMaxLevel() const { return RewMoneyMaxLevel; }
                                                             // use in XP calculation at client
+        bool CanBeAccounted(Player*) const;
         uint32 GetRewSpell() const { return RewSpell; }
         uint32 GetRewSpellCast() const { return RewSpellCast; }
         uint32 GetRewMailTemplateId() const { return RewMailTemplateId; }
@@ -259,6 +267,7 @@ class Quest
         bool   IsDailyOrWeekly() const { return QuestFlags & (QUEST_FLAGS_DAILY | QUEST_FLAGS_WEEKLY); }
         bool   IsAutoAccept() const { return QuestFlags & QUEST_FLAGS_AUTO_ACCEPT; }
         bool   IsAllowedInRaid() const;
+        bool   IsHeroic() const { return Type == QUEST_TYPE_HEROIC; }
 
         // multiple values
         std::string ObjectiveText[QUEST_OBJECTIVES_COUNT];

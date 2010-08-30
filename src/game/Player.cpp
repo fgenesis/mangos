@@ -14628,7 +14628,7 @@ void Player::KilledMonsterCredit( uint32 entry, ObjectGuid guid )
             continue;
 
         Quest const* qInfo = sObjectMgr.GetQuestTemplate(questid);
-        if (!qInfo)
+        if (!qInfo || !qInfo->CanBeAccounted(this))
             continue;
         // just if !ingroup || !noraidgroup || raidgroup
         QuestStatusData& q_status = mQuestStatus[questid];

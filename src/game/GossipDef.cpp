@@ -632,7 +632,7 @@ void PlayerMenu::SendQuestQueryResponse( Quest const *pQuest )
     data << float(pQuest->GetRewHonorMultiplier());         // new reward honor (multiplied by ~62 at client side)
 
     data << uint32(pQuest->GetSrcItemId());                 // source item id
-    data << uint32(pQuest->GetFlags() & 0xFFFF);            // quest flags
+    data << uint32(pQuest->GetFlags() & QUEST_FLAGS_CLIENT_MASK); // quest flags
     data << uint32(pQuest->GetCharTitleId());               // CharTitleId, new 2.4.0, player gets this title (id from CharTitles)
     data << uint32(pQuest->GetPlayersSlain());              // players slain
     data << uint32(pQuest->GetBonusTalents());              // bonus talents

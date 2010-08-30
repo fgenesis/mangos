@@ -270,3 +270,42 @@ bool Quest::IsAllowedInRaid() const
 
     return sWorld.getConfig(CONFIG_BOOL_QUEST_IGNORE_RAID);
 }
+
+bool Quest::CanBeAccounted(Player *p) const
+{
+    if(QuestFlags & QUEST_FG_FLAGS_CUSTOM_STRICT_MODE)
+    {
+        // not in instance? always accept this.
+        if(!p->GetInstanceId())
+            return true;
+
+        Map *mp = p->GetMap();
+        if(IsHeroic())
+        {
+            // in heroic dungeon, or heroic instance
+            if(mp->IsRaid())
+            {
+                return mp->GetDifficulty() >= RAID_DIFFICULTY_10MAN_HEROIC;
+            }
+            else
+            {
+                return mp->GetDifficulty() >= DUNGEON_DIFFICULTY_HEROIC;
+            }
+        }
+        else
+        {   
+            // in normal dungeon, or normal instance
+            if(mp->IsRaid())
+            {
+                return mp->GetDifficulty() <= RAID_DIFFICULTY_25MAN_NORMAL;
+            }
+            else
+            {
+                return mp->GetDifficulty() == DUNGEON_DIFFICULTY_NORMAL;
+            }
+        }
+            
+    }
+
+    return true;
+}
