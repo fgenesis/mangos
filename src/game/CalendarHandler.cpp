@@ -37,8 +37,8 @@ void WorldSession::HandleCalendarGetCalendar(WorldPacket &/*recv_data*/)
     // TODO: calendar event output
     data << (uint32) 0;                                     //event count
 
-    data << (uint32) 0;                                     //wtf??
-    data << (uint32) secsToTimeBitFields(cur_time);         // current time
+    data << uint32(cur_time);                               // current time, unix timestamp
+    data << uint32(secsToTimeBitFields(cur_time));          // current time, time bit fields
 
     uint32 counter = 0;
     size_t p_counter = data.wpos();
