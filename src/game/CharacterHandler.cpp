@@ -757,9 +757,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder *holder)
         group->SendUpdate();
 
     // friend status
-    // FG: broadcast only if player is non-GM
-    if(GetSecurity() < SEC_MODERATOR)
-        sSocialMgr.SendFriendStatus(pCurrChar, FRIEND_ONLINE, pCurrChar->GetGUIDLow(), true);
+    sSocialMgr.SendFriendStatus(pCurrChar, FRIEND_ONLINE, pCurrChar->GetGUIDLow(), true);
 
     // Place character in world (and load zone) before some object loading
     pCurrChar->LoadCorpse();
