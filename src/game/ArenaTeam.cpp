@@ -675,7 +675,7 @@ void ArenaTeam::MemberWon(Player * plr, uint32 againstRating)
             for(Map::PlayerList::const_iterator pit = plist.begin(); pit != plist.end(); ++pit)
             {
                 Player *pp = pit->getSource();
-                if(pp->GetSession()->GetIP() == plr->GetSession()->GetIP() && pp->IsHostileTo(plr))
+                if(pp && pp->IsInWorld() && pp->GetSession()->GetIP() == plr->GetSession()->GetIP() && pp->IsHostileTo(plr))
                 {
                     ChatHandler(plr).PSendSysMessage(11110, pp->GetName());
                     return;
