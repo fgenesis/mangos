@@ -1129,7 +1129,7 @@ void Object::RemoveByteFlag( uint16 index, uint8 offset, uint8 oldFlag )
 
 bool Object::PrintIndexError(uint32 index, bool set) const
 {
-    sLog.outError("Attempt %s nonexistent value field: %u (count: %u) for object typeid: %u type mask: %u",(set ? "set value to" : "get value from"),index,m_valuesCount,GetTypeId(),m_objectType);
+    sLog.outError("Attempt %s nonexistent value field: %u (count: %u) for object typeid: %u type mask: %u entry: %u guid: %u" ,(set ? "set value to" : "get value from"),index,m_valuesCount,GetTypeId(),m_objectType, GetEntry(), GetGUIDLow());
 
     // ASSERT must fail after function call
     return false;
@@ -1717,6 +1717,18 @@ void WorldObject::SendGameObjectCustomAnim(uint64 guid)
     data << uint64(guid);
     data << uint32(0);                                      // not known what this is
     SendMessageToSet(&data, true);
+}
+
+Map *WorldObject::GetMap(void) const
+{
+    if(!m_currMap)
+    {
+        sLog.outError("Object::GetMap(), m_currMap is NULL! Object guid: %u, entry: %u, typeid: %u, typemask: %u, in world: %u",
+            GetGUIDLow(), GetEntry(), GetTypeId(), m_objectType, IsInWorld());
+        ASSERT(m_currMap);
+    }
+
+    return m_currMap;
 }
 
 void WorldObject::SetMap(Map * map)
