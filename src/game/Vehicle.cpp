@@ -632,17 +632,17 @@ bool Vehicle::HasEmptySeat(int8 seatId) const
     return !seat->second.passenger;
 }
 
-void Vehicle::EmptySeatsCountChanged()
+
+void Vehicle::EmptySeatsCountChanged() 
 {
     uint8 m_count = GetTotalSeatsCount();
     uint8 p_count = GetEmptySeatsCount(false);
     uint8 u_count = GetEmptySeatsCount(true);
 
     // FG: debug
-    sLog.outError("Vehicle(%X)::EmptySeatsCountChanged: m_count: %u p_count: %u u_count: %u vguid: %X vptr: %X t_seat: %d",
+    sLog.outError("Vehicle(%X)::EmptySeatsCountChanged: m_count: %u p_count: %u u_count: %u vguid: %X vptr: %X",
         this, uint32(m_count), uint32(p_count), uint32(u_count),
-        uint32(GetVehicleGUID()), GetVehicleGUID() ? ObjectAccessor::GetVehicle(GetVehicleGUID()) : 0,
-        int32(m_movementInfo.GetTransportSeat()) );
+        uint32(GetVehicleGUID()), GetVehicleGUID() ? ObjectAccessor::GetVehicle(GetVehicleGUID()) : 0);
 
     // seats accessible by players
     if(p_count > 0)
@@ -661,10 +661,11 @@ void Vehicle::EmptySeatsCountChanged()
     {
         if(Vehicle *vehicle = ObjectAccessor::GetVehicle(vehicleGUID))
         {
+            sLog.outError("... on parent vehicle (%X) seat %u", vehicle, (int32)vehicle->GetPassengerSeat(this));
             if(u_count > 0)
-                vehicle->ChangeSeatFlag(m_movementInfo.GetTransportSeat(), SEAT_VEHICLE_FREE);
+                vehicle->ChangeSeatFlag(vehicle->GetPassengerSeat(this), SEAT_VEHICLE_FREE);
             else
-                vehicle->ChangeSeatFlag(m_movementInfo.GetTransportSeat(), SEAT_VEHICLE_FULL);
+                vehicle->ChangeSeatFlag(vehicle->GetPassengerSeat(this), SEAT_VEHICLE_FULL);
         }
     }
 }
@@ -900,7 +901,6 @@ void Vehicle::RemovePassenger(Unit *unit)
             }
             unit->m_movementInfo.RemoveMovementFlag(MOVEFLAG_ONTRANSPORT);
             unit->m_movementInfo.RemoveMovementFlag(MOVEFLAG_ROOT);
-            unit->m_movementInfo.ClearTransportData();
 
             // only for flyable vehicles
             if (unit->m_movementInfo.HasMovementFlag(MOVEFLAG_FLYING))
@@ -908,7 +908,10 @@ void Vehicle::RemovePassenger(Unit *unit)
 
             seat->second.passenger = NULL;
             seat->second.flags = SEAT_FREE;
+            unit->m_movementInfo.ClearTransportData();
+
             EmptySeatsCountChanged();
+
             break;
         }
     }
@@ -1077,4 +1080,13 @@ void Vehicle::Die()
             if(((Creature*)passenger)->isVehicle())
                 ((Vehicle*)passenger)->Dismiss();
     RemoveAllPassengers();
+}
+
+uint8 Vehicle::GetPassengerSeat(Unit *passenger) const
+{
+    if(passenger)
+        for(SeatMap::const_iterator itr = m_Seats.begin(); itr != m_Seats.end(); itr++)
+            if(itr->second.passenger == passenger)
+                return itr->first;
+    return -1;
 }
