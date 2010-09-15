@@ -603,7 +603,8 @@ int8 Vehicle::GetEmptySeatsCount(bool force)
 int8 Vehicle::GetNextEmptySeatNum(int8 seatId, bool next) const
 {
     SeatMap::const_iterator seat = m_Seats.find(seatId);
-    if(seat == m_Seats.end()) return -1;
+    if(seat == m_Seats.end())
+        return -1;
     while(seat->second.passenger || !seat->second.seatInfo->IsUsable())
     {
         if(next)
@@ -637,7 +638,11 @@ void Vehicle::EmptySeatsCountChanged()
     uint8 p_count = GetEmptySeatsCount(false);
     uint8 u_count = GetEmptySeatsCount(true);
 
-    // seats accesibles by players
+    // FG: debug
+    sLog.outError("Vehicle(%X)::EmptySeatsCountChanged: m_count: %u p_count: %u u_count: %u vguid: %u t_seat: %d",
+        this, uint32(m_count), uint32(p_count), uint32(u_count), uint32(GetVehicleGUID()), int32(m_movementInfo.GetTransportSeat()) );
+
+    // seats accessible by players
     if(p_count > 0)
         SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_SPELLCLICK);
     else
