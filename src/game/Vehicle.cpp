@@ -639,8 +639,10 @@ void Vehicle::EmptySeatsCountChanged()
     uint8 u_count = GetEmptySeatsCount(true);
 
     // FG: debug
-    sLog.outError("Vehicle(%X)::EmptySeatsCountChanged: m_count: %u p_count: %u u_count: %u vguid: %X t_seat: %d",
-        this, uint32(m_count), uint32(p_count), uint32(u_count), uint32(GetVehicleGUID()), int32(m_movementInfo.GetTransportSeat()) );
+    sLog.outError("Vehicle(%X)::EmptySeatsCountChanged: m_count: %u p_count: %u u_count: %u vguid: %X vptr: %X t_seat: %d",
+        this, uint32(m_count), uint32(p_count), uint32(u_count),
+        uint32(GetVehicleGUID()), GetVehicleGUID() ? ObjectAccessor::GetVehicle(GetVehicleGUID()) : 0,
+        int32(m_movementInfo.GetTransportSeat()) );
 
     // seats accessible by players
     if(p_count > 0)
