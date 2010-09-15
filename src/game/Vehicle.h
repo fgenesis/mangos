@@ -103,7 +103,7 @@ class Vehicle : public Creature
         Vehicle* GetNextEmptySeat(int8 *seatId, bool next = true, bool force = true);
         Vehicle* GetFirstEmptySeat(int8 *seatId, bool force = true);
         int8 GetEmptySeatsCount(bool force = true);
-        void EmptySeatsCountChanged();
+        void EmptySeatsCountChanged(void);
         int8 GetTotalSeatsCount() { return m_Seats.size(); }
         bool HasEmptySeat(int8 seatId) const;
         int8 GetNextEmptySeatNum(int8 seatId, bool next) const;
@@ -127,6 +127,7 @@ class Vehicle : public Creature
         void BuildVehicleActionBar(Player *plr) const;
         void InstallAllAccessories();
         Unit *GetPassenger(int8 seatId) const;
+        uint8 GetPassengerSeat(Unit *passenger) const;
     protected:
         uint32 m_vehicleId;
         VehicleEntry const *m_vehicleInfo;

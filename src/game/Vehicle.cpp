@@ -111,15 +111,6 @@ bool VehicleKit::AddPassenger(Unit *unit, int8 seatId)
 {
     SeatMap::iterator seat;
 
-    // FG: debug
-    sLog.outError("VehicleKit(%X)::AddPassenger: BEGIN", this);
-    for (seat = m_Seats.begin(); seat != m_Seats.end(); ++seat)
-    {
-        sLog.outError("VehicleKit(%X)::AddPassenger: seat: %u flags: %X vs: %X pass: %X (type: %u)",
-            this, seat->first, seat->second.flags, seat->second.vs_flags, seat->second.passenger, seat->second.passenger ? seat->second.passenger->GetTypeId() : 999);
-    }
-
-
     if (seatId < 0) // no specific seat requirement
     {
         for (seat = m_Seats.begin(); seat != m_Seats.end(); ++seat)
@@ -182,28 +173,12 @@ bool VehicleKit::AddPassenger(Unit *unit, int8 seatId)
     if (m_pBase->GetTypeId() == TYPEID_UNIT)
         RelocatePassengers(m_pBase->GetPositionX(), m_pBase->GetPositionY(), m_pBase->GetPositionZ(), m_pBase->GetOrientation());
 
-    // FG: debug
-    sLog.outError("VehicleKit(%X)::AddPassenger: END", this);
-    for (seat = m_Seats.begin(); seat != m_Seats.end(); ++seat)
-    {
-        sLog.outError("VehicleKit(%X)::AddPassenger: seat: %u flags: %X vs: %X pass: %X (type: %u)",
-            this, seat->first, seat->second.flags, seat->second.vs_flags, seat->second.passenger, seat->second.passenger ? seat->second.passenger->GetTypeId() : 999);
-    }
-
     return true;
 }
 
 void VehicleKit::RemovePassenger(Unit *unit)
 {
     SeatMap::iterator seat;
-
-    // FG: debug
-    sLog.outError("VehicleKit(%X)::RemovePassenger: BEGIN", this);
-    for (seat = m_Seats.begin(); seat != m_Seats.end(); ++seat)
-    {
-        sLog.outError("VehicleKit(%X)::RemovePassenger: seat: %u flags: %X vs: %X pass: %X (type: %u)",
-            this, seat->first, seat->second.flags, seat->second.vs_flags, seat->second.passenger, seat->second.passenger ? seat->second.passenger->GetTypeId() : 999);
-    }
 
     for (seat = m_Seats.begin(); seat != m_Seats.end(); ++seat)
     {
@@ -242,14 +217,6 @@ void VehicleKit::RemovePassenger(Unit *unit)
         data << unit->GetPackGUID();
         data << uint32(0);
         unit->SendMessageToSet(&data, true);
-    }
-
-    // FG: debug
-    sLog.outError("VehicleKit(%X)::RemovePassenger: END", this);
-    for (seat = m_Seats.begin(); seat != m_Seats.end(); ++seat)
-    {
-        sLog.outError("VehicleKit(%X)::RemovePassenger: seat: %u flags: %X vs: %X pass: %X (type: %u)",
-            this, seat->first, seat->second.flags, seat->second.vs_flags, seat->second.passenger, seat->second.passenger ? seat->second.passenger->GetTypeId() : 999);
     }
 }
 
@@ -502,9 +469,6 @@ void Vehicle::ChangeSeatFlag(uint8 seat, uint8 flag)
     if(i_seat == m_Seats.end())
         return;
 
-    // FG: debug
-    sLog.outError("Vehicle(%X)::ChangeSeatFlag: seat: %u flag: %u current: %u", this, seat, flag, i_seat->second.flags);
-
     if(i_seat->second.flags != flag)
     {
         i_seat->second.flags = flag;
@@ -632,17 +596,12 @@ bool Vehicle::HasEmptySeat(int8 seatId) const
     return !seat->second.passenger;
 }
 
-void Vehicle::EmptySeatsCountChanged()
+
+void Vehicle::EmptySeatsCountChanged() 
 {
     uint8 m_count = GetTotalSeatsCount();
     uint8 p_count = GetEmptySeatsCount(false);
     uint8 u_count = GetEmptySeatsCount(true);
-
-    // FG: debug
-    sLog.outError("Vehicle(%X)::EmptySeatsCountChanged: m_count: %u p_count: %u u_count: %u vguid: %X vptr: %X t_seat: %d",
-        this, uint32(m_count), uint32(p_count), uint32(u_count),
-        uint32(GetVehicleGUID()), GetVehicleGUID() ? ObjectAccessor::GetVehicle(GetVehicleGUID()) : 0,
-        int32(m_movementInfo.GetTransportSeat()) );
 
     // seats accessible by players
     if(p_count > 0)
@@ -662,9 +621,9 @@ void Vehicle::EmptySeatsCountChanged()
         if(Vehicle *vehicle = ObjectAccessor::GetVehicle(vehicleGUID))
         {
             if(u_count > 0)
-                vehicle->ChangeSeatFlag(m_movementInfo.GetTransportSeat(), SEAT_VEHICLE_FREE);
+                vehicle->ChangeSeatFlag(vehicle->GetPassengerSeat(this), SEAT_VEHICLE_FREE);
             else
-                vehicle->ChangeSeatFlag(m_movementInfo.GetTransportSeat(), SEAT_VEHICLE_FULL);
+                vehicle->ChangeSeatFlag(vehicle->GetPassengerSeat(this), SEAT_VEHICLE_FULL);
         }
     }
 }
@@ -679,15 +638,9 @@ void Vehicle::Dismiss()
 
 void Vehicle::RellocatePassengers(Map *map)
 {
-    // FG: debug
-    sLog.outError("Vehicle(%X)::RellocatePassengers: START", this);
 
     for(SeatMap::iterator itr = m_Seats.begin(); itr != m_Seats.end(); ++itr)
     {
-        // FG: DEBUG
-        sLog.outError("Vehicle(%X)::RellocatePassengers: seat: %u flags: %X vs: %X pass: %X (type: %u)",
-            this, itr->first, itr->second.flags, itr->second.vs_flags, itr->second.passenger, itr->second.passenger ? itr->second.passenger->GetTypeId() : 999);
-
         if(itr->second.flags & SEAT_FULL)
         {
             // passenger cant be NULL here
@@ -828,27 +781,11 @@ void Vehicle::AddPassenger(Unit *unit, int8 seatId, bool force)
         unit->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
 
     EmptySeatsCountChanged();
-
-    // FG: debug
-    sLog.outError("Vehicle(%X)::AddPassenger: END", this);
-    for (seat = m_Seats.begin(); seat != m_Seats.end(); ++seat)
-    {
-        sLog.outError("Vehicle(%X)::AddPassenger: seat: %u flags: %X vs: %X pass: %X (type: %u)",
-            this, seat->first, seat->second.flags, seat->second.vs_flags, seat->second.passenger, seat->second.passenger ? seat->second.passenger->GetTypeId() : 999);
-    }
 }
 
 void Vehicle::RemovePassenger(Unit *unit)
 {
     SeatMap::iterator seat;
-
-    // FG: debug
-    sLog.outError("Vehicle(%X)::RemovePassenger: START", this);
-    for (seat = m_Seats.begin(); seat != m_Seats.end(); ++seat)
-    {
-        sLog.outError("Vehicle(%X)::RemovePassenger: seat: %u flags: %X vs: %X pass: %X (type: %u)",
-            this, seat->first, seat->second.flags, seat->second.vs_flags, seat->second.passenger, seat->second.passenger ? seat->second.passenger->GetTypeId() : 999);
-    }
 
     for(seat = m_Seats.begin(); seat != m_Seats.end(); ++seat)
     {
@@ -911,14 +848,6 @@ void Vehicle::RemovePassenger(Unit *unit)
             EmptySeatsCountChanged();
             break;
         }
-    }
-
-    // FG: debug
-    sLog.outError("Vehicle(%X)::RemovePassenger: END", this);
-    for (seat = m_Seats.begin(); seat != m_Seats.end(); ++seat)
-    {
-        sLog.outError("Vehicle(%X)::RemovePassenger: seat: %u flags: %X vs: %X pass: %X (type: %u)",
-            this, seat->first, seat->second.flags, seat->second.vs_flags, seat->second.passenger, seat->second.passenger ? seat->second.passenger->GetTypeId() : 999);
     }
 }
 
@@ -1077,4 +1006,13 @@ void Vehicle::Die()
             if(((Creature*)passenger)->isVehicle())
                 ((Vehicle*)passenger)->Dismiss();
     RemoveAllPassengers();
+}
+
+uint8 Vehicle::GetPassengerSeat(Unit *passenger) const
+{
+    if(passenger)
+        for(SeatMap::const_iterator itr = m_Seats.begin(); itr != m_Seats.end(); itr++)
+            if(itr->second.passenger == passenger)
+                return itr->first;
+    return -1;
 }
