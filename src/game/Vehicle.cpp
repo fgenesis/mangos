@@ -638,14 +638,17 @@ void Vehicle::Dismiss()
 
 void Vehicle::RellocatePassengers(Map *map)
 {
-
     for(SeatMap::iterator itr = m_Seats.begin(); itr != m_Seats.end(); ++itr)
     {
         if(itr->second.flags & SEAT_FULL)
         {
             // passenger cant be NULL here
             Unit *passengers = itr->second.passenger;
-            assert(passengers);
+            if(!passengers)
+            {
+                sLog.outError("Vehicle::RellocatePassengers: passenger is NULL, flags: ", (uint32)itr->second.flags);
+                continue;
+            }
 
             float xx = GetPositionX() + passengers->m_movementInfo.GetTransportPos()->x;
             float yy = GetPositionY() + passengers->m_movementInfo.GetTransportPos()->y;
@@ -664,7 +667,11 @@ void Vehicle::RellocatePassengers(Map *map)
         {
             // passenger cant be NULL here
             Unit *passengers = itr->second.passenger;
-            assert(passengers);
+            if(!passengers)
+            {
+                sLog.outError("Vehicle::RellocatePassengers: passenger is NULL, flags: %u", (uint32)itr->second.flags);
+                continue;
+            }
 
             float xx = GetPositionX() + passengers->m_movementInfo.GetTransportPos()->x;
             float yy = GetPositionY() + passengers->m_movementInfo.GetTransportPos()->y;
@@ -677,8 +684,6 @@ void Vehicle::RellocatePassengers(Map *map)
             map->CreatureRelocation((Creature*)passengers, xx, yy, zz, oo);
         }
     }
-
-    sLog.outError("Vehicle(%X)::RellocatePassengers: END", this);
 }
 
 void Vehicle::AddPassenger(Unit *unit, int8 seatId, bool force)
@@ -689,9 +694,6 @@ void Vehicle::AddPassenger(Unit *unit, int8 seatId, bool force)
     // this should never happen
     if(seat == m_Seats.end())
         return;
-
-    sLog.outError("** Vehicle(%X)::AddPassenger: seat: %u flags: %X vs: %X pass: %X (type: %u)",
-        this, seat->first, seat->second.flags, seat->second.vs_flags, seat->second.passenger, seat->second.passenger ? seat->second.passenger->GetTypeId() : 999);
 
     unit->SetVehicleGUID(GetGUID());
     unit->m_movementInfo.AddMovementFlag(MOVEFLAG_ONTRANSPORT);
