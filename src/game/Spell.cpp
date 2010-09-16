@@ -2934,13 +2934,12 @@ void Spell::cast(bool skipCheck)
         }
         case SPELLFAMILY_DRUID:
         {
-            // Berserk
-            //if (m_spellInfo->SpellIconID == 2852 && (m_spellInfo->AttributesEx & 0x28020))
-            if (m_spellInfo->Id == 50334) // FG: replaced iconId + AttributesEx check with spell id (as of 3.3.2)
-                AddPrecastSpell(58923); // Hit 3 targets at once with mangle in dire bear form
             // Faerie Fire (Feral)
             if (m_spellInfo->Id == 16857 && m_caster->m_form != FORM_CAT)
                 AddTriggeredSpell(60089);
+            // Berserk (Bear Mangle part)
+            else if (m_spellInfo->Id == 50334)
+                AddTriggeredSpell(58923);
             break;
         }
         case SPELLFAMILY_ROGUE:
@@ -6490,7 +6489,7 @@ void Spell::DelayedChannel()
         if ((*ihit).missCondition == SPELL_MISS_NONE)
         {
             if (Unit* unit = m_caster->GetObjectGuid() == ihit->targetGUID ? m_caster : ObjectAccessor::GetUnit(*m_caster, ihit->targetGUID))
-                unit->DelaySpellAuraHolder(m_spellInfo->Id, delaytime);
+                unit->DelaySpellAuraHolder(m_spellInfo->Id, delaytime, unit->GetGUID());
         }
     }
 
