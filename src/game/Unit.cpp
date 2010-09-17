@@ -5960,6 +5960,15 @@ void Unit::Uncharm()
     }
 }
 
+void Unit::UncharmCharmer()
+{
+    if (Unit* charmer = GetCharmer())
+    {
+        charmer->RemoveSpellsCausingAura(SPELL_AURA_MOD_CHARM);
+        charmer->RemoveSpellsCausingAura(SPELL_AURA_MOD_POSSESS);
+    }
+}
+
 float Unit::GetCombatDistance( const Unit* target ) const
 {
     float radius = target->GetFloatValue(UNIT_FIELD_COMBATREACH) + GetFloatValue(UNIT_FIELD_COMBATREACH);
@@ -9410,6 +9419,7 @@ void Unit::RemoveFromWorld()
     if (IsInWorld())
     {
         Uncharm();
+        UncharmCharmer(); // FG: this seems needed for some spells like 530
         RemoveNotOwnSingleTargetAuras();
         RemoveGuardians();
         RemoveAllGameObjects();
