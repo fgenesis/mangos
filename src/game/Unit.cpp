@@ -11062,6 +11062,13 @@ void Unit::EnterVehicle(Vehicle *vehicle, int8 seat_id, bool force)
 
 void Unit::ExitVehicle()
 {
+    // FG: kick passengers out of vehicle if player owns that vehicle and it will be dismissed
+    // note: this is only for summoned vehicles like chopper, on normal vehicles this is already done!
+    if(m_vehicleKit && m_vehicleKit->GetBase() == this)
+    {
+        m_vehicleKit->RemoveAllPassengers();
+    }
+
     if(uint64 vehicleGUID = GetVehicleGUID())
     {
         float v_size = 0.0f;
