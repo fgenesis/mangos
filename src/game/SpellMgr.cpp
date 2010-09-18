@@ -1870,6 +1870,10 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                     if( spellId_1 == 35081 && spellInfo_2->SpellIconID==561 && spellInfo_2->SpellVisual[0]==7992)
                         return false;
 
+                    // FG: Band of Eternal Champion and Seal of Command(multi-family check)
+                    if( spellId_1 == 72412 && spellInfo_2->SpellIconID==561 && spellInfo_2->SpellVisual[0]==7992)
+                        return false;
+
                     // Blessing of Sanctuary (multi-family check, some from 16 spell icon spells)
                     if (spellInfo_1->Id == 67480 && spellInfo_2->Id == 20911)
                         return false;
@@ -2228,6 +2232,10 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
 
             // *Seal of Command and Band of Eternal Champion (multi-family check)
             if( spellInfo_1->SpellIconID==561 && spellInfo_1->SpellVisual[0]==7992 && spellId_2 == 35081)
+                return false;
+
+            // FG: Seal of Command and Frostforged Champion (multi-family check)
+            if( spellInfo_1->SpellIconID==561 && spellInfo_1->SpellVisual[0]==7992 && spellId_2 == 72412)
                 return false;
 
             // Devotion Aura and Essence of Gossamer
