@@ -2044,7 +2044,7 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                 // Last Stand
                 case 12975:
                 {
-                    int32 healthModSpellBasePoints0 = int32(m_caster->GetMaxHealth()*0.3);
+                    int32 healthModSpellBasePoints0 = int32(m_caster->GetPercentOfMaxHP(30.0f));
                     m_caster->CastCustomSpell(m_caster, 12976, &healthModSpellBasePoints0, NULL, NULL, true, NULL);
                     return;
                 }
@@ -2313,7 +2313,7 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                 {
                     if (!unitTarget)
                         return;
-                    int32 healthModSpellBasePoints0 = int32(unitTarget->GetMaxHealth() * 0.3);
+                    int32 healthModSpellBasePoints0 = int32(unitTarget->GetPercentOfMaxHP(30.0f));
                     unitTarget->CastCustomSpell(unitTarget, 53479, &healthModSpellBasePoints0, NULL, NULL, true, NULL);
                     return;
                 }
@@ -2511,7 +2511,7 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                     if (Aura *dummy = owner->GetDummyAura(55441))
                         damage+=dummy->GetModifier()->m_amount;
                 // Regenerate 6% of Total Mana Every 3 secs
-                int32 EffectBasePoints0 = unitTarget->GetMaxPower(POWER_MANA)  * damage / 100;
+                int32 EffectBasePoints0 = uint32(unitTarget->GetPercentOfMaxPower(POWER_MANA, damage));
                 m_caster->CastCustomSpell(unitTarget, 39609, &EffectBasePoints0, NULL, NULL, true, NULL, NULL, m_originalCasterGUID);
                 return;
             }
@@ -2612,7 +2612,7 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                     }
                 }
 
-                int32 bp = int32(count * m_caster->GetMaxHealth() * m_spellInfo->DmgMultiplier[EFFECT_INDEX_0] / 100);
+                int32 bp = int32(count * m_caster->GetPercentOfMaxHP(m_spellInfo->DmgMultiplier[EFFECT_INDEX_0]));
 
                 // Improved Death Strike (percent stored in nonexistent EFFECT_INDEX_2 effect base points)
                 Unit::AuraList const& auraMod = m_caster->GetAurasByType(SPELL_AURA_ADD_FLAT_MODIFIER);
@@ -3297,8 +3297,8 @@ void Spell::EffectPowerBurn(SpellEffectIndex eff_idx)
     // burn x% of target's mana, up to maximum of 2x% of caster's mana (Mana Burn)
     if (m_spellInfo->ManaCostPercentage)
     {
-        int32 maxdamage = m_caster->GetMaxPower(powertype) * damage * 2 / 100;
-        damage = unitTarget->GetMaxPower(powertype) * damage / 100;
+        int32 maxdamage = m_caster->GetPercentOfMaxPower(powertype, float(damage) * 2.0f);
+        damage = unitTarget->GetPercentOfMaxPower(powertype, float(damage));
         if(damage > maxdamage)
             damage = maxdamage;
     }
@@ -3454,7 +3454,7 @@ void Spell::EffectHealPct(SpellEffectIndex /*eff_idx*/)
             return;
 
 
-        uint32 addhealth = unitTarget->GetMaxHealth() * damage / 100;
+        uint32 addhealth = unitTarget->GetPercentOfMaxHP(float(damage));
 
         addhealth = caster->SpellHealingBonusDone(unitTarget, m_spellInfo, addhealth, HEAL);
         addhealth = unitTarget->SpellHealingBonusTaken(caster, m_spellInfo, addhealth, HEAL);
@@ -6854,7 +6854,7 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
                             uint32 pdamage = aura->GetModifier()->m_amount > 0 ? aura->GetModifier()->m_amount : 0;
 
                             // Special case: draining x% of mana (up to a maximum of 2*x% of the caster's maximum mana)
-                            uint32 maxmana = m_caster->GetMaxPower(POWER_MANA)  * pdamage * 2 / 100;
+                            uint32 maxmana = m_caster->GetPercentOfMaxPower(POWER_MANA, pdamage * 2.0f);
 
                             pdamage = target_max_mana * pdamage / 100;
                             if (pdamage > maxmana)
@@ -7647,8 +7647,8 @@ void Spell::EffectResurrect(SpellEffectIndex /*eff_idx*/)
     if(pTarget->isRessurectRequested())       // already have one active request
         return;
 
-    uint32 health = pTarget->GetMaxHealth() * damage / 100;
-    uint32 mana   = pTarget->GetMaxPower(POWER_MANA) * damage / 100;
+    uint32 health = pTarget->GetPercentOfMaxHP(float(damage));
+    uint32 mana   = pTarget->GetPercentOfMaxPower(POWER_MANA, damage);
 
     pTarget->setResurrectRequestData(m_caster->GetGUID(), m_caster->GetMapId(), m_caster->GetPositionX(), m_caster->GetPositionY(), m_caster->GetPositionZ(), health, mana);
     SendResurrectRequest(pTarget);
@@ -8003,7 +8003,7 @@ void Spell::EffectSummonDeadPet(SpellEffectIndex /*eff_idx*/)
     pet->RemoveFlag (UNIT_FIELD_FLAGS, UNIT_FLAG_SKINNABLE);
     pet->setDeathState( ALIVE );
     pet->clearUnitState(UNIT_STAT_ALL_STATE);
-    pet->SetHealth( uint32(pet->GetMaxHealth()*(float(damage)/100)));
+    pet->SetHealth(pet->GetPercentOfMaxHP(float(damage)));
 
     pet->AIM_Initialize();
 

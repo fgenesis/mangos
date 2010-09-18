@@ -1224,16 +1224,19 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         uint32 GetHealth()    const { return GetUInt32Value(UNIT_FIELD_HEALTH); }
         uint32 GetMaxHealth() const { return GetUInt32Value(UNIT_FIELD_MAXHEALTH); }
         float GetHealthPercent() const { return (GetHealth()*100.0f) / GetMaxHealth(); }
-        void SetHealth(   uint32 val);
+        uint32 GetPercentOfMaxHP(float pct) const { return uint32(GetMaxHealth() * pct / 100.0f); }
+        void SetHealth(uint32 val);
         void SetMaxHealth(uint32 val);
         void SetHealthPercent(float percent);
         int32 ModifyHealth(int32 val);
 
         Powers getPowerType() const { return Powers(GetByteValue(UNIT_FIELD_BYTES_0, 3)); }
         void setPowerType(Powers power);
-        uint32 GetPower(   Powers power) const { return GetUInt32Value(UNIT_FIELD_POWER1   +power); }
+        uint32 GetPower(Powers power) const { return GetUInt32Value(UNIT_FIELD_POWER1+power); }
+        float GetPowerPercent(Powers power) const { return GetPower(power)*100.0f / GetMaxPower(power); }
         uint32 GetMaxPower(Powers power) const { return GetUInt32Value(UNIT_FIELD_MAXPOWER1+power); }
-        void SetPower(   Powers power, uint32 val);
+        uint32 GetPercentOfMaxPower(Powers power, float pct) const { return uint32(GetUInt32Value(UNIT_FIELD_MAXPOWER1+power) * pct); }
+        void SetPower(Powers power, uint32 val);
         void SetMaxPower(Powers power, uint32 val);
         int32 ModifyPower(Powers power, int32 val);
         void ApplyPowerMod(Powers power, uint32 val, bool apply);

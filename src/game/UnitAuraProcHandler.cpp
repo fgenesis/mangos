@@ -1061,7 +1061,7 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
                     return SPELL_AURA_PROC_FAILED;
 
                 // mana reward
-                basepoints[0] = (triggerAmount * GetMaxPower(POWER_MANA) / 100);
+                basepoints[0] = (GetPercentOfMaxPower(POWER_MANA, triggerAmount));
                 target = this;
                 triggered_spell_id = 29442;
                 break;
@@ -1543,7 +1543,7 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
                     if(!target->IsFriendlyTo(this))
                         return SPELL_AURA_PROC_FAILED;
 
-                    basepoints[0] = int32(target->GetMaxHealth() * triggerAmount / 100);
+                    basepoints[0] = int32(target->GetPercentOfMaxHP(float(triggerAmount)));
                     // triggered_spell_id in spell data
                     break;
                 }
@@ -1575,7 +1575,7 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
 
                     // health
                     triggered_spell_id = 34299;
-                    basepoints[0] = GetMaxHealth() * heal_percent / 100;
+                    basepoints[0] = GetPercentOfMaxHP(float(heal_percent));
                     target = this;
 
                     // mana to caster
@@ -1689,7 +1689,7 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
                 case 54754:
                 {
                     // less 50% health
-                    if (pVictim->GetMaxHealth() < 2 * pVictim->GetHealth())
+                    if (pVictim->GetMaxHealth() / 2 < pVictim->GetHealth())
                         return SPELL_AURA_PROC_FAILED;
                     basepoints[0] = triggerAmount * damage / 100;
                     triggered_spell_id = 54755;
@@ -1966,7 +1966,7 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
                 // Judgement of Light
                 case 20185:
                 {
-                    basepoints[0] = int32( pVictim->GetMaxHealth() * triggeredByAura->GetModifier()->m_amount / 100 );
+                    basepoints[0] = int32(pVictim->GetPercentOfMaxHP(float(triggeredByAura->GetModifier()->m_amount)));
                     pVictim->CastCustomSpell(pVictim, 20267, &basepoints[0], NULL, NULL, true, NULL, triggeredByAura);
                     return SPELL_AURA_PROC_OK;
                 }
@@ -2709,7 +2709,7 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
             // Vendetta
             if (dummySpell->SpellFamilyFlags & UI64LIT(0x0000000000010000))
             {
-                basepoints[0] = triggerAmount * GetMaxHealth() / 100;
+                basepoints[0] = GetPercentOfMaxHP(float(triggerAmount));
                 triggered_spell_id = 50181;
                 target = this;
                 break;
@@ -3021,7 +3021,7 @@ SpellAuraProcResult Unit::HandleProcTriggerSpellAuraProc(Unit *pVictim, uint32 d
                 //case 44820: break;                        // Hate Monster (Spar) (<30%)
                 case 45057:                                 // Evasive Maneuvers (Commendation of Kael`thas trinket)
                     // reduce you below $s1% health
-                    if (GetHealth() - damage > GetMaxHealth() * triggerAmount / 100)
+                    if (GetHealth() - damage > GetPercentOfMaxHP(float(triggerAmount)))
                         return SPELL_AURA_PROC_FAILED;
                     break;
                 //case 45903: break:                        // Offensive State
@@ -3168,7 +3168,7 @@ SpellAuraProcResult Unit::HandleProcTriggerSpellAuraProc(Unit *pVictim, uint32 d
                     if ((*i)->GetSpellProto()->SpellFamilyName == SPELLFAMILY_WARLOCK && (*i)->GetSpellProto()->SpellIconID == 113)
                     {
                         // basepoints of trigger spell stored in dummyeffect of spellProto
-                        int32 basepoints = GetMaxPower(POWER_MANA) * (*i)->GetSpellProto()->CalculateSimpleValue(EFFECT_INDEX_2) / 100;
+                        int32 basepoints = GetPercentOfMaxPower(POWER_MANA, float((*i)->GetSpellProto()->CalculateSimpleValue(EFFECT_INDEX_2)));
                         CastCustomSpell(this, 18371, &basepoints, NULL, NULL, true, castItem, triggeredByAura);
                         break;
                     }
@@ -3212,7 +3212,7 @@ SpellAuraProcResult Unit::HandleProcTriggerSpellAuraProc(Unit *pVictim, uint32 d
                     return SPELL_AURA_PROC_FAILED;
 
                 // If target's health is not below equal certain value (35%) not proc
-                if (int32(pVictim->GetHealth() * 100 / pVictim->GetMaxHealth()) > aur->GetModifier()->m_amount)
+                if (pVictim->GetHealthPercent() > aur->GetModifier()->m_amount)
                     return SPELL_AURA_PROC_FAILED;
             }
             break;
@@ -3384,7 +3384,7 @@ SpellAuraProcResult Unit::HandleProcTriggerSpellAuraProc(Unit *pVictim, uint32 d
             else if (auraSpellInfo->Id == 40971)
             {
                 // If your target is below $s1% health
-                if (pVictim->GetHealth() > pVictim->GetMaxHealth() * triggerAmount / 100)
+                if (pVictim->GetHealthPercent() > triggerAmount)
                     return SPELL_AURA_PROC_FAILED;
             }
             // Thunder Capacitor
@@ -3463,13 +3463,13 @@ SpellAuraProcResult Unit::HandleProcTriggerSpellAuraProc(Unit *pVictim, uint32 d
             else if (auraSpellInfo->SpellIconID == 2013)
             {
                 // Check health condition - should drop to less 30% (damage deal after this!)
-                if (!(10*(int32(GetHealth() - damage)) < int32(3 * GetMaxHealth())))
+                if (GetHealth() - damage > GetPercentOfMaxHP(30.0f))
                     return SPELL_AURA_PROC_FAILED;
 
                 if(pVictim && pVictim->isAlive())
                     pVictim->getThreatManager().modifyThreatPercent(this,-10);
 
-                basepoints[0] = triggerAmount * GetMaxHealth() / 100;
+                basepoints[0] = GetPercentOfMaxHP(float(triggerAmount));
                 trigger_spell_id = 31616;
                 target = this;
             }
@@ -3567,7 +3567,7 @@ SpellAuraProcResult Unit::HandleProcTriggerSpellAuraProc(Unit *pVictim, uint32 d
         // Bloodthirst (($m/100)% of max health)
         case 23880:
         {
-            basepoints[0] = int32(GetMaxHealth() * triggerAmount / 100);
+            basepoints[0] = int32(GetPercentOfMaxHP(float(triggerAmount)));
             break;
         }
         // Shamanistic Rage triggered spell

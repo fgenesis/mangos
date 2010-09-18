@@ -158,7 +158,7 @@ bool CreatureEventAI::ProcessEvent(CreatureEventAIHolder& pHolder, Unit* pAction
             if (!m_creature->isInCombat() || !m_creature->GetMaxHealth())
                 return false;
 
-            uint32 perc = (m_creature->GetHealth()*100) / m_creature->GetMaxHealth();
+            uint32 perc = (uint32)ceil(m_creature->GetHealthPercent());
 
             if (perc > event.percent_range.percentMax || perc < event.percent_range.percentMin)
                 return false;
@@ -172,7 +172,7 @@ bool CreatureEventAI::ProcessEvent(CreatureEventAIHolder& pHolder, Unit* pAction
             if (!m_creature->isInCombat() || !m_creature->GetMaxPower(POWER_MANA))
                 return false;
 
-            uint32 perc = (m_creature->GetPower(POWER_MANA)*100) / m_creature->GetMaxPower(POWER_MANA);
+            uint32 perc = (uint32)ceil(m_creature->GetPowerPercent(POWER_MANA));
 
             if (perc > event.percent_range.percentMax || perc < event.percent_range.percentMin)
                 return false;
@@ -211,7 +211,7 @@ bool CreatureEventAI::ProcessEvent(CreatureEventAIHolder& pHolder, Unit* pAction
             if (!m_creature->isInCombat() || !m_creature->getVictim() || !m_creature->getVictim()->GetMaxHealth())
                 return false;
 
-            uint32 perc = (m_creature->getVictim()->GetHealth()*100) / m_creature->getVictim()->GetMaxHealth();
+            uint32 perc = (uint32)ceil(m_creature->getVictim()->GetHealthPercent());
 
             if (perc > event.percent_range.percentMax || perc < event.percent_range.percentMin)
                 return false;
@@ -298,7 +298,7 @@ bool CreatureEventAI::ProcessEvent(CreatureEventAIHolder& pHolder, Unit* pAction
             if (!m_creature->isInCombat() || !m_creature->getVictim() || !m_creature->getVictim()->GetMaxPower(POWER_MANA))
                 return false;
 
-            uint32 perc = (m_creature->getVictim()->GetPower(POWER_MANA)*100) / m_creature->getVictim()->GetMaxPower(POWER_MANA);
+            uint32 perc = (uint32)ceil(m_creature->getVictim()->GetPowerPercent(POWER_MANA));
 
             if (perc > event.percent_range.percentMax || perc < event.percent_range.percentMin)
                 return false;

@@ -78,7 +78,7 @@ class PrioritizeHealthUnitWraper
 public:
     explicit PrioritizeHealthUnitWraper(Unit* unit) : i_unit(unit)
     {
-        i_percent = unit->GetHealth() * 100 / unit->GetMaxHealth();
+        i_percent = (uint32)unit->GetHealthPercent();
     }
     Unit* getUnit() const { return i_unit; }
     uint32 getPercent() const { return i_percent; }
@@ -4962,7 +4962,7 @@ SpellCastResult Spell::CheckCast(bool strict)
             {
                 if(m_spellInfo->SpellIconID == 1648)        // Execute
                 {
-                    if(!m_targets.getUnitTarget() || m_targets.getUnitTarget()->GetHealth() > m_targets.getUnitTarget()->GetMaxHealth()*0.2 && !m_caster->isIgnoreUnitState(m_spellInfo))
+                    if(!m_targets.getUnitTarget() || m_targets.getUnitTarget()->GetHealthPercent() > 20 && !m_caster->isIgnoreUnitState(m_spellInfo))
                         return SPELL_FAILED_BAD_TARGETS;
                 }
                 else if (m_spellInfo->Id == 51582)          // Rocket Boots Engaged
@@ -5000,7 +5000,7 @@ SpellCastResult Spell::CheckCast(bool strict)
                     if (!m_targets.getUnitTarget())
                         return SPELL_FAILED_BAD_IMPLICIT_TARGETS;
 
-                    if(m_targets.getUnitTarget()->GetHealth() > m_targets.getUnitTarget()->GetMaxHealth()*0.2)
+                    if(m_targets.getUnitTarget()->GetHealthPercent() > 20)
                         return SPELL_FAILED_BAD_TARGETS;
                 }
                 break;
@@ -5879,7 +5879,7 @@ int32 Spell::CalculatePowerCost()
             case POWER_FOCUS:
             case POWER_ENERGY:
             case POWER_HAPPINESS:
-                powerCost += m_spellInfo->ManaCostPercentage * m_caster->GetMaxPower(Powers(m_spellInfo->powerType)) / 100;
+                powerCost += m_caster->GetPercentOfMaxPower(Powers(m_spellInfo->powerType), float(m_spellInfo->ManaCostPercentage));
                 break;
             case POWER_RUNE:
             case POWER_RUNIC_POWER:

@@ -2457,7 +2457,7 @@ void Unit::CalculateDamageAbsorbAndResist(Unit *pCaster, SpellSchoolMask schoolM
                 // Guardian Spirit
                 if (preventDeathSpell->SpellIconID == 2873)
                 {
-                    int32 healAmount = GetMaxHealth() * preventDeathAmount / 100;
+                    int32 healAmount = int32(GetPercentOfMaxHP(float(preventDeathAmount)));
                     CastCustomSpell(this, 48153, &healAmount, NULL, NULL, true);
                     RemoveAurasDueToSpell(preventDeathSpell->Id);
                     RemainingDamage = 0;
@@ -6536,7 +6536,7 @@ uint32 Unit::SpellDamageBonusDone(Unit *pVictim, SpellEntry const *spellProto, u
             // Drain Soul
             if (spellProto->SpellFamilyFlags & UI64LIT(0x0000000000004000))
             {
-                if (pVictim->GetHealth() * 100 / pVictim->GetMaxHealth() <= 25)
+                if (pVictim->GetHealthPercent() <= 25)
                     DoneTotalMod *= 4;
             }
             break;
@@ -9387,7 +9387,7 @@ void Unit::SetMaxHealth(uint32 val)
 
 void Unit::SetHealthPercent(float percent)
 {
-    uint32 newHealth = GetMaxHealth() * percent/100.0f;
+    uint32 newHealth = GetPercentOfMaxHP(percent);
     SetHealth(newHealth);
 }
 

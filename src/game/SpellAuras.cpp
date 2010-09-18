@@ -1204,7 +1204,7 @@ void Aura::TriggerSpell()
 //                    case 25152: break;
                     case 25371:                             // Consume
                     {
-                        int32 bpDamage = triggerTarget->GetMaxHealth()*10/100;
+                        int32 bpDamage = triggerTarget->GetPercentOfMaxHP(10.0f);
                         triggerTarget->CastCustomSpell(triggerTarget, 25373, &bpDamage, NULL, NULL, true, NULL, this, casterGUID);
                         return;
                     }
@@ -1230,7 +1230,7 @@ void Aura::TriggerSpell()
 //                    case 27747: break;
                     case 27808:                             // Frost Blast
                     {
-                        int32 bpDamage = triggerTarget->GetMaxHealth()*26/100;
+                        int32 bpDamage = int32(triggerTarget->GetPercentOfMaxHP(26.0f));
                         triggerTarget->CastCustomSpell(triggerTarget, 29879, &bpDamage, NULL, NULL, true, NULL, this, casterGUID);
                         return;
                     }
@@ -1881,7 +1881,7 @@ void Aura::TriggerSpell()
             case 56654:                                     // Rapid Recuperation (triggered energize have baspioints == 0)
             case 58882:
             {
-                int32 mana = target->GetMaxPower(POWER_MANA) * m_modifier.m_amount / 100;
+                int32 mana = target->GetPercentOfMaxPower(POWER_MANA, float(m_modifier.m_amount));
                 triggerTarget->CastCustomSpell(triggerTarget, trigger_spell_id, &mana, NULL, NULL, true, NULL, this);
                 return;
             }
@@ -2733,7 +2733,7 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                         if (!target->IsInFeralForm())
                             return;
 
-                        int32 bp0 = int32(target->GetMaxHealth() * m_modifier.m_amount / 100);
+                        int32 bp0 = int32(target->GetPercentOfMaxHP(float(m_modifier.m_amount)));
                         target->CastCustomSpell(target, 50322, &bp0, NULL, NULL, true);
                     }
                     else
@@ -4936,7 +4936,7 @@ void Aura::HandlePeriodicEnergize(bool apply, bool Real)
                 break;
             case 57669:                                     // Replenishment (0.2% from max)
             case 61782:                                     // Infinite Replenishment
-                m_modifier.m_amount = target->GetMaxPower(POWER_MANA) * 2 / 1000;
+                m_modifier.m_amount = target->GetPercentOfMaxPower(POWER_MANA, 0.2f);
                 break;
             default:
                 break;
@@ -5126,8 +5126,8 @@ void Aura::HandlePeriodicDamage(bool apply, bool Real)
                     float mwb_max = caster->GetWeaponDamageRange(BASE_ATTACK,MAXDAMAGE);
                     m_modifier.m_amount+=int32(((mwb_min+mwb_max)/2+ap*mws/14000)*0.2f);
                     // If used while target is above 75% health, Rend does 35% more damage
-                    if (spellProto->CalculateSimpleValue(EFFECT_INDEX_1) !=0 &&
-                        target->GetHealth() > target->GetMaxHealth() * spellProto->CalculateSimpleValue(EFFECT_INDEX_1) / 100)
+                    if (spellProto->CalculateSimpleValue(EFFECT_INDEX_1) &&
+                        target->GetHealthPercent() > spellProto->CalculateSimpleValue(EFFECT_INDEX_1))
                         m_modifier.m_amount += m_modifier.m_amount * spellProto->CalculateSimpleValue(EFFECT_INDEX_2) / 100;
                 }
                 break;
@@ -5513,9 +5513,8 @@ void Aura::HandleModTotalPercentStat(bool apply, bool /*Real*/)
 
     Unit *target = GetTarget();
 
-    //save current and max HP before applying aura
-    uint32 curHPValue = target->GetHealth();
-    uint32 maxHPValue = target->GetMaxHealth();
+    //save current HP percent before applying aura
+    float healthPCT = target->GetHealthPercent();
 
     for (int32 i = STAT_STRENGTH; i < MAX_STATS; i++)
     {
@@ -5528,10 +5527,9 @@ void Aura::HandleModTotalPercentStat(bool apply, bool /*Real*/)
     }
 
     //recalculate current HP/MP after applying aura modifications (only for spells with 0x10 flag)
-    if ((m_modifier.m_miscvalue == STAT_STAMINA) && (maxHPValue > 0) && (GetSpellProto()->Attributes & 0x10))
+    if ((m_modifier.m_miscvalue == STAT_STAMINA) && (GetSpellProto()->Attributes & 0x10))
     {
-        // newHP = (curHP / maxHP) * newMaxHP = (newMaxHP * curHP) / maxHP -> which is better because no int -> double -> int conversion is needed
-        uint32 newHPValue = (target->GetMaxHealth() * curHPValue) / maxHPValue;
+        uint32 newHPValue = target->GetPercentOfMaxHP(healthPCT);
         target->SetHealth(newHPValue);
     }
 }
@@ -5663,7 +5661,7 @@ void Aura::HandleAuraModIncreaseHealth(bool apply, bool Real)
                     // Demonic Empowerment (Voidwalker) & Vampiric Blood - special cases, store percent in data
                     // recalculate to full amount at apply for proper remove
                     if (GetId() == 54443 || GetId() == 55233)
-                        m_modifier.m_amount = target->GetMaxHealth() * m_modifier.m_amount / 100;
+                        m_modifier.m_amount = target->GetPercentOfMaxHP(float(m_modifier.m_amount));
 
                     target->HandleStatModifier(UNIT_MOD_HEALTH, TOTAL_VALUE, float(m_modifier.m_amount), apply);
                     target->ModifyHealth(m_modifier.m_amount);
@@ -5689,14 +5687,14 @@ void  Aura::HandleAuraModIncreaseMaxHealth(bool apply, bool /*Real*/)
 {
     Unit *target = GetTarget();
     uint32 oldhealth = target->GetHealth();
-    double healthPercentage = (double)oldhealth / (double)target->GetMaxHealth();
+    float healthPct = (float)oldhealth / target->GetMaxHealth();
 
     target->HandleStatModifier(UNIT_MOD_HEALTH, TOTAL_VALUE, float(m_modifier.m_amount), apply);
 
     // refresh percentage
     if(oldhealth > 0)
     {
-        uint32 newhealth = uint32(ceil((double)target->GetMaxHealth() * healthPercentage));
+        uint32 newhealth = uint32(target->GetPercentOfMaxHP(healthPct));
         if(newhealth==0)
             newhealth = 1;
 
@@ -6776,7 +6774,7 @@ void Aura::HandleSchoolAbsorb(bool apply, bool Real)
                         {
                             // energize caster
                             int32 manapct1000 = 5 * ((*itr)->GetModifier()->m_amount + sSpellMgr.GetSpellRank(vSpell->Id));
-                            int32 basepoints0 = caster->GetMaxPower(POWER_MANA) * manapct1000 / 1000;
+                            int32 basepoints0 = caster->GetPercentOfMaxPower(POWER_MANA, manapct1000 / 10.0f);
                             caster->CastCustomSpell(caster, 47755, &basepoints0, NULL, NULL, true);
                             break;
                         }
@@ -6796,7 +6794,7 @@ void Aura::HandleSchoolAbsorb(bool apply, bool Real)
                                     break;
                                 case POWER_MANA:
                                     {
-                                        int32 basepoints0 = target->GetMaxPower(POWER_MANA) * 2 / 100;
+                                        int32 basepoints0 = target->GetPercentOfMaxPower(POWER_MANA, 2);
                                         target->CastCustomSpell(target, 63654, &basepoints0, NULL, NULL, true);
                                         break;
                                     }
@@ -6869,7 +6867,7 @@ void Aura::PeriodicTick()
                             GetEffIndex() < EFFECT_INDEX_2 && spellProto->Effect[GetEffIndex()] == SPELL_EFFECT_DUMMY ?
                             pCaster->CalculateSpellDamage(target, spellProto, SpellEffectIndex(GetEffIndex() + 1)) :
                             100;
-                        if(target->GetHealth() * 100 >= target->GetMaxHealth() * percent )
+                        if(target->GetHealthPercent() >= percent)
                         {
                             target->RemoveAurasDueToSpell(GetId());
                             return;
@@ -6893,7 +6891,7 @@ void Aura::PeriodicTick()
             if(m_modifier.m_auraname == SPELL_AURA_PERIODIC_DAMAGE)
                 pdamage = amount;
             else
-                pdamage = uint32(target->GetMaxHealth()*amount/100);
+                pdamage = target->GetPercentOfMaxHP(amount);
 
 
             // SpellDamageBonus for magic spells
@@ -7097,7 +7095,7 @@ void Aura::PeriodicTick()
             uint32 pdamage;
 
             if(m_modifier.m_auraname==SPELL_AURA_OBS_MOD_HEALTH)
-                pdamage = uint32(target->GetMaxHealth() * amount / 100);
+                pdamage = target->GetPercentOfMaxHP(amount);
             else
             {
                 pdamage = amount;
@@ -7217,8 +7215,8 @@ void Aura::PeriodicTick()
             if (spellProto->ManaCostPercentage)
             {
                 // max value
-                uint32 maxmana = pCaster->GetMaxPower(power)  * pdamage * 2 / 100;
-                pdamage = target->GetMaxPower(power) * pdamage / 100;
+                uint32 maxmana = pCaster->GetPercentOfMaxPower(power, pdamage * 2);
+                pdamage = target->GetPercentOfMaxPower(power, pdamage);
                 if(pdamage > maxmana)
                     pdamage = maxmana;
             }
@@ -7294,7 +7292,7 @@ void Aura::PeriodicTick()
             // ignore non positive values (can be result apply spellmods to aura damage
             uint32 amount = m_modifier.m_amount > 0 ? m_modifier.m_amount : 0;
 
-            uint32 pdamage = uint32(target->GetMaxPower(POWER_MANA) * amount / 100);
+            uint32 pdamage = target->GetPercentOfMaxPower(POWER_MANA, float(amount));
 
             DETAIL_FILTER_LOG(LOG_FILTER_PERIODIC_AFFECTS, "PeriodicTick: %u (TypeId: %u) energize %u (TypeId: %u) for %u mana inflicted by %u",
                 GUID_LOPART(GetCasterGUID()), GuidHigh2TypeId(GUID_HIPART(GetCasterGUID())), target->GetGUIDLow(), target->GetTypeId(), pdamage, GetId());
@@ -7688,7 +7686,7 @@ void Aura::PeriodicDummyTick()
             if (spell->SpellIconID == 2983)
             {
                 Unit *victim = target->getVictim();
-                if (victim && (target->GetHealth() * 100 / target->GetMaxHealth() > victim->GetHealth() * 100 / victim->GetMaxHealth()))
+                if (victim && (target->GetHealthPercent() > victim->GetHealthPercent()))
                 {
                     if(!target->HasAura(58670))
                     {
@@ -7716,7 +7714,7 @@ void Aura::PeriodicDummyTick()
                 case 22842:
                 {
                     // Converts up to 10 rage per second into health for $d.  Each point of rage is converted into ${$m2/10}.1% of max health.
-                    // Should be manauser
+                    // Should be rage user
                     if (target->getPowerType() != POWER_RAGE)
                         return;
                     uint32 rage = target->GetPower(POWER_RAGE);
@@ -7725,7 +7723,7 @@ void Aura::PeriodicDummyTick()
                         return;
                     int32 mod = (rage < 100) ? rage : 100;
                     int32 points = target->CalculateSpellDamage(target, spell, EFFECT_INDEX_1);
-                    int32 regen = target->GetMaxHealth() * (mod * points / 10) / 1000;
+                    int32 regen = target->GetPercentOfMaxHP(float(mod) * float(points) / 100.0f);
                     target->CastCustomSpell(target, 22845, &regen, NULL, NULL, true, NULL, this);
                     target->SetPower(POWER_RAGE, rage-mod);
                     return;
@@ -7806,7 +7804,7 @@ void Aura::PeriodicDummyTick()
                 case 53512:
                 {
                     Unit* victim = target->getVictim();
-                    if( victim && victim->GetHealth() * 100 < victim->GetMaxHealth() * 35 )
+                    if( victim && victim->GetHealthPercent() < 35 )
                         target->CastSpell(target, spell->Id == 53511 ? 60096 : 60097, true, NULL, this);
                     return;
                 }

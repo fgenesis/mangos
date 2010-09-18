@@ -280,7 +280,7 @@ bool AchievementCriteriaRequirement::Meets(uint32 criteria_id, Player const* sou
         case ACHIEVEMENT_CRITERIA_REQUIRE_T_PLAYER_LESS_HEALTH:
             if (!target || target->GetTypeId()!=TYPEID_PLAYER)
                 return false;
-            return target->GetHealth()*100 <= health.percent*target->GetMaxHealth();
+            return target->GetHealthPercent() <= health.percent;
         case ACHIEVEMENT_CRITERIA_REQUIRE_T_PLAYER_DEAD:
             if (!target || target->GetTypeId() != TYPEID_PLAYER || target->isAlive() || ((Player*)target)->GetDeathTimer() == 0)
                 return false;
