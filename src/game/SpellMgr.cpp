@@ -1870,7 +1870,7 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                     if( spellId_1 == 35081 && spellInfo_2->SpellIconID==561 && spellInfo_2->SpellVisual[0]==7992)
                         return false;
 
-                    // FG: Band of Eternal Champion and Seal of Command(multi-family check)
+                    // FG: Frostforged Champion and Seal of Command(multi-family check)
                     if( spellId_1 == 72412 && spellInfo_2->SpellIconID==561 && spellInfo_2->SpellVisual[0]==7992)
                         return false;
 

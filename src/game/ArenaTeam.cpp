@@ -686,7 +686,7 @@ void ArenaTeam::MemberWon(Player * plr, uint32 againstRating)
             for(Map::PlayerList::const_iterator pit = plist.begin(); pit != plist.end(); ++pit)
             {
                 Player *pp = pit->getSource();
-                if( !(pp && pp->IsInWorld() && plr->IsInWorld()) )
+                if( !(pp && pp->IsSessionValid() && plr->IsSessionValid()) )
                     return; // something wrong
 
                 if(pp->GetSession()->GetIP() == plr->GetSession()->GetIP() && pp->IsHostileTo(plr))

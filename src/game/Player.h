@@ -2445,6 +2445,8 @@ class MANGOS_DLL_SPEC Player : public Unit
 
         uint32 m_grid_update_timer;
 
+        bool IsSessionValid(void) { return IsInWorld() && !GetSession()->PlayerLogout(); }
+
 
     protected:
         
