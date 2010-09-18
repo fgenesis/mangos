@@ -218,7 +218,7 @@ bool GossipHello_npc_toc_announcer(Player* pPlayer, Creature* pCreature)
                       _message = "We are ready!";
                       break;
      case LOCALE_ruRU:
-                      _message = "Всегда готовы!";
+                      _message = "?????? ??????!";
                       break;
      default:
                       _message = "We are ready!";
