@@ -1649,7 +1649,8 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
                 case 44835:
                 {
                     // Deadly Interrupt Effect
-                    triggered_spell_id = 32747;
+                    if(target->GetTypeId() != TYPEID_PLAYER)
+                        triggered_spell_id = 32747;
                     break;
                 }
                 // King of the Jungle
