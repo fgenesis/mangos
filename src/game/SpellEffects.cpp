@@ -5403,10 +5403,18 @@ void Spell::EffectWeaponDmg(SpellEffectIndex eff_idx)
             // Rend and Tear (on Maul / Shred)
             if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x8800))
             {
-                if (unitTarget->HasAuraState(AURA_STATE_BLEEDING))
+                if (unitTarget->HasAuraState(AURA_STATE_MECHANIC_BLEED))
                 {
-                    if (Aura* aura = m_caster->GetAura(SPELL_AURA_DUMMY, SPELLFAMILY_DRUID, 2859, EFFECT_INDEX_0))
-                        totalDamagePercentMod += (totalDamagePercentMod * aura->GetModifier()->m_amount) / 100.0f;
+                    Unit::AuraList const& mDummyAuras = m_caster->GetAurasByType(SPELL_AURA_DUMMY);
+                    for(Unit::AuraList::const_iterator i = mDummyAuras.begin(); i != mDummyAuras.end(); ++i)
+                    {
+                        SpellEntry const *m_spellProto = (*i)->GetSpellProto();
+                        if( m_spellProto && m_spellProto->SpellFamilyName == SPELLFAMILY_DRUID && m_spellProto->SpellIconID == 2859 && (*i)->GetEffIndex() == EFFECT_INDEX_0 )
+                        {
+                            totalDamagePercentMod += (totalDamagePercentMod * (*i)->GetModifier()->m_amount) / 100.0f;
+                            break;
+                        }
+                    }
                 }
             }
 

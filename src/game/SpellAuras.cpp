@@ -5272,6 +5272,27 @@ void Aura::HandlePeriodicDamage(bool apply, bool Real)
             target->CastSpell(target, 55594, true, NULL, this);
         else if (spellProto->Id == 55053)								// Deathbloom heroic
             target->CastSpell(target, 55601, true, NULL, this);
+
+        // Bleed aura state
+        // can't be completely checked in _RemoveSpellAuraHolder because it is called after RemoveAura called for all auras, so m_aura null check fails
+        if (GetEffectMechanic(GetSpellProto(), GetEffIndex()) == MECHANIC_BLEED)
+        {
+            // Look for another auras with same mechanic
+            bool found = false;
+
+            Unit::AuraList const& mPerDmg = target->GetAurasByType(SPELL_AURA_PERIODIC_DAMAGE);
+            for(Unit::AuraList::const_iterator itr = mPerDmg.begin(); itr != mPerDmg.end(); ++itr)
+            {
+                if (GetEffectMechanic((*itr)->GetSpellProto(), (*itr)->GetEffIndex()) == MECHANIC_BLEED)
+                {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found)
+                target->ModifyAuraState(AURA_STATE_MECHANIC_BLEED, false);
+        }
     }
 }
 
@@ -8381,7 +8402,7 @@ void SpellAuraHolder::_AddSpellAuraHolder()
 
         // Bleeding aura state
         if (HasMechanic(MECHANIC_BLEED))
-            m_target->ModifyAuraState(AURA_STATE_BLEEDING, true);
+            m_target->ModifyAuraState(AURA_STATE_MECHANIC_BLEED, true);
     }
 }
 
@@ -8436,8 +8457,9 @@ void SpellAuraHolder::_RemoveSpellAuraHolder()
         if(m_spellProto->Dispel == DISPEL_ENRAGE)
             m_target->ModifyAuraState(AURA_STATE_ENRAGE, false);
 
-        // Bleeding aura state
-        if (HasMechanic(MECHANIC_BLEED))
+        // Bleed aura state
+        // explicitly use whole spell Mechanic only because auras have already been removed from holder
+        if (m_spellProto->Mechanic == MECHANIC_BLEED)
         {
             // Look for another auras with same mechanic
             bool found = false;
@@ -8453,7 +8475,7 @@ void SpellAuraHolder::_RemoveSpellAuraHolder()
             }
 
             if (!found)
-                m_target->ModifyAuraState(AURA_STATE_BLEEDING, false);
+                m_target->ModifyAuraState(AURA_STATE_MECHANIC_BLEED, false);
         }
 
         uint32 removeState = 0;

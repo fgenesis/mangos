@@ -6887,13 +6887,21 @@ bool Unit::IsSpellCrit(Unit *pVictim, SpellEntry const *spellProto, SpellSchoolM
         }
         case SPELL_DAMAGE_CLASS_MELEE:
         {
-            // Ferocious Bite crit chance with Rend and Tear
+            // Rend and Tear (Ferocious Bite crit chance)
             if (spellProto->SpellFamilyName == SPELLFAMILY_DRUID && (spellProto->SpellFamilyFlags & UI64LIT(0x800000)) && spellProto->SpellIconID == 1680)
             {
-                if (pVictim->HasAuraState(AURA_STATE_BLEEDING))
+                if (pVictim->HasAuraState(AURA_STATE_MECHANIC_BLEED))
                 {
-                    if (Aura* aura = GetAura(SPELL_AURA_DUMMY, SPELLFAMILY_DRUID, 2859, EFFECT_INDEX_1))
-                        crit_chance += aura->GetModifier()->m_amount;
+                    Unit::AuraList const& mDummyAuras = GetAurasByType(SPELL_AURA_DUMMY);
+                    for(Unit::AuraList::const_iterator i = mDummyAuras.begin(); i != mDummyAuras.end(); ++i)
+                    {
+                        SpellEntry const *m_spellProto = (*i)->GetSpellProto();
+                        if( m_spellProto && m_spellProto->SpellFamilyName == SPELLFAMILY_DRUID && m_spellProto->SpellIconID == 2859 && (*i)->GetEffIndex() == EFFECT_INDEX_1)
+                        {
+                            crit_chance += (*i)->GetModifier()->m_amount;
+                            break;
+                        }
+                    }
                 }
             }
 
