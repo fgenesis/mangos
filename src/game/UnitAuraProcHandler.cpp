@@ -1887,37 +1887,6 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
                 target = this;
                 break;
             }
-            // Misdirection
-            if (dummySpell->SpellFamilyFlags & UI64LIT(0x10000000000000))
-            {
-                if (GetTypeId() != TYPEID_PLAYER || !pVictim || !pVictim->CanHaveThreatList())
-                    return SPELL_AURA_PROC_FAILED;
-
-                if (Group* pGroup = ((Player*)this)->GetGroup())
-                {
-                    target = this;
-                    float threat = damage;
-
-                    if (procSpell && IsDamageToThreatSpell(procSpell))
-                        threat *= 2;
-
-                    for(GroupReference *itr = pGroup->GetFirstMember(); itr != NULL; itr = itr->next())
-                        if (itr->getSource() && itr->getSource()->GetGUID() != GetGUID() &&
-                            itr->getSource()->GetAura(SPELL_AURA_DUMMY, SPELLFAMILY_HUNTER, 0,0, GetGUID()))
-                        {
-                            target = itr->getSource();
-                            break;
-                        }
-
-                    if (target != this)
-                    {
-                        pVictim->AddThreat(this, -threat, false, procSpell ? SpellSchoolMask(procSpell->SchoolMask) : SPELL_SCHOOL_MASK_NORMAL, procSpell);
-                        pVictim->AddThreat(target, threat, false, procSpell ? SpellSchoolMask(procSpell->SchoolMask) : SPELL_SCHOOL_MASK_NORMAL, procSpell);
-                        return SPELL_AURA_PROC_OK;
-                    }
-                }
-                return SPELL_AURA_PROC_FAILED;
-            }
             // Glyph of Mend Pet
             if(dummySpell->Id == 57870)
             {
