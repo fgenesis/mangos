@@ -2011,7 +2011,8 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                     }
                 }
 
-                m_caster->SetPower(POWER_RAGE,m_caster->GetPower(POWER_RAGE)-rage);
+                int32 newrage = m_caster->GetPower(POWER_RAGE) - rage;
+                m_caster->SetPower(POWER_RAGE, uint32(newrage < 0 ? 0 : newrage));
                 return;
             }
             // Slam
