@@ -1235,7 +1235,7 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         uint32 GetPower(Powers power) const { return GetUInt32Value(UNIT_FIELD_POWER1+power); }
         float GetPowerPercent(Powers power) const { return GetPower(power)*100.0f / GetMaxPower(power); }
         uint32 GetMaxPower(Powers power) const { return GetUInt32Value(UNIT_FIELD_MAXPOWER1+power); }
-        uint32 GetPercentOfMaxPower(Powers power, float pct) const { return uint32(GetUInt32Value(UNIT_FIELD_MAXPOWER1+power) * pct); }
+        uint32 GetPercentOfMaxPower(Powers power, float pct) const { return uint32(GetMaxPower(power) * pct / 100.0f); }
         void SetPower(Powers power, uint32 val);
         void SetMaxPower(Powers power, uint32 val);
         int32 ModifyPower(Powers power, int32 val);

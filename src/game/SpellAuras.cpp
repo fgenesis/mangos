@@ -5700,13 +5700,12 @@ void Aura::HandleAuraModIncreaseHealth(bool apply, bool Real)
 void  Aura::HandleAuraModIncreaseMaxHealth(bool apply, bool /*Real*/)
 {
     Unit *target = GetTarget();
-    uint32 oldhealth = target->GetHealth();
-    float healthPct = (float)oldhealth / target->GetMaxHealth();
+    float healthPct = target->GetHealthPercent();
 
     target->HandleStatModifier(UNIT_MOD_HEALTH, TOTAL_VALUE, float(m_modifier.m_amount), apply);
 
     // refresh percentage
-    if(oldhealth > 0)
+    if(healthPct > 0)
     {
         uint32 newhealth = uint32(target->GetPercentOfMaxHP(healthPct));
         if(newhealth==0)
