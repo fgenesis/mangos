@@ -3724,12 +3724,15 @@ void Spell::EffectEnergize(SpellEffectIndex eff_idx)
             level_multiplier = 4;
             break;
         case 31930:                                         // Judgements of the Wise
-        case 48542:                                         // Revitalize (mana restore case)
         case 63375:                                         // Improved Stormstrike
         case 67545:                                         // Empowered Fire
         case 68082:                                         // Glyph of Seal of Command
             damage = damage * unitTarget->GetCreateMana() / 100;
             break;
+        case 48542:                                         // Revitalize (mana restore case)
+            damage = damage * unitTarget->GetMaxPower(POWER_MANA) / 100;
+            break;
+
         case 67487:                                         // Mana Potion Injector
         case 67490:                                         // Runic Mana Injector
         {
