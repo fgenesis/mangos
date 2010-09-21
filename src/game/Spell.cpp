@@ -2057,6 +2057,24 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
 
                 FillRaidOrPartyHealthPriorityTargets(targetUnitMap, m_caster, target, radius, count, true, false, true);
             }
+            // Glyph of Holy Light
+            else if (m_spellInfo->SpellFamilyName == SPELLFAMILY_GENERIC && m_spellInfo->SpellIconID == 963)
+            {
+                Unit* target = m_targets.getUnitTarget();
+                if(!target)
+                    target = m_caster;
+
+                FillRaidOrPartyHealthPriorityTargets(targetUnitMap, m_caster, target, radius, 5, true, false, true);
+            }
+            // Echoes of Light (Althor's Abacus)
+            else if (m_spellInfo->SpellFamilyName == SPELLFAMILY_GENERIC && m_spellInfo->SpellIconID == 2542)
+            {
+                Unit* target = m_targets.getUnitTarget();
+                if(!target)
+                    target = m_caster;
+
+                FillRaidOrPartyHealthPriorityTargets(targetUnitMap, m_caster, target, radius, 1, true, false, true);
+            }
             else
                 FillAreaTargets(targetUnitMap, m_targets.m_destX, m_targets.m_destY, radius, PUSH_DEST_CENTER, SPELL_TARGETS_FRIENDLY);
             break;
