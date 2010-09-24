@@ -247,17 +247,22 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recv_data )
                 return;
             }
 
-
             Player *player = sObjectMgr.GetPlayer(to.c_str());
-            uint32 tSecurity = GetSecurity();
-            uint32 pSecurity = player ? player->GetSession()->GetSecurity() : SEC_PLAYER;
-            if (!player || (tSecurity == SEC_PLAYER && pSecurity >= SEC_MODERATOR && !player->isAcceptWhispers()))
+            if (!player)
             {
                 SendPlayerNotFoundNotice(to);
                 return;
             }
 
-            if (!sWorld.getConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_INTERACTION_CHAT) && tSecurity == SEC_PLAYER && pSecurity == SEC_PLAYER )
+            uint32 mySecurity = GetSecurity();
+            uint32 pSecurity = player->GetSession()->GetSecurity();
+            if (!player->isAcceptWhispers() && mySecurity < pSecurity && mySecurity == SEC_PLAYER)
+            {
+                SendPlayerNotFoundNotice(to);
+                return;
+            }
+
+            if (!sWorld.getConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_INTERACTION_CHAT) && mySecurity < SEC_MODERATOR && pSecurity < SEC_MODERATOR )
             {
                 uint32 sidea = GetPlayer()->GetTeam();
                 uint32 sideb = player->GetTeam();
