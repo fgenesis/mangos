@@ -256,7 +256,7 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recv_data )
 
             uint32 mySecurity = GetSecurity();
             uint32 pSecurity = player->GetSession()->GetSecurity();
-            if (!player->isAcceptWhispers() && mySecurity < pSecurity && mySecurity == SEC_PLAYER)
+            if (!player->isAcceptWhispers() && mySecurity == SEC_PLAYER)
             {
                 SendPlayerNotFoundNotice(to);
                 return;
