@@ -561,7 +561,6 @@ system/system.h \
 scripts/northrend/crusaders_coliseum/trial_of_the_champion/instance_trial_of_the_champion.cpp \
 scripts/northrend/crusaders_coliseum/trial_of_the_champion/trial_of_the_champion.cpp \
 scripts/northrend/crusaders_coliseum/trial_of_the_champion/trial_of_the_champion.h \
-scripts/northrend/icecrown_citadel/frozen_halls/forge_of_souls/instance_forge_of_souls.cpp \
 scripts/northrend/icecrown_citadel/frozen_halls/forge_of_souls/def_forge.h \
 scripts/northrend/icecrown_citadel/frozen_halls/halls_of_reflection/instance_halls_of_reflection.cpp \
 scripts/northrend/icecrown_citadel/frozen_halls/halls_of_reflection/def_halls.h \
