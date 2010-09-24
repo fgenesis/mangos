@@ -135,7 +135,6 @@ m_creatureInfo(NULL), m_splineFlags(SPLINEFLAG_WALKMODE)
 
     m_CreatureSpellCooldowns.clear();
     m_CreatureCategoryCooldowns.clear();
-    m_GlobalCooldown = 0;
 
     m_splineFlags = SPLINEFLAG_WALKMODE;
 
@@ -418,11 +417,6 @@ uint32 Creature::ChooseDisplayId(const CreatureInfo *cinfo, const CreatureData *
 
 void Creature::Update(uint32 diff)
 {
-    if(m_GlobalCooldown <= diff)
-        m_GlobalCooldown = 0;
-    else
-        m_GlobalCooldown -= diff;
-
     if (m_needNotify)
     {
         m_needNotify = false;
@@ -667,7 +661,7 @@ void Creature::DoFleeToGetAssistance()
         Creature* pCreature = NULL;
 
         MaNGOS::NearestAssistCreatureInCreatureRangeCheck u_check(this, getVictim(), radius);
-        MaNGOS::CreatureLastSearcher<MaNGOS::NearestAssistCreatureInCreatureRangeCheck> searcher(this, pCreature, u_check);
+        MaNGOS::CreatureLastSearcher<MaNGOS::NearestAssistCreatureInCreatureRangeCheck> searcher(pCreature, u_check);
         Cell::VisitGridObjects(this, searcher, radius);
 
         SetNoSearchAssistance(true);
@@ -1737,7 +1731,7 @@ void Creature::CallAssistance()
 
             {
                 MaNGOS::AnyAssistCreatureInRangeCheck u_check(this, getVictim(), radius);
-                MaNGOS::CreatureListSearcher<MaNGOS::AnyAssistCreatureInRangeCheck> searcher(this, assistList, u_check);
+                MaNGOS::CreatureListSearcher<MaNGOS::AnyAssistCreatureInRangeCheck> searcher(assistList, u_check);
                 Cell::VisitGridObjects(this,searcher, radius);
             }
 
@@ -2069,8 +2063,6 @@ void Creature::AddCreatureSpellCooldown(uint32 spellid)
 
     if(spellInfo->Category)
         _AddCreatureCategoryCooldown(spellInfo->Category, time(NULL));
-
-    m_GlobalCooldown = spellInfo->StartRecoveryTime;
 }
 
 bool Creature::HasCategoryCooldown(uint32 spell_id) const
@@ -2078,10 +2070,6 @@ bool Creature::HasCategoryCooldown(uint32 spell_id) const
     SpellEntry const *spellInfo = sSpellStore.LookupEntry(spell_id);
     if(!spellInfo)
         return false;
-
-    // check global cooldown if spell affected by it
-    if (spellInfo->StartRecoveryCategory > 0 && m_GlobalCooldown > 0)
-        return true;
 
     CreatureSpellCooldowns::const_iterator itr = m_CreatureCategoryCooldowns.find(spellInfo->Category);
     return (itr != m_CreatureCategoryCooldowns.end() && time_t(itr->second + (spellInfo->CategoryRecoveryTime / IN_MILLISECONDS)) > time(NULL));

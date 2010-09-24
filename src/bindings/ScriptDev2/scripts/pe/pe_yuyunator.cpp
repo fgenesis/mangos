@@ -1,6 +1,7 @@
 // displayid 21514
 
 #include "precompiled.h"
+#include "sc_grid_searchers.h"
 #include "Spell.h"
 
 #include "pe_structs.h"
@@ -297,14 +298,14 @@ struct MANGOS_DLL_DECL pe_andromeda_minionGenericAI : public ScriptedAI
 
         Unit *pUnit = NULL;
 
-        AllCreaturesOfEntryInRange u_check(m_creature, entry, fRange);
-        MaNGOS::UnitLastSearcher<AllCreaturesOfEntryInRange> searcher(m_creature, pUnit, u_check);
+        AllCreaturesOfEntryInRangeCheck u_check(m_creature, entry, fRange);
+        MaNGOS::UnitLastSearcher<AllCreaturesOfEntryInRangeCheck> searcher(pUnit, u_check);
 
         /*
         typedef TYPELIST_4(GameObject, Creature*except pets*, DynamicObject, Corpse*Bones*) AllGridObjectTypes;
         This means that if we only search grid then we cannot possibly return pets or players so this is safe
         */
-        TypeContainerVisitor<MaNGOS::UnitLastSearcher<AllCreaturesOfEntryInRange>, GridTypeMapContainer >  grid_unit_searcher(searcher);
+        TypeContainerVisitor<MaNGOS::UnitLastSearcher<AllCreaturesOfEntryInRangeCheck>, GridTypeMapContainer >  grid_unit_searcher(searcher);
 
         cell.Visit(p, grid_unit_searcher, *(m_creature->GetMap()));
 
@@ -407,7 +408,7 @@ std::list<Unit*> pe_andromedaAI::SelectNearUnits(float distance /* = 100.0f */)
     std::list<Unit*> pList;
 
     MaNGOS::AnyUnitInObjectRangeCheck u_check(m_creature, distance);
-    MaNGOS::UnitListSearcher<MaNGOS::AnyUnitInObjectRangeCheck> searcher(m_creature, pList, u_check);
+    MaNGOS::UnitListSearcher<MaNGOS::AnyUnitInObjectRangeCheck> searcher(pList, u_check);
 
     TypeContainerVisitor<MaNGOS::UnitListSearcher<MaNGOS::AnyUnitInObjectRangeCheck>, GridTypeMapContainer >  grid_unit_searcher(searcher);
 
@@ -456,14 +457,14 @@ std::list<Unit*> pe_andromedaAI::SelectNearUnitsWithEntry(uint32 entry, float fR
 
     std::list<Unit*> uList;
 
-    AllCreaturesOfEntryInRange u_check(m_creature, entry, fRange);
-    MaNGOS::UnitListSearcher<AllCreaturesOfEntryInRange> searcher(m_creature, uList, u_check);
+    AllCreaturesOfEntryInRangeCheck u_check(m_creature, entry, fRange);
+    MaNGOS::UnitListSearcher<AllCreaturesOfEntryInRangeCheck> searcher(uList, u_check);
 
     /*
     typedef TYPELIST_4(GameObject, Creature*except pets*, DynamicObject, Corpse*Bones*) AllGridObjectTypes;
     This means that if we only search grid then we cannot possibly return pets or players so this is safe
     */
-    TypeContainerVisitor<MaNGOS::UnitListSearcher<AllCreaturesOfEntryInRange>, GridTypeMapContainer >  grid_unit_searcher(searcher);
+    TypeContainerVisitor<MaNGOS::UnitListSearcher<AllCreaturesOfEntryInRangeCheck>, GridTypeMapContainer >  grid_unit_searcher(searcher);
 
     cell.Visit(p, grid_unit_searcher, *(m_creature->GetMap()));
 
@@ -1887,14 +1888,14 @@ struct MANGOS_DLL_DECL pe_andromeda_priestAI : public pe_andromeda_minionGeneric
 
         std::list<Unit*> uList;
 
-        MaNGOS::MostHPMissingInRange u_check(m_creature, fRange, uiMinHPDiff);
-        MaNGOS::UnitListSearcher<MaNGOS::MostHPMissingInRange> searcher(m_creature, uList, u_check);
+        MaNGOS::MostHPMissingInRangeCheck u_check(m_creature, fRange, uiMinHPDiff);
+        MaNGOS::UnitListSearcher<MaNGOS::MostHPMissingInRangeCheck> searcher(uList, u_check);
 
         /*
         typedef TYPELIST_4(GameObject, Creature*except pets*, DynamicObject, Corpse*Bones*) AllGridObjectTypes;
         This means that if we only search grid then we cannot possibly return pets or players so this is safe
         */
-        TypeContainerVisitor<MaNGOS::UnitListSearcher<MaNGOS::MostHPMissingInRange>, GridTypeMapContainer >  grid_unit_searcher(searcher);
+        TypeContainerVisitor<MaNGOS::UnitListSearcher<MaNGOS::MostHPMissingInRangeCheck>, GridTypeMapContainer >  grid_unit_searcher(searcher);
 
 
         cell.Visit(p, grid_unit_searcher, *(m_creature->GetMap()));
