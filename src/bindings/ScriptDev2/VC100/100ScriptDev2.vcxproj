@@ -460,12 +460,17 @@
     <ClCompile Include="..\scripts\northrend\grizzly_hills.cpp" />
     <ClCompile Include="..\scripts\northrend\howling_fjord.cpp" />
     <ClCompile Include="..\scripts\northrend\icecrown.cpp" />
+    <ClCompile Include="..\scripts\northrend\icecrown_citadel\frozen_halls\halls_of_reflection\instance_halls_of_reflection.cpp" />
+    <ClCompile Include="..\scripts\northrend\icecrown_citadel\frozen_halls\pit_of_saron\instance_pit_of_saron.cpp" />
+    <ClCompile Include="..\scripts\northrend\icecrown_citadel\icecrown_citadel\icecrown_teleport.cpp" />
+    <ClCompile Include="..\scripts\northrend\icecrown_citadel\icecrown_citadel\instance_icecrown_spire.cpp" />
     <ClCompile Include="..\scripts\northrend\ruby_sanctum\boss_baltharus.cpp" />
     <ClCompile Include="..\scripts\northrend\ruby_sanctum\boss_halion.cpp" />
     <ClCompile Include="..\scripts\northrend\ruby_sanctum\boss_saviana.cpp" />
     <ClCompile Include="..\scripts\northrend\ruby_sanctum\boss_zarithian.cpp" />
     <ClCompile Include="..\scripts\northrend\sholazar_basin.cpp" />
     <ClCompile Include="..\scripts\northrend\storm_peaks.cpp" />
+    <ClCompile Include="..\scripts\northrend\ulduar\ulduar\ulduar_teleport.cpp" />
     <ClCompile Include="..\scripts\northrend\zuldrak.cpp" />
     <ClCompile Include="..\scripts\northrend\azjol-nerub\ahnkahet\boss_jedoga.cpp" />
     <ClCompile Include="..\scripts\northrend\azjol-nerub\ahnkahet\boss_nadox.cpp" />
@@ -648,6 +653,12 @@
     <ClCompile Include="..\scripts\outland\tempest_keep\the_mechanar\boss_nethermancer_sepethrea.cpp" />
     <ClCompile Include="..\scripts\outland\tempest_keep\the_mechanar\boss_pathaleon_the_calculator.cpp" />
     <ClCompile Include="..\scripts\outland\tempest_keep\the_mechanar\instance_mechanar.cpp" />
+    <ClCompile Include="..\scripts\pe\pe_customvendor.cpp" />
+    <ClCompile Include="..\scripts\pe\pe_npcs.cpp" />
+    <ClCompile Include="..\scripts\pe\pe_npc_buffs.cpp" />
+    <ClCompile Include="..\scripts\pe\pe_npc_xmas.cpp" />
+    <ClCompile Include="..\scripts\pe\pe_structs.cpp" />
+    <ClCompile Include="..\scripts\pe\pe_yuyunator.cpp" />
     <ClCompile Include="..\scripts\world\areatrigger_scripts.cpp" />
     <ClCompile Include="..\scripts\world\boss_emeriss.cpp" />
     <ClCompile Include="..\scripts\world\boss_lethon.cpp" />
@@ -709,12 +720,17 @@
     <ClInclude Include="..\scripts\northrend\azjol-nerub\azjol-nerub\azjol-nerub.h" />
     <ClInclude Include="..\scripts\northrend\crusaders_coliseum\trial_of_the_crusader\trial_of_the_crusader.h" />
     <ClInclude Include="..\scripts\northrend\gundrak\gundrak.h" />
+    <ClInclude Include="..\scripts\northrend\icecrown_citadel\frozen_halls\forge_of_souls\def_forge.h" />
     <ClInclude Include="..\scripts\northrend\icecrown_citadel\frozen_halls\forge_of_souls\forge_of_souls.h" />
+    <ClInclude Include="..\scripts\northrend\icecrown_citadel\frozen_halls\halls_of_reflection\def_halls.h" />
+    <ClInclude Include="..\scripts\northrend\icecrown_citadel\frozen_halls\pit_of_saron\def_pit.h" />
+    <ClInclude Include="..\scripts\northrend\icecrown_citadel\icecrown_citadel\def_spire.h" />
     <ClInclude Include="..\scripts\northrend\naxxramas\naxxramas.h" />
     <ClInclude Include="..\scripts\northrend\nexus\nexus\nexus.h" />
     <ClInclude Include="..\scripts\northrend\obsidian_sanctum\obsidian_sanctum.h" />
     <ClInclude Include="..\scripts\northrend\ulduar\halls_of_lightning\halls_of_lightning.h" />
     <ClInclude Include="..\scripts\northrend\ulduar\halls_of_stone\halls_of_stone.h" />
+    <ClInclude Include="..\scripts\northrend\ulduar\ulduar\def_ulduar.h" />
     <ClInclude Include="..\scripts\northrend\ulduar\ulduar\ulduar.h" />
     <ClInclude Include="..\scripts\northrend\utgarde_keep\utgarde_keep\utgarde_keep.h" />
     <ClInclude Include="..\scripts\northrend\utgarde_keep\utgarde_pinnacle\utgarde_pinnacle.h" />
@@ -737,35 +753,11 @@
     <ClInclude Include="..\include\sc_gossip.h" />
     <ClInclude Include="..\include\sc_grid_searchers.h" />
     <ClInclude Include="..\include\sc_instance.h" />
+    <ClInclude Include="..\scripts\pe\pe_base.h" />
+    <ClInclude Include="..\scripts\pe\pe_structs.h" />
     <ClInclude Include="..\system\ScriptLoader.h" />
     <ClInclude Include="..\system\system.h" />
     <ClInclude Include="..\config.h" />
-    <CustomBuild Include="..\revision.h">
-      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Extracting revision</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cd "$(SolutionDir)"
-"$(SolutionDir)..\..\..\win\VC100\genrevision__Win32_$(Configuration)\genrevision.exe"
-</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.svn/entries;%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">revision.h;%(Outputs)</Outputs>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Extracting revision</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">cd "$(SolutionDir)"
-"$(SolutionDir)..\..\..\win\VC100\genrevision__Win32_$(Configuration)\genrevision.exe"
-</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.svn/entries;%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">revision.h;%(Outputs)</Outputs>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Extracting revision</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cd "$(SolutionDir)"
-"$(SolutionDir)..\..\..\win\VC100\genrevision__Win32_$(Configuration)\genrevision.exe"
-</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.svn/entries;%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">revision.h;%(Outputs)</Outputs>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Extracting revision</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">cd "$(SolutionDir)"
-"$(SolutionDir)..\..\..\win\VC100\genrevision__Win32_$(Configuration)\genrevision.exe"
-</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.svn/entries;%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">revision.h;%(Outputs)</Outputs>
-    </CustomBuild>
     <ClInclude Include="..\ScriptMgr.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

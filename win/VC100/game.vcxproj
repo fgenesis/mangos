@@ -350,7 +350,6 @@
     <ClCompile Include="..\..\src\game\AggressorAI.cpp" />
     <ClCompile Include="..\..\src\game\ArenaTeam.cpp" />
     <ClCompile Include="..\..\src\game\ArenaTeamHandler.cpp" />
-    <ClCompile Include="..\..\src\game\AuctionHouseBot.cpp" />
     <ClCompile Include="..\..\src\game\AuctionHouseHandler.cpp" />
     <ClCompile Include="..\..\src\game\AuctionHouseMgr.cpp" />
     <ClCompile Include="..\..\src\game\Bag.cpp" />
@@ -422,6 +421,7 @@
     <ClCompile Include="..\..\src\game\Level1.cpp" />
     <ClCompile Include="..\..\src\game\Level2.cpp" />
     <ClCompile Include="..\..\src\game\Level3.cpp" />
+    <ClCompile Include="..\..\src\game\Level_pe.cpp" />
     <ClCompile Include="..\..\src\game\LFGHandler.cpp" />
     <ClCompile Include="..\..\src\game\LootHandler.cpp" />
     <ClCompile Include="..\..\src\game\LootMgr.cpp" />
@@ -457,6 +457,7 @@
     <ClCompile Include="..\..\src\game\PetHandler.cpp" />
     <ClCompile Include="..\..\src\game\PetitionsHandler.cpp" />
     <ClCompile Include="..\..\src\game\Player.cpp" />
+    <ClCompile Include="..\..\src\game\PlayerDropMgr.cpp" />
     <ClCompile Include="..\..\src\game\PlayerDump.cpp" />
     <ClCompile Include="..\..\src\game\PointMovementGenerator.cpp" />
     <ClCompile Include="..\..\src\game\PoolManager.cpp" />
@@ -473,7 +474,7 @@
     <ClCompile Include="..\..\src\game\SocialMgr.cpp" />
     <ClCompile Include="..\..\src\game\Spell.cpp" />
     <ClCompile Include="..\..\src\game\SpellAuras.cpp" />
-	<ClCompile Include="..\..\src\game\UnitAuraProcHandler.cpp" />
+    <ClCompile Include="..\..\src\game\UnitAuraProcHandler.cpp" />
     <ClCompile Include="..\..\src\game\SpellEffects.cpp" />
     <ClCompile Include="..\..\src\game\SpellHandler.cpp" />
     <ClCompile Include="..\..\src\game\SpellMgr.cpp" />
@@ -489,6 +490,7 @@
     <ClCompile Include="..\..\src\game\Unit.cpp" />
     <ClCompile Include="..\..\src\game\UpdateData.cpp" />
     <ClCompile Include="..\..\src\game\Vehicle.cpp" />
+    <ClCompile Include="..\..\src\game\VirtualPlayerMgr.cpp" />
     <ClCompile Include="..\..\src\game\VoiceChatHandler.cpp" />
     <ClCompile Include="..\..\src\game\WaypointManager.cpp" />
     <ClCompile Include="..\..\src\game\WaypointMovementGenerator.cpp" />
@@ -503,7 +505,6 @@
     <ClInclude Include="..\..\src\game\AchievementMgr.h" />
     <ClInclude Include="..\..\src\game\AggressorAI.h" />
     <ClInclude Include="..\..\src\game\ArenaTeam.h" />
-    <ClInclude Include="..\..\src\game\AuctionHouseBot.h" />
     <ClInclude Include="..\..\src\game\AuctionHouseMgr.h" />
     <ClInclude Include="..\..\src\game\Bag.h" />
     <ClInclude Include="..\..\src\game\BattleGround.h" />
@@ -595,6 +596,7 @@
     <ClInclude Include="..\..\src\game\Pet.h" />
     <ClInclude Include="..\..\src\game\PetAI.h" />
     <ClInclude Include="..\..\src\game\Player.h" />
+    <ClInclude Include="..\..\src\game\PlayerDropMgr.h" />
     <ClInclude Include="..\..\src\game\PlayerDump.h" />
     <ClInclude Include="..\..\src\game\PointMovementGenerator.h" />
     <ClInclude Include="..\..\src\game\PoolManager.h" />
@@ -624,6 +626,7 @@
     <ClInclude Include="..\..\src\game\UpdateFields.h" />
     <ClInclude Include="..\..\src\game\UpdateMask.h" />
     <ClInclude Include="..\..\src\game\Vehicle.h" />
+    <ClInclude Include="..\..\src\game\VirtualPlayerMgr.h" />
     <ClInclude Include="..\..\src\game\WaypointManager.h" />
     <ClInclude Include="..\..\src\game\WaypointMovementGenerator.h" />
     <ClInclude Include="..\..\src\game\Weather.h" />

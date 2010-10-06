@@ -298,6 +298,9 @@
     <Filter Include="scripts\northrend\ruby_sanctum">
       <UniqueIdentifier>{e35abead-2389-4eb9-88bd-70e6fe5636b5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="scripts\PE">
+      <UniqueIdentifier>{d9082f19-ff9f-4d66-9294-dd878ca8e0c2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\base\escort_ai.cpp">
@@ -1669,6 +1672,39 @@
     <ClCompile Include="..\scripts\northrend\ruby_sanctum\boss_zarithian.cpp">
       <Filter>scripts\northrend\ruby_sanctum</Filter>
     </ClCompile>
+    <ClCompile Include="..\scripts\pe\pe_customvendor.cpp">
+      <Filter>scripts\PE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\scripts\pe\pe_npc_buffs.cpp">
+      <Filter>scripts\PE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\scripts\pe\pe_npc_xmas.cpp">
+      <Filter>scripts\PE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\scripts\pe\pe_npcs.cpp">
+      <Filter>scripts\PE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\scripts\pe\pe_structs.cpp">
+      <Filter>scripts\PE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\scripts\pe\pe_yuyunator.cpp">
+      <Filter>scripts\PE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\scripts\northrend\icecrown_citadel\frozen_halls\halls_of_reflection\instance_halls_of_reflection.cpp">
+      <Filter>scripts\northrend\icecrown_citadel\frozen_halls\halls_of_reflection</Filter>
+    </ClCompile>
+    <ClCompile Include="..\scripts\northrend\icecrown_citadel\frozen_halls\pit_of_saron\instance_pit_of_saron.cpp">
+      <Filter>scripts\northrend\icecrown_citadel\frozen_halls\pit_of_saron</Filter>
+    </ClCompile>
+    <ClCompile Include="..\scripts\northrend\icecrown_citadel\icecrown_citadel\icecrown_teleport.cpp">
+      <Filter>scripts\northrend\icecrown_citadel\icecrown_citadel</Filter>
+    </ClCompile>
+    <ClCompile Include="..\scripts\northrend\icecrown_citadel\icecrown_citadel\instance_icecrown_spire.cpp">
+      <Filter>scripts\northrend\icecrown_citadel\icecrown_citadel</Filter>
+    </ClCompile>
+    <ClCompile Include="..\scripts\northrend\ulduar\ulduar\ulduar_teleport.cpp">
+      <Filter>scripts\northrend\ulduar\ulduar</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\base\escort_ai.h">
@@ -1868,8 +1904,26 @@
     </ClInclude>
     <ClInclude Include="..\config.h" />
     <ClInclude Include="..\ScriptMgr.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="..\revision.h" />
+    <ClInclude Include="..\scripts\pe\pe_base.h">
+      <Filter>scripts\PE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\scripts\pe\pe_structs.h">
+      <Filter>scripts\PE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\scripts\northrend\icecrown_citadel\frozen_halls\halls_of_reflection\def_halls.h">
+      <Filter>scripts\northrend\icecrown_citadel\frozen_halls\halls_of_reflection</Filter>
+    </ClInclude>
+    <ClInclude Include="..\scripts\northrend\icecrown_citadel\frozen_halls\forge_of_souls\def_forge.h">
+      <Filter>scripts\northrend\icecrown_citadel\frozen_halls\forge_of_souls</Filter>
+    </ClInclude>
+    <ClInclude Include="..\scripts\northrend\icecrown_citadel\frozen_halls\pit_of_saron\def_pit.h">
+      <Filter>scripts\northrend\icecrown_citadel\frozen_halls\pit_of_saron</Filter>
+    </ClInclude>
+    <ClInclude Include="..\scripts\northrend\icecrown_citadel\icecrown_citadel\def_spire.h">
+      <Filter>scripts\northrend\icecrown_citadel\icecrown_citadel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\scripts\northrend\ulduar\ulduar\def_ulduar.h">
+      <Filter>scripts\northrend\ulduar\ulduar</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
