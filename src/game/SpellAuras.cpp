@@ -2992,6 +2992,21 @@ void Aura::HandleAuraMounted(bool apply, bool Real)
         if (minfo)
             display_id = minfo->modelid;
 
+        // FG: remove all mount auras before mounting, this fixes problems with multiple mount buffs active at the same time
+        if(target->GetTypeId() == TYPEID_PLAYER)
+        {
+            Player *pl = (Player*)target;
+            const Unit::AuraList &auras = pl->GetAurasByType(SPELL_AURA_MOUNTED);
+            for(Unit::AuraList::const_iterator it = auras.begin(); it != auras.end(); it++)
+            {
+                if(*it != this)
+                {
+                    pl->RemoveAurasDueToSpell((*it)->GetId());
+                    it = auras.begin();
+                }
+            }
+        }
+
         target->Mount(display_id, GetId(), ci->VehicleEntry);
     }
     else
