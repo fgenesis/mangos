@@ -433,6 +433,7 @@
     <ClCompile Include="..\..\src\game\MotionMaster.cpp" />
     <ClCompile Include="..\..\src\game\MovementGenerator.cpp" />
     <ClCompile Include="..\..\src\game\MovementHandler.cpp" />
+    <ClCompile Include="..\..\src\game\NetworkUsageMonitor.cpp" />
     <ClCompile Include="..\..\src\game\NPCHandler.cpp" />
     <ClCompile Include="..\..\src\game\NullCreatureAI.cpp" />
     <ClCompile Include="..\..\src\game\Object.cpp" />
@@ -582,6 +583,7 @@
     <ClInclude Include="..\..\src\game\MapRefManager.h" />
     <ClInclude Include="..\..\src\game\MotionMaster.h" />
     <ClInclude Include="..\..\src\game\MovementGenerator.h" />
+    <ClInclude Include="..\..\src\game\NetworkUsageMonitor.h" />
     <ClInclude Include="..\..\src\game\NPCHandler.h" />
     <ClInclude Include="..\..\src\game\NullCreatureAI.h" />
     <ClInclude Include="..\..\src\game\Object.h" />

@@ -454,6 +454,9 @@
     <ClCompile Include="..\..\src\game\Level_pe.cpp">
       <Filter>PE</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\game\NetworkUsageMonitor.cpp">
+      <Filter>PE</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\game\PlayerDropMgr.cpp">
       <Filter>PE</Filter>
     </ClCompile>
@@ -852,6 +855,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\game\Camera.h">
       <Filter>Object</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\NetworkUsageMonitor.h">
+      <Filter>PE</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\game\PlayerDropMgr.h">
       <Filter>PE</Filter>

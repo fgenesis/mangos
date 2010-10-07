@@ -65,6 +65,7 @@
 #include "PlayerDropMgr.h"
 #include "VirtualPlayerMgr.h"
 #include "Language.h"
+#include "NetworkUsageMonitor.h"
 
 
 INSTANTIATE_SINGLETON_1( World );
@@ -900,6 +901,18 @@ void World::LoadConfigSettings(bool reload)
         sLog.outString("FG: AutoBan Time %u: '%s'", ti, tok[ti].c_str());
     }
     setConfig(CONFIG_UINT32_AUTOBAN_MIN_COUNTED_BANTIME, sConfig.GetIntDefault("AutoBan.MinCountedTime", DAY));
+    setConfig(CONFIG_BOOL_NETMON_RECORD_INCOMING, sConfig.GetBoolDefault("Netmon.Record.Incoming", false));
+    setConfig(CONFIG_BOOL_NETMON_RECORD_OUTGOING, sConfig.GetBoolDefault("Netmon.Record.Outgoing", false));
+    setConfig(CONFIG_BOOL_NETMON_SAVE_INCOMING, sConfig.GetBoolDefault("Netmon.Save.Incoming", false));
+    setConfig(CONFIG_BOOL_NETMON_SAVE_OUTGOING, sConfig.GetBoolDefault("Netmon.Save.Outgoing", false));
+    uint32 netmonSaveInterval = sConfig.GetIntDefault("Netmon.Save.Interval", false);
+    setConfig(CONFIG_UINT32_NETMON_SAVE_INTERVAL, netmonSaveInterval);
+    if(!netmonSaveInterval)
+    {
+        sLog.outError("Netmon: Save interval is 0, disabling save to DB");
+        setConfig(CONFIG_BOOL_NETMON_SAVE_INCOMING, false);
+        setConfig(CONFIG_BOOL_NETMON_SAVE_OUTGOING, false);
+    }
     sVPlayerMgr.SetEnabled( sConfig.GetBoolDefault("VP.Enabled", false) );
     sVPlayerMgr.SetMaxLevel( sConfig.GetIntDefault("VP.Maxlevel",70) );
     sVPlayerMgr.SetOnlineSpread( sConfig.GetFloatDefault("VP.OnlineSpread",0.12f) );
@@ -1420,6 +1433,8 @@ void World::SetInitialWorldSettings()
 
     sObjectMgr.LoadSpecialChannels();
     sObjectMgr.LoadAllowedGMAccounts();
+
+    m_timers[WUPDATE_NETMON].SetInterval(getConfig(CONFIG_UINT32_NETMON_SAVE_INTERVAL) * IN_MILLISECONDS);
     // FG: -end-
 
     sLog.outString( "WORLD: World initialized" );
@@ -1621,6 +1636,12 @@ void World::Update(uint32 diff)
         sVPlayerMgr.Update();
     }
 
+    // FG: save monitored data to DB
+    if(m_timers[WUPDATE_NETMON].Passed())
+    {
+        m_timers[WUPDATE_NETMON].Reset();
+        sNetMon.SaveData();
+    }
 
     /// </ul>
     ///- Move all creatures with "delayed move" and remove and delete all objects with "delayed remove"

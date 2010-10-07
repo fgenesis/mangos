@@ -1635,6 +1635,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\game\NetworkUsageMonitor.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\game\NetworkUsageMonitor.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\game\PlayerDropMgr.cpp"
 				>
 			</File>

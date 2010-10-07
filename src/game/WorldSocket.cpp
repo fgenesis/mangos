@@ -45,6 +45,7 @@
 
 // FG
 #include "ObjectMgr.h"
+#include "NetworkUsageMonitor.h"
 
 #if defined( __GNUC__ )
 #pragma pack(1)
@@ -171,12 +172,16 @@ int WorldSocket::SendPacket (const WorldPacket& pct)
     sLog.outWorldPacketDump(uint32(get_handle()), pct.GetOpcode(), LookupOpcodeName(pct.GetOpcode()), &pct, false);
 
     ServerPktHeader header(pct.size()+2, pct.GetOpcode());
-    m_Crypt.EncryptSend ((uint8*)header.header, header.getHeaderLength());
+    uint8 hdrlen = header.getHeaderLength();
 
-    if (m_OutBuffer->space () >= pct.size () + header.getHeaderLength() && msg_queue()->is_empty())
+    sNetMon.CountOutgoing(&pct, hdrlen);
+
+    m_Crypt.EncryptSend ((uint8*)header.header, hdrlen);
+
+    if (m_OutBuffer->space () >= pct.size () + hdrlen && msg_queue()->is_empty())
     {
         // Put the packet on the buffer.
-        if (m_OutBuffer->copy ((char*) header.header, header.getHeaderLength()) == -1)
+        if (m_OutBuffer->copy ((char*) header.header, hdrlen) == -1)
             ACE_ASSERT (false);
 
         if (!pct.empty ())
@@ -188,9 +193,9 @@ int WorldSocket::SendPacket (const WorldPacket& pct)
         // Enqueue the packet.
         ACE_Message_Block* mb;
 
-        ACE_NEW_RETURN(mb, ACE_Message_Block(pct.size () + header.getHeaderLength()), -1);
+        ACE_NEW_RETURN(mb, ACE_Message_Block(pct.size () + hdrlen), -1);
 
-        mb->copy((char*) header.header, header.getHeaderLength());
+        mb->copy((char*) header.header, hdrlen);
 
         if (!pct.empty ())
             mb->copy((const char*)pct.contents(), pct.size ());
@@ -677,6 +682,8 @@ int WorldSocket::ProcessIncoming (WorldPacket* new_pct)
 
     // Dump received packet.
     sLog.outWorldPacketDump(uint32(get_handle()), new_pct->GetOpcode(), LookupOpcodeName(new_pct->GetOpcode()), new_pct, true);
+
+    sNetMon.CountIncoming(new_pct, 4); // client header is always 4 bytes
 
     try
     {
