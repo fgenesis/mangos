@@ -1280,7 +1280,7 @@ class ObjectMgr
         {
             VehicleSeatDataMap::iterator i = mVehicleSeatData.find(seatid);
             if(i == mVehicleSeatData.end())
-                return NULL;
+                return 0;
             else
                 return i->second;
         }
