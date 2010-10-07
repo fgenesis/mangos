@@ -96,7 +96,7 @@ void NetworkUsageMonitor::CountIncoming(const WorldPacket *pkt, uint32 extra)
 
 void NetworkUsageMonitor::SaveData(void)
 {
-    time_t starttime = sWorld.GetStartTime();
+    uint64 starttime = uint64(sWorld.GetStartTime());
 
     if(sWorld.getConfig(CONFIG_BOOL_NETMON_SAVE_OUTGOING))
     {
