@@ -4220,7 +4220,8 @@ void Aura::HandleModStealth(bool apply, bool Real)
                         target->CastCustomSpell(target,31665,&bp,NULL,NULL,true);
                     }
                     // Overkill
-                    else if ((*i)->GetId() == 58426 && GetSpellProto()->SpellFamilyFlags & UI64LIT(0x0000000000400000))
+                    else if ((*i)->GetId() == 58426 && GetSpellProto()->SpellFamilyFlags & UI64LIT(0x0000000000400800) 
+                        && GetSpellProto()->activeIconID == 30) // FG: little change here
                     {
                         target->CastSpell(target, 58427, true);
                     }
@@ -4259,7 +4260,8 @@ void Aura::HandleModStealth(bool apply, bool Real)
                 if ((*i)->GetSpellProto()->SpellIconID == 2114)
                     target->CastSpell(target, 31666, true);
                 // Overkill
-                else if ((*i)->GetId() == 58426 && GetSpellProto()->SpellFamilyFlags & UI64LIT(0x0000000000400000))
+                else if ((*i)->GetId() == 58426 && GetSpellProto()->SpellFamilyFlags & UI64LIT(0x0000000000400800) 
+                    && GetSpellProto()->activeIconID == 30) // FG: little change here
                 {
                     if (Aura* aura = target->GetAura(58427, EFFECT_INDEX_0))
                     {
