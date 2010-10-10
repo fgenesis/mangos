@@ -442,9 +442,6 @@ class MANGOS_DLL_SPEC WorldSession
 
         void HandleRequestRaidInfoOpcode( WorldPacket & recv_data );
 
-        void HandleBattlefieldStatusOpcode(WorldPacket &recv_data);
-        void HandleBattleMasterHelloOpcode(WorldPacket &recv_data);
-
         void HandleGroupInviteOpcode(WorldPacket& recvPacket);
         void HandleGroupAcceptOpcode(WorldPacket& recvPacket);
         void HandleGroupDeclineOpcode(WorldPacket& recvPacket);
@@ -655,6 +652,7 @@ class MANGOS_DLL_SPEC WorldSession
 
         //Pet
         void HandlePetAction( WorldPacket & recv_data );
+        void HandlePetStopAttack(WorldPacket& recv_data);
         void HandlePetNameQueryOpcode( WorldPacket & recv_data );
         void HandlePetStopAttackOpcode(WorldPacket & recv_data);
         void HandlePetSetAction( WorldPacket & recv_data );
@@ -680,6 +678,7 @@ class MANGOS_DLL_SPEC WorldSession
         void HandleBattlemasterJoinOpcode(WorldPacket &recv_data);
         void HandleBattleGroundPlayerPositionsOpcode(WorldPacket& recv_data);
         void HandlePVPLogDataOpcode( WorldPacket &recv_data );
+        void HandleBattlefieldStatusOpcode(WorldPacket &recv_data);
         void HandleBattleFieldPortOpcode( WorldPacket &recv_data );
         void HandleBattlefieldListOpcode( WorldPacket &recv_data );
         void HandleLeaveBattlefieldOpcode( WorldPacket &recv_data );

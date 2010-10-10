@@ -62,7 +62,7 @@ void WorldSession::HandleCalendarGetCalendar(WorldPacket &/*recv_data*/)
     }
     data.put<uint32>(p_counter,counter);
 
-    data << uint32(INSTANCE_RESET_SCHEDULE_START_TIME + sWorld.getConfig(CONFIG_UINT32_INSTANCE_RESET_TIME_HOUR) * HOUR);
+    data << uint32(/*INSTANCE_RESET_SCHEDULE_START_TIME +*/ sWorld.getConfig(CONFIG_UINT32_INSTANCE_RESET_TIME_HOUR) * HOUR);
     counter = 0;
     p_counter = data.wpos();
     data << uint32(counter);                                // Instance reset intervals
