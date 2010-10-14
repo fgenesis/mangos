@@ -5373,6 +5373,7 @@ void Spell::EffectWeaponDmg(SpellEffectIndex eff_idx)
                 case 66765: case 66809: case 67331:         // Meteor Fists
                 case 67333:                                 // Meteor Fists
                 case 69055:                                 // Bone Slice
+                case 70814:                                 // Bone Slice
                 case 71021:                                 // Saber Lash
                 {
                     uint32 count = 0;
