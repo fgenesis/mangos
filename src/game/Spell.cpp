@@ -4442,7 +4442,7 @@ SpellCastResult Spell::CheckCast(bool strict)
             if(bg->GetStatus() == STATUS_WAIT_LEAVE)
                 return SPELL_FAILED_DONT_REPORT;
 
-    if (m_caster->isInCombat() && IsNonCombatSpell(m_spellInfo) && !m_IsTriggeredSpell)
+    if (m_caster->isInCombat() && IsNonCombatSpell(m_spellInfo) && !m_IsTriggeredSpell && !m_caster->isIgnoreUnitState(m_spellInfo))
         return SPELL_FAILED_AFFECTING_COMBAT;
 
     if (m_caster->GetTypeId() == TYPEID_PLAYER && !((Player*)m_caster)->isGameMaster() &&
@@ -4482,21 +4482,6 @@ SpellCastResult Spell::CheckCast(bool strict)
         }
     }
 
-    // FG: added in ff27a51e308b9be3756024004befbaf66f180066, not sure if this is still needed
-    bool reqCombat=true;
-    Unit::AuraList const& stateAuras = m_caster->GetAurasByType(SPELL_AURA_IGNORE_UNIT_STATE);
-    for (Unit::AuraList::const_iterator j = stateAuras.begin(); j != stateAuras.end(); ++j)
-    {
-        if((*j)->isAffectedOnSpell(m_spellInfo))
-        {
-            if ((*j)->GetMiscValue() == 1)
-            {
-                reqCombat = false;
-                break;
-            }
-        }
-    }
-
     // caster state requirements
     if(m_spellInfo->CasterAuraState && !m_caster->HasAuraState(AuraState(m_spellInfo->CasterAuraState)))
         return SPELL_FAILED_CASTER_AURASTATE;
@@ -4521,10 +4506,6 @@ SpellCastResult Spell::CheckCast(bool strict)
         else if(m_caster->HasAura(m_spellInfo->excludeCasterAuraSpell))
             return SPELL_FAILED_CASTER_AURASTATE;
     }
-    //Check Caster for combat
-    if(m_caster->isInCombat() && IsNonCombatSpell(m_spellInfo) &&
-        !m_IsTriggeredSpell && !m_caster->isIgnoreUnitState(m_spellInfo)) 
-        return SPELL_FAILED_AFFECTING_COMBAT;
 
     // cancel autorepeat spells if cast start when moving
     // (not wand currently autorepeat cast delayed to moving stop anyway in spell update code)
@@ -4749,7 +4730,7 @@ SpellCastResult Spell::CheckCast(bool strict)
         }
 
         // check if target is in combat
-        if (non_caster_target && reqCombat && (m_spellInfo->AttributesEx & SPELL_ATTR_EX_NOT_IN_COMBAT_TARGET) && target->isInCombat())
+        if (non_caster_target && (m_spellInfo->AttributesEx & SPELL_ATTR_EX_NOT_IN_COMBAT_TARGET) && target->isInCombat())
             return SPELL_FAILED_TARGET_AFFECTING_COMBAT;
     }
     // zone check
