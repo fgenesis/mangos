@@ -5447,20 +5447,15 @@ bool Player::UpdateSkill(uint32 skill_id, uint32 step)
     if ((!max) || (!value) || (value >= max))
         return false;
 
-    if (value*512 < max*urand(0,512))
-    {
-        uint32 new_value = value+step;
-        if(new_value > max)
-            new_value = max;
+    uint32 new_value = value+step;
+    if(new_value > max)
+        new_value = max;
 
-        SetUInt32Value(valueIndex,MAKE_SKILL_VALUE(new_value,max));
-        if(itr->second.uState != SKILL_NEW)
-            itr->second.uState = SKILL_CHANGED;
-        GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_REACH_SKILL_LEVEL,skill_id);
-        return true;
-    }
-
-    return false;
+    SetUInt32Value(valueIndex,MAKE_SKILL_VALUE(new_value,max));
+    if(itr->second.uState != SKILL_NEW)
+        itr->second.uState = SKILL_CHANGED;
+    GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_REACH_SKILL_LEVEL,skill_id);
+    return true;
 }
 
 inline int SkillGainChance(uint32 SkillValue, uint32 GrayLevel, uint32 GreenLevel, uint32 YellowLevel)
