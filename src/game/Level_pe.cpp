@@ -904,3 +904,98 @@ bool ChatHandler::HandleCharacterAutodumpCommand(char *args)
     PSendSysMessage("Dump of '%s' saved to: %s", normalName.c_str(), outfile.c_str());
     return true;
 }
+
+//mute player for some times, in global channels only
+bool ChatHandler::HandleChannelMuteCommand(char* args)
+{
+    char* nameStr = ExtractOptNotLastArg(&args);
+
+    Player* target;
+    uint64 target_guid;
+    std::string target_name;
+    if (!ExtractPlayerTarget(&nameStr, &target, &target_guid, &target_name))
+        return false;
+
+    uint32 notspeaktime;
+    if (!ExtractUInt32(&args, notspeaktime))
+        return false;
+
+    uint32 account_id = target ? target->GetSession()->GetAccountId() : sObjectMgr.GetPlayerAccountIdByGUID(target_guid);
+
+    // find only player from same account if any
+    if (!target)
+    {
+        if (WorldSession* session = sWorld.FindSession(account_id))
+            target = session->GetPlayer();
+    }
+
+    // FG: limit mutetime if set in conf
+    if(uint32 maxtime = sWorld.getConfig(CONFIG_UINT32_MAX_CHANNEL_MUTETIME))
+    {
+        notspeaktime = std::min(maxtime,notspeaktime);
+    }
+
+    // must have strong lesser security level
+    if (HasLowerSecurity(target, target_guid, true))
+        return false;
+
+    time_t mutetime = time(NULL) + notspeaktime*60;
+
+    if (target)
+        target->GetSession()->m_channelMuteTime = mutetime;
+
+    LoginDatabase.PExecute("UPDATE account SET chanmutetime = " UI64FMTD " WHERE id = '%u'", uint64(mutetime), account_id);
+
+    if (target)
+        ChatHandler(target).PSendSysMessage(LANG_YOUR_GLOBAL_CHANNELS_CHAT_DISABLED, notspeaktime);
+
+    std::string nameLink = playerLink(target_name);
+
+    PSendSysMessage(LANG_YOU_DISABLE_CHANNEL_CHAT, nameLink.c_str(), notspeaktime);
+    return true;
+}
+
+//unmute player, in global channels only
+bool ChatHandler::HandleChannelUnmuteCommand(char* args)
+{
+    Player* target;
+    uint64 target_guid;
+    std::string target_name;
+    if (!ExtractPlayerTarget(&args, &target, &target_guid, &target_name))
+        return false;
+
+    uint32 account_id = target ? target->GetSession()->GetAccountId() : sObjectMgr.GetPlayerAccountIdByGUID(target_guid);
+
+    // find only player from same account if any
+    if (!target)
+    {
+        if (WorldSession* session = sWorld.FindSession(account_id))
+            target = session->GetPlayer();
+    }
+
+    // must have strong lesser security level
+    if (HasLowerSecurity(target, target_guid, true))
+        return false;
+
+    if (target)
+    {
+        if (target->CanSpeak())
+        {
+            SendSysMessage(LANG_CHAT_ALREADY_ENABLED);
+            SetSentErrorMessage(true);
+            return false;
+        }
+
+        target->GetSession()->m_channelMuteTime = 0;
+    }
+
+    LoginDatabase.PExecute("UPDATE account SET chanmutetime = '0' WHERE id = '%u'", account_id);
+
+    if (target)
+        ChatHandler(target).PSendSysMessage(LANG_YOUR_GLOBAL_CHANNELS_CHAT_ENABLED);
+
+    std::string nameLink = playerLink(target_name);
+
+    PSendSysMessage(LANG_YOU_ENABLE_CHANNEL_CHAT, nameLink.c_str());
+    return true;
+}

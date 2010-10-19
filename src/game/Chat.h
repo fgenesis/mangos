@@ -607,7 +607,8 @@ class ChatHandler
         bool HandleGMHaxCommand(char *args);
         bool HandleBanAutoCommand(char *args);
         bool HandleCharacterAutodumpCommand(char *args);
-        
+        bool HandleChannelMuteCommand(char *args);
+        bool HandleChannelUnmuteCommand(char *args);
         // end PE commands
 
         Player*   getSelectedPlayer();

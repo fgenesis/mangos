@@ -22,6 +22,7 @@
 #include "ArenaTeam.h"
 #include "World.h"
 #include "Player.h"
+#include "Language.h"
 
 void ArenaTeamMember::ModifyPersonalRating(Player* plr, int32 mod, uint32 slot)
 {
@@ -691,7 +692,7 @@ void ArenaTeam::MemberWon(Player * plr, uint32 againstRating)
 
                 if(pp->GetSession()->GetIP() == plr->GetSession()->GetIP() && pp->IsHostileTo(plr))
                 {
-                    ChatHandler(plr).PSendSysMessage(11110, pp->GetName());
+                    ChatHandler(plr).PSendSysMessage(LANG_ARENA_SAME_IP_NO_REWARD, pp->GetName());
                     return;
                 }
             }

@@ -494,7 +494,17 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recv_data )
 
             if(ChannelMgr* cMgr = channelMgr(_player->GetTeam()))
                 if(Channel *chn = cMgr->GetChannel(channel, _player))
+                {
+                    // FG: check for channel mute addition
+                    if((chn->IsGeneral() || chn->IsSpecial()) && !_player->CanSpeakInGlobalChannel())
+                    {
+                        std::string timeStr = secsToTimeString(m_channelMuteTime - time(NULL));
+                        SendNotification(GetMangosString(LANG_WAIT_BEFORE_SPEAKING_IN_CHANNEL), timeStr.c_str());
+                        return;
+                    }
+
                     chn->Say(_player->GetGUID(), msg.c_str(), lang);
+                }
         } break;
 
         case CHAT_MSG_AFK:

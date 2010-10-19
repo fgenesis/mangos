@@ -148,6 +148,13 @@ ChatCommand * ChatHandler::getCommandTable()
         { NULL,             0,                  false, NULL,                                           "", NULL }
     };
 
+    static ChatCommand channelCommandTable[] =
+    {
+        { "mute",           SEC_GAMEMASTER,     false, &ChatHandler::HandleChannelMuteCommand,         "", NULL },
+        { "unmute",         SEC_GAMEMASTER,     false, &ChatHandler::HandleChannelUnmuteCommand,       "", NULL },
+        { NULL,             0,                  false, NULL,                                           "", NULL }
+    };
+
     static ChatCommand characterDeletedCommandTable[] =
     {
         { "delete",         SEC_CONSOLE,        true,  &ChatHandler::HandleCharacterDeletedDeleteCommand, "", NULL },
@@ -816,6 +823,7 @@ ChatCommand * ChatHandler::getCommandTable()
         //{ "anticheat", SEC_ADMINISTRATOR, NULL, "", anticheatCommandTable },
         { "xpmulti", SEC_ADMINISTRATOR,false, NULL, "", xpmultiCommandTable },
         { "helpme", SEC_PLAYER, false, &ChatHandler::HandleHelpmeCommand, "", NULL },
+        { "channel", SEC_GAMEMASTER, false, NULL, "", channelCommandTable },
 
 
         // alternative defs

@@ -22,7 +22,7 @@
 #include "SocialMgr.h"
 
 Channel::Channel(const std::string& name, uint32 channel_id)
-: m_announce(true), m_moderate(false), m_name(name), m_flags(0), m_channelId(channel_id), m_ownerGUID(0), m_unowned(false)
+: m_announce(true), m_moderate(false), m_name(name), m_flags(0), m_channelId(channel_id), m_ownerGUID(0), m_unowned(false), m_special(false)
 {
     // set special flags if built-in channel
     ChatChannelsEntry const* ch = GetChannelEntryFor(channel_id);
@@ -58,6 +58,7 @@ Channel::Channel(const std::string& name, uint32 channel_id)
         m_announce = !spch.no_notify;
         m_unowned = spch.unowned;
         m_flags = CHANNEL_FLAG_CUSTOM; // its a custom channel anyway; no additional flags needed
+        m_special = true;
     }
 }
 

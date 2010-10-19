@@ -17624,6 +17624,11 @@ bool Player::CanSpeak() const
     return  GetSession()->m_muteTime <= time (NULL);
 }
 
+bool Player::CanSpeakInGlobalChannel() const
+{
+    return  GetSession()->m_channelMuteTime <= time (NULL);
+}
+
 /*********************************************************/
 /***              LOW LEVEL FUNCTIONS:Notifiers        ***/
 /*********************************************************/

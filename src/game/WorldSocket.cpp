@@ -811,7 +811,8 @@ int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
                                 "s, "                       //6
                                 "expansion, "               //7
                                 "mutetime, "                //8
-                                "locale "                   //9
+                                "locale, "                  //9
+                                "chanmutetime "             //10 // FG: addition
                                 "FROM account "
                                 "WHERE username = '%s'",
                                 safe_account.c_str ());
@@ -887,6 +888,7 @@ int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
     K.SetHexStr (fields[2].GetString ());
 
     time_t mutetime = time_t (fields[8].GetUInt64 ());
+    time_t chanmutetime = time_t(fields[10].GetUInt64());
 
     locale = LocaleConstant (fields[9].GetUInt8 ());
     if (locale >= MAX_LOCALE)
@@ -968,7 +970,7 @@ int WorldSocket::HandleAuthSession (WorldPacket& recvPacket)
                             safe_account.c_str ());
 
     // NOTE ATM the socket is single-threaded, have this in mind ...
-    ACE_NEW_RETURN (m_Session, WorldSession (id, this, AccountTypes(security), expansion, mutetime, locale), -1);
+    ACE_NEW_RETURN (m_Session, WorldSession (id, this, AccountTypes(security), expansion, mutetime, chanmutetime, locale), -1);
 
     m_Crypt.Init(&K);
 

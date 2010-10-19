@@ -159,6 +159,7 @@ class Channel
 
     // FG: extra vars
     bool m_unowned;
+    bool m_special;
 
     private:
         // initial packet data (notify type and channel name)
@@ -256,6 +257,8 @@ class Channel
         uint32 GetNumPlayers() const { return players.size(); }
         uint8 GetFlags() const { return m_flags; }
         bool HasFlag(uint8 flag) { return m_flags & flag; }
+        bool IsSpecial(void) { return m_special; } // FG: addition
+        bool IsGeneral(void) { return HasFlag(CHANNEL_FLAG_GENERAL); }
 
         void Join(uint64 p, const char *pass);
         void Leave(uint64 p, bool send = true);

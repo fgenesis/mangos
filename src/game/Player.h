@@ -2230,6 +2230,7 @@ class MANGOS_DLL_SPEC Player : public Unit
 
         void UpdateSpeakTime();
         bool CanSpeak() const;
+        bool CanSpeakInGlobalChannel() const;
         void ChangeSpeakTime(int utime);
 
         /*********************************************************/
