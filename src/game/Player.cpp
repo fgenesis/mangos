@@ -13535,6 +13535,17 @@ bool Player::CanCompleteQuest( uint32 quest_id ) const
     if (!qInfo)
         return false;
 
+    // only used for "flag" quests and not real in-game quests
+    if (qInfo->HasFlag(QUEST_FLAGS_AUTO_REWARDED))
+    {
+        // a few checks, not all "satisfy" is needed
+        if (SatisfyQuestPreviousQuest(qInfo, false) && SatisfyQuestLevel(qInfo, false) &&
+            SatisfyQuestSkillOrClass(qInfo, false) && SatisfyQuestRace(qInfo, false))
+            return true;
+
+        return false;
+    }
+
     // auto complete quest
     if (qInfo->IsAutoComplete() && CanTakeQuest(qInfo, false))
         return true;
