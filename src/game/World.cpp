@@ -66,6 +66,7 @@
 #include "VirtualPlayerMgr.h"
 #include "Language.h"
 #include "NetworkUsageMonitor.h"
+#include "PunishMgr.h"
 
 
 INSTANTIATE_SINGLETON_1( World );
@@ -1436,6 +1437,7 @@ void World::SetInitialWorldSettings()
 
     sObjectMgr.LoadSpecialChannels();
     sObjectMgr.LoadAllowedGMAccounts();
+    sPunishMgr.Load();
 
     m_timers[WUPDATE_NETMON].SetInterval(getConfig(CONFIG_UINT32_NETMON_SAVE_INTERVAL) * IN_MILLISECONDS);
     // FG: -end-

@@ -1651,6 +1651,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\game\PunishMgr.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\game\PunishMgr.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\game\VirtualPlayerMgr.cpp"
 				>
 			</File>

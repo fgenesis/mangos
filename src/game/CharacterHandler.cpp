@@ -42,6 +42,7 @@
 #include "Chat.h"
 #include "VirtualPlayerMgr.h"
 #include "ChannelMgr.h"
+#include "PunishMgr.h"
 
 // config option SkipCinematics supported values
 enum CinematicsSkipMode
@@ -844,6 +845,15 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder *holder)
     sprintf(xpms,"|cff00FF00* Type |cff08D6CE.xpmulti kill|cff00FF00 or|cff08D6CE .xpmulti quest|cff00FF00 and a number to set your XP multi.");
     ChatHandler(this).FillSystemMessageData(&data, xpms);
     SendPacket( &data );
+
+    // FG: notify about current "bad points" status
+    // TODO: cache this somewhere; not good waiting for DB while logging in
+    if(uint32 badpoints = GetBadPointsFromDB())
+    {
+        float perc = ((float)badpoints / (float)sPunishMgr.GetMaxPoints()) * 100.0f;
+        ChatHandler(this).PSendSysMessage(LANG_BADPOINTS_INFO, badpoints, sPunishMgr.GetMaxPoints(), perc);
+    }
+    
 
 
     std::string IP_str = GetRemoteAddress();

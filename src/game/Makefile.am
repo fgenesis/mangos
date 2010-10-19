@@ -306,7 +306,9 @@ libmangosgame_a_SOURCES = \
 	VirtualPlayerMgr.cpp \
 	VirtualPlayerMgr.h \
 	NetworkUsageMonitor.cpp \
-	NetworkUsageMonitor.h
+	NetworkUsageMonitor.h \
+	PunishMgr.cpp \
+	PunishMgr.h
 
 ## Additional files to include when running 'make dist'
 #  Precompiled Headers for WIN

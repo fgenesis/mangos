@@ -912,3 +912,21 @@ void WorldSession::ExecuteOpcode( OpcodeHandler const& opHandle, WorldPacket* pa
     if (packet->rpos() < packet->wpos() && sLog.HasLogLevelOrHigher(LOG_LVL_DEBUG))
         LogUnprocessedTail(packet);
 }
+
+// FG: bad points system
+uint32 WorldSession::GetBadPointsFromDB(void)
+{
+    return GetBadPointsFromDB(GetAccountId());
+}
+
+uint32 WorldSession::GetBadPointsFromDB(uint32 id)
+{
+    QueryResult *result = LoginDatabase.PQuery("SELECT curpts FROM account_badpoints WHERE id=%u", id);
+    if(!result)
+        return 0;
+
+    Field *field = result->Fetch();
+    uint32 pts = field[0].GetUInt32();
+    delete result;
+    return pts;
+}

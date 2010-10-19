@@ -29,6 +29,7 @@
 #include "VirtualPlayerMgr.h"
 #include "AuctionHouseMgr.h"
 #include "ChannelMgr.h"
+#include "PunishMgr.h"
 
 
 bool ChatHandler::UnlockMove(char* args)
@@ -427,6 +428,7 @@ bool ChatHandler::HandleReloadPECommand(char *args)
     sVPlayerMgr.Reload();
     sObjectMgr.LoadSpecialChannels();
     sObjectMgr.LoadAllowedGMAccounts();
+    sPunishMgr.Load();
 
     return true;
 }
@@ -997,5 +999,67 @@ bool ChatHandler::HandleChannelUnmuteCommand(char* args)
     std::string nameLink = playerLink(target_name);
 
     PSendSysMessage(LANG_YOU_ENABLE_CHANNEL_CHAT, nameLink.c_str());
+    return true;
+}
+
+bool ChatHandler::HandlePunishCommand(char *args)
+{
+    Player *plr = NULL;
+    std::string pname;
+    uint64 plr_guid = 0;
+    uint32 accid = 0;
+    if(!ExtractPlayerTarget(&args, &plr, NULL, &pname))
+        return false;
+
+    if(plr)
+        accid = plr->GetSession()->GetAccountId();
+    else
+    {
+        std::string pname_esc(pname);
+        CharacterDatabase.escape_string(pname_esc);
+        QueryResult *result = CharacterDatabase.PQuery("SELECT account FROM characters WHERE name = '%s'", pname_esc.c_str());
+        if(!result)
+        {
+            SendSysMessage(LANG_PLAYER_NOT_FOUND);
+            SetSentErrorMessage(true);
+            return false;
+        }
+        Field *fields = result->Fetch();
+        accid = fields[0].GetUInt32();
+        delete result;
+    }
+
+    // extra check, not sure if really necessary, but we better be on the safe side!
+    if(!accid)
+    {
+        SendSysMessage(LANG_PLAYER_NOT_FOUND);
+        SetSentErrorMessage(true);
+        return false;
+    }
+
+    // find only player from same account if any
+    if (!plr)
+    {
+        if (WorldSession* session = sWorld.FindSession(accid))
+        {
+            plr = session->GetPlayer();
+            pname = plr->GetName();
+        }
+    }
+
+    char *what = ExtractArg(&args);
+    char *reason = ExtractArg(&args);
+
+    std::string strWhat(what ? what : "");
+
+    bool handled = sPunishMgr.Handle(accid, plr, m_session->GetPlayer(), pname, strWhat, reason ? reason : GetMangosString(LANG_NO_REASON_GIVEN));
+
+    if(!handled)
+    {
+        PSendSysMessage(LANG_NO_RECORD_IN_DB, strWhat.c_str());
+        SetSentErrorMessage(true);
+        return false;
+    }
+
     return true;
 }

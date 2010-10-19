@@ -609,48 +609,57 @@ class ChatHandler
         bool HandleCharacterAutodumpCommand(char *args);
         bool HandleChannelMuteCommand(char *args);
         bool HandleChannelUnmuteCommand(char *args);
+        bool HandlePunishCommand(char *args);
         // end PE commands
 
         Player*   getSelectedPlayer();
         Creature* getSelectedCreature();
         Unit*     getSelectedUnit();
 
-        // extraction different type params from args string, all functions update (char** args) to first unparsed tail symbol at return
-        void  SkipWhiteSpaces(char** args);
-        bool  ExtractInt32(char** args, int32& val);
-        bool  ExtractOptInt32(char** args, int32& val, int32 defVal);
-        bool  ExtractUInt32Base(char** args, uint32& val, uint32 base);
-        bool  ExtractUInt32(char** args, uint32& val) { return ExtractUInt32Base(args,val, 10); }
-        bool  ExtractOptUInt32(char** args, uint32& val, uint32 defVal);
-        bool  ExtractFloat(char** args, float& val);
-        bool  ExtractOptFloat(char** args, float& val, float defVal);
-        char* ExtractQuotedArg(char** args, bool asis = false);
-                                                            // string with " or [] or ' around
-        char* ExtractLiteralArg(char** args, char const* lit = NULL);
-                                                            // literal string (until whitespace and not started from "['|), any or 'lit' if provided
-        char* ExtractQuotedOrLiteralArg(char** args, bool asis = false);
-        bool  ExtractOnOff(char** args, bool& value);
-        char* ExtractLinkArg(char** args, char const* const* linkTypes = NULL, int* foundIdx = NULL, char** keyPair = NULL, char** somethingPair = NULL);
-                                                            // shift-link like arg (with aditional info if need)
-        char* ExtractArg(char** args, bool asis = false);   // any name/number/quote/shift-link strings
-        char* ExtractOptNotLastArg(char** args);            // extract name/number/quote/shift-link arg only if more data in args for parse
+        // FG: changed to public, and static
+    public:
 
-        char* ExtractKeyFromLink(char** text, char const* linkType, char** something1 = NULL);
-        char* ExtractKeyFromLink(char** text, char const* const* linkTypes, int* found_idx = NULL, char** something1 = NULL);
-        bool  ExtractUint32KeyFromLink(char** text, char const* linkType, uint32& value);
+        // extraction different type params from args string, all functions update (char** args) to first unparsed tail symbol at return
+        static void  SkipWhiteSpaces(char** args);
+        static bool  ExtractInt32(char** args, int32& val);
+        static bool  ExtractOptInt32(char** args, int32& val, int32 defVal);
+        static bool  ExtractUInt32Base(char** args, uint32& val, uint32 base);
+        static bool  ExtractUInt32(char** args, uint32& val) { return ExtractUInt32Base(args,val, 10); }
+        static bool  ExtractOptUInt32(char** args, uint32& val, uint32 defVal);
+        static bool  ExtractFloat(char** args, float& val);
+        static bool  ExtractOptFloat(char** args, float& val, float defVal);
+        static char* ExtractQuotedArg(char** args, bool asis = false);
+                                                            // string with " or [] or ' around
+        static char* ExtractLiteralArg(char** args, char const* lit = NULL);
+                                                            // literal string (until whitespace and not started from "['|), any or 'lit' if provided
+        static char* ExtractQuotedOrLiteralArg(char** args, bool asis = false);
+        static bool  ExtractOnOff(char** args, bool& value);
+        static char* ExtractLinkArg(char** args, char const* const* linkTypes = NULL, int* foundIdx = NULL, char** keyPair = NULL, char** somethingPair = NULL);
+                                                            // shift-link like arg (with aditional info if need)
+        static char* ExtractArg(char** args, bool asis = false);   // any name/number/quote/shift-link strings
+        static char* ExtractOptNotLastArg(char** args);            // extract name/number/quote/shift-link arg only if more data in args for parse
+
+        static char* ExtractKeyFromLink(char** text, char const* linkType, char** something1 = NULL);
+        static char* ExtractKeyFromLink(char** text, char const* const* linkTypes, int* found_idx = NULL, char** something1 = NULL);
+        static bool  ExtractUint32KeyFromLink(char** text, char const* linkType, uint32& value);
+
+        static uint32 ExtractSpellIdFromLink(char** text);
+        static ObjectGuid ExtractGuidFromLink(char** text);
+        static GameTele const* ExtractGameTeleFromLink(char** text);
+        static std::string ExtractPlayerNameFromLink(char** text);
+        
+
+    protected:
 
         uint32 ExtractAccountId(char** args, std::string* accountName = NULL, Player** targetIfNullArg = NULL);
-        uint32 ExtractSpellIdFromLink(char** text);
-        ObjectGuid ExtractGuidFromLink(char** text);
-        GameTele const* ExtractGameTeleFromLink(char** text);
         bool   ExtractLocationFromLink(char** text, uint32& mapid, float& x, float& y, float& z);
-        std::string ExtractPlayerNameFromLink(char** text);
         bool ExtractPlayerTarget(char** args, Player** player, uint64* player_guid = NULL, std::string* player_name = NULL);
                                                             // select by arg (name/link) or in-game selection online/offline player
 
         std::string playerLink(std::string const& name) const { return m_session ? "|cffffffff|Hplayer:"+name+"|h["+name+"]|h|r" : name; }
         std::string GetNameLink(Player* chr) const;
-
+        
+        
         GameObject* GetObjectGlobalyWithGuidOrNearWithDbGuid(uint32 lowguid,uint32 entry);
 
         // Utility methods for commands

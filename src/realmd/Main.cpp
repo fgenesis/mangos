@@ -243,6 +243,13 @@ extern int main(int argc, char **argv)
         return 1;
     }
 
+    // FG: "bad points" system related
+    uint32 badPointsDropInterval = sConfig.GetIntDefault("BadPoints.DropInterval", HOUR);
+    uint32 badPointsDropAmount = sConfig.GetIntDefault("BadPoints.DropAmount", 1);
+    uint32 badPointsDropWaitTime = sConfig.GetIntDefault("BadPoints.WaitTime", WEEK); 
+    IntervalTimer badPointsTimer;
+    badPointsTimer.SetInterval(badPointsDropInterval * IN_MILLISECONDS);
+
     ///- Catch termination signals
     HookSignals();
 
@@ -295,6 +302,8 @@ extern int main(int argc, char **argv)
 
     uint32 last_ping_time = 0;
     uint32 now = getMSTime();
+    uint32 diff;
+    uint32 lasttime = now;
     uint32 last_ipprops_cleanup = 0;
 
     ///- Wait for termination signal
@@ -307,6 +316,10 @@ extern int main(int argc, char **argv)
             break;
 
         now = getMSTime();
+        diff = getMSTimeDiff(lasttime, now);
+        lasttime = now;
+
+        badPointsTimer.Update(diff);
 
         if( (++loopCounter) == numLoops )
         {
@@ -334,6 +347,19 @@ extern int main(int argc, char **argv)
             CleanupIPPropmap(flushed, blocked, stored);
             sLog.outDetail("IPProp: Flushed %u total, %u of them blocked, now %u stored", flushed, blocked, stored);
         }
+
+        // FG: handle "bad points" drop
+        if(badPointsTimer.Passed())
+        {
+            badPointsTimer.Reset();
+            uint64 goodtime = uint64(time(NULL)) - badPointsDropWaitTime;
+            LoginDatabase.Execute("UPDATE account_badpoints SET maxpts = curpts WHERE maxpts < curpts");
+            LoginDatabase.PExecute("UPDATE account_badpoints SET curpts = 0 WHERE curpts <= %u AND lasttime < "UI64FMTD,
+                badPointsDropAmount, goodtime);
+            LoginDatabase.PExecute("UPDATE account_badpoints SET curpts = curpts - %u WHERE curpts > %u AND lasttime < "UI64FMTD,
+                badPointsDropAmount, badPointsDropAmount, goodtime);
+        }
+
 
 #ifdef WIN32
         if (m_ServiceStatus == 0) stopEvent = true;

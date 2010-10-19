@@ -824,6 +824,7 @@ ChatCommand * ChatHandler::getCommandTable()
         { "xpmulti", SEC_ADMINISTRATOR,false, NULL, "", xpmultiCommandTable },
         { "helpme", SEC_PLAYER, false, &ChatHandler::HandleHelpmeCommand, "", NULL },
         { "channel", SEC_GAMEMASTER, false, NULL, "", channelCommandTable },
+        { "punish", SEC_GAMEMASTER, false, &ChatHandler::HandlePunishCommand, "", NULL },
 
 
         // alternative defs

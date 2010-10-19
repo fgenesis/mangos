@@ -314,6 +314,9 @@ class MANGOS_DLL_SPEC WorldSession
         void SetLatency(uint32 latency) { m_latency = latency; }
         uint32 getDialogStatus(Player *pPlayer, Object* questgiver, uint32 defstatus);
 
+        // FG: addition
+        uint32 GetBadPointsFromDB(void);
+        static uint32 GetBadPointsFromDB(uint32 id);
     public:                                                 // opcodes handlers
 
         void Handle_NULL(WorldPacket& recvPacket);          // not used
