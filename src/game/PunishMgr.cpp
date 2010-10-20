@@ -1,9 +1,11 @@
 #include "Policies/SingletonImp.h"
 #include "Database/DatabaseEnv.h"
 #include "Log.h"
+#include "Util.h"
 #include "SharedDefines.h"
 #include "Language.h"
 #include "ProgressBar.h"
+#include "Player.h"
 #include "World.h"
 #include "WorldSession.h"
 #include "Chat.h"
@@ -305,8 +307,7 @@ void PunishMgr::_HandleNotify(Player *pl, ValueState *state, const char *arg)
     if(!pl)
         return;
 
-    ChatHandler& ch = ChatHandler(pl);
-    ch.SendSysMessage(arg);
+    ChatHandler(pl).SendSysMessage(arg);
     pl->GetSession()->SendNotification(arg);
 }
 
@@ -329,7 +330,7 @@ void PunishMgr::_HandleBan(Player *pl, ValueState *state, const char *arg)
     if(duration_secs >= 0)
         duration_secs = TimeStringToSecs(duration);
 
-    // if already perm banned, no nothing anymore
+    // if already perm banned, do nothing anymore
     if(duration_secs >= 0 && state->banTime >= 0)
     {
         if(duration_secs > state->banTime)
