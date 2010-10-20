@@ -2574,6 +2574,9 @@ bool ChatHandler::HandlePInfoCommand(char* args)
         }
     }
 
+    // FG: get bad points
+    uint32 badpoints = WorldSession::GetBadPointsFromDB(accId);
+
     std::string username = GetMangosString(LANG_ERROR);
     std::string last_ip = GetMangosString(LANG_ERROR);
     AccountTypes security = SEC_PLAYER;
@@ -2612,6 +2615,8 @@ bool ChatHandler::HandlePInfoCommand(char* args)
     uint32 silv = (money % GOLD) / SILVER;
     uint32 copp = (money % GOLD) % SILVER;
     PSendSysMessage(LANG_PINFO_LEVEL,  timeStr.c_str(), level, gold,silv,copp);
+    if(badpoints)
+        PSendSysMessage(LANG_BADPOINTS_PINFO, badpoints);
     PSendSysMessage("[[ %s ]]", ss_ch.str().c_str());
 
     return true;

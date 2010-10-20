@@ -49,6 +49,7 @@ private:
     void _Clear(void);
     bool _Valid(const char *s);
     void _SendPointsInfo(Player *who, uint32 pts);
+    void _SendPunishResult(Player *pSource, std::string& name, ValueState& state, std::string& what);
     PunishActionMap _actions;
     PunishTriggerMap _triggers;
     InternalHandlerMap _handlers;

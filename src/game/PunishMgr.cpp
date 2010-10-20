@@ -239,7 +239,7 @@ bool PunishMgr::Handle(uint32 accid, Player *who, Player *pSource, std::string p
         if (who)
         {
             who->GetSession()->m_channelMuteTime = mutetime;
-            ChatHandler(who).PSendSysMessage(LANG_YOUR_GLOBAL_CHANNELS_CHAT_DISABLED, state.allMuteTime / 60);
+            ChatHandler(who).PSendSysMessage(LANG_YOUR_CHAT_DISABLED, state.allMuteTime / 60);
         }
     }
 
@@ -269,8 +269,17 @@ bool PunishMgr::Handle(uint32 accid, Player *who, Player *pSource, std::string p
         }
     }
 
+    _SendPunishResult(pSource, playername, state, what);
+
 
     return true;
+}
+
+void PunishMgr::_SendPunishResult(Player *pSource, std::string& name, ValueState& state, std::string& what)
+{
+    float perc = ((float)state.badpoints / (float)GetMaxPoints()) * 100.0f;
+    ChatHandler(pSource).PSendSysMessage(LANG_PUNISH_RESULT,
+        name.c_str(), what.c_str(), state.badpoints, GetMaxPoints(), perc);
 }
 
 void PunishMgr::_HandleChannelMute(Player *pl, ValueState *state, const char *arg)
