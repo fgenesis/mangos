@@ -19,3 +19,5 @@ INSERT INTO `mangos_string` VALUES ('11115', 'Your |cffFF0000bad points|r score 
 INSERT INTO `mangos_string` VALUES ('11116', '|cffFF7005You currently have |cffFF0000%u of %u bad points|cffFF7005. You lose points over time, even while offline, after not violating any rules for some time. Stick to the rules, please!', null, null, null, null, null, null, null, null);
 INSERT INTO `mangos_string` VALUES ('11117', '\'%s\' has no record in database', null, null, null, null, null, null, null, null);
 INSERT INTO `mangos_string` VALUES ('11118', '<no extra reason given>', null, null, null, null, null, null, null, null);
+INSERT INTO `mangos_string` VALUES ('11119', 'You punished %s for \'%s\'; has now %u of %u points (%.1f %%).', null, null, null, null, null, null, null, null);
+INSERT INTO `mangos_string` VALUES ('11120', '|cffFF7005Penalty Points: %u|r', null, null, null, null, null, null, null, null);
