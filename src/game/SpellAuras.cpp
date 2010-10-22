@@ -8446,7 +8446,7 @@ void SpellAuraHolder::_RemoveSpellAuraHolder()
     SetAuraLevel(0);
     SetVisibleAura(true);
 
-    if (m_removeMode != AURA_REMOVE_BY_DELETE && m_removeMode != AURA_REMOVE_BY_STACK)
+    if (m_removeMode != AURA_REMOVE_BY_DELETE)
     {
         SendAuraUpdate(true);
 
