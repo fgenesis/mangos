@@ -352,12 +352,15 @@ extern int main(int argc, char **argv)
         if(badPointsTimer.Passed())
         {
             badPointsTimer.Reset();
-            uint64 goodtime = uint64(time(NULL)) - badPointsDropWaitTime;
-            LoginDatabase.Execute("UPDATE account_badpoints SET maxpts = curpts WHERE maxpts < curpts");
-            LoginDatabase.PExecute("UPDATE account_badpoints SET curpts = 0 WHERE curpts <= %u AND lasttime < "UI64FMTD,
-                badPointsDropAmount, goodtime);
-            LoginDatabase.PExecute("UPDATE account_badpoints SET curpts = curpts - %u WHERE curpts > %u AND lasttime < "UI64FMTD,
-                badPointsDropAmount, badPointsDropAmount, goodtime);
+            if(badPointsDropAmount)
+            {
+                uint64 goodtime = uint64(time(NULL)) - badPointsDropWaitTime;
+                LoginDatabase.Execute("UPDATE account_badpoints SET maxpts = curpts WHERE maxpts < curpts");
+                LoginDatabase.PExecute("UPDATE account_badpoints SET curpts = 0 WHERE curpts <= %u AND lasttime < "UI64FMTD,
+                    badPointsDropAmount, goodtime);
+                LoginDatabase.PExecute("UPDATE account_badpoints SET curpts = curpts - %u WHERE curpts > %u AND lasttime < "UI64FMTD,
+                    badPointsDropAmount, badPointsDropAmount, goodtime);
+            }
         }
 
 
