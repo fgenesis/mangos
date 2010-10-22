@@ -975,10 +975,6 @@ bool ChatHandler::HandleChannelUnmuteCommand(char* args)
             target = session->GetPlayer();
     }
 
-    // must have strong lesser security level
-    if (HasLowerSecurity(target, target_guid, true))
-        return false;
-
     if (target)
     {
         if (target->CanSpeak())
