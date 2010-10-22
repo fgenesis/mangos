@@ -96,7 +96,7 @@ void WorldSession::SendPacket(WorldPacket const* packet)
     if (!m_Socket)
         return;
 
-    #ifdef MANGOS_DEBUG
+    /*#ifdef MANGOS_DEBUG
 
     // Code for network use statistic
     static uint64 sendPacketCount = 0;
@@ -131,6 +131,7 @@ void WorldSession::SendPacket(WorldPacket const* packet)
     }
 
     #endif                                                  // !MANGOS_DEBUG
+    */
 
     if (m_Socket->SendPacket (*packet) == -1)
         m_Socket->CloseSocket ();
