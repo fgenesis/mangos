@@ -101,8 +101,9 @@ void instance_azjol_nerub::OnCreatureEnterCombat(Creature* pCreature)
     uint32 uiEntry = pCreature->GetEntry();
     if (uiEntry == NPC_GASHRA || uiEntry == NPC_NARJIL || uiEntry == NPC_SILTHIK)
     {
-        if (!m_uiPlayerGUID)
-            m_uiPlayerGUID = pCreature->getVictim()->GetCharmerOrOwnerPlayerOrPlayerItself()->GetGUID();
+        Unit *victim = pCreature->getVictim();
+        if (!m_uiPlayerGUID && victim)
+            m_uiPlayerGUID = victim->GetCharmerOrOwnerPlayerOrPlayerItself()->GetGUID();
     }
 }
 
