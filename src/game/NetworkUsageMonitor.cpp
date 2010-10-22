@@ -50,7 +50,7 @@ void NetworkUsageMonitor::CountOutgoing(const WorldPacket *pkt, uint32 extra)
     ++_packetsOut[opcode];
     _bytesOut[opcode] += bytes;
 
-    time_t curtime = time(NULL);
+    /*time_t curtime = time(NULL);
 
     if((curtime - _lasttimeOut) < 60)
     {
@@ -62,7 +62,7 @@ void NetworkUsageMonitor::CountOutgoing(const WorldPacket *pkt, uint32 extra)
         _lasttimeOut = curtime;
         _lastminPktOut = 1;
         _lastminBytesOut = bytes;
-    }
+    }*/
 }
 
 void NetworkUsageMonitor::CountIncoming(const WorldPacket *pkt, uint32 extra)
@@ -79,7 +79,7 @@ void NetworkUsageMonitor::CountIncoming(const WorldPacket *pkt, uint32 extra)
     ++_packetsIn[opcode];
     _bytesIn[opcode] += bytes;
 
-    time_t curtime = time(NULL);
+    /*time_t curtime = time(NULL);
 
     if((curtime - _lasttimeIn) < 60)
     {
@@ -91,7 +91,7 @@ void NetworkUsageMonitor::CountIncoming(const WorldPacket *pkt, uint32 extra)
         _lasttimeIn = curtime;
         _lastminPktOut = 1;
         _lastminBytesOut = bytes;
-    }
+    }*/
 }
 
 void NetworkUsageMonitor::SaveData(void)
