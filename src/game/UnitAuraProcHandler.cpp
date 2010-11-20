@@ -967,6 +967,14 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
                 case 71519:                                 
                 case 71562:
                 {
+                    // FG: check CD for this spell, applied below
+                    if(cooldown && GetTypeId() == TYPEID_PLAYER)
+                    {
+                        if(((Player*)this)->HasSpellCooldown(dummySpell->Id))
+                            return SPELL_AURA_PROC_FAILED;
+                    }
+
+                    // FG: TODO: this this here still needed?
                     if(dummySpell->Id == 71519)
                     {
                         if(HasAura(71491) || HasAura(71484) || HasAura(71492) || HasAura(71486) || HasAura(71485))
@@ -977,6 +985,10 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
                         if(HasAura(71559) || HasAura(71561) || HasAura(71560) || HasAura(71556) || HasAura(71558))
                             return SPELL_AURA_PROC_FAILED;
                     }
+
+                    // FG: apply CD now
+                    ((Player*)this)->AddSpellCooldown(dummySpell->Id,0,time(NULL) + cooldown);
+
                     switch(this->getClass())
                     {
                         case CLASS_WARRIOR:
