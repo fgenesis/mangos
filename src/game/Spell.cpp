@@ -1101,7 +1101,7 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
 
         // Divine Storm (use m_healthLeech to store damage for all targets)
         if (m_spellInfo->Id == 53385)
-            m_healthLeech += damageInfo.damage;
+            m_healthLeech += (damageInfo.damage / 4); // FG: only 25% from damage caused should be heal
 
         caster->DealSpellDamage(&damageInfo, true);
 
