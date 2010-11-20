@@ -1101,7 +1101,7 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
 
         // Divine Storm (use m_healthLeech to store damage for all targets)
         if (m_spellInfo->Id == 53385)
-            m_healthLeech += (damageInfo.damage / 4); // FG: only 25% from damage caused should be heal
+            m_healthLeech += damageInfo.damage;
 
         caster->DealSpellDamage(&damageInfo, true);
 
@@ -3459,9 +3459,17 @@ void Spell::finish(bool ok)
     // Heal caster for all health leech from all targets
     if (m_healthLeech)
     {
-        uint32 absorb = 0;
-        m_caster->CalculateHealAbsorb(uint32(m_healthLeech), &absorb);
-        m_caster->DealHeal(m_caster, uint32(m_healthLeech) - absorb, m_spellInfo, false, absorb);
+        if (m_spellInfo->Id == 53385) // HACK
+        {
+            int32 bp = int32(m_spellInfo->CalculateSimpleValue(EFFECT_INDEX_1) * m_healthLeech / 100);
+            m_caster->CastCustomSpell(m_caster, 54171, &bp, NULL, NULL, true);
+        }
+        else
+        {
+            uint32 absorb = 0;
+            m_caster->CalculateHealAbsorb(uint32(m_healthLeech), &absorb);
+            m_caster->DealHeal(m_caster, uint32(m_healthLeech) - absorb, m_spellInfo, false, absorb);
+        }
     }
 
     if (IsMeleeAttackResetSpell())
