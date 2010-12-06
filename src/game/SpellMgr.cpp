@@ -2021,6 +2021,13 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                     (spellInfo_2->Id == 52437 && spellInfo_1->Id == 60503) )
                     return false;
             }
+            else if (spellInfo_2->SpellFamilyName == SPELLFAMILY_ROGUE)
+            {
+                // Sunder Armor and Expose Armor
+                if (spellInfo_1->EffectApplyAuraName[EFFECT_INDEX_0] == SPELL_AURA_MOD_RESISTANCE_PCT &&
+                    spellInfo_2->EffectApplyAuraName[EFFECT_INDEX_0] == SPELL_AURA_MOD_RESISTANCE_PCT)
+                    return true;
+            }
 
             // Hamstring -> Improved Hamstring (multi-family check)
             if ((spellInfo_1->SpellFamilyFlags & UI64LIT(0x2)) && spellInfo_2->Id == 23694)
@@ -2152,10 +2159,20 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                     (spellInfo_2->Category == 44 && spellInfo_1->Category == 0)))
                     return false;
             }
-            else if ( spellInfo_2->SpellFamilyName == SPELLFAMILY_GENERIC ) {
+            else if (spellInfo_2->SpellFamilyName == SPELLFAMILY_GENERIC)
+            {
+                if (spellInfo_1->SpellIconID == 2903 && spellInfo_2->SpellIconID == 2903)
+                    return false;
                 // Honor Among Thieves dummy auras (multi-family check)
                 if (spellId_1 == 52916 && spellId_2 == 51699)
                     return false;
+            }
+            else if (spellInfo_2->SpellFamilyName == SPELLFAMILY_WARRIOR)
+            {
+                // Sunder Armor and Expose Armor
+                if (spellInfo_1->EffectApplyAuraName[EFFECT_INDEX_0] == SPELL_AURA_MOD_RESISTANCE_PCT &&
+                    spellInfo_2->EffectApplyAuraName[EFFECT_INDEX_0] == SPELL_AURA_MOD_RESISTANCE_PCT)
+                    return true;
             }
 
             //Overkill
