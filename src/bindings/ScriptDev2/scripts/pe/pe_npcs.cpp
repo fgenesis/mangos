@@ -18,7 +18,7 @@ struct MANGOS_DLL_DECL npc_snake_trap_serpentsAI : public ScriptedAI
     npc_snake_trap_serpentsAI(Creature *c) : ScriptedAI(c)
     {
         // FG: hack to make them not totally useless
-        if(c->isTemporarySummon())
+        if(c->IsTemporarySummon())
         {
             ObjectGuid g = ((TemporarySummon*)c)->GetSummonerGuid();
             Unit *usumm = c->GetMap()->GetUnit(g); // GetSummoner() causes linker error, so we use this

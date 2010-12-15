@@ -293,7 +293,6 @@ struct MANGOS_DLL_DECL pe_andromeda_minionGenericAI : public ScriptedAI
     {
         CellPair p(MaNGOS::ComputeCellPair(m_creature->GetPositionX(), m_creature->GetPositionY()));
         Cell cell(p);
-        cell.data.Part.reserved = ALL_DISTRICT;
         cell.SetNoCreate();
 
         Unit *pUnit = NULL;
@@ -307,7 +306,7 @@ struct MANGOS_DLL_DECL pe_andromeda_minionGenericAI : public ScriptedAI
         */
         TypeContainerVisitor<MaNGOS::UnitLastSearcher<AllCreaturesOfEntryInRangeCheck>, GridTypeMapContainer >  grid_unit_searcher(searcher);
 
-        cell.Visit(p, grid_unit_searcher, *(m_creature->GetMap()));
+        cell.Visit(p, grid_unit_searcher, *(m_creature->GetMap()), *m_creature, m_creature->GetMap()->GetVisibilityDistance());
 
         return pUnit;
     }
@@ -402,7 +401,6 @@ std::list<Unit*> pe_andromedaAI::SelectNearUnits(float distance /* = 100.0f */)
 {
     CellPair p(MaNGOS::ComputeCellPair(m_creature->GetPositionX(), m_creature->GetPositionY()));
     Cell cell(p);
-    cell.data.Part.reserved = ALL_DISTRICT;
     cell.SetNoCreate();
 
     std::list<Unit*> pList;
@@ -412,7 +410,7 @@ std::list<Unit*> pe_andromedaAI::SelectNearUnits(float distance /* = 100.0f */)
 
     TypeContainerVisitor<MaNGOS::UnitListSearcher<MaNGOS::AnyUnitInObjectRangeCheck>, GridTypeMapContainer >  grid_unit_searcher(searcher);
 
-    cell.Visit(p, grid_unit_searcher, *(m_creature->GetMap()));
+    cell.Visit(p, grid_unit_searcher, *(m_creature->GetMap()), *m_creature, m_creature->GetMap()->GetVisibilityDistance());
 
     return pList;
 }
@@ -452,7 +450,6 @@ std::list<Unit*> pe_andromedaAI::SelectNearUnitsWithEntry(uint32 entry, float fR
 {
     CellPair p(MaNGOS::ComputeCellPair(m_creature->GetPositionX(), m_creature->GetPositionY()));
     Cell cell(p);
-    cell.data.Part.reserved = ALL_DISTRICT;
     cell.SetNoCreate();
 
     std::list<Unit*> uList;
@@ -466,7 +463,7 @@ std::list<Unit*> pe_andromedaAI::SelectNearUnitsWithEntry(uint32 entry, float fR
     */
     TypeContainerVisitor<MaNGOS::UnitListSearcher<AllCreaturesOfEntryInRangeCheck>, GridTypeMapContainer >  grid_unit_searcher(searcher);
 
-    cell.Visit(p, grid_unit_searcher, *(m_creature->GetMap()));
+    cell.Visit(p, grid_unit_searcher, *(m_creature->GetMap()), *m_creature, m_creature->GetMap()->GetVisibilityDistance());
 
     return uList;
 }
@@ -822,7 +819,7 @@ Unit *pe_andromedaAI::GetRandomTarget(void)
         target = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM,0);
         i++;
     }
-    while(i < 10 && target && !(target->GetTypeId() == TYPEID_PLAYER || (GUID_HIPART(target->GetGUID()) & HIGHGUID_PET)));
+    while(i < 10 && target && !(target->GetTypeId() == TYPEID_PLAYER || target->GetObjectGuid().IsPet()));
     if(!target)
         target = m_creature->getVictim();
     return target;
@@ -1115,7 +1112,7 @@ void pe_andromedaAI::UpdateAI(const uint32 diff)
     if(!pTarget)
         pTarget = pVictim;
 
-    if(pRnd && pRnd->GetTypeId() != TYPEID_PLAYER && !(GUID_HIPART(pRnd->GetGUID()) & HIGHGUID_PET))
+    if(pRnd && pRnd->GetTypeId() != TYPEID_PLAYER && !pRnd->GetObjectGuid().IsPet())
         pRnd = pTarget;
 
     if(pTarget && pRnd)
@@ -1312,7 +1309,7 @@ void pe_andromedaAI::ApplyEnergyLocksIfNecessary(uint32 diff)
                 Unit *spw = m_creature->SummonCreatureCustom(NPC_SPAWN_PRIEST, m_creature->GetPositionX() + xoffs, m_creature->GetPositionY() + yoffs, m_creature->GetPositionZ(), rand_norm() * 2 * M_PI, TEMPSUMMON_CORPSE_DESPAWN, 0);
                 if(spw)
                 {
-                    spw->SetOwnerGUID(m_creature->GetGUID());
+                    spw->SetOwnerGuid(m_creature->GetGUID());
                     spw->Attack(m_creature->getVictim(), false); 
                 }
             }
@@ -1325,7 +1322,7 @@ void pe_andromedaAI::ApplyEnergyLocksIfNecessary(uint32 diff)
                 Unit *spw = m_creature->SummonCreatureCustom(NPC_SPAWN_ROGUE, m_creature->GetPositionX() + xoffs, m_creature->GetPositionY() + yoffs, m_creature->GetPositionZ(), rand_norm() * 2 * M_PI, TEMPSUMMON_CORPSE_DESPAWN, 0);
                 if(spw)
                 {
-                    spw->SetOwnerGUID(m_creature->GetGUID());
+                    spw->SetOwnerGuid(m_creature->GetGUID());
                     spw->Attack(GetRandomTarget(), false); 
                 }
             }
@@ -1883,7 +1880,6 @@ struct MANGOS_DLL_DECL pe_andromeda_priestAI : public pe_andromeda_minionGeneric
     {
         CellPair p(MaNGOS::ComputeCellPair(m_creature->GetPositionX(), m_creature->GetPositionY()));
         Cell cell(p);
-        cell.data.Part.reserved = ALL_DISTRICT;
         cell.SetNoCreate();
 
         std::list<Unit*> uList;
@@ -1898,7 +1894,7 @@ struct MANGOS_DLL_DECL pe_andromeda_priestAI : public pe_andromeda_minionGeneric
         TypeContainerVisitor<MaNGOS::UnitListSearcher<MaNGOS::MostHPMissingInRangeCheck>, GridTypeMapContainer >  grid_unit_searcher(searcher);
 
 
-        cell.Visit(p, grid_unit_searcher, *(m_creature->GetMap()));
+        cell.Visit(p, grid_unit_searcher, *(m_creature->GetMap()), *m_creature, m_creature->GetMap()->GetVisibilityDistance());
 
         return uList;
     }

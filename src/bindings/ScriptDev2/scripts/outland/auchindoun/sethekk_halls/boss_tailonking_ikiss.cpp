@@ -90,7 +90,7 @@ struct MANGOS_DLL_DECL boss_talon_king_ikissAI : public ScriptedAI
                 DoScriptText(SAY_INTRO, m_creature);
             }
 
-            if (!m_creature->canFly() && m_creature->GetDistanceZ(who) > CREATURE_Z_ATTACK_RANGE)
+            if (!m_creature->CanFly() && m_creature->GetDistanceZ(who) > CREATURE_Z_ATTACK_RANGE)
                 return;
 
             float attackRadius = m_creature->GetAttackDistance(who);
@@ -110,6 +110,9 @@ struct MANGOS_DLL_DECL boss_talon_king_ikissAI : public ScriptedAI
             case 1: DoScriptText(SAY_AGGRO_2, m_creature); break;
             case 2: DoScriptText(SAY_AGGRO_3, m_creature); break;
         }
+
+        if (m_pInstance)
+            m_pInstance->SetData(TYPE_IKISS, IN_PROGRESS);
     }
 
     void JustDied(Unit* Killer)
@@ -117,7 +120,13 @@ struct MANGOS_DLL_DECL boss_talon_king_ikissAI : public ScriptedAI
         DoScriptText(SAY_DEATH, m_creature);
 
         if (m_pInstance)
-            m_pInstance->SetData(DATA_IKISSDOOREVENT, DONE);
+            m_pInstance->SetData(TYPE_IKISS, DONE);
+    }
+
+    void JustReachedHome()
+    {
+        if (m_pInstance)
+            m_pInstance->SetData(TYPE_IKISS, FAIL);
     }
 
     void KilledUnit(Unit* victim)

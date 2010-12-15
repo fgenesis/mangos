@@ -198,7 +198,7 @@ void ShitHappened(Creature *pCreature, Player *pPlayer, bool closegossip, bool r
     if(closegossip)
         pPlayer->CLOSE_GOSSIP_MENU();
     error_log("SD2: CustomVendor: NPC %u caused error!", pCreature->GetEntry());
-    pCreature->Yell(ERROR_STRING1, 0, pPlayer ? pPlayer->GetGUID() : 0);
+    pCreature->MonsterYell(ERROR_STRING1, 0, pPlayer);
     pCreature->DealDamage(pCreature, pCreature->GetMaxHealth(), NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);
     if(reload)
         LoadCustomVendorData();

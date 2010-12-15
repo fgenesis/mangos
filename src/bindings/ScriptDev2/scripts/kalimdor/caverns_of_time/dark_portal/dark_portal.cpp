@@ -293,7 +293,7 @@ struct MANGOS_DLL_DECL npc_time_riftAI : public ScriptedAI
         m_creature->GetRandomPoint(m_creature->GetPositionX(),m_creature->GetPositionY(),m_creature->GetPositionZ(),10.0f,x,y,z);
 
         //normalize Z-level if we can, if rift is not at ground level.
-        z = m_creature->GetMap()->GetWaterOrGroundLevel(x,y,z);
+        z = m_creature->GetMap()->GetTerrain()->GetWaterOrGroundLevel(x,y,z);
 
         Unit *Summon = m_creature->SummonCreature(creature_entry,x,y,z,m_creature->GetOrientation(),
             TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT,30000);
@@ -339,7 +339,7 @@ struct MANGOS_DLL_DECL npc_time_riftAI : public ScriptedAI
             return;
 
         debug_log("SD2: npc_time_rift: not casting anylonger, i need to die.");
-        m_creature->setDeathState(JUST_DIED);
+        m_creature->SetDeathState(JUST_DIED);
 
         if (m_pInstance->GetData(TYPE_RIFT) == IN_PROGRESS)
             m_pInstance->SetData(TYPE_RIFT,SPECIAL);

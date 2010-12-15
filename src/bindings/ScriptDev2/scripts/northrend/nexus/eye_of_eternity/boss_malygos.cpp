@@ -15,10 +15,14 @@
  */
 
 /* ScriptData
-SDName: boss_zarithian
-SD%Complete:
-SDComment:placeholder
-SDCategory: Ruby Sanctum
+SDName: boss_malygos
+SD%Complete: 0
+SDComment: Placeholder
+SDCategory: Eye of Eternity
 EndScriptData */
 
 #include "precompiled.h"
+
+void AddSC_boss_malygos()
+{
+}

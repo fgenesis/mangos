@@ -15,10 +15,14 @@
  */
 
 /* ScriptData
-SDName: boss_falryn
-SD%Complete: 0%
-SDComment:
-SDCategory: Halls of Reflection
+SDName: boss_koralon
+SD%Complete: 0
+SDComment: Placeholder
+SDCategory: Vault of Archavon
 EndScriptData */
 
 #include "precompiled.h"
+
+void AddSC_boss_koralon()
+{
+}

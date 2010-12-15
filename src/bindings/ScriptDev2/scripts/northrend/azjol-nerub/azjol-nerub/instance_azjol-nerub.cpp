@@ -99,11 +99,12 @@ void instance_azjol_nerub::OnCreatureDeath(Creature* pCreature)
 void instance_azjol_nerub::OnCreatureEnterCombat(Creature* pCreature)
 {
     uint32 uiEntry = pCreature->GetEntry();
+
     if (uiEntry == NPC_GASHRA || uiEntry == NPC_NARJIL || uiEntry == NPC_SILTHIK)
     {
-        Unit *victim = pCreature->getVictim();
-        if (!m_uiPlayerGUID && victim)
-            m_uiPlayerGUID = victim->GetCharmerOrOwnerPlayerOrPlayerItself()->GetGUID();
+        // Creature enter combat is not equal to having a victim yet.
+        if (!m_uiPlayerGUID && pCreature->getVictim())
+            m_uiPlayerGUID = pCreature->getVictim()->GetCharmerOrOwnerPlayerOrPlayerItself()->GetGUID();
     }
 }
 
