@@ -1249,7 +1249,8 @@ void World::SetInitialWorldSettings()
     sObjectMgr.LoadVendors();                               // must be after load CreatureTemplate, VendorTemplate, and ItemTemplate
 
     sLog.outString( "Loading Trainers..." );
-    sObjectMgr.LoadTrainerSpell();                          // must be after load CreatureTemplate
+    sObjectMgr.LoadTrainerTemplates();                      // must be after load CreatureTemplate
+    sObjectMgr.LoadTrainers();                              // must be after load CreatureTemplate, TrainerTemplate
 
     sLog.outString( "Loading Waypoint scripts..." );        // before loading from creature_movement
     sObjectMgr.LoadCreatureMovementScripts();
@@ -2042,11 +2043,14 @@ void World::UpdateSessions( uint32 diff )
         next = itr;
         ++next;
         ///- and remove not active sessions from the list
-        if(!itr->second->Update(diff))                      // As interval = 0
+        WorldSession * pSession = itr->second;
+        WorldSessionFilter updater(pSession);
+
+        if(!pSession->Update(diff, updater))    // As interval = 0
         {
-            RemoveQueuedSession (itr->second);
-            delete itr->second;
+            RemoveQueuedSession(pSession);
             m_sessions.erase(itr);
+            delete pSession;
         }
     }
 }
