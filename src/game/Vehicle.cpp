@@ -352,7 +352,7 @@ bool Vehicle::Create(uint32 guidlow, Map *map, uint32 phaseMask, uint32 Entry, u
 
     Object::_Create(guidlow, Entry, HIGHGUID_VEHICLE);
 
-    if(!InitEntry(Entry))
+    if(!UpdateEntry(Entry, team, NULL, false))
         return false;
 
     if(!vehicleId)
