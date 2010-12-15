@@ -2260,8 +2260,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         bool IsSelfMover() const { return m_mover == this; }// normal case for player not controlling other unit
 
         // vehicle system
-        void EnterVehicle(Vehicle *vehicle);
-        void ExitVehicle(Vehicle *vehicle);
+        void SendEnterVehicle(Vehicle *vehicle);
 
         ObjectGuid const& GetFarSightGuid() const { return GetGuidValue(PLAYER_FARSIGHT); }
 

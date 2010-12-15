@@ -735,7 +735,7 @@ void WorldSession::BuildPartyMemberStatsChangedPacket(Player *player, WorldPacke
         }
     }
 
-    Pet *pet = player->GetPet();
+    Unit *pet = player->GetCharmOrPet();
     if (mask & GROUP_UPDATE_FLAG_PET_GUID)
         *data << (pet ? pet->GetObjectGuid() : ObjectGuid());
 
@@ -839,7 +839,7 @@ void WorldSession::HandleRequestPartyMemberStatsOpcode( WorldPacket &recv_data )
         return;
     }
 
-    Unit *pet = player->GetPet();
+    Unit *pet = player->GetCharmOrPet();
 
     WorldPacket data(SMSG_PARTY_MEMBER_STATS_FULL, 4+2+2+2+1+2*6+8+1+8);
     data << uint8(0);                                       // only for SMSG_PARTY_MEMBER_STATS_FULL, probably arena/bg related

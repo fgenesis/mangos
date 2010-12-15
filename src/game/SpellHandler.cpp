@@ -640,7 +640,7 @@ void WorldSession::HandleSpellClick( WorldPacket & recv_data )
                 if(!_player->HasAura(r_aura))
                     return;
 
-        _player->EnterVehicle((Vehicle*)unit);
+        _player->EnterVehicle((Vehicle*)unit, 0);
     }
     else
     {

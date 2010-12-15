@@ -11337,7 +11337,7 @@ void Unit::EnterVehicle(Vehicle *vehicle, int8 seat_id, bool force)
         pet->Unsummon(PET_SAVE_AS_CURRENT);
 
     if(GetTypeId() == TYPEID_PLAYER)
-        ((Player*)this)->EnterVehicle(v);
+        ((Player*)this)->SendEnterVehicle(v);
 
     WorldPacket data(SMSG_MONSTER_MOVE_TRANSPORT, 60);
     data << GetPackGUID();
