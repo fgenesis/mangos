@@ -136,7 +136,7 @@ bool ChatHandler::HandleTargetAndDeleteObjectCommand(char *args)
     }
 
     Field *fields = result->Fetch();
-    uint32 guid = fields[0].GetUInt32();
+    uint32 guid32 = fields[0].GetUInt32();
     uint32 id = fields[1].GetUInt32();
     float x = fields[2].GetFloat();
     float y = fields[3].GetFloat();
@@ -153,21 +153,23 @@ bool ChatHandler::HandleTargetAndDeleteObjectCommand(char *args)
         return false;
     }
 
-    GameObject* obj = m_session->GetPlayer()->GetMap()->GetGameObject(ObjectGuid(HIGHGUID_GAMEOBJECT, guid, id));
+    ObjectGuid guid(HIGHGUID_GAMEOBJECT, guid32, id);
+
+    GameObject* obj = m_session->GetPlayer()->GetMap()->GetGameObject(guid);
 
     if(!obj)
     {
-        PSendSysMessage("Game Object (GUID: %u) not found", GUID_LOPART(guid));
+        PSendSysMessage("Game Object (GUID: %u) not found", guid32);
         return true;
     }
 
-    uint64 owner_guid = obj->GetOwnerGUID();
-    if(owner_guid)
+    ObjectGuid owner_guid = obj->GetOwnerGuid();
+    if(!owner_guid.IsEmpty())
     {
         Unit* owner = ObjectAccessor::Instance().GetUnit(*m_session->GetPlayer(),owner_guid);
-        if(!owner && GUID_HIPART(owner_guid)!=HIGHGUID_PLAYER)
+        if(!owner && !owner_guid.IsPlayer())
         {
-            PSendSysMessage("Game Object (GUID: %u) have references in not found creature %u GO list, can't be deleted.", GUID_LOPART(owner_guid), obj->GetGUIDLow());
+            PSendSysMessage("Game Object (GUID: %u) have references in not found creature %u GO list, can't be deleted.", owner_guid.GetCounter(), obj->GetGUIDLow());
             return true;
         }
 
@@ -659,14 +661,14 @@ bool ChatHandler::CharacterDizintegrateHelper(Player *pl, char* args)
         return false;
     }
 
-    uint64 guid = pl->GetGUID();
+    ObjectGuid guid = pl->GetObjectGuid();
 
     if(!stricmp(args,"all")) // remove all items except totems!!
     {
         if(sLog.IsOutCharDump())
         {
-            std::string dump = PlayerDumpWriter().GetDump(GUID_LOPART(guid));
-            sLog.outCharDump(dump.c_str(),m_session->GetAccountId(),GUID_LOPART(guid),pl->GetName());
+            std::string dump = PlayerDumpWriter().GetDump(guid.GetCounter());
+            sLog.outCharDump(dump.c_str(),m_session->GetAccountId(),guid.GetCounter(),pl->GetName());
         }
 
         // in inventory
@@ -864,23 +866,23 @@ bool ChatHandler::HandleCharacterAutodumpCommand(char *args)
     char* cname = strtok (args, " ");
     if (!cname || !*cname)
         return false;
-    uint64 guid = 0;
+    uint64 guid64 = 0;
     uint32 accid = 0;
     Player *target = sObjectMgr.GetPlayer(cname);
     std::string normalName;
     if(target)
     {
         // player online
-        guid = target->GetGUID();
+        guid64 = target->GetGUID();
         accid = target->GetSession()->GetAccountId();
         normalName = target->GetName();
     }
     else
     {
         // player offline, ask DB
-        guid = sObjectMgr.GetPlayerGUIDByName(cname);
-        accid = sObjectMgr.GetPlayerAccountIdByGUID(guid);
-        if(guid && accid)
+        guid64 = sObjectMgr.GetPlayerGUIDByName(cname);
+        accid = sObjectMgr.GetPlayerAccountIdByGUID(guid64);
+        if(guid64 && accid)
         {
             normalName = cname;
             normalizePlayerName(normalName);
@@ -893,9 +895,11 @@ bool ChatHandler::HandleCharacterAutodumpCommand(char *args)
         }
     }
 
-    std::string dump = PlayerDumpWriter().GetDump(GUID_LOPART(guid));
+    ObjectGuid guid(HIGHGUID_PLAYER, guid64);
+
+    std::string dump = PlayerDumpWriter().GetDump(guid.GetCounter());
     std::string outfile;
-    bool result = sLog.outCharDumpExtra(dump.c_str(),accid,GUID_LOPART(guid),normalName.c_str(),&outfile);
+    bool result = sLog.outCharDumpExtra(dump.c_str(),accid,guid.GetCounter(),normalName.c_str(),&outfile);
     if(!result)
     {
         PSendSysMessage(LANG_FILE_OPEN_FAIL, outfile.c_str());
@@ -913,7 +917,7 @@ bool ChatHandler::HandleChannelMuteCommand(char* args)
     char* nameStr = ExtractOptNotLastArg(&args);
 
     Player* target;
-    uint64 target_guid;
+    ObjectGuid target_guid;
     std::string target_name;
     if (!ExtractPlayerTarget(&nameStr, &target, &target_guid, &target_name))
         return false;
@@ -961,7 +965,7 @@ bool ChatHandler::HandleChannelMuteCommand(char* args)
 bool ChatHandler::HandleChannelUnmuteCommand(char* args)
 {
     Player* target;
-    uint64 target_guid;
+    ObjectGuid target_guid;
     std::string target_name;
     if (!ExtractPlayerTarget(&args, &target, &target_guid, &target_name))
         return false;

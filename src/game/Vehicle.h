@@ -23,6 +23,7 @@
 #include "ObjectGuid.h"
 #include "Creature.h"
 #include "Unit.h"
+#include "SharedDefines.h"
 #include "ObjectMgr.h"
 
 struct VehicleSeat
@@ -76,6 +77,7 @@ enum PowerType
 
 typedef std::map<int8, VehicleSeat> SeatMap;
 
+
 class Vehicle : public Creature
 {
     public:
@@ -86,10 +88,10 @@ class Vehicle : public Creature
         void RemoveFromWorld();
 
         void Die();
-        bool Create (uint32 guidlow, Map *map, uint32 phaseMask, uint32 Entry, uint32 vehicleId, uint32 team, const CreatureData *data = NULL);
         void Respawn();
+        bool Create (uint32 guidlow, Map *map, uint32 phaseMask, uint32 Entry, uint32 vehicleId, Team team);
 
-        void setDeathState(DeathState s);                   // overwrite virtual Creature::setDeathState and Unit::setDeathState
+        void SetDeathState(DeathState s);                   // overwrite virtual Creature::SetDeathState and Unit::SetDeathState
         void Update(uint32 diff);                           // overwrite virtual Creature::Update and Unit::Update
 
         void RegeneratePower(Powers power);

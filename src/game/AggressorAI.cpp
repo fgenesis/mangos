@@ -30,7 +30,7 @@ int
 AggressorAI::Permissible(const Creature *creature)
 {
     // have some hostile factions, it will be selected by IsHostileTo check at MoveInLineOfSight
-    if( !creature->isCivilian() && !creature->IsNeutralToAll() )
+    if( !creature->IsCivilian() && !creature->IsNeutralToAll() )
         return PERMIT_BASE_PROACTIVE;
 
     return PERMIT_BASE_NO;
@@ -44,7 +44,7 @@ void
 AggressorAI::MoveInLineOfSight(Unit *u)
 {
     // Ignore Z for flying creatures
-    if( !m_creature->canFly() && m_creature->GetDistanceZ(u) > CREATURE_Z_ATTACK_RANGE )
+    if( !m_creature->CanFly() && m_creature->GetDistanceZ(u) > CREATURE_Z_ATTACK_RANGE )
         return;
 
     if (m_creature->CanInitiateAttack() && u->isTargetableForAttack() &&
@@ -103,7 +103,7 @@ void AggressorAI::EnterEvadeMode()
         //i_tracker.Reset(TIME_INTERVAL_LOOK);
     }
 
-    if(!m_creature->isCharmed() && (!m_creature->GetVehicle() || !m_creature->GetVehicleGUID()))
+    if(!m_creature->isCharmed() && (!m_creature->GetVehicle() || m_creature->GetVehicleGUID().IsEmpty()))
     {
         m_creature->RemoveAllAuras();
 

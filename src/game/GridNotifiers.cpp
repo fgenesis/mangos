@@ -24,6 +24,7 @@
 #include "Map.h"
 #include "Transports.h"
 #include "ObjectAccessor.h"
+#include "BattleGroundMgr.h"
 
 using namespace MaNGOS;
 
@@ -63,7 +64,7 @@ VisibleNotifier::Notify()
         player.m_clientGUIDs.erase(*itr);
 
         DEBUG_FILTER_LOG(LOG_FILTER_VISIBILITY_CHANGES, "%s is out of range (no in active cells set) now for %s",
-            itr->GetString().c_str(), player.GetObjectGuid().GetString().c_str());
+            itr->GetString().c_str(), player.GetGuidStr().c_str());
     }
 
     if (i_data.HasData())
@@ -92,12 +93,7 @@ VisibleNotifier::Notify()
     {
         // target aura duration for caster show only if target exist at caster client
         if ((*vItr) != &player && (*vItr)->isType(TYPEMASK_UNIT))
-        {
             player.SendAurasForTarget((Unit*)(*vItr));
-            WorldPacket data;
-            ((Unit*)(*vItr))->BuildHeartBeatMsg(&data);
-            player.GetSession()->SendPacket(&data);
-        }
 
         // non finished movements show to player
         if ((*vItr)->GetTypeId()==TYPEID_UNIT && ((Creature*)(*vItr))->isAlive())
@@ -202,7 +198,7 @@ bool CannibalizeObjectCheck::operator()(Corpse* u)
     if(u->GetType()==CORPSE_BONES)
         return false;
 
-    Player* owner = ObjectAccessor::FindPlayer(u->GetOwnerGUID());
+    Player* owner = ObjectAccessor::FindPlayer(u->GetOwnerGuid());
 
     if( !owner || i_fobj->IsFriendlyTo(owner))
         return false;
@@ -212,6 +208,35 @@ bool CannibalizeObjectCheck::operator()(Corpse* u)
 
     return false;
 }
+
+void MaNGOS::RespawnDo::operator()( Creature* u ) const
+{
+    // prevent respawn creatures for not active BG event
+    Map* map = u->GetMap();
+    if (map->IsBattleGroundOrArena())
+    {
+        BattleGroundEventIdx eventId = sBattleGroundMgr.GetCreatureEventIndex(u->GetDBTableGUIDLow());
+        if (!((BattleGroundMap*)map)->GetBG()->IsActiveEvent(eventId.event1, eventId.event2))
+            return;
+    }
+
+    u->Respawn();
+}
+
+void MaNGOS::RespawnDo::operator()( GameObject* u ) const
+{
+    // prevent respawn gameobject for not active BG event
+    Map* map = u->GetMap();
+    if (map->IsBattleGroundOrArena())
+    {
+        BattleGroundEventIdx eventId = sBattleGroundMgr.GetGameObjectEventIndex(u->GetDBTableGUIDLow());
+        if (!((BattleGroundMap*)map)->GetBG()->IsActiveEvent(eventId.event1, eventId.event2))
+            return;
+    }
+
+    u->Respawn();
+}
+
 
 template void ObjectUpdater::Visit<GameObject>(GameObjectMapType &);
 template void ObjectUpdater::Visit<DynamicObject>(DynamicObjectMapType &);

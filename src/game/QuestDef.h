@@ -42,19 +42,19 @@ class ObjectMgr;
 
 enum QuestFailedReasons
 {
-    INVALIDREASON_DONT_HAVE_REQ                 = 0,
-    INVALIDREASON_QUEST_FAILED_LOW_LEVEL        = 1,        // You are not high enough level for that quest.
-    INVALIDREASON_QUEST_FAILED_WRONG_RACE       = 6,        // That quest is not available to your race.
-    INVALIDREASON_QUEST_ALREADY_DONE            = 7,        // You have completed that quest.
-    INVALIDREASON_QUEST_ONLY_ONE_TIMED          = 12,       // You can only be on one timed quest at a time.
-    INVALIDREASON_QUEST_ALREADY_ON              = 13,       // You are already on that quest.
-    INVALIDREASON_QUEST_FAILED_EXPANSION        = 16,       // This quest requires an expansion enabled account.
-    INVALIDREASON_QUEST_ALREADY_ON2             = 18,       // You are already on that quest.
-    INVALIDREASON_QUEST_FAILED_MISSING_ITEMS    = 21,       // You don't have the required items with you. Check storage.
-    INVALIDREASON_QUEST_FAILED_NOT_ENOUGH_MONEY = 23,       // You don't have enough money for that quest.
-    INVALIDREASON_DAILY_QUESTS_REMAINING        = 26,       // You have already completed 25 daily quests today.
-    INVALIDREASON_QUEST_FAILED_CAIS             = 27,       // You cannot complete quests once you have reached tired time.
-    INVALIDREASON_DAILY_QUEST_COMPLETED_TODAY   = 29        // You have completed that daily quest today.
+    INVALIDREASON_DONT_HAVE_REQ                       = 0,  // this is default case
+    INVALIDREASON_QUEST_FAILED_LOW_LEVEL              = 1,  // You are not high enough level for that quest.
+    INVALIDREASON_QUEST_FAILED_WRONG_RACE             = 6,  // That quest is not available to your race.
+    INVALIDREASON_QUEST_ALREADY_DONE                  = 7,  // You have completed that quest.
+    INVALIDREASON_QUEST_ONLY_ONE_TIMED                = 12, // You can only be on one timed quest at a time.
+    INVALIDREASON_QUEST_ALREADY_ON                    = 13, // You are already on that quest.
+    INVALIDREASON_QUEST_FAILED_EXPANSION              = 16, // This quest requires an expansion enabled account.
+    INVALIDREASON_QUEST_ALREADY_ON2                   = 18, // You are already on that quest.
+    INVALIDREASON_QUEST_FAILED_MISSING_ITEMS          = 21, // You don't have the required items with you. Check storage.
+    INVALIDREASON_QUEST_FAILED_NOT_ENOUGH_MONEY       = 23, // You don't have enough money for that quest.
+    INVALIDREASON_QUEST_FAILED_TOO_MANY_DAILY_QUESTS  = 26, // You have already completed 25 daily quests today.
+    INVALIDREASON_QUEST_FAILED_CAIS                   = 27, // You cannot complete quests once you have reached tired time.
+    INVALIDREASON_DAILY_QUEST_DONE_TODAY              = 29  // You have completed that daily quest today.
 };
 
 enum QuestShareMessages
@@ -134,7 +134,7 @@ enum QuestTypes
     QUEST_TYPE_RAID_25             = 89
 };
 
-enum __QuestFlags
+enum QuestFlags
 {
     // Flags used at server and sent to client
     QUEST_FLAGS_NONE           = 0x00000000,
@@ -158,25 +158,26 @@ enum __QuestFlags
     QUEST_FLAGS_UNK5           = 0x00020000,                // has something to do with ReqItemId and SrcItemId
     QUEST_FLAGS_UNK6           = 0x00040000,                // use Objective text as Complete text
     QUEST_FLAGS_AUTO_ACCEPT    = 0x00080000,                // quests in starting areas
+};
 
-    QUEST_FLAGS_CLIENT_MASK    = 0x00FFFFFF,
-
+enum QuestSpecialFlags
+{
     // Mangos flags for set SpecialFlags in DB if required but used only at server
-    QUEST_MANGOS_FLAGS_REPEATABLE           = 0x01000000,   // Set by 1 in SpecialFlags from DB
-    QUEST_MANGOS_FLAGS_EXPLORATION_OR_EVENT = 0x02000000,   // Set by 2 in SpecialFlags from DB (if required area explore, spell SPELL_EFFECT_QUEST_COMPLETE casting, table `*_script` command SCRIPT_COMMAND_QUEST_EXPLORED use, set from script DLL)
-    
-    // FG: custom flags
-    QUEST_FG_FLAGS_CUSTOM_STRICT_MODE = 0x10000000, // strict mode check, account heroic objectives only in heroic mode and normal only in normal mode
-    QUEST_FG_FLAGS_USED = QUEST_FG_FLAGS_CUSTOM_STRICT_MODE,
-
-    QUEST_MANGOS_FLAGS_DB_ALLOWED = QUEST_FLAGS_CLIENT_MASK | QUEST_MANGOS_FLAGS_REPEATABLE | QUEST_MANGOS_FLAGS_EXPLORATION_OR_EVENT | QUEST_FG_FLAGS_USED,
+    QUEST_SPECIAL_FLAG_REPEATABLE           = 0x001,        // |1 in SpecialFlags from DB
+    QUEST_SPECIAL_FLAG_EXPLORATION_OR_EVENT = 0x002,        // |2 in SpecialFlags from DB (if required area explore, spell SPELL_EFFECT_QUEST_COMPLETE casting, table `*_script` command SCRIPT_COMMAND_QUEST_EXPLORED use, set from script DLL)
+    QUEST_SPECIAL_FLAG_MONTHLY              = 0x004,        // |4 in SpecialFlags. Quest reset for player at beginning of month.
 
     // Mangos flags for internal use only
-    QUEST_MANGOS_FLAGS_DELIVER              = 0x04000000,   // Internal flag computed only
-    QUEST_MANGOS_FLAGS_SPEAKTO              = 0x08000000,   // Internal flag computed only
-    QUEST_MANGOS_FLAGS_KILL_OR_CAST         = 0x10000000,   // Internal flag computed only
-    QUEST_MANGOS_FLAGS_TIMED                = 0x20000000,   // Internal flag computed only
+    QUEST_SPECIAL_FLAG_DELIVER              = 0x008,        // Internal flag computed only
+    QUEST_SPECIAL_FLAG_SPEAKTO              = 0x010,        // Internal flag computed only
+    QUEST_SPECIAL_FLAG_KILL_OR_CAST         = 0x020,        // Internal flag computed only
+    QUEST_SPECIAL_FLAG_TIMED                = 0x040,        // Internal flag computed only
+
+    // FG special flags
+    QUEST_FG_FLAGS_CUSTOM_STRICT_MODE       = 0x100,        // strict mode check, account heroic objectives only in heroic mode and normal only in normal mode
 };
+
+#define QUEST_SPECIAL_FLAG_DB_ALLOWED (QUEST_SPECIAL_FLAG_REPEATABLE | QUEST_SPECIAL_FLAG_EXPLORATION_OR_EVENT | QUEST_SPECIAL_FLAG_MONTHLY)
 
 struct QuestLocale
 {
@@ -202,18 +203,21 @@ class Quest
         Quest(Field * questRecord);
         uint32 XPValue( Player *pPlayer ) const;
 
-        bool HasFlag( uint32 flag ) const { return ( QuestFlags & flag ) != 0; }
-        void SetFlag( uint32 flag ) { QuestFlags |= flag; }
+        uint32 GetQuestFlags() const { return m_QuestFlags; }
+        bool HasQuestFlag(QuestFlags flag) const { return (m_QuestFlags & flag) != 0; }
+        bool HasSpecialFlag(QuestSpecialFlags flag) const { return (m_SpecialFlags & flag) != 0; }
+        void SetSpecialFlag(QuestSpecialFlags flag) { m_SpecialFlags |= flag; }
 
         // table data accessors:
         uint32 GetQuestId() const { return QuestId; }
         uint32 GetQuestMethod() const { return QuestMethod; }
         int32  GetZoneOrSort() const { return ZoneOrSort; }
-        int32  GetSkillOrClass() const { return SkillOrClass; }
         uint32 GetMinLevel() const { return MinLevel; }
         int32  GetQuestLevel() const { return QuestLevel; }
         uint32 GetType() const { return Type; }
+        uint32 GetRequiredClasses() const { return RequiredClasses; }
         uint32 GetRequiredRaces() const { return RequiredRaces; }
+        uint32 GetRequiredSkill() const { return RequiredSkill; }
         uint32 GetRequiredSkillValue() const { return RequiredSkillValue; }
         uint32 GetRepObjectiveFaction() const { return RepObjectiveFaction; }
         int32  GetRepObjectiveValue() const { return RepObjectiveValue; }
@@ -259,15 +263,22 @@ class Quest
         uint32 GetCompleteEmote() const { return CompleteEmote; }
         uint32 GetQuestStartScript() const { return QuestStartScript; }
         uint32 GetQuestCompleteScript() const { return QuestCompleteScript; }
-        bool   IsRepeatable() const { return QuestFlags & QUEST_MANGOS_FLAGS_REPEATABLE; }
+
+        bool   IsRepeatable() const { return m_SpecialFlags & QUEST_SPECIAL_FLAG_REPEATABLE; }
         bool   IsAutoComplete() const { return QuestMethod ? false : true; }
-        uint32 GetFlags() const { return QuestFlags; }
-        bool   IsDaily() const { return QuestFlags & QUEST_FLAGS_DAILY; }
-        bool   IsWeekly() const { return QuestFlags & QUEST_FLAGS_WEEKLY; }
-        bool   IsDailyOrWeekly() const { return QuestFlags & (QUEST_FLAGS_DAILY | QUEST_FLAGS_WEEKLY); }
-        bool   IsAutoAccept() const { return QuestFlags & QUEST_FLAGS_AUTO_ACCEPT; }
+        bool   IsDaily() const { return m_QuestFlags & QUEST_FLAGS_DAILY; }
+        bool   IsWeekly() const { return m_QuestFlags & QUEST_FLAGS_WEEKLY; }
+        bool   IsMonthly() const { return m_SpecialFlags & QUEST_SPECIAL_FLAG_MONTHLY; }
+        bool   IsDailyOrWeekly() const { return m_QuestFlags & (QUEST_FLAGS_DAILY | QUEST_FLAGS_WEEKLY); }
+        bool   IsAutoAccept() const { return m_QuestFlags & QUEST_FLAGS_AUTO_ACCEPT; }
         bool   IsAllowedInRaid() const;
         bool   IsHeroic() const { return Type == QUEST_TYPE_HEROIC; }
+
+        // quest can be fully deactivated and will not be available for any player
+        void SetQuestActiveState(bool state) { m_isActive = state; }
+        bool IsActive() const { return m_isActive; }
+
+        uint32 CalculateRewardHonor(uint32 level) const;
 
         // multiple values
         std::string ObjectiveText[QUEST_OBJECTIVES_COUNT];
@@ -307,16 +318,19 @@ class Quest
         uint32 m_rewchoiceitemscount;
         uint32 m_rewitemscount;
 
+        bool m_isActive;
+
         // table data
     protected:
         uint32 QuestId;
         uint32 QuestMethod;
         int32  ZoneOrSort;
-        int32  SkillOrClass;
         uint32 MinLevel;
         int32  QuestLevel;
         uint32 Type;
+        uint32 RequiredClasses;
         uint32 RequiredRaces;
+        uint32 RequiredSkill;
         uint32 RequiredSkillValue;
         uint32 RepObjectiveFaction;
         int32  RepObjectiveValue;
@@ -326,7 +340,8 @@ class Quest
         int32  RequiredMaxRepValue;
         uint32 SuggestedPlayers;
         uint32 LimitTime;
-        uint32 QuestFlags;
+        uint32 m_QuestFlags;
+        uint32 m_SpecialFlags;
         uint32 CharTitleId;
         uint32 PlayersSlain;
         uint32 BonusTalents;

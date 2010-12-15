@@ -540,10 +540,14 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
                                 m_creature->GetMotionMaster()->Clear(false);
                                 m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim(), m_AttackDistance, m_AttackAngle);
                                 break;
+                            default:
+                                break;
                         }
                     }
                     break;
                 }
+                default:
+                    break;
             }
 
             break;
@@ -1086,13 +1090,13 @@ void CreatureEventAI::MoveInLineOfSight(Unit *who)
         }
     }
 
-    if (m_creature->isCivilian() || m_creature->IsNeutralToAll())
+    if (m_creature->IsCivilian() || m_creature->IsNeutralToAll())
         return;
 
     if (m_creature->CanInitiateAttack() && who->isTargetableForAttack() &&
         m_creature->IsHostileTo(who) && who->isInAccessablePlaceFor(m_creature))
     {
-        if (!m_creature->canFly() && m_creature->GetDistanceZ(who) > CREATURE_Z_ATTACK_RANGE)
+        if (!m_creature->CanFly() && m_creature->GetDistanceZ(who) > CREATURE_Z_ATTACK_RANGE)
             return;
 
         float attackRadius = m_creature->GetAttackDistance(who);
@@ -1333,31 +1337,31 @@ void CreatureEventAI::DoScriptText(int32 textEntry, WorldObject* pSource, Unit* 
     switch((*i).second.Type)
     {
         case CHAT_TYPE_SAY:
-            pSource->MonsterSay(textEntry, (*i).second.Language, target ? target->GetGUID() : 0);
+            pSource->MonsterSay(textEntry, (*i).second.Language, target);
             break;
         case CHAT_TYPE_YELL:
-            pSource->MonsterYell(textEntry, (*i).second.Language, target ? target->GetGUID() : 0);
+            pSource->MonsterYell(textEntry, (*i).second.Language, target);
             break;
         case CHAT_TYPE_TEXT_EMOTE:
-            pSource->MonsterTextEmote(textEntry, target ? target->GetGUID() : 0);
+            pSource->MonsterTextEmote(textEntry, target);
             break;
         case CHAT_TYPE_BOSS_EMOTE:
-            pSource->MonsterTextEmote(textEntry, target ? target->GetGUID() : 0, true);
+            pSource->MonsterTextEmote(textEntry, target, true);
             break;
         case CHAT_TYPE_WHISPER:
         {
             if (target && target->GetTypeId() == TYPEID_PLAYER)
-                pSource->MonsterWhisper(textEntry, target->GetGUID());
+                pSource->MonsterWhisper(textEntry, target);
             else sLog.outErrorDb("CreatureEventAI: DoScriptText entry %i cannot whisper without target unit (TYPEID_PLAYER).", textEntry);
         }break;
         case CHAT_TYPE_BOSS_WHISPER:
         {
             if (target && target->GetTypeId() == TYPEID_PLAYER)
-                pSource->MonsterWhisper(textEntry, target->GetGUID(), true);
+                pSource->MonsterWhisper(textEntry, target, true);
             else sLog.outErrorDb("CreatureEventAI: DoScriptText entry %i cannot whisper without target unit (TYPEID_PLAYER).", textEntry);
         }break;
         case CHAT_TYPE_ZONE_YELL:
-            pSource->MonsterYellToZone(textEntry, (*i).second.Language, target ? target->GetGUID() : 0);
+            pSource->MonsterYellToZone(textEntry, (*i).second.Language, target);
             break;
     }
 }
@@ -1388,7 +1392,7 @@ bool CreatureEventAI::CanCast(Unit* Target, SpellEntry const *Spell, bool Trigge
         return false;
 
     //Check for power
-    if (!Triggered && m_creature->GetPower((Powers)Spell->powerType) < Spell->manaCost)
+    if (!Triggered && m_creature->GetPower((Powers)Spell->powerType) < Spell::CalculatePowerCost(Spell, m_creature))
         return false;
 
     SpellRangeEntry const *TempRange = NULL;

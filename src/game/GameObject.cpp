@@ -77,7 +77,7 @@ void GameObject::RemoveFromWorld()
     if(IsInWorld())
     {
         // Remove GO from owner
-        ObjectGuid owner_guid = GetOwnerGUID();
+        ObjectGuid owner_guid = GetOwnerGuid();
         if (!owner_guid.IsEmpty())
         {
             if (Unit* owner = ObjectAccessor::GetUnit(*this,owner_guid))
@@ -85,7 +85,7 @@ void GameObject::RemoveFromWorld()
             else
             {
                 sLog.outError("Delete %s with SpellId %u LinkedGO %u that lost references to owner %s GO list. Crash possible later.",
-                    GetObjectGuid().GetString().c_str(), m_spellId, GetGOInfo()->GetLinkedGameObjectEntry(), owner_guid.GetString().c_str());
+                    GetGuidStr().c_str(), m_spellId, GetGOInfo()->GetLinkedGameObjectEntry(), owner_guid.GetString().c_str());
             }
         }
 
@@ -397,7 +397,7 @@ void GameObject::Update(uint32 /*p_time*/)
                 m_useTimes = 0;
             }
 
-            if (GetOwnerGUID())
+            if (!GetOwnerGuid().IsEmpty())
             {
                 if (Unit* owner = GetOwner())
                     owner->RemoveGameObject(this, false);
@@ -640,7 +640,7 @@ GameObjectInfo const *GameObject::GetGOInfo() const
 /*********************************************************/
 /***                    QUEST SYSTEM                   ***/
 /*********************************************************/
-bool GameObject::hasQuest(uint32 quest_id) const
+bool GameObject::HasQuest(uint32 quest_id) const
 {
     QuestRelationsMapBounds bounds = sObjectMgr.GetGOQuestRelationsMapBounds(GetEntry());
     for(QuestRelationsMap::const_iterator itr = bounds.first; itr != bounds.second; ++itr)
@@ -651,7 +651,7 @@ bool GameObject::hasQuest(uint32 quest_id) const
     return false;
 }
 
-bool GameObject::hasInvolvedQuest(uint32 quest_id) const
+bool GameObject::HasInvolvedQuest(uint32 quest_id) const
 {
     QuestRelationsMapBounds bounds = sObjectMgr.GetGOQuestInvolvedRelationsMapBounds(GetEntry());
     for(QuestRelationsMap::const_iterator itr = bounds.first; itr != bounds.second; ++itr)
@@ -672,7 +672,7 @@ bool GameObject::IsTransport() const
 
 Unit* GameObject::GetOwner() const
 {
-    return ObjectAccessor::GetUnit(*this, GetOwnerGUID());
+    return ObjectAccessor::GetUnit(*this, GetOwnerGuid());
 }
 
 void GameObject::SaveRespawnTime()
@@ -824,9 +824,9 @@ void GameObject::SummonLinkedTrapIfAny()
     linkedGO->SetRespawnTime(GetRespawnDelay());
     linkedGO->SetSpellId(GetSpellId());
 
-    if (GetOwnerGUID())
+    if (!GetOwnerGuid().IsEmpty())
     {
-        linkedGO->SetOwnerGUID(GetOwnerGUID());
+        linkedGO->SetOwnerGuid(GetOwnerGuid());
         linkedGO->SetUInt32Value(GAMEOBJECT_LEVEL, GetUInt32Value(GAMEOBJECT_LEVEL));
     }
 
@@ -1025,7 +1025,7 @@ void GameObject::Use(Unit* user)
                     Creature* helper = player->SummonCreature(14496, x_i, y_i, GetPositionZ(), GetOrientation(), TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 10000);
                     std::ostringstream output;
                     output << i << ": thisDist: " << thisDistance;
-                    helper->MonsterSay(output.str().c_str(), LANG_UNIVERSAL, 0);
+                    helper->MonsterSay(output.str().c_str(), LANG_UNIVERSAL);
                     */
 
                     if (thisDistance <= lowestDist)
@@ -1157,7 +1157,7 @@ void GameObject::Use(Unit* user)
 
             Player* player = (Player*)user;
 
-            if (player->GetGUID() != GetOwnerGUID())
+            if (player->GetObjectGuid() != GetOwnerGuid())
                 return;
 
             switch(getLootState())
@@ -1189,7 +1189,7 @@ void GameObject::Use(Unit* user)
                     {
                         // prevent removing GO at spell cancel
                         player->RemoveGameObject(this,false);
-                        SetOwnerGUID(player->GetGUID());
+                        SetOwnerGuid(player->GetObjectGuid());
 
                         //fish catched
                         player->UpdateFishingSkill();
@@ -1202,7 +1202,7 @@ void GameObject::Use(Unit* user)
                             SetLootState(GO_JUST_DEACTIVATED);
                         }
                         else
-                            player->SendLoot(GetGUID(),LOOT_FISHING);
+                            player->SendLoot(GetObjectGuid(),LOOT_FISHING);
                     }
                     else
                     {
@@ -1343,7 +1343,7 @@ void GameObject::Use(Unit* user)
 
             Player* player = (Player*)user;
 
-            Player* targetPlayer = ObjectAccessor::FindPlayer(player->GetSelection());
+            Player* targetPlayer = ObjectAccessor::FindPlayer(player->GetSelectionGuid());
 
             // accept only use by player from same group for caster except caster itself
             if (!targetPlayer || targetPlayer == player || !targetPlayer->IsInSameGroupWith(player))
@@ -1399,7 +1399,7 @@ void GameObject::Use(Unit* user)
 
             Player* player = (Player*)user;
 
-            player->SendLoot(GetGUID(), LOOT_FISHINGHOLE);
+            player->SendLoot(GetObjectGuid(), LOOT_FISHINGHOLE);
             player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_FISH_IN_GAMEOBJECT, GetGOInfo()->id);
             return;
         }

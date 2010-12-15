@@ -19,6 +19,7 @@
 #include "CreatureAI.h"
 #include "Creature.h"
 #include "DBCStores.h"
+#include "Spell.h"
 
 CreatureAI::~CreatureAI()
 {
@@ -27,7 +28,7 @@ CreatureAI::~CreatureAI()
 void CreatureAI::AttackedBy( Unit* attacker )
 {
     // vehicle dont have threat list, so this is unnecessary, because it calls move chase
-    if(m_creature->isVehicle())
+    if(m_creature->IsVehicle())
         return;
 
     if(!m_creature->getVictim())
@@ -50,7 +51,7 @@ CanCastResult CreatureAI::CanCastSpell(Unit* pTarget, const SpellEntry *pSpell, 
             return CAST_FAIL_STATE;
 
         // Check for power (also done by Spell::CheckCast())
-        if (m_creature->GetPower((Powers)pSpell->powerType) < pSpell->manaCost)
+        if (m_creature->GetPower((Powers)pSpell->powerType) < Spell::CalculatePowerCost(pSpell, m_creature))
             return CAST_FAIL_POWER;
     }
 

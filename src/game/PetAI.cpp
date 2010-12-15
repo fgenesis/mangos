@@ -30,7 +30,7 @@
 
 int PetAI::Permissible(const Creature *creature)
 {
-    if( creature->isPet())
+    if( creature->IsPet())
         return PERMIT_BASE_SPECIAL;
 
     return PERMIT_BASE_NO;
@@ -47,7 +47,7 @@ void PetAI::MoveInLineOfSight(Unit *u)
     if (m_creature->getVictim())
         return;
 
-    if (m_creature->isPet() && ((Pet*)m_creature)->GetModeFlags() & PET_MODE_DISABLE_ACTIONS)
+    if (m_creature->IsPet() && ((Pet*)m_creature)->GetModeFlags() & PET_MODE_DISABLE_ACTIONS)
         return;
 
     if (!m_creature->GetCharmInfo() || !m_creature->GetCharmInfo()->HasReactState(REACT_AGGRESSIVE))
@@ -70,7 +70,7 @@ void PetAI::MoveInLineOfSight(Unit *u)
 
 void PetAI::AttackStart(Unit *u)
 {
-    if(!u || (m_creature->isPet() && ((Pet*)m_creature)->getPetType() == MINI_PET))
+    if(!u || (m_creature->IsPet() && ((Pet*)m_creature)->getPetType() == MINI_PET))
         return;
 
     if(m_creature->Attack(u,true))
@@ -105,17 +105,6 @@ bool PetAI::_needToStop() const
 void PetAI::_stopAttack()
 {
     inCombat = false;
-    if( !m_creature->isAlive() )
-    {
-        DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "PetAI (guid = %u) stopped attack, he is dead.", m_creature->GetGUIDLow());
-        m_creature->StopMoving();
-        m_creature->GetMotionMaster()->Clear();
-        m_creature->GetMotionMaster()->MoveIdle();
-        m_creature->CombatStop();
-        m_creature->getHostileRefManager().deleteReferences();
-
-        return;
-    }
 
     Unit* owner = m_creature->GetCharmerOrOwner();
 
@@ -138,13 +127,13 @@ void PetAI::UpdateAI(const uint32 diff)
 
     Unit* owner = m_creature->GetCharmerOrOwner();
 
-    if(m_updateAlliesTimer <= diff)
+    if (m_updateAlliesTimer <= diff)
         // UpdateAllies self set update timer
         UpdateAllies();
     else
         m_updateAlliesTimer -= diff;
 
-    if (inCombat && (!m_creature->getVictim() || m_creature->isPet() && ((Pet*)m_creature)->GetModeFlags() & PET_MODE_DISABLE_ACTIONS))
+    if (inCombat && (!m_creature->getVictim() || (m_creature->IsPet() && ((Pet*)m_creature)->GetModeFlags() & PET_MODE_DISABLE_ACTIONS)))
         _stopAttack();
 
     // i_pet.getVictim() can't be used for check in case stop fighting, i_pet.getVictim() clear at Unit death etc.

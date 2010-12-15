@@ -58,25 +58,6 @@ namespace MaNGOS
         void Visit(CameraMapType &);
     };
 
-    struct MANGOS_DLL_DECL GridUpdater
-    {
-        GridType &i_grid;
-        uint32 i_timeDiff;
-        GridUpdater(GridType &grid, uint32 diff) : i_grid(grid), i_timeDiff(diff) {}
-
-        template<class T> void updateObjects(GridRefManager<T> &m)
-        {
-            for(typename GridRefManager<T>::iterator iter = m.begin(); iter != m.end(); ++iter)
-                iter->getSource()->Update(i_timeDiff);
-        }
-
-        void Visit(PlayerMapType &m) { updateObjects<Player>(m); }
-        void Visit(CreatureMapType &m){ updateObjects<Creature>(m); }
-        void Visit(GameObjectMapType &m) { updateObjects<GameObject>(m); }
-        void Visit(DynamicObjectMapType &m) { updateObjects<DynamicObject>(m); }
-        void Visit(CorpseMapType &m) { updateObjects<Corpse>(m); }
-    };
-
     struct MANGOS_DLL_DECL MessageDeliverer
     {
         Player &i_player;
@@ -150,7 +131,6 @@ namespace MaNGOS
         Player &i_player;
         PlayerRelocationNotifier(Player &pl) : i_player(pl) {}
         template<class T> void Visit(GridRefManager<T> &) {}
-        void Visit(PlayerMapType &);
         void Visit(CreatureMapType &);
     };
 
@@ -554,7 +534,7 @@ namespace MaNGOS
             bool operator()(Creature* u)
             {
                 if (i_fobj->isHonorOrXPTarget(u) ||
-                    u->getDeathState() != CORPSE || u->isDeadByDefault() || u->IsTaxiFlying() ||
+                    u->getDeathState() != CORPSE || u->IsDeadByDefault() || u->IsTaxiFlying() ||
                     ( u->GetCreatureTypeMask() & (1 << (CREATURE_TYPE_HUMANOID-1)) )==0 ||
                     (u->GetDisplayId() != u->GetNativeDisplayId()))
                     return false;
@@ -582,7 +562,7 @@ namespace MaNGOS
             }
             bool operator()(Creature* u)
             {
-                if (u->getDeathState()!=CORPSE || u->IsTaxiFlying() || u->isDeadByDefault() ||
+                if (u->getDeathState()!=CORPSE || u->IsTaxiFlying() || u->IsDeadByDefault() ||
                     (u->GetDisplayId() != u->GetNativeDisplayId()) ||
                     (u->GetCreatureTypeMask() & CREATURE_TYPEMASK_MECHANICAL_OR_ELEMENTAL)!=0)
                     return false;
@@ -628,8 +608,8 @@ namespace MaNGOS
     {
         public:
             RespawnDo() {}
-            void operator()(Creature* u) const { u->Respawn(); }
-            void operator()(GameObject* u) const { u->Respawn(); }
+            void operator()(Creature* u) const;
+            void operator()(GameObject* u) const;
             void operator()(WorldObject*) const {}
             void operator()(Corpse*) const {}
     };
@@ -896,7 +876,7 @@ namespace MaNGOS
                     return false;
 
                 // ignore totems as AoE targets
-                if(u->GetTypeId()==TYPEID_UNIT && ((Creature*)u)->isTotem())
+                if(u->GetTypeId()==TYPEID_UNIT && ((Creature*)u)->IsTotem())
                     return false;
 
                 // check visibility only for unit-like original casters
@@ -931,7 +911,7 @@ namespace MaNGOS
                 if (!u->isTargetableForAttack())
                     return false;
 
-                if(u->GetTypeId()==TYPEID_UNIT && ((Creature*)u)->isTotem())
+                if(u->GetTypeId()==TYPEID_UNIT && ((Creature*)u)->IsTotem())
                     return false;
 
                 if(( i_targetForPlayer ? !i_obj->IsFriendlyTo(u) : i_obj->IsHostileTo(u) )&& i_obj->IsWithinDistInMap(u, i_range))
@@ -1090,7 +1070,7 @@ namespace MaNGOS
             WorldObject const& GetFocusObject() const { return i_obj; }
             bool operator()(Creature* u)
             {
-                if(u->GetEntry() == i_entry && u->isAlive()==i_alive && i_obj.IsWithinDistInMap(u, i_range))
+                if (u->GetEntry() == i_entry && (i_alive && u->isAlive() || !i_alive && u->IsCorpse()) && i_obj.IsWithinDistInMap(u, i_range))
                 {
                     i_range = i_obj.GetDistance(u);         // use found unit range as new range limit for next check
                     return true;
@@ -1170,7 +1150,6 @@ namespace MaNGOS
 
     #ifndef WIN32
     template<> void PlayerRelocationNotifier::Visit<Creature>(CreatureMapType &);
-    template<> void PlayerRelocationNotifier::Visit<Player>(PlayerMapType &);
     template<> void CreatureRelocationNotifier::Visit<Player>(PlayerMapType &);
     template<> void CreatureRelocationNotifier::Visit<Creature>(CreatureMapType &);
     template<> inline void DynamicObjectUpdater::Visit<Creature>(CreatureMapType &);

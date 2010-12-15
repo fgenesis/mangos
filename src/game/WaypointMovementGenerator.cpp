@@ -78,7 +78,7 @@ void WaypointMovementGenerator<Creature>::LoadPath(Creature &creature)
     // We have to set the destination here (for the first point), right after Initialize. Without, we may not have valid xyz for GetResetPosition
     CreatureTraveller traveller(creature);
 
-    if (creature.canFly())
+    if (creature.CanFly())
         creature.AddSplineFlag(SPLINEFLAG_UNKNOWN7);
 
     const WaypointNode &node = i_path->at(i_currentNode);
@@ -155,7 +155,7 @@ bool WaypointMovementGenerator<Creature>::Update(Creature &creature, const uint3
 
             creature.addUnitState(UNIT_STAT_ROAMING_MOVE);
 
-            if (creature.canFly())
+            if (creature.CanFly())
                 creature.AddSplineFlag(SPLINEFLAG_UNKNOWN7);
 
             // Now we re-set destination to same node and start travel
@@ -220,10 +220,10 @@ bool WaypointMovementGenerator<Creature>::Update(Creature &creature, const uint3
                                 break;
                         }
 
-                        creature.Say(behavior->textid[rand() % i], 0, 0);
+                        creature.MonsterSay(behavior->textid[rand() % i], LANG_UNIVERSAL);
                     }
                     else
-                        creature.Say(behavior->textid[0], 0, 0);
+                        creature.MonsterSay(behavior->textid[0], LANG_UNIVERSAL);
                 }
             }                                               // wpBehaviour found
 
@@ -253,7 +253,7 @@ bool WaypointMovementGenerator<Creature>::Update(Creature &creature, const uint3
         {
             creature.addUnitState(UNIT_STAT_ROAMING_MOVE);
 
-            if (creature.canFly())
+            if (creature.CanFly())
                 creature.AddSplineFlag(SPLINEFLAG_UNKNOWN7);
 
             if (WaypointBehavior *behavior = i_path->at(i_currentNode).behavior)
@@ -335,7 +335,7 @@ void FlightPathMovementGenerator::Finalize(Player & player)
     player.clearUnitState(UNIT_STAT_TAXI_FLIGHT);
 
     float x, y, z;
-    i_destinationHolder.GetLocationNow(player.GetBaseMap(), x, y, z);
+    i_destinationHolder.GetLocationNow(player.GetMap(), x, y, z);
     player.SetPosition(x, y, z, player.GetOrientation());
 
     player.Unmount();

@@ -43,8 +43,6 @@
 #define MAX_STEALTH_DETECT_RANGE    45.0f
 #define TERRAIN_LOS_STEP_DISTANCE   3.0f
 
-uint32 GuidHigh2TypeId(uint32 guid_hi);
-
 enum TempSummonType
 {
     TEMPSUMMON_TIMED_OR_DEAD_DESPAWN       = 1,             // despawns after a specified time OR when the creature disappears
@@ -72,6 +70,7 @@ class Unit;
 class Map;
 class UpdateMask;
 class InstanceData;
+class TerrainInfo;
 class Vehicle;
 
 typedef UNORDERED_MAP<Player*, UpdateData> UpdateDataMapType;
@@ -114,8 +113,9 @@ class MANGOS_DLL_SPEC Object
 
         ObjectGuid const& GetObjectGuid() const { return GetGuidValue(OBJECT_FIELD_GUID); }
         const uint64& GetGUID() const { return GetUInt64Value(OBJECT_FIELD_GUID); }
-        uint32 GetGUIDLow() const { return GUID_LOPART(GetUInt64Value(OBJECT_FIELD_GUID)); }
+        uint32 GetGUIDLow() const { return GetObjectGuid().GetCounter(); }
         PackedGuid const& GetPackGUID() const { return m_PackGUID; }
+        std::string GetGuidStr() const { return GetObjectGuid().GetString(); }
 
         uint32 GetEntry() const { return GetUInt32Value(OBJECT_FIELD_ENTRY); }
         void SetEntry(uint32 entry) { SetUInt32Value(OBJECT_FIELD_ENTRY, entry); }
@@ -291,9 +291,8 @@ class MANGOS_DLL_SPEC Object
 
         void InitValues() { _InitValues(); }
 
-        virtual bool hasQuest(uint32 /* quest_id */) const { return false; }
-        virtual bool hasInvolvedQuest(uint32 /* quest_id */) const { return false; }
-
+        virtual bool HasQuest(uint32 /* quest_id */) const { return false; }
+        virtual bool HasInvolvedQuest(uint32 /* quest_id */) const { return false; }
 
         // FG: some hacky helpers
         void ForceValuesUpdateAtIndex(uint32);
@@ -358,7 +357,7 @@ class MANGOS_DLL_SPEC WorldObject : public Object
         void Relocate(float x, float y, float z, float orientation);
         void Relocate(float x, float y, float z);
 
-        void SetOrientation(float orientation) { m_orientation = orientation; }
+        void SetOrientation(float orientation);
 
         float GetPositionX( ) const { return m_positionX; }
         float GetPositionY( ) const { return m_positionY; }
@@ -454,16 +453,16 @@ class MANGOS_DLL_SPEC WorldObject : public Object
         virtual void SendMessageToSetInRange(WorldPacket *data, float dist, bool self);
         void SendMessageToSetExcept(WorldPacket *data, Player const* skipped_receiver);
 
-        void MonsterSay(const char* text, uint32 language, uint64 TargetGuid);
-        void MonsterYell(const char* text, uint32 language, uint64 TargetGuid);
-        void MonsterTextEmote(const char* text, uint64 TargetGuid, bool IsBossEmote = false);
-        void MonsterWhisper(const char* text, uint64 receiver, bool IsBossWhisper = false);
-        void MonsterSay(int32 textId, uint32 language, uint64 TargetGuid);
-        void MonsterYell(int32 textId, uint32 language, uint64 TargetGuid);
-        void MonsterTextEmote(int32 textId, uint64 TargetGuid, bool IsBossEmote = false);
-        void MonsterWhisper(int32 textId, uint64 receiver, bool IsBossWhisper = false);
-        void MonsterYellToZone(int32 textId, uint32 language, uint64 TargetGuid);
-        void BuildMonsterChat(WorldPacket *data, uint8 msgtype, char const* text, uint32 language, char const* name, uint64 TargetGuid) const;
+        void MonsterSay(const char* text, uint32 language, Unit* target = NULL);
+        void MonsterYell(const char* text, uint32 language, Unit* target = NULL);
+        void MonsterTextEmote(const char* text, Unit* target, bool IsBossEmote = false);
+        void MonsterWhisper(const char* text, Unit* target, bool IsBossWhisper = false);
+        void MonsterSay(int32 textId, uint32 language, Unit* target = NULL);
+        void MonsterYell(int32 textId, uint32 language, Unit* target = NULL);
+        void MonsterTextEmote(int32 textId, Unit* target, bool IsBossEmote = false);
+        void MonsterWhisper(int32 textId, Unit* receiver, bool IsBossWhisper = false);
+        void MonsterYellToZone(int32 textId, uint32 language, Unit* target);
+        void BuildMonsterChat(WorldPacket *data, uint8 msgtype, char const* text, uint32 language, char const* name, ObjectGuid targetGuid, char const* targetName) const;
 
         void PlayDistanceSound(uint32 sound_id, Player* target = NULL);
         void PlayDirectSound(uint32 sound_id, Player* target = NULL);
@@ -491,8 +490,8 @@ class MANGOS_DLL_SPEC WorldObject : public Object
         //used to check all object's GetMap() calls when object is not in world!
         void ResetMap() { m_currMap = NULL; }
 
-        //this function should be removed in nearest time...
-        Map const* GetBaseMap() const;
+        //obtain terrain data for map where this object belong...
+        TerrainInfo const* GetTerrain() const;
 
         void AddToClientUpdateList();
         void RemoveFromClientUpdateList();

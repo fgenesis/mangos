@@ -96,7 +96,7 @@ class MANGOS_DLL_DECL ObjectAccessor : public MaNGOS::Singleton<ObjectAccessor, 
     ObjectAccessor& operator=(const ObjectAccessor &);
 
     public:
-        typedef UNORDERED_MAP<uint64, Corpse* >      Player2CorpsesMapType;
+        typedef UNORDERED_MAP<ObjectGuid, Corpse*> Player2CorpsesMapType;
 
         // global (obj used for map only location local guid objects (pets currently)
         static Unit*   GetUnitInWorld(WorldObject const& obj, ObjectGuid guid);
@@ -104,18 +104,10 @@ class MANGOS_DLL_DECL ObjectAccessor : public MaNGOS::Singleton<ObjectAccessor, 
         // map local object with global search
         static Creature*   GetCreatureInWorld(ObjectGuid guid)   { return FindHelper<Creature>(guid); }
         static GameObject* GetGameObjectInWorld(ObjectGuid guid) { return FindHelper<GameObject>(guid); }
-        static Pet*        GetGameObjectInWorld(uint64 guid, Pet*        /*fake*/) { return FindHelper<Pet>(guid); }
-        static Vehicle*    GetGameObjectInWorld(uint64 guid, Vehicle*    /*fake*/) { return FindHelper<Vehicle>(guid); }
 
         // Search player at any map in world and other objects at same map with `obj`
         // Note: recommended use Map::GetUnit version if player also expected at same map only
         static Unit* GetUnit(WorldObject const& obj, ObjectGuid guid);
-        static Creature* GetAnyTypeCreature(WorldObject const &, ObjectGuid guid);
-        //static Player* GetPlayer(Unit const &, uint64 guid) { return FindPlayer(guid); }
-        //static Corpse* GetCorpse(WorldObject const &u, uint64 guid);
-        //static Pet* GetPet(uint64 guid) { return GetObjectInWorld(guid, (Pet*)NULL); }
-        static Vehicle* GetVehicle(uint64 guid) { return GetGameObjectInWorld(guid, (Vehicle*)NULL); }
-        //static Player* FindPlayer(uint64);
 
         // Player access
         static Player* FindPlayer(ObjectGuid guid);         // if need player at specific map better use Map::GetPlayer

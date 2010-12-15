@@ -64,7 +64,7 @@ void WorldSession::HandleRepopRequestOpcode( WorldPacket & recv_data )
     }
 
     //this is spirit release confirm?
-    GetPlayer()->RemovePet(NULL,PET_SAVE_NOT_IN_SLOT, true);
+    GetPlayer()->RemovePet(PET_SAVE_REAGENTS);
     GetPlayer()->BuildPlayerRepop();
     GetPlayer()->RepopAtGraveyard();
 }
@@ -134,7 +134,7 @@ void WorldSession::HandleWhoOpcode( WorldPacket & recv_data )
     if(level_max >= MAX_LEVEL)
         level_max = STRONG_MAX_LEVEL;
 
-    uint32 team = _player->GetTeam();
+    Team team = _player->GetTeam();
     uint32 security = GetSecurity();
     bool allowTwoSideWhoList = sWorld.getConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_WHO_LIST);
     AccountTypes gmLevelInWhoList = (AccountTypes)sWorld.getConfig(CONFIG_UINT32_GM_LEVEL_IN_WHO_LIST);
@@ -476,14 +476,14 @@ void WorldSession::HandleZoneUpdateOpcode( WorldPacket & recv_data )
 void WorldSession::HandleSetTargetOpcode( WorldPacket & recv_data )
 {
     // When this packet send?
-    uint64 guid ;
+    ObjectGuid guid ;
     recv_data >> guid;
 
-    _player->SetTargetGUID(guid);
+    _player->SetTargetGuid(guid);
 
     // update reputation list if need
-    Unit* unit = ObjectAccessor::GetUnit(*_player, guid );
-    if(!unit)
+    Unit* unit = ObjectAccessor::GetUnit(*_player, guid );  // can select group members at diff maps
+    if (!unit)
         return;
 
     if(FactionTemplateEntry const* factionTemplateEntry = sFactionTemplateStore.LookupEntry(unit->getFaction()))
@@ -492,14 +492,14 @@ void WorldSession::HandleSetTargetOpcode( WorldPacket & recv_data )
 
 void WorldSession::HandleSetSelectionOpcode( WorldPacket & recv_data )
 {
-    uint64 guid;
+    ObjectGuid guid;
     recv_data >> guid;
 
-    _player->SetSelection(guid);
+    _player->SetSelectionGuid(guid);
 
     // update reputation list if need
-    Unit* unit = ObjectAccessor::GetUnit(*_player, guid );
-    if(!unit)
+    Unit* unit = ObjectAccessor::GetUnit(*_player, guid );  // can select group members at diff maps
+    if (!unit)
         return;
 
     if(FactionTemplateEntry const* factionTemplateEntry = sFactionTemplateStore.LookupEntry(unit->getFaction()))
@@ -553,12 +553,12 @@ void WorldSession::HandleAddFriendOpcodeCallBack(QueryResult *result, uint32 acc
 
     uint32 friendLowGuid = (*result)[0].GetUInt32();
     ObjectGuid friendGuid = ObjectGuid(HIGHGUID_PLAYER, friendLowGuid);
-    uint32 team = Player::TeamForRace((*result)[1].GetUInt8());
+    Team team = Player::TeamForRace((*result)[1].GetUInt8());
 
     delete result;
 
     WorldSession * session = sWorld.FindSession(accountId);
-    if(!session || !session->GetPlayer())
+    if (!session || !session->GetPlayer())
         return;
 
     FriendsResult friendResult = FRIEND_NOT_FOUND;
@@ -568,7 +568,7 @@ void WorldSession::HandleAddFriendOpcodeCallBack(QueryResult *result, uint32 acc
             friendResult = FRIEND_SELF;
         else if(session->GetPlayer()->GetTeam() != team && !sWorld.getConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_ADD_FRIEND) && session->GetSecurity() < SEC_MODERATOR)
             friendResult = FRIEND_ENEMY;
-        else if(session->GetPlayer()->GetSocial()->HasFriend(friendLowGuid))
+        else if(session->GetPlayer()->GetSocial()->HasFriend(friendGuid))
             friendResult = FRIEND_ALREADY;
         else
         {
@@ -578,32 +578,32 @@ void WorldSession::HandleAddFriendOpcodeCallBack(QueryResult *result, uint32 acc
             else
                 friendResult = FRIEND_ADDED_OFFLINE;
 
-            if(!session->GetPlayer()->GetSocial()->AddToSocialList(friendLowGuid, false))
+            if(!session->GetPlayer()->GetSocial()->AddToSocialList(friendGuid, false))
             {
                 friendResult = FRIEND_LIST_FULL;
                 DEBUG_LOG( "WORLD: %s's friend list is full.", session->GetPlayer()->GetName());
             }
 
-            session->GetPlayer()->GetSocial()->SetFriendNote(friendLowGuid, friendNote);
+            session->GetPlayer()->GetSocial()->SetFriendNote(friendGuid, friendNote);
         }
     }
 
-    sSocialMgr.SendFriendStatus(session->GetPlayer(), friendResult, friendLowGuid, false);
+    sSocialMgr.SendFriendStatus(session->GetPlayer(), friendResult, friendGuid, false);
 
     DEBUG_LOG( "WORLD: Sent (SMSG_FRIEND_STATUS)" );
 }
 
 void WorldSession::HandleDelFriendOpcode( WorldPacket & recv_data )
 {
-    uint64 FriendGUID;
+    uint64 friendGuid;
 
     DEBUG_LOG( "WORLD: Received CMSG_DEL_FRIEND" );
 
-    recv_data >> FriendGUID;
+    recv_data >> friendGuid;
 
-    _player->GetSocial()->RemoveFromSocialList(GUID_LOPART(FriendGUID), false);
+    _player->GetSocial()->RemoveFromSocialList(friendGuid, false);
 
-    sSocialMgr.SendFriendStatus(GetPlayer(), FRIEND_REMOVED, GUID_LOPART(FriendGUID), false);
+    sSocialMgr.SendFriendStatus(GetPlayer(), FRIEND_REMOVED, friendGuid, false);
 
     DEBUG_LOG( "WORLD: Sent motd (SMSG_FRIEND_STATUS)" );
 }
@@ -646,34 +646,34 @@ void WorldSession::HandleAddIgnoreOpcodeCallBack(QueryResult *result, uint32 acc
     {
         if (ignoreGuid == session->GetPlayer()->GetObjectGuid())
             ignoreResult = FRIEND_IGNORE_SELF;
-        else if (session->GetPlayer()->GetSocial()->HasIgnore(ignoreLowGuid))
+        else if (session->GetPlayer()->GetSocial()->HasIgnore(ignoreGuid))
             ignoreResult = FRIEND_IGNORE_ALREADY;
         else
         {
             ignoreResult = FRIEND_IGNORE_ADDED;
 
             // ignore list full
-            if(!session->GetPlayer()->GetSocial()->AddToSocialList(ignoreLowGuid, true))
+            if(!session->GetPlayer()->GetSocial()->AddToSocialList(ignoreGuid, true))
                 ignoreResult = FRIEND_IGNORE_FULL;
         }
     }
 
-    sSocialMgr.SendFriendStatus(session->GetPlayer(), ignoreResult, ignoreLowGuid, false);
+    sSocialMgr.SendFriendStatus(session->GetPlayer(), ignoreResult, ignoreGuid, false);
 
     DEBUG_LOG( "WORLD: Sent (SMSG_FRIEND_STATUS)" );
 }
 
 void WorldSession::HandleDelIgnoreOpcode( WorldPacket & recv_data )
 {
-    uint64 IgnoreGUID;
+    uint64 ignoreGuid;
 
     DEBUG_LOG( "WORLD: Received CMSG_DEL_IGNORE" );
 
-    recv_data >> IgnoreGUID;
+    recv_data >> ignoreGuid;
 
-    _player->GetSocial()->RemoveFromSocialList(GUID_LOPART(IgnoreGUID), true);
+    _player->GetSocial()->RemoveFromSocialList(ignoreGuid, true);
 
-    sSocialMgr.SendFriendStatus(GetPlayer(), FRIEND_IGNORE_REMOVED, GUID_LOPART(IgnoreGUID), false);
+    sSocialMgr.SendFriendStatus(GetPlayer(), FRIEND_IGNORE_REMOVED, ignoreGuid, false);
 
     DEBUG_LOG( "WORLD: Sent motd (SMSG_FRIEND_STATUS)" );
 }
@@ -681,10 +681,10 @@ void WorldSession::HandleDelIgnoreOpcode( WorldPacket & recv_data )
 void WorldSession::HandleSetContactNotesOpcode( WorldPacket & recv_data )
 {
     DEBUG_LOG("CMSG_SET_CONTACT_NOTES");
-    uint64 guid;
+    ObjectGuid guid;
     std::string note;
     recv_data >> guid >> note;
-    _player->GetSocial()->SetFriendNote(GUID_LOPART(guid), note);
+    _player->GetSocial()->SetFriendNote(guid, note);
 }
 
 void WorldSession::HandleBugOpcode( WorldPacket & recv_data )
@@ -713,7 +713,7 @@ void WorldSession::HandleReclaimCorpseOpcode(WorldPacket &recv_data)
 {
     DETAIL_LOG("WORLD: Received CMSG_RECLAIM_CORPSE");
 
-    uint64 guid;
+    ObjectGuid guid;
     recv_data >> guid;
 
     if (GetPlayer()->isAlive())
@@ -750,7 +750,7 @@ void WorldSession::HandleResurrectResponseOpcode(WorldPacket & recv_data)
 {
     DETAIL_LOG("WORLD: Received CMSG_RESURRECT_RESPONSE");
 
-    uint64 guid;
+    ObjectGuid guid;
     uint8 status;
     recv_data >> guid;
     recv_data >> status;
@@ -843,63 +843,64 @@ void WorldSession::HandleAreaTriggerOpcode(WorldPacket & recv_data)
 
     if(!GetPlayer()->isGameMaster())
     {
-        uint32 missingLevel = 0;
+        bool missingItem = false;
+        bool missingLevel = false;
+        bool missingQuest = false;
+
         if(GetPlayer()->getLevel() < at->requiredLevel && !sWorld.getConfig(CONFIG_BOOL_INSTANCE_IGNORE_LEVEL))
-            missingLevel = at->requiredLevel;
+            missingLevel = true;
 
         // must have one or the other, report the first one that's missing
-        uint32 missingItem = 0;
         if(at->requiredItem)
         {
             if(!GetPlayer()->HasItemCount(at->requiredItem, 1) &&
                 (!at->requiredItem2 || !GetPlayer()->HasItemCount(at->requiredItem2, 1)))
-                missingItem = at->requiredItem;
+                missingItem = true;
         }
         else if(at->requiredItem2 && !GetPlayer()->HasItemCount(at->requiredItem2, 1))
-            missingItem = at->requiredItem2;
+            missingItem = true;
 
         MapEntry const* mapEntry = sMapStore.LookupEntry(at->target_mapId);
         if(!mapEntry)
             return;
 
-        bool isRegularTargetMap = GetPlayer()->GetDifficulty(mapEntry->IsRaid()) == REGULAR_DIFFICULTY;
+        bool isRegularTargetMap = !mapEntry->IsDungeon() || GetPlayer()->GetDifficulty(mapEntry->IsRaid()) == REGULAR_DIFFICULTY;
 
-        uint32 missingKey = 0;
         if (!isRegularTargetMap)
         {
             if(at->heroicKey)
             {
                 if(!GetPlayer()->HasItemCount(at->heroicKey, 1) &&
                     (!at->heroicKey2 || !GetPlayer()->HasItemCount(at->heroicKey2, 1)))
-                    missingKey = at->heroicKey;
+                    missingItem = true;
             }
             else if(at->heroicKey2 && !GetPlayer()->HasItemCount(at->heroicKey2, 1))
-                missingKey = at->heroicKey2;
+                missingItem = true;
         }
 
-        uint32 missingQuest = 0;
         if (!isRegularTargetMap)
         {
             if (at->requiredQuestHeroic && !GetPlayer()->GetQuestRewardStatus(at->requiredQuestHeroic))
-                missingQuest = at->requiredQuestHeroic;
+                missingQuest = true;
         }
         else
         {
-            if(at->requiredQuest && !GetPlayer()->GetQuestRewardStatus(at->requiredQuest))
-                missingQuest = at->requiredQuest;
+            if (at->requiredQuest && !GetPlayer()->GetQuestRewardStatus(at->requiredQuest))
+                missingQuest = true;
         }
 
-        if(missingLevel || missingItem || missingKey || missingQuest)
+        if(missingItem || missingLevel || missingQuest)
         {
-            // TODO: all this is probably wrong
-            if(missingItem)
-                SendAreaTriggerMessage(GetMangosString(LANG_LEVEL_MINREQUIRED_AND_ITEM), at->requiredLevel, ObjectMgr::GetItemPrototype(missingItem)->Name1);
-            else if(missingKey)
-                GetPlayer()->SendTransferAborted(at->target_mapId, TRANSFER_ABORT_DIFFICULTY, isRegularTargetMap ? DUNGEON_DIFFICULTY_NORMAL : DUNGEON_DIFFICULTY_HEROIC);
-            else if(missingQuest)
+            // hack for "Opening of the Dark Portal"
+            if(missingQuest && at->target_mapId == 269)
                 SendAreaTriggerMessage("%s", at->requiredFailedText.c_str());
-            else if(missingLevel)
-                SendAreaTriggerMessage(GetMangosString(LANG_LEVEL_MINREQUIRED), missingLevel);
+            else if(missingQuest && mapEntry->IsContinent())// do not report anything for quest areatriggers
+                return;
+            // hack for TBC heroics
+            else if(missingLevel && !mapEntry->IsRaid() && GetPlayer()->GetDifficulty(false) == DUNGEON_DIFFICULTY_HEROIC && mapEntry->addon == 1)
+                SendAreaTriggerMessage(GetMangosString(LANG_LEVEL_MINREQUIRED), at->requiredLevel);
+            else
+                GetPlayer()->SendTransferAborted(at->target_mapId, TRANSFER_ABORT_DIFFICULTY, GetPlayer()->GetDifficulty(mapEntry->IsRaid()));
             return;
         }
     }
@@ -1062,7 +1063,7 @@ void WorldSession::HandleMoveTimeSkippedOpcode( WorldPacket & recv_data )
     recv_data >> Unused<uint32>();
 
     /*
-        uint64 guid;
+        ObjectGuid guid;
         uint32 time_skipped;
         recv_data >> guid;
         recv_data >> time_skipped;
@@ -1089,7 +1090,7 @@ void WorldSession::HandleMoveUnRootAck(WorldPacket& recv_data)
     // no used
     recv_data.rpos(recv_data.wpos());                       // prevent warnings spam
 /*
-    uint64 guid;
+    ObjectGuid guid;
     recv_data >> guid;
 
     // now can skip not our packet
@@ -1113,11 +1114,11 @@ void WorldSession::HandleMoveRootAck(WorldPacket& recv_data)
     // no used
     recv_data.rpos(recv_data.wpos());                       // prevent warnings spam
 /*
-    uint64 guid;
+    ObjectGuid guid;
     recv_data >> guid;
 
     // now can skip not our packet
-    if(_player->GetGUID() != guid)
+    if(_player->GetObjectGuid() != guid)
     {
         recv_data.rpos(recv_data.wpos());                   // prevent warnings spam
         return;
@@ -1172,11 +1173,11 @@ void WorldSession::HandlePlayedTime(WorldPacket& recv_data)
 
 void WorldSession::HandleInspectOpcode(WorldPacket& recv_data)
 {
-    uint64 guid;
+    ObjectGuid guid;
     recv_data >> guid;
-    DEBUG_LOG("Inspected guid is (GUID: %u TypeId: %u)", GUID_LOPART(guid), GuidHigh2TypeId(GUID_HIPART(guid)));
+    DEBUG_LOG("Inspected guid is %s", guid.GetString().c_str());
 
-    _player->SetSelection(guid);
+    _player->SetSelectionGuid(guid);
 
     Player *plr = sObjectMgr.GetPlayer(guid);
     if(!plr)                                                // wrong player
@@ -1203,7 +1204,7 @@ void WorldSession::HandleInspectOpcode(WorldPacket& recv_data)
 
 void WorldSession::HandleInspectHonorStatsOpcode(WorldPacket& recv_data)
 {
-    uint64 guid;
+    ObjectGuid guid;
     recv_data >> guid;
 
     Player *player = sObjectMgr.GetPlayer(guid);
@@ -1324,14 +1325,14 @@ void WorldSession::HandleComplainOpcode( WorldPacket & recv_data )
     recv_data.hexlike();
 
     uint8 spam_type;                                        // 0 - mail, 1 - chat
-    uint64 spammer_guid;
+    ObjectGuid spammerGuid;
     uint32 unk1 = 0;
     uint32 unk2 = 0;
     uint32 unk3 = 0;
     uint32 unk4 = 0;
     std::string description = "";
     recv_data >> spam_type;                                 // unk 0x01 const, may be spam type (mail/chat)
-    recv_data >> spammer_guid;                              // player guid
+    recv_data >> spammerGuid;                               // player guid
     switch(spam_type)
     {
         case 0:
@@ -1356,7 +1357,7 @@ void WorldSession::HandleComplainOpcode( WorldPacket & recv_data )
     data << uint8(0);
     SendPacket(&data);
 
-    DEBUG_LOG("REPORT SPAM: type %u, guid %u, unk1 %u, unk2 %u, unk3 %u, unk4 %u, message %s", spam_type, GUID_LOPART(spammer_guid), unk1, unk2, unk3, unk4, description.c_str());
+    DEBUG_LOG("REPORT SPAM: type %u, spammer %s, unk1 %u, unk2 %u, unk3 %u, unk4 %u, message %s", spam_type, spammerGuid.GetString().c_str(), unk1, unk2, unk3, unk4, description.c_str());
 }
 
 void WorldSession::HandleRealmSplitOpcode( WorldPacket & recv_data )
@@ -1394,11 +1395,11 @@ void WorldSession::HandleFarSightOpcode( WorldPacket & recv_data )
     switch(op)
     {
         case 0:
-            DEBUG_LOG("Removed FarSight from %s", _player->GetObjectGuid().GetString().c_str());
+            DEBUG_LOG("Removed FarSight from %s", _player->GetGuidStr().c_str());
             _player->GetCamera().ResetView(false);
             break;
         case 1:
-            DEBUG_LOG("Added FarSight %s to %s", _player->GetFarSightGuid().GetString().c_str(), _player->GetObjectGuid().GetString().c_str());
+            DEBUG_LOG("Added FarSight %s to %s", _player->GetFarSightGuid().GetString().c_str(), _player->GetGuidStr().c_str());
             _player->GetCamera().SetView(obj, false);
             break;
     }

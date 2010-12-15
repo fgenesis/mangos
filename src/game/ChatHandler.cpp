@@ -264,9 +264,7 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recv_data )
 
             if (!sWorld.getConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_INTERACTION_CHAT) && mySecurity < SEC_MODERATOR && pSecurity < SEC_MODERATOR )
             {
-                uint32 sidea = GetPlayer()->GetTeam();
-                uint32 sideb = player->GetTeam();
-                if( sidea != sideb )
+                if (GetPlayer()->GetTeam() != player->GetTeam())
                 {
                     SendWrongFactionNotice();
                     return;
@@ -611,7 +609,7 @@ void WorldSession::HandleTextEmoteOpcode( WorldPacket & recv_data )
     }
 
     uint32 text_emote, emoteNum;
-    uint64 guid;
+    ObjectGuid guid;
 
     recv_data >> text_emote;
     recv_data >> emoteNum;
@@ -641,7 +639,7 @@ void WorldSession::HandleTextEmoteOpcode( WorldPacket & recv_data )
         }
     }
 
-    Unit* unit = ObjectAccessor::GetUnit(*_player, guid);
+    Unit* unit = GetPlayer()->GetMap()->GetUnit(guid);
 
     MaNGOS::EmoteChatBuilder emote_builder(*GetPlayer(), text_emote, emoteNum, unit);
     MaNGOS::LocalizedPacketDo<MaNGOS::EmoteChatBuilder > emote_do(emote_builder);
