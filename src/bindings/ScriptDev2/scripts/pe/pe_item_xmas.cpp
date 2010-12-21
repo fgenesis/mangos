@@ -120,8 +120,16 @@ static uint32 modelList[] =
 void ItemUse_pe_item_xmas_doMorph(Player *pPlayer, SpellCastTargets const& scTargets)
 {
     uint32 count = sizeof(modelList) / sizeof(uint32);
-    uint32 model = modelList[URandomize(0, count-1)];
+    uint32 model;
+
+    do 
+        model = modelList[urand(0, count-1)];
+    while(model == pPlayer->GetDisplayId());
+
     pPlayer->SetDisplayId(model);
+
+    pPlayer->CastSpell(pPlayer, 41232, true); // teleport visual
+    pPlayer->CastSpell(pPlayer, 19484, true); // red flash visual (1 sec later)
 }
 
 void ItemUse_pe_item_xmas_doCastSpell(Player *pPlayer, SpellCastTargets const& scTargets)
