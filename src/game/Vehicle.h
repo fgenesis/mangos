@@ -125,7 +125,7 @@ class Vehicle : public Creature
             m_spawnduration = duration;
         }
         VehicleDataStructure const* GetVehicleData() { return m_VehicleData; }
-        uint32 GetVehicleFlags() { return m_VehicleData ? m_VehicleData->v_flags : NULL; }
+        uint32 GetVehicleFlags() { return m_VehicleData ? m_VehicleData->v_flags : 0; }
         uint32 GetCreationTime() { return m_creation_time; }
         void BuildVehicleActionBar(Player *plr) const;
         void InstallAllAccessories();
