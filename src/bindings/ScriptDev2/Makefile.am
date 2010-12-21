@@ -594,6 +594,7 @@ system/ScriptLoader.h \
 scripts/pe/pe_base.h \
 scripts/pe/pe_structs.h \
 scripts/pe/pe_npc_xmas.cpp \
+scripts/pe/pe_item_xmas.cpp \
 scripts/pe/pe_structs.cpp \
 scripts/pe/pe_npc_buffs.cpp \
 scripts/pe/pe_yuyunator.cpp \
