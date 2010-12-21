@@ -27,7 +27,7 @@ static uint32 spellList[] =
     36914, // ----   Magic damage increased by 100%
     36657, // ++++   Death Count (to all targets in range, 5k dmg after 15 secs)
     23127, // ---    Death's Door (disease, 5% hp loss every 3 sec, inf duration)
-    62269, // +++++  Rune of Death (AOE, ~5k dps to hostile)
+    //62269, // +++++  Rune of Death (AOE, ~5k dps to hostile)
     //28433, // +-+-+  Explode (caster dies, but with 30k damage in 5y aoe range)
     42696, // +++??  Drunken master, weird AOE stun
     67468, // -??    Drunken vomit, self stun for 2 sec
