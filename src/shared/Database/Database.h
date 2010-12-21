@@ -35,12 +35,13 @@ typedef UNORDERED_MAP<ACE_Based::Thread* , SqlResultQueue*> QueryQueues;
 class MANGOS_DLL_SPEC Database
 {
     protected:
-        Database() : m_threadBody(NULL), m_delayThread(NULL) {};
+        Database() : m_threadBody(NULL), m_delayThread(NULL), m_wasInit(false) {};
 
         TransactionQueues m_tranQueues;                     ///< Transaction queues from diff. threads
         QueryQueues m_queryQueues;                          ///< Query queues from diff threads
         SqlDelayThread* m_threadBody;                       ///< Pointer to delay sql executer (owned by m_delayThread)
         ACE_Based::Thread* m_delayThread;                   ///< Pointer to executer thread
+        bool m_wasInit; // FG: addition
 
     public:
 
@@ -49,6 +50,7 @@ class MANGOS_DLL_SPEC Database
         virtual bool Initialize(const char *infoString);
         virtual void InitDelayThread() = 0;
         virtual void HaltDelayThread() = 0;
+        inline bool WasInit() { return m_wasInit; }
 
         virtual QueryResult* Query(const char *sql) = 0;
         QueryResult* PQuery(const char *format,...) ATTR_PRINTF(2,3);

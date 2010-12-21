@@ -182,6 +182,7 @@ bool DatabaseMysql::Initialize(const char *infoString)
          sLog.outDetail("Your mySQL client libs to at least mySQL 5.0.13 to resolve this problem.");
 #endif
 
+        m_wasInit = true;
         return true;
     }
     else
