@@ -16,7 +16,7 @@ static uint32 spellList[] =
     14535, // +++++  dredge sickness, -25% to all stats
     36810, // --     rotting putrescence (sometimes stun + hp loss
     30898, // +++++  SW: Pain to every hostile unit in 100y
-    54417, // ++++   Ray of Suffering, 8% hp loss to hostile target per sec for 5 sec
+    54417, // ++++   Ray of Suffering, 8% hp loss to hostile target per sec for 5 sec [NERFED]
     52723, // ++++   Vampiric touch, heal for 50% of dmg
     70449, // ++++   Vampire Rush, ~4k AOE dmg + AOE knockback
     32839, // ???    Beam (Red) - useless, but looks cool
@@ -44,7 +44,7 @@ static uint32 spellList[] =
     23965, // +++++  Instant heal (full)
     14539, // +++    Putrid Enzyme (+50% shadow/nature damage, AOE)
     23126, // ??     World Enlarger
-    38441, // ++++   Cataclymic Bolt (-50% of total hp to enemy)
+    38441, // ++++   Cataclymic Bolt (-50% of total hp to enemy) [NERFED]
     20547, // +++    Fun bomb (damage friends of target, can be casted on hostile+friendly)
     16711, // +?     Grow (size increase + slight run speed increase)
     24207, // ??     Hellfire cast Visual (knocks down all allies)
@@ -150,7 +150,7 @@ select_spell:
     uint32 id = spellList[urand(0, count-1)];
 
     // HACK: cataclysmic bolt halves HP, limit to targets with lower health to make it not imba
-    if(id == 38441 && (target->GetMaxHealth() > 80000 || target->GetHealthPercent() < 55.0))
+    if((id == 38441 || id == 54417) && (target->GetMaxHealth() > 80000 || target->GetHealthPercent() < 55.0))
         goto select_spell;
 
     pPlayer->CastSpell(target, id, true);
