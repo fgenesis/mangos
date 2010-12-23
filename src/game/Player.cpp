@@ -21591,6 +21591,12 @@ void Player::AutoStoreLoot(Loot& loot, bool broadcast, uint8 bag, uint8 slot)
     for(uint32 i = 0; i < max_slot; ++i)
     {
         LootItem* lootItem = loot.LootItemInSlot(i,this);
+        // FG: uhm.... this wont help i guess
+        if(!lootItem)
+        {
+            SendEquipError( EQUIP_ERR_CANT_DO_RIGHT_NOW, NULL, NULL, 0 );
+            continue;
+        }
 
         ItemPosCountVec dest;
         uint8 msg = CanStoreNewItem (bag,slot,dest,lootItem->itemid,lootItem->count);

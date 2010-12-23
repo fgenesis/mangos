@@ -375,9 +375,9 @@ OpcodeHandler opcodeTable[NUM_MSG_TYPES] =
     /*0x15A*/ { "CMSG_REPOP_REQUEST",                           STATUS_LOGGEDIN, PROCESS_THREADUNSAFE, &WorldSession::HandleRepopRequestOpcode        },
     /*0x15B*/ { "SMSG_RESURRECT_REQUEST",                       STATUS_NEVER,    PROCESS_INPLACE,      &WorldSession::Handle_ServerSide               },
     /*0x15C*/ { "CMSG_RESURRECT_RESPONSE",                      STATUS_LOGGEDIN, PROCESS_THREADUNSAFE, &WorldSession::HandleResurrectResponseOpcode   },
-    /*0x15D*/ { "CMSG_LOOT",                                    STATUS_LOGGEDIN, PROCESS_THREADUNSAFE, &WorldSession::HandleLootOpcode                },
-    /*0x15E*/ { "CMSG_LOOT_MONEY",                              STATUS_LOGGEDIN, PROCESS_THREADUNSAFE, &WorldSession::HandleLootMoneyOpcode           },
-    /*0x15F*/ { "CMSG_LOOT_RELEASE",                            STATUS_LOGGEDIN, PROCESS_THREADUNSAFE, &WorldSession::HandleLootReleaseOpcode         },
+    /*0x15D*/ { "CMSG_LOOT",                                    STATUS_LOGGEDIN, PROCESS_INPLACE, &WorldSession::HandleLootOpcode                }, // FG: made inplace
+    /*0x15E*/ { "CMSG_LOOT_MONEY",                              STATUS_LOGGEDIN, PROCESS_INPLACE, &WorldSession::HandleLootMoneyOpcode           },
+    /*0x15F*/ { "CMSG_LOOT_RELEASE",                            STATUS_LOGGEDIN, PROCESS_INPLACE, &WorldSession::HandleLootReleaseOpcode         },
     /*0x160*/ { "SMSG_LOOT_RESPONSE",                           STATUS_NEVER,    PROCESS_INPLACE,      &WorldSession::Handle_ServerSide               },
     /*0x161*/ { "SMSG_LOOT_RELEASE_RESPONSE",                   STATUS_NEVER,    PROCESS_INPLACE,      &WorldSession::Handle_ServerSide               },
     /*0x162*/ { "SMSG_LOOT_REMOVED",                            STATUS_NEVER,    PROCESS_INPLACE,      &WorldSession::Handle_ServerSide               },
