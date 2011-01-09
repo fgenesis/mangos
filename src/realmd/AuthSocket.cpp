@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2011 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -933,7 +933,7 @@ void AuthSocket::LoadRealmlist(ByteBuffer &pkt, uint32 acctid)
                 }
 
                 // Show offline state for unsupported client builds and locked realms (1.x clients not support locked state show)
-                if (!ok_build || (i->second.allowedSecurityLevel >= _accountSecurityLevel))
+                if (!ok_build || (i->second.allowedSecurityLevel > _accountSecurityLevel))
                     realmflags = RealmFlags(realmflags | REALM_FLAG_OFFLINE);
 
                 pkt << uint32(i->second.icon);              // realm type
@@ -1112,11 +1112,11 @@ IPPropMap _propmap;
 bool AllowedToConnect(std::string ip)
 {
     IPPropMap::iterator it;
-    uint32 now = getMSTime();
+    uint32 now = WorldTimer::getMSTime();
     it = _propmap.find(ip);
     if(it != _propmap.end())
     {
-        if(getMSTimeDiff(it->second.connecttime, now) < 1000)
+        if(WorldTimer::getMSTimeDiff(it->second.connecttime, now) < 1000)
         {
             it->second.connectcount++;
             if(it->second.connectcount >= 5)
@@ -1143,7 +1143,7 @@ bool AllowedToConnect(std::string ip)
 
 void CleanupIPPropmap(uint32& flushed, uint32& blocked, uint32 &stored)
 {
-    uint32 now = getMSTime();
+    uint32 now = WorldTimer::getMSTime();
     blocked = 0;
     std::list<std::string> rem;
     for(IPPropMap::iterator it = _propmap.begin(); it != _propmap.end(); it++)

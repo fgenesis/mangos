@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2011 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -301,7 +301,7 @@ extern int main(int argc, char **argv)
     uint32 loopCounter = 0;
 
     uint32 last_ping_time = 0;
-    uint32 now = getMSTime();
+    uint32 now = WorldTimer::getMSTime();
     uint32 diff;
     uint32 lasttime = now;
     uint32 last_ipprops_cleanup = 0;
@@ -315,8 +315,8 @@ extern int main(int argc, char **argv)
         if (ACE_Reactor::instance()->run_reactor_event_loop(interval) == -1)
             break;
 
-        now = getMSTime();
-        diff = getMSTimeDiff(lasttime, now);
+        now = WorldTimer::getMSTime();
+        diff = WorldTimer::getMSTimeDiff(lasttime, now);
         lasttime = now;
 
         badPointsTimer.Update(diff);
@@ -326,7 +326,7 @@ extern int main(int argc, char **argv)
             // FG: protect against network system overloading
             // if that happens, force realmd close (autorestarter ftw!)
             
-            if(getMSTimeDiff(last_ping_time, now) < 10000)
+            if(WorldTimer::getMSTimeDiff(last_ping_time, now) < 10000)
             {
                 sLog.outError("NETWORK SYSTEM OVERLOAD");
                 raise(SIGSEGV); // force close
@@ -340,7 +340,7 @@ extern int main(int argc, char **argv)
         }
 
         // FG: clear flood protect buffer periodically
-        if(getMSTimeDiff(last_ipprops_cleanup, now) > 30000) // flush stored IPs every 30 secs
+        if(WorldTimer::getMSTimeDiff(last_ipprops_cleanup, now) > 30000) // flush stored IPs every 30 secs
         {
             last_ipprops_cleanup = now;
             uint32 flushed = 0, blocked = 0, stored = 0;

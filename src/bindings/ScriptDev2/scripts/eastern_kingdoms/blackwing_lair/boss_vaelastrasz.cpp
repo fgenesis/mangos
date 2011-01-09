@@ -180,7 +180,7 @@ struct MANGOS_DLL_DECL boss_vaelAI : public ScriptedAI
                         i=3;
             }
             if (target)                                     // cast on self (see below)
-                target->CastSpell(target,SPELL_BURNINGADRENALINE,1);
+                target->CastSpell(target,SPELL_BURNINGADRENALINE,true);
 
             BurningAdrenalineCaster_Timer = 15000;
         }else BurningAdrenalineCaster_Timer -= diff;

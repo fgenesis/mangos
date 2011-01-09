@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2011 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -220,7 +220,7 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)
             GetPlayer()->m_anti_LastClientTime = movementInfo.GetTime();
         }
 
-        uint32 cServerTime = getMSTime();
+        uint32 cServerTime = WorldTimer::getMSTime();
         uint32 cServerTimeDelta = 0;
         if (GetPlayer()->m_anti_LastServerTime != 0)
         {
@@ -263,7 +263,7 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)
         GetPlayer()->m_anti_LastClientTime = movementInfo.GetTime();
     }
 
-    uint32 cServerTime = getMSTime();
+    uint32 cServerTime = WorldTimer::getMSTime();
     uint32 cServerTimeDelta = 0;
     if (GetPlayer()->m_anti_LastServerTime != 0)
     {

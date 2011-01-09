@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2011 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1518,6 +1518,7 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
         {
             switch(m_spellInfo->Id)
             {
+                case 23138:                                 // Gate of Shazzrah
                 case 31347:                                 // Doom TODO: exclude top threat target from target selection
                 case 33711:                                 // Murmur's Touch
                 case 38794:                                 // Murmur's Touch (h)
@@ -1552,6 +1553,21 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
             }
             break;
         }
+        case SPELLFAMILY_MAGE:
+        {
+            if (m_spellInfo->Id == 38194)                   // Blink
+                unMaxTargets = 1;
+            break;
+        }
+        case SPELLFAMILY_DRUID:
+        {
+            if (m_spellInfo->SpellFamilyFlags2 & 0x00000100)// Starfall
+                unMaxTargets = 2;
+            // Wild Growth
+            else if (m_spellInfo->SpellFamilyFlags == UI64LIT(0x0400000000000000))
+                unMaxTargets = 5;
+            break;
+        }
         case SPELLFAMILY_PALADIN:
             if (m_spellInfo->Id == 20424)                   // Seal of Command (2 more target for single targeted spell)
             {
@@ -1564,15 +1580,6 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
                         EffectChainTarget = 0;              // no chain targets
             }
             break;
-        case SPELLFAMILY_DRUID:
-        {
-            if (m_spellInfo->SpellFamilyFlags2 & 0x00000100)// Starfall
-                unMaxTargets = 2;
-            // Wild Growth
-            else if (m_spellInfo->SpellFamilyFlags == UI64LIT(0x0400000000000000))
-                unMaxTargets = 5;
-            break;
-        }
         default:
             break;
     }
@@ -2542,6 +2549,9 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
             }
             else if (!(m_targets.m_targetMask & TARGET_FLAG_DEST_LOCATION))
             {
+                if (m_spellInfo->Id == 50019)               // Hawk Hunting, problematic 50K radius
+                    radius = 10.0f;
+
                 float angle = m_caster->GetOrientation();
                 switch(targetMode)
                 {
@@ -3788,7 +3798,7 @@ void Spell::SendSpellGo()
     data << uint8(m_cast_count);                            // pending spell cast?
     data << uint32(m_spellInfo->Id);                        // spellId
     data << uint32(castFlags);                              // cast flags
-    data << uint32(getMSTime());                            // timestamp
+    data << uint32(WorldTimer::getMSTime());                            // timestamp
 
     WriteSpellGoTargets(&data);
 
@@ -5266,7 +5276,7 @@ SpellCastResult Spell::CheckCast(bool strict)
                 if (m_caster->GetTypeId() != TYPEID_PLAYER || !m_targets.getUnitTarget() || m_targets.getUnitTarget()->GetTypeId() != TYPEID_UNIT)
                     return SPELL_FAILED_BAD_TARGETS;
 
-                if( !(m_targets.getUnitTarget()->GetUInt32Value(UNIT_FIELD_FLAGS) & UNIT_FLAG_SKINNABLE) )
+                if (!m_targets.getUnitTarget()->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_SKINNABLE))
                     return SPELL_FAILED_TARGET_UNSKINNABLE;
 
                 Creature* creature = (Creature*)m_targets.getUnitTarget();
@@ -6091,6 +6101,11 @@ bool Spell::IgnoreItemRequirements() const
         if (Item* targetItem = m_targets.getItemTarget())
             if (targetItem->GetOwnerGuid() != m_caster->GetObjectGuid())
                 return false;
+
+        /// Some triggered spells have same reagents that have master spell
+        /// expected in test: master spell have reagents in first slot then triggered don't must use own
+        if (m_triggeredBySpellInfo && !m_triggeredBySpellInfo->Reagent[0])
+            return false;
 
         return true;
     }
