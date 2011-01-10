@@ -11,6 +11,14 @@ extern void AddSC_battleground();
 extern void AddSC_npc_arena_honor();
 extern void AddSC_mob_teleguy();
 
+// FG: custom
+extern void AddSC_pe_npc_xmas();
+extern void AddSC_pe_npc_buffs();
+extern void AddSC_pe_andromeda();
+extern void AddSC_pe_customvendor();
+extern void AddSC_pe_npcs();
+extern void AddSC_pe_item_xmas();
+
 //examples
 extern void AddSC_example_creature();
 extern void AddSC_example_escort();
@@ -536,6 +544,14 @@ void AddScripts()
     //custom
     AddSC_npc_arena_honor();
     AddSC_mob_teleguy();
+
+    // FG: custom
+    AddSC_pe_npc_xmas();
+    AddSC_pe_npc_buffs();
+    AddSC_pe_andromeda();
+    AddSC_pe_customvendor();
+    AddSC_pe_npcs();
+    AddSC_pe_item_xmas();
 
     //examples
     AddSC_example_creature();
