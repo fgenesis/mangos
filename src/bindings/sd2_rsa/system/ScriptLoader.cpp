@@ -862,7 +862,7 @@ void AddScripts()
     AddSC_boss_eregos();
 
     AddSC_boss_malygos();                                   //eye of eternity
-    AddSC_instance_eye_of_eternity();
+    //AddSC_instance_eye_of_eternity(); // FG: file does not exist
 
     AddSC_boss_sartharion();                                //obsidian_sanctum
     AddSC_instance_obsidian_sanctum();
@@ -960,7 +960,7 @@ void AddScripts()
     AddSC_ruby_sanctum();
     AddSC_boss_halion();
     AddSC_boss_ragefire();
-    AddSC_boss_zarithian();
+    //AddSC_boss_zarithian(); // FG: file does not exist
     AddSC_boss_baltharus();
 
     //outland

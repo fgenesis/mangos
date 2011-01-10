@@ -28,7 +28,7 @@ public:
         _objects = 0;
         _density = density;
         _maxradius = maxradius;
-        _createtime = getMSTime();
+        _createtime = WorldTimer::tickTime();
         _done = false;
         _deletable = false;
         _entry = entry;

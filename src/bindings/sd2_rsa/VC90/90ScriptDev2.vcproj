@@ -1814,6 +1814,14 @@
 						Name="trial_of_the_champion"
 						>
 						<File
+							RelativePath="..\scripts\northrend\crusaders_coliseum\trial_of_the_champion\boss_argent_challenge.cpp"
+							>
+						</File>
+						<File
+							RelativePath="..\scripts\northrend\crusaders_coliseum\trial_of_the_champion\boss_black_knight.cpp"
+							>
+						</File>
+						<File
 							RelativePath="..\scripts\northrend\crusaders_coliseum\trial_of_the_champion\boss_grand_champions.cpp"
 							>
 						</File>
@@ -1838,19 +1846,7 @@
 							>
 						</File>
 						<File
-							RelativePath="..\scripts\northrend\crusaders_coliseum\trial_of_the_champion\boss_argent_challenge.cpp"
-							>
-						</File>
-						<File
-							RelativePath="..\scripts\northrend\crusaders_coliseum\trial_of_the_champion\boss_black_knight.cpp"
-							>
-						</File>
-						<File
 							RelativePath="..\scripts\northrend\crusaders_coliseum\trial_of_the_crusader\boss_faction_champions.cpp"
-							>
-						</File>
-						<File
-							RelativePath="..\scripts\northrend\crusaders_coliseum\trial_of_the_champion\boss_grand_champions.cpp"
 							>
 						</File>
 						<File
@@ -1866,19 +1862,7 @@
 							>
 						</File>
 						<File
-							RelativePath="..\scripts\northrend\crusaders_coliseum\trial_of_the_champion\instance_trial_of_the_champion.cpp"
-							>
-						</File>
-						<File
 							RelativePath="..\scripts\northrend\crusaders_coliseum\trial_of_the_crusader\instance_trial_of_the_crusader.cpp"
-							>
-						</File>
-						<File
-							RelativePath="..\scripts\northrend\crusaders_coliseum\trial_of_the_champion\trial_of_the_champion.cpp"
-							>
-						</File>
-						<File
-							RelativePath="..\scripts\northrend\crusaders_coliseum\trial_of_the_champion\trial_of_the_champion.h"
 							>
 						</File>
 						<File
@@ -1889,10 +1873,6 @@
 							RelativePath="..\scripts\northrend\crusaders_coliseum\trial_of_the_crusader\trial_of_the_crusader.h"
 							>
 						</File>
-					</Filter>
-					<Filter
-						Name="trial_of_the_crusader"
-						>
 					</Filter>
 				</Filter>
 				<Filter
@@ -2132,10 +2112,6 @@
 					</File>
 					<File
 						RelativePath="..\scripts\northrend\ruby_sanctum\boss_saviana.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\scripts\northrend\ruby_sanctum\boss_zarithian.cpp"
 						>
 					</File>
 					<File
@@ -3037,10 +3013,6 @@
 					<Filter
 						Name="the_mechanar"
 						>
-						<File
-							RelativePath="..\scripts\outland\tempest_keep\the_mechanar\boss_gatewatcher_gyrokill.cpp"
-							>
-						</File>
 						<File
 							RelativePath="..\scripts\outland\tempest_keep\the_mechanar\boss_gatewatcher_ironhand.cpp"
 							>

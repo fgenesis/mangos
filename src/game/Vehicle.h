@@ -26,7 +26,7 @@
 #include "SharedDefines.h"
 #include "ObjectMgr.h"
 
-struct VehicleSeat
+struct MANGOS_DLL_SPEC VehicleSeat
 {
     VehicleSeat(VehicleSeatEntry const *pSeatInfo = NULL) : seatInfo(pSeatInfo), passenger(NULL) {}
 
@@ -38,7 +38,7 @@ struct VehicleSeat
 
 typedef std::map<int8, VehicleSeat> SeatMap;
 
-class VehicleKit
+class MANGOS_DLL_SPEC VehicleKit
 {
     public:
 
@@ -78,7 +78,7 @@ enum PowerType
 typedef std::map<int8, VehicleSeat> SeatMap;
 
 
-class Vehicle : public Creature
+class MANGOS_DLL_SPEC Vehicle : public Creature
 {
     public:
         explicit Vehicle();

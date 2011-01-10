@@ -2036,7 +2036,7 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         void RemoveVehicleKit();
 
         // FG
-        bool ApplySpellAura(uint32 spellID);
+        bool ApplySpellAura(uint32 spellID, uint32 duration = 0);
         inline void SetSpoofSamePlayerFaction(bool b) { m_spoofSamePlayerFaction = b; }
         inline bool IsSpoofSamePlayerFaction(void) {return m_spoofSamePlayerFaction; }
 
