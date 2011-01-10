@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2011 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,7 +51,8 @@ enum LootType
     LOOT_MILLING                = 8,
 
     LOOT_FISHINGHOLE            = 20,                       // unsupported by client, sending LOOT_FISHING instead
-    LOOT_INSIGNIA               = 21                        // unsupported by client, sending LOOT_CORPSE instead
+    LOOT_FISHING_FAIL           = 21,                       // unsupported by client, sending LOOT_FISHING instead
+    LOOT_INSIGNIA               = 22                        // unsupported by client, sending LOOT_CORPSE instead
 };
 
 class Player;

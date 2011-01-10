@@ -177,11 +177,11 @@ select_spell:
 
 bool ItemUse_pe_item_xmas(Player* pPlayer, Item* pItem, SpellCastTargets const& scTargets)
 {
-    uint32 r = URandomize(0, 100);
-    if(pPlayer->GetSelectionGuid().IsEmpty())
+    //uint32 r = URandomize(0, 100);
+    //if(pPlayer->GetSelectionGuid().IsEmpty())
         ItemUse_pe_item_xmas_doMorph(pPlayer, scTargets);
-    else
-        ItemUse_pe_item_xmas_doCastSpell(pPlayer, scTargets);
+    //else
+    //    ItemUse_pe_item_xmas_doCastSpell(pPlayer, scTargets);
 
     return false; // process as usual (set cooldown, etc)
 }

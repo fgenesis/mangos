@@ -26,7 +26,7 @@ char *GetRaceName(uint8 race)
 
 void RandomEmitter::Update(uint32 diff)
 {
-    uint32 newtime = getMSTime();
+    uint32 newtime = WorldTimer::tickTime();
     
     if(_lastspawntime + _staytime < newtime)
     {
@@ -80,7 +80,7 @@ void BeamEmitter::Update(uint32 diff)
     if(_deletable)
         return;
 
-    uint32 newtime = getMSTime();
+    uint32 newtime = WorldTimer::tickTime();
     float _radfact = _maxradius / _speed; // speed dependant radius factor
     float radius = _radfact * ((newtime - _createtime) / 1000.0f); // current radius
     if(_lastspawntime + _staytime < newtime)
@@ -143,7 +143,6 @@ void OutwardCircleEmitter::Update(uint32 diff)
         _deletable = (*children.begin())->IsDeletable();
     }
 
-    uint32 curtime = getMSTime();
     float factor = float((2*M_PI) / children.size());
     float addfactor;
     uint32 i; // beam index
@@ -192,8 +191,6 @@ void OrbitingEmitter::Update(uint32 diff)
     if(_deletable)
         return;
 
-    uint32 curtime = getMSTime();
-
     uint32 workdiff;
     for(workdiff = diff + _overlaptime; workdiff > _density; workdiff -= _density)
     {
@@ -220,8 +217,6 @@ void RandomRadiusOrbitingEmitter::Update(uint32 diff)
 {
     if(_deletable)
         return;
-
-    uint32 curtime = getMSTime();
 
     uint32 workdiff;
     for(workdiff = diff + _overlaptime; workdiff > _density; workdiff -= _density)
