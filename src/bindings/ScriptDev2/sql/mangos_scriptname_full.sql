@@ -316,7 +316,7 @@ UPDATE creature_template SET ScriptName='boss_rend_blackhand' WHERE entry=10429;
 UPDATE creature_template SET ScriptName='boss_pyroguard_emberseer' WHERE entry=9816;
 
 /* BLACKWING LAIR */
--- UPDATE instance_template SET ScriptName='instance_blackwing_lair' WHERE map=469;
+UPDATE instance_template SET ScriptName='instance_blackwing_lair' WHERE map=469;
 UPDATE creature_template SET ScriptName='boss_razorgore' WHERE entry=12435;
 UPDATE creature_template SET ScriptName='boss_vaelastrasz' WHERE entry=13020;
 UPDATE creature_template SET ScriptName='boss_broodlord' WHERE entry=12017;
@@ -806,7 +806,7 @@ UPDATE creature_template SET ScriptName='boss_sir_zeliek' WHERE entry=16063;
 UPDATE creature_template SET ScriptName='boss_lady_blaumeux' WHERE entry=16065;
 UPDATE creature_template SET ScriptName='boss_rivendare_naxx' WHERE entry=30549;
 UPDATE creature_template SET ScriptName='boss_patchwerk' WHERE entry=16028;
--- UPDATE creature_template SET ScriptName='boss_grobbulus' WHERE entry=15931;
+UPDATE creature_template SET ScriptName='boss_grobbulus' WHERE entry=15931;
 UPDATE creature_template SET ScriptName='boss_gluth' WHERE entry=15932;
 -- UPDATE creature_template SET ScriptName='boss_thaddius' WHERE entry=15928;
 -- UPDATE creature_template SET ScriptName='boss_stalagg' WHERE entry=15929;

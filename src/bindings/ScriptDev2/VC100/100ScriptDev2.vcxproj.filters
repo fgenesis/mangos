@@ -1509,7 +1509,7 @@
     <ClCompile Include="..\scripts\outland\auchindoun\sethekk_halls\boss_darkweaver_syth.cpp">
       <Filter>scripts\outland\auchindoun\sethekk_halls</Filter>
     </ClCompile>
-    <ClCompile Include="..\scripts\outland\auchindoun\sethekk_halls\boss_tailonking_ikiss.cpp">
+    <ClCompile Include="..\scripts\outland\auchindoun\sethekk_halls\boss_talon_king_ikiss.cpp">
       <Filter>scripts\outland\auchindoun\sethekk_halls</Filter>
     </ClCompile>
     <ClCompile Include="..\scripts\outland\auchindoun\sethekk_halls\instance_sethekk_halls.cpp">
@@ -1745,6 +1745,9 @@
     </ClCompile>
     <ClCompile Include="..\include\sc_instance.cpp">
       <Filter>include</Filter>
+    </ClCompile>
+    <ClCompile Include="..\system\MangosdRev.cpp">
+      <Filter>system</Filter>
     </ClCompile>
     <ClCompile Include="..\system\ScriptLoader.cpp">
       <Filter>system</Filter>

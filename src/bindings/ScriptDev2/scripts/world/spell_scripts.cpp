@@ -1,4 +1,4 @@
-/* Copyright (C) 2006 - 2010 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
+/* Copyright (C) 2006 - 2011 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -374,7 +374,7 @@ bool EffectAuraDummy_spell_aura_dummy_npc(const Aura* pAura, bool bApply)
         {
             if (pAura->GetEffIndex() != EFFECT_INDEX_0)
                 return true;
-            
+
             if (Unit* pCaster = pAura->GetCaster())
                 DoScriptText(SAY_SPECIMEN, pCaster);
 
@@ -393,18 +393,20 @@ bool EffectAuraDummy_spell_aura_dummy_npc(const Aura* pAura, bool bApply)
         }
         case SPELL_ENRAGE:
         {
-            if (pAura->GetTarget()->GetTypeId() != TYPEID_UNIT || !bApply)
+            if (!bApply || pAura->GetTarget()->GetTypeId() != TYPEID_UNIT)
                 return false;
 
-            if (Creature* pCreature = GetClosestCreatureWithEntry(pAura->GetTarget(), NPC_DARKSPINE_MYRMIDON, 25.0f))
+            Creature* pTarget = (Creature*)pAura->GetTarget();
+
+            if (Creature* pCreature = GetClosestCreatureWithEntry(pTarget, NPC_DARKSPINE_MYRMIDON, 25.0f))
             {
-                dynamic_cast<Creature*>(pAura->GetTarget())->AI()->AttackStart(pCreature);
+                pTarget->AI()->AttackStart(pCreature);
                 return true;
             }
 
-            if (Creature* pCreature = GetClosestCreatureWithEntry(pAura->GetTarget(), NPC_DARKSPINE_SIREN, 25.0f))
+            if (Creature* pCreature = GetClosestCreatureWithEntry(pTarget, NPC_DARKSPINE_SIREN, 25.0f))
             {
-                dynamic_cast<Creature*>(pAura->GetTarget())->AI()->AttackStart(pCreature);
+                pTarget->AI()->AttackStart(pCreature);
                 return true;
             }
 
@@ -663,7 +665,7 @@ bool EffectDummyCreature_spell_dummy_npc(Unit* pCaster, uint32 uiSpellId, SpellE
         {
             if (uiEffIndex == EFFECT_INDEX_0)
             {
-                if (pCreatureTarget->isDead())
+                if (pCreatureTarget->IsCorpse())
                 {
                     uint32 newSpellId = 0;
 
@@ -694,8 +696,8 @@ bool EffectDummyCreature_spell_dummy_npc(Unit* pCaster, uint32 uiSpellId, SpellE
         {
             pCreatureTarget->CastSpell(pCaster, SPELL_GREENGILL_SLAVE_FREED, true);
 
-            if (pCreatureTarget->GetTypeId() == TYPEID_UNIT)
-                dynamic_cast<Creature*>(pCreatureTarget)->UpdateEntry(NPC_FREED_GREENGILL_SLAVE); // Freed Greengill Slave
+            // Freed Greengill Slave
+            pCreatureTarget->UpdateEntry(NPC_FREED_GREENGILL_SLAVE);
 
             pCreatureTarget->CastSpell(pCreatureTarget, SPELL_ENRAGE, true);
 
@@ -746,12 +748,12 @@ void AddSC_spell_scripts()
 
     newscript = new Script;
     newscript->Name = "spell_dummy_go";
-    newscript->pEffectDummyGameObj = &EffectDummyGameObj_spell_dummy_go;
+    newscript->pEffectDummyGO = &EffectDummyGameObj_spell_dummy_go;
     newscript->RegisterSelf();
 
     newscript = new Script;
     newscript->Name = "spell_dummy_npc";
-    newscript->pEffectDummyCreature = &EffectDummyCreature_spell_dummy_npc;
+    newscript->pEffectDummyNPC = &EffectDummyCreature_spell_dummy_npc;
     newscript->pEffectAuraDummy = &EffectAuraDummy_spell_aura_dummy_npc;
     newscript->RegisterSelf();
 }
