@@ -1068,7 +1068,11 @@ enum WeaponAttackType
 {
     BASE_ATTACK   = 0,
     OFF_ATTACK    = 1,
-    RANGED_ATTACK = 2
+    RANGED_ATTACK = 2,
+
+    // leave these greater than or equal to MAX_ATTACK
+    NONSTACKING_MOD_MELEE = 3,
+    NONSTACKING_MOD_ALL = 4
 };
 
 #define MAX_ATTACK  3
