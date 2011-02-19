@@ -235,6 +235,7 @@ void BattleGroundWS::EventPlayerCapturedFlag(Player *Source)
     else
         SendMessageToAll(LANG_BG_WS_CAPTURED_AF, CHAT_MSG_BG_SYSTEM_HORDE, Source);
 
+    Source->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_BG_OBJECTIVE_CAPTURE,1,42);
     UpdateFlagState(Source->GetTeam(), 1);                  // flag state none
     UpdateTeamScore(Source->GetTeam());
     // only flag capture should be updated
@@ -392,6 +393,7 @@ void BattleGroundWS::EventPlayerClickedOnFlag(Player *Source, GameObject* target
             RespawnFlag(ALLIANCE, false);
             PlaySoundToAll(BG_WS_SOUND_FLAG_RETURNED);
             UpdatePlayerScore(Source, SCORE_FLAG_RETURNS, 1);
+            Source->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_BG_OBJECTIVE_CAPTURE,1,44);
         }
         else
         {
@@ -420,6 +422,7 @@ void BattleGroundWS::EventPlayerClickedOnFlag(Player *Source, GameObject* target
             RespawnFlag(HORDE, false);
             PlaySoundToAll(BG_WS_SOUND_FLAG_RETURNED);
             UpdatePlayerScore(Source, SCORE_FLAG_RETURNS, 1);
+            Source->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_BG_OBJECTIVE_CAPTURE,1,44);
         }
         else
         {
