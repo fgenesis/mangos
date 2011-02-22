@@ -1557,8 +1557,18 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
                 case 33711:                                 // Murmur's Touch
                 case 38794:                                 // Murmur's Touch (h)
                 case 50988:                                 // Glare of the Tribunal (Halls of Stone)
+                case 55479:                                 // Force Obedience
                 case 59870:                                 // Glare of the Tribunal (h) (Halls of Stone)
-                case 68950:                                 // Fear
+                case 62374:                                 // Pursued Ulduar Leviathan
+                case 65950:                                 // Touch of Light
+                case 67296:
+                case 67297:
+                case 67298:
+                case 66001:                                 // Touch of Darkness
+                case 67281:
+                case 67282:
+                case 67283:
+                case 68950:                                 // Fear (ICC: Forge of Souls)
                     unMaxTargets = 1;
                     break;
                 case 28542:                                 // Life Drain
