@@ -2108,6 +2108,15 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                         ((Player*)m_caster)->KilledMonsterCredit(25425, ObjectGuid());
                     return;
                 }
+                case 62907:                                 // Freyas Wall
+                {
+                    if (!unitTarget)
+                        return;
+
+                    for (int i= 0; i < 3;++i)
+                        unitTarget->CastSpell(unitTarget, 62947, true);
+                    return;
+                }
                 case 64385:                                 // Spinning (from Unusual Compass)
                 {
                     m_caster->SetFacingTo(frand(0, M_PI_F*2), true);
@@ -4915,6 +4924,14 @@ void Spell::DoSummonWild(SpellEffectIndex eff_idx, uint32 forceFaction)
 
     float radius = GetSpellRadius(sSpellRadiusStore.LookupEntry(m_spellInfo->EffectRadiusIndex[eff_idx]));
     int32 duration = GetSpellDuration(m_spellInfo);
+    // duration increase for Leviathan (Freya Wall)
+    switch (m_spellInfo->Id)
+    {
+        case 62907:
+        case 62947:
+            duration = 30000;
+            break;
+    }
     TempSummonType summonType = (duration == 0) ? TEMPSUMMON_DEAD_DESPAWN : TEMPSUMMON_TIMED_OR_DEAD_DESPAWN;
 
     int32 amount = damage > 0 ? damage : 1;
