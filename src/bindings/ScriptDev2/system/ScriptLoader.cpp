@@ -62,7 +62,7 @@ extern void AddSC_boss_gyth();
 extern void AddSC_boss_rend_blackhand();
 extern void AddSC_instance_blackrock_spire();
 extern void AddSC_boss_razorgore();                         // blackwing_lair
-extern void AddSC_boss_vael();
+extern void AddSC_boss_vaelastrasz();
 extern void AddSC_boss_broodlord();
 extern void AddSC_boss_firemaw();
 extern void AddSC_boss_ebonroc();
@@ -122,15 +122,8 @@ extern void AddSC_boss_headless_horseman();
 extern void AddSC_instance_scarlet_monastery();
 extern void AddSC_boss_darkmaster_gandling();               // scholomance
 extern void AddSC_boss_death_knight_darkreaver();
-extern void AddSC_boss_theolenkrastinov();
-extern void AddSC_boss_illuciabarov();
-extern void AddSC_boss_instructormalicia();
 extern void AddSC_boss_jandicebarov();
 extern void AddSC_boss_kormok();
-extern void AddSC_boss_lordalexeibarov();
-extern void AddSC_boss_lorekeeperpolkelt();
-extern void AddSC_boss_rasfrost();
-extern void AddSC_boss_theravenian();
 extern void AddSC_boss_vectus();
 extern void AddSC_instance_scholomance();
 extern void AddSC_boss_hummel();                            // shadowfang_keep
@@ -255,6 +248,7 @@ extern void AddSC_boss_viscidus();
 extern void AddSC_mob_anubisath_sentinel();
 extern void AddSC_instance_temple_of_ahnqiraj();
 extern void AddSC_instance_wailing_caverns();               // wailing_caverns
+extern void AddSC_wailing_caverns();
 extern void AddSC_boss_zumrah();                            // zulfarrak
 extern void AddSC_instance_zulfarrak();
 extern void AddSC_zulfarrak();
@@ -322,7 +316,7 @@ extern void AddSC_boss_lich_king();
 extern void AddSC_boss_marwyn();
 extern void AddSC_halls_of_reflection();
 extern void AddSC_instance_halls_of_reflection();
-extern void AddSC_boss_gafrost();                           // ICC, pit_of_saron
+extern void AddSC_boss_garfrost();                          // ICC, pit_of_saron
 extern void AddSC_boss_krick_and_ick();
 extern void AddSC_boss_tyrannus();
 extern void AddSC_instance_pit_of_saron();
@@ -567,7 +561,7 @@ void AddScripts()
     AddSC_boss_rend_blackhand();
     AddSC_instance_blackrock_spire();
     AddSC_boss_razorgore();                                 // blackwing_lair
-    AddSC_boss_vael();
+    AddSC_boss_vaelastrasz();
     AddSC_boss_broodlord();
     AddSC_boss_firemaw();
     AddSC_boss_ebonroc();
@@ -627,15 +621,8 @@ void AddScripts()
     AddSC_instance_scarlet_monastery();
     AddSC_boss_darkmaster_gandling();                       // scholomance
     AddSC_boss_death_knight_darkreaver();
-    AddSC_boss_theolenkrastinov();
-    AddSC_boss_illuciabarov();
-    AddSC_boss_instructormalicia();
     AddSC_boss_jandicebarov();
     AddSC_boss_kormok();
-    AddSC_boss_lordalexeibarov();
-    AddSC_boss_lorekeeperpolkelt();
-    AddSC_boss_rasfrost();
-    AddSC_boss_theravenian();
     AddSC_boss_vectus();
     AddSC_instance_scholomance();
     AddSC_boss_hummel();                                    // shadowfang_keep
@@ -760,6 +747,7 @@ void AddScripts()
     AddSC_mob_anubisath_sentinel();
     AddSC_instance_temple_of_ahnqiraj();
     AddSC_instance_wailing_caverns();                       // wailing_caverns
+    AddSC_wailing_caverns();
     AddSC_boss_zumrah();                                    // zulfarrak
     AddSC_zulfarrak();
     AddSC_instance_zulfarrak();
@@ -826,7 +814,7 @@ void AddScripts()
     AddSC_boss_marwyn();
     AddSC_halls_of_reflection();
     AddSC_instance_halls_of_reflection();
-    AddSC_boss_gafrost();                                   // ICC, FH, pit_of_saron
+    AddSC_boss_garfrost();                                  // ICC, FH, pit_of_saron
     AddSC_boss_krick_and_ick();
     AddSC_boss_tyrannus();
     AddSC_instance_pit_of_saron();

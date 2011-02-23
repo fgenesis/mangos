@@ -808,10 +808,10 @@ struct MANGOS_DLL_DECL boss_yazzaiAI : public boss_priestess_lackey_commonAI
             ThreatList const& tList = m_creature->getThreatManager().getThreatList();
             for (ThreatList::const_iterator itr = tList.begin();itr != tList.end(); ++itr)
             {
-                if (Unit* target = m_creature->GetMap()->GetUnit((*itr)->getUnitGuid()))
+                if (Unit* pTarget = m_creature->GetMap()->GetUnit((*itr)->getUnitGuid()))
                 {
                     //if in melee range
-                    if (target->IsWithinDistInMap(m_creature, 5))
+                    if (m_creature->CanReachWithMeleeAttack(pTarget))
                     {
                         InMeleeRange = true;
                         break;
@@ -891,7 +891,7 @@ struct MANGOS_DLL_DECL boss_warlord_salarisAI : public boss_priestess_lackey_com
                 if (Unit* target = m_creature->GetMap()->GetUnit((*itr)->getUnitGuid()))
                 {
                     //if in melee range
-                    if (target->IsWithinDistInMap(m_creature, ATTACK_DISTANCE))
+                    if (m_creature->CanReachWithMeleeAttack(target))
                     {
                         InMeleeRange = true;
                         break;
@@ -1007,7 +1007,7 @@ struct MANGOS_DLL_DECL boss_garaxxasAI : public boss_priestess_lackey_commonAI
 
         boss_priestess_lackey_commonAI::UpdateAI(diff);
 
-        if (m_creature->IsWithinDistInMap(m_creature->getVictim(), ATTACK_DISTANCE))
+        if (m_creature->CanReachWithMeleeAttack(m_creature->getVictim()))
         {
             if (Wing_Clip_Timer < diff)
             {
