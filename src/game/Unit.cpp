@@ -5979,14 +5979,6 @@ void Unit::RemoveAllAttackers()
 
 bool Unit::HasAuraStateForCaster(AuraState flag, uint64 caster) const
 {
-    // FG: from fingers of frost patch
-    if(flag == AURA_STATE_FROZEN)
-    {
-        if (Unit* u_caster = ObjectAccessor::GetUnit(*this, caster))
-            if (u_caster->HasAura(44544))
-                return true;
-    }
-
     if(!HasAuraState(flag))
         return false;
 
