@@ -894,7 +894,8 @@ bool ChatHandler::HandleCharacterAutodumpCommand(char *args)
         }
     }
 
-    ObjectGuid guid(HIGHGUID_PLAYER, guid64);
+    ObjectGuid guid;
+    guid.Set(guid64);
 
     std::string dump = PlayerDumpWriter().GetDump(guid.GetCounter());
     std::string outfile;

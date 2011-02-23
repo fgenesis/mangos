@@ -49,7 +49,7 @@ void ScriptedPetAI::AttackedBy(Unit* pAttacker)
         return;
 
     if (m_creature->GetCharmInfo() && !m_creature->GetCharmInfo()->HasReactState(REACT_PASSIVE) &&
-        m_creature->canReachWithAttack(pAttacker))
+        m_creature->CanReachWithMeleeAttack(pAttacker))
         AttackStart(pAttacker);
 }
 
