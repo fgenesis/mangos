@@ -6460,6 +6460,41 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
 
                     return;
                 }
+                case 28374:                                 // Decimate (Gluth encounter)
+                {
+                    if (unitTarget && unitTarget != m_caster)
+                    {
+                        if (unitTarget->GetHealthPercent() > 5.0f)
+                            m_caster->CastSpell(unitTarget, 28375, true);
+                    }
+                    break;
+                }
+                case 26678: //Heart Candy
+                {
+                    uint32 item = 0;
+                    switch ( urand(0, 7) )
+                    {
+                        case 0:
+                            item = 21816; break;
+                        case 1:
+                            item = 21817; break;
+                        case 2:
+                            item = 21818; break;
+                        case 3:
+                            item = 21819; break;
+                        case 4:
+                            item = 21820; break;
+                        case 5:
+                            item = 21821; break;
+                        case 6:
+                            item = 21822; break;
+                        case 7:
+                            item = 21823; break;
+                    }
+                    if (item)
+                        DoCreateItem(eff_idx,item);
+                    break;
+                }
                 case 29830:                                 // Mirren's Drinking Hat
                 {
                     uint32 item = 0;
