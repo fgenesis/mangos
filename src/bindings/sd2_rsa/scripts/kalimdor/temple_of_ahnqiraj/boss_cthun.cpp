@@ -186,11 +186,6 @@ struct MANGOS_DLL_DECL eye_of_cthunAI : public ScriptedAI
             m_pInstance->SetData(TYPE_CTHUN_PHASE, 0);
     }
 
-    void Aggro(Unit* pWho)
-    {
-        m_creature->SetInCombatWithZone();
-    }
-
     void SpawnEyeTentacle(float x, float y)
     {
         Creature* Spawned;
@@ -501,11 +496,6 @@ struct MANGOS_DLL_DECL cthunAI : public ScriptedAI
 
         if (m_pInstance)
             m_pInstance->SetData(TYPE_CTHUN_PHASE, 0);
-    }
-
-    void Aggro(Unit* pWho)
-    {
-        m_creature->SetInCombatWithZone();
     }
 
     void SpawnEyeTentacle(float x, float y)
@@ -1030,7 +1020,7 @@ struct MANGOS_DLL_DECL claw_tentacleAI : public ScriptedAI
             return;
 
         //EvadeTimer
-        if (!m_creature->IsWithinDist(m_creature->getVictim(), ATTACK_DISTANCE))
+        if (!m_creature->CanReachWithMeleeAttack(m_creature->getVictim()))
             if (EvadeTimer < diff)
         {
             if (Creature* pCreature = m_creature->GetMap()->GetCreature(Portal))
@@ -1125,7 +1115,7 @@ struct MANGOS_DLL_DECL giant_claw_tentacleAI : public ScriptedAI
             return;
 
         //EvadeTimer
-        if (m_creature->IsWithinDist(m_creature->getVictim(), ATTACK_DISTANCE))
+        if (m_creature->CanReachWithMeleeAttack(m_creature->getVictim()))
             if (EvadeTimer < diff)
         {
             if (Creature* pCreature = m_creature->GetMap()->GetCreature(Portal))

@@ -253,16 +253,15 @@ struct MANGOS_DLL_DECL boss_sartharionAI : public ScriptedAI
         m_bHasCalledShadron = false;
         m_bHasCalledVesperon = false;
 
-        bCanUseWill = false;
         bFirstWill = true;
 
         m_uiCheckTwilightTimer = 2000;
 
         if (m_pInstance)
         {
-            Creature* pTene = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(DATA_TENEBRON));
-            Creature* pShad = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(DATA_SHADRON));
-            Creature* pVesp = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(DATA_VESPERON));
+            Creature* pTene = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_TENEBRON));
+            Creature* pShad = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_SHADRON));
+            Creature* pVesp = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_VESPERON));
 
             if (m_bTenebronHelpedInFight && pTene)
             {
@@ -310,8 +309,6 @@ struct MANGOS_DLL_DECL boss_sartharionAI : public ScriptedAI
     {
         DoScriptText(SAY_SARTHARION_AGGRO,m_creature);
 
-        m_creature->SetInCombatWithZone();
-
         if (m_pInstance)
         {
             m_pInstance->SetData(TYPE_SARTHARION_EVENT, IN_PROGRESS);
@@ -356,14 +353,16 @@ struct MANGOS_DLL_DECL boss_sartharionAI : public ScriptedAI
 
     void FetchDragons()
     {
-        Creature* pTene = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(DATA_TENEBRON));
-        Creature* pShad = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(DATA_SHADRON));
-        Creature* pVesp = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(DATA_VESPERON));
+        Creature* pTene = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_TENEBRON));
+        Creature* pShad = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_SHADRON));
+        Creature* pVesp = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_VESPERON));
 
         //if at least one of the dragons are alive and are being called
+        uint8 uiCountFetchableDragons = 0;
+
         if (pTene && pTene->isAlive() && !pTene->getVictim())
         {
-            bCanUseWill = true;
+            ++uiCountFetchableDragons;
             pTene->CastSpell(pTene, SPELL_POWER_OF_TENEBRON, false);
             pTene->AddSplineFlag(SPLINEFLAG_FLYING);
             pTene->RemoveSplineFlag(SPLINEFLAG_WALKMODE);
@@ -375,7 +374,7 @@ struct MANGOS_DLL_DECL boss_sartharionAI : public ScriptedAI
 
         if (pShad && pShad->isAlive() && !pShad->getVictim())
         {
-            bCanUseWill = true;
+            ++uiCountFetchableDragons;
             pShad->CastSpell(pShad, SPELL_POWER_OF_SHADRON, false);
             pShad->AddSplineFlag(SPLINEFLAG_FLYING);
             pShad->RemoveSplineFlag(SPLINEFLAG_WALKMODE);
@@ -387,7 +386,7 @@ struct MANGOS_DLL_DECL boss_sartharionAI : public ScriptedAI
 
         if (pVesp && pVesp->isAlive() && !pVesp->getVictim())
         {
-            bCanUseWill = true;
+            ++uiCountFetchableDragons;
             pVesp->CastSpell(pVesp, SPELL_POWER_OF_VESPERON, false);
             pVesp->AddSplineFlag(SPLINEFLAG_FLYING);
             pVesp->RemoveSplineFlag(SPLINEFLAG_WALKMODE);
@@ -397,15 +396,17 @@ struct MANGOS_DLL_DECL boss_sartharionAI : public ScriptedAI
                 pVesp->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
         }
 
-        if (bCanUseWill)
-            DoCast(m_creature, SPELL_WILL_OF_SARTHARION);
+        if (uiCountFetchableDragons)
+            DoCastSpellIfCan(m_creature, SPELL_WILL_OF_SARTHARION);
+
+        m_pInstance->SetData(TYPE_ALIVE_DRAGONS, uiCountFetchableDragons);
     }
 
-    void CallDragon(uint32 uiDataId)
+    void CallDragon(uint32 uiEntry)
     {
         if (m_pInstance)
         {
-            Creature* pTemp = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(uiDataId));
+            Creature* pTemp = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(uiEntry));
 
             if (pTemp && pTemp->isAlive() && !pTemp->getVictim())
             {
@@ -418,17 +419,17 @@ struct MANGOS_DLL_DECL boss_sartharionAI : public ScriptedAI
                 int32 iTextId = 0;
 
                 Creature* pAdd = NULL;
-                pAdd = m_creature->GetMap()->GetCreature( m_pInstance->GetData64(DATA_TENEBRON));
+                pAdd = m_creature->GetMap()->GetCreature( m_pInstance->GetData64(NPC_TENEBRON));
                 if (pAdd)
                     m_uiTeneHealth = pAdd->GetHealth();
-                pAdd = m_creature->GetMap()->GetCreature( m_pInstance->GetData64(DATA_SHADRON));
+                pAdd = m_creature->GetMap()->GetCreature( m_pInstance->GetData64(NPC_SHADRON));
                 if (pAdd)
                     m_uiShadHealth = pAdd->GetHealth();
-                pAdd = m_creature->GetMap()->GetCreature( m_pInstance->GetData64(DATA_VESPERON));
+                pAdd = m_creature->GetMap()->GetCreature( m_pInstance->GetData64(NPC_VESPERON));
                 if (pAdd)
                     m_uiVespHealth = pAdd->GetHealth();
 
-                switch (pTemp->GetEntry())
+                switch(uiEntry)
                 {
                     case NPC_TENEBRON:
                         iTextId = SAY_SARTHARION_CALL_TENEBRON;
@@ -496,13 +497,13 @@ struct MANGOS_DLL_DECL boss_sartharionAI : public ScriptedAI
             {
                 m_creature->SetHealth(m_uiSarthHealth);
                 Creature* pTemp = NULL;
-                pTemp = m_creature->GetMap()->GetCreature( m_pInstance->GetData64(DATA_TENEBRON));
+                pTemp = m_creature->GetMap()->GetCreature( m_pInstance->GetData64(NPC_TENEBRON));
                 if (pTemp && pTemp->isAlive())
                     pTemp->SetHealth(m_uiTeneHealth);
-                pTemp = m_creature->GetMap()->GetCreature( m_pInstance->GetData64(DATA_SHADRON));
+                pTemp = m_creature->GetMap()->GetCreature( m_pInstance->GetData64(NPC_SHADRON));
                 if (pTemp && pTemp->isAlive())
                     pTemp->SetHealth(m_uiShadHealth);
-                pTemp = m_creature->GetMap()->GetCreature( m_pInstance->GetData64(DATA_VESPERON));
+                pTemp = m_creature->GetMap()->GetCreature( m_pInstance->GetData64(NPC_VESPERON));
                 if (pTemp && pTemp->isAlive())
                     pTemp->SetHealth(m_uiVespHealth);
             }
@@ -516,13 +517,13 @@ struct MANGOS_DLL_DECL boss_sartharionAI : public ScriptedAI
             DoScriptText(SAY_SARTHARION_BERSERK, m_creature);
             //DoCast(m_creature, SPELL_BERSERK);
             Creature* pTemp = NULL;
-            pTemp = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(DATA_TENEBRON));
+            pTemp = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_TENEBRON));
             if (pTemp && pTemp->isAlive())
                 pTemp->CastSpell(pTemp, 27680, true);
-            pTemp = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(DATA_SHADRON));
+            pTemp = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_SHADRON));
             if (pTemp && pTemp->isAlive())
                 pTemp->CastSpell(pTemp, 27680, true);
-            pTemp = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(DATA_VESPERON));
+            pTemp = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_VESPERON));
             if (pTemp && pTemp->isAlive())
                 pTemp->CastSpell(pTemp, 27680, true);
 
@@ -627,7 +628,7 @@ struct MANGOS_DLL_DECL boss_sartharionAI : public ScriptedAI
         // call tenebron
         if (!m_bHasCalledTenebron && m_uiTenebronTimer < uiDiff)
         {
-            CallDragon(DATA_TENEBRON);
+            CallDragon(NPC_TENEBRON);
             m_bHasCalledTenebron = true;
         }
         else
@@ -636,7 +637,7 @@ struct MANGOS_DLL_DECL boss_sartharionAI : public ScriptedAI
         // call shadron
         if (!m_bHasCalledShadron && m_uiShadronTimer < uiDiff)
         {
-            CallDragon(DATA_SHADRON);
+            CallDragon(NPC_SHADRON);
             m_bHasCalledShadron = true;
         }
         else
@@ -645,7 +646,7 @@ struct MANGOS_DLL_DECL boss_sartharionAI : public ScriptedAI
         // call vesperon
         if (!m_bHasCalledVesperon && m_uiVesperonTimer < uiDiff)
         {
-            CallDragon(DATA_VESPERON);
+            CallDragon(NPC_VESPERON);
             m_bHasCalledVesperon = true;
         }
         else
@@ -924,12 +925,12 @@ struct MANGOS_DLL_DECL dummy_dragonAI : public ScriptedAI
                         }
                         if (m_pInstance->GetData(TYPE_SARTHARION_EVENT) == IN_PROGRESS)
                         {
-                            if (Creature* pSarth = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(DATA_SARTHARION)))
+                            if (Creature* pSarth = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_SARTHARION)))
                                 pSarth->CastSpell(pSarth, SPELL_GIFT_OF_TWILIGTH_SAR, true);
                         }
                         else
                         {
-                            if (Creature* pShad = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(DATA_SHADRON)))
+                            if (Creature* pShad = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_SHADRON)))
                                 pShad->CastSpell(pShad, SPELL_GIFT_OF_TWILIGTH_SHA, true);
                         }
                     }
@@ -1054,7 +1055,7 @@ struct MANGOS_DLL_DECL dummy_dragonAI : public ScriptedAI
             }
 
             // Twilight Revenge to main boss
-            if (Creature* pSartharion = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(DATA_SARTHARION)))
+            if (Creature* pSartharion = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_SARTHARION)))
             {
                 if (pSartharion->isAlive())
                     m_creature->CastSpell(pSartharion, SPELL_TWILIGHT_REVENGE, true);
@@ -1408,7 +1409,7 @@ struct MANGOS_DLL_DECL mob_acolyte_of_shadronAI : public ScriptedAI
             if (m_pInstance->GetData(TYPE_SARTHARION_EVENT) == IN_PROGRESS)
             {
                 //not solo fight, so main boss has deduff
-                pDebuffTarget = m_pInstance->instance->GetCreature(m_pInstance->GetData64(DATA_SARTHARION));
+                pDebuffTarget = m_pInstance->instance->GetCreature(m_pInstance->GetData64(NPC_SARTHARION));
 
                 if (pDebuffTarget && pDebuffTarget->isAlive() && pDebuffTarget->HasAura(SPELL_GIFT_OF_TWILIGTH_SAR))
                     pDebuffTarget->RemoveAurasDueToSpell(SPELL_GIFT_OF_TWILIGTH_SAR);
@@ -1416,7 +1417,7 @@ struct MANGOS_DLL_DECL mob_acolyte_of_shadronAI : public ScriptedAI
             else
             {
                 //event not in progress, then solo fight and must remove debuff mini-boss
-                pDebuffTarget = m_pInstance->instance->GetCreature(m_pInstance->GetData64(DATA_SHADRON));
+                pDebuffTarget = m_pInstance->instance->GetCreature(m_pInstance->GetData64(NPC_SHADRON));
 
                 if (pDebuffTarget && pDebuffTarget->isAlive() && pDebuffTarget->HasAura(SPELL_GIFT_OF_TWILIGTH_SHA))
                     pDebuffTarget->RemoveAurasDueToSpell(SPELL_GIFT_OF_TWILIGTH_SHA);

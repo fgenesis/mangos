@@ -123,7 +123,6 @@ struct MANGOS_DLL_DECL boss_netherspiteAI : public ScriptedAI
             m_pInstance->SetData(TYPE_NETHERSPITE, IN_PROGRESS);
 
         DoCastSpellIfCan(m_creature, SPELL_NETHERBURN);
-        m_creature->SetInCombatWithZone();
     }
 
     void JustDied(Unit* pKiller)
@@ -153,10 +152,10 @@ struct MANGOS_DLL_DECL boss_netherspiteAI : public ScriptedAI
             m_uiActivePhase = BEAM_PHASE;
             DoScriptText(EMOTE_PHASE_BEAM, m_creature);
             DoCastSpellIfCan(m_creature, SPELL_NETHERSPITE_ROAR);
-            
+
             m_uiPhaseSwitchTimer = MINUTE*IN_MILLISECONDS;
         }
-        
+
         //reset threat every phase switch
         DoResetThreat();
     }
@@ -170,7 +169,7 @@ struct MANGOS_DLL_DECL boss_netherspiteAI : public ScriptedAI
             SwitchPhases();
         else
             m_uiPhaseSwitchTimer -= uiDiff;
-        
+
         if (!m_bIsEnraged)
         {
             if (m_uiEnrageTimer < uiDiff)
@@ -188,7 +187,7 @@ struct MANGOS_DLL_DECL boss_netherspiteAI : public ScriptedAI
             {
                 if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
                     DoCastSpellIfCan(pTarget, SPELL_VOID_ZONE, true);
-                
+
                 m_uiVoidZoneTimer = 15000;
             }
             else
@@ -201,13 +200,13 @@ struct MANGOS_DLL_DECL boss_netherspiteAI : public ScriptedAI
             {
                 if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
                     DoCastSpellIfCan(pTarget, SPELL_NETHERBREATH);
-           
+
                 m_uiNetherbreathTimer = urand(4000, 5000);
             }
             else
                 m_uiNetherbreathTimer -= uiDiff;
         }
-        
+
         DoMeleeAttackIfReady();
     }
 };

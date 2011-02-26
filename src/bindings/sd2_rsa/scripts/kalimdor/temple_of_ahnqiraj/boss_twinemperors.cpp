@@ -96,7 +96,7 @@ struct MANGOS_DLL_DECL boss_twinemperorsAI : public ScriptedAI
     {
         if (m_pInstance)
         {
-            return m_creature->GetMap()->GetCreature(m_pInstance->GetData64(IAmVeklor() ? DATA_VEKNILASH : DATA_VEKLOR));
+            return m_creature->GetMap()->GetCreature(m_pInstance->GetData64(IAmVeklor() ? NPC_VEKNILASH : NPC_VEKLOR));
         }
         else
         {
@@ -135,6 +135,9 @@ struct MANGOS_DLL_DECL boss_twinemperorsAI : public ScriptedAI
 
         if (!DontYellWhenDead)                              // I hope AI is not threaded
             DoPlaySoundToSet(m_creature, IAmVeklor() ? SOUND_VL_DEATH : SOUND_VN_DEATH);
+
+        if (m_pInstance)
+            m_pInstance->SetData(TYPE_TWINS, DONE);
     }
 
     void KilledUnit(Unit* victim)
@@ -144,8 +147,6 @@ struct MANGOS_DLL_DECL boss_twinemperorsAI : public ScriptedAI
 
     void Aggro(Unit* pWho)
     {
-        m_creature->SetInCombatWithZone();
-
         Creature *pOtherBoss = GetOtherBoss();
         if (pOtherBoss)
         {
@@ -157,6 +158,15 @@ struct MANGOS_DLL_DECL boss_twinemperorsAI : public ScriptedAI
                 pOtherBoss->AI()->AttackStart(pWho);
             }
         }
+
+        if (m_pInstance)
+            m_pInstance->SetData(TYPE_TWINS, IN_PROGRESS);
+    }
+
+    void JustReachedHome()
+    {
+        if (m_pInstance)
+            m_pInstance->SetData(TYPE_TWINS, DONE);
     }
 
     void SpellHit(Unit *caster, const SpellEntry *entry)
@@ -216,7 +226,7 @@ struct MANGOS_DLL_DECL boss_twinemperorsAI : public ScriptedAI
         {
             Unit* pUnit = m_creature->GetMap()->GetUnit((*i)->getUnitGuid());
 
-            if (m_creature->IsWithinDistInMap(pUnit, dist))
+            if (m_creature->GetCombatDistance(pUnit) < dist)
             {
                 if (!totallyRandom)
                     return pUnit;
@@ -487,7 +497,7 @@ struct MANGOS_DLL_DECL boss_veknilashAI : public boss_twinemperorsAI
 
         if (UpperCut_Timer < diff)
         {
-            Unit* randomMelee = GetAnyoneCloseEnough(ATTACK_DISTANCE, true);
+            Unit* randomMelee = GetAnyoneCloseEnough(2*ATTACK_DISTANCE, true);
             if (randomMelee)
                 DoCastSpellIfCan(randomMelee,SPELL_UPPERCUT);
             UpperCut_Timer = urand(15000, 30000);
@@ -586,7 +596,7 @@ struct MANGOS_DLL_DECL boss_veklorAI : public boss_twinemperorsAI
         if (ArcaneBurst_Timer < diff)
         {
             Unit *mvic;
-            if ((mvic=GetAnyoneCloseEnough(ATTACK_DISTANCE, false))!=NULL)
+            if ((mvic=GetAnyoneCloseEnough(2*ATTACK_DISTANCE, false))!=NULL)
             {
                 DoCastSpellIfCan(mvic,SPELL_ARCANEBURST);
                 ArcaneBurst_Timer = 5000;

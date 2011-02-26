@@ -73,9 +73,9 @@ enum saysSD2
 };
 */
 
-struct MANGOS_DLL_DECL boss_forgemaster_gafrostAI : public ScriptedAI
+struct MANGOS_DLL_DECL boss_forgemaster_garfrostAI : public ScriptedAI
 {
-    boss_forgemaster_gafrostAI(Creature* pCreature) : ScriptedAI(pCreature)
+    boss_forgemaster_garfrostAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
         m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
         Reset();
@@ -146,7 +146,7 @@ struct MANGOS_DLL_DECL boss_forgemaster_gafrostAI : public ScriptedAI
             DoCast(m_creature, SPELL_THUNDERING_STOMP);	
             m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE);
             m_creature->GetMotionMaster()->Clear();
-            m_creature->GetMotionMaster()->MovePoint(0, 654.021, -201.438, 526.699); 
+            m_creature->GetMotionMaster()->MovePoint(0, 654.021f, -201.438f, 526.699f); 
         }
 
         if (((m_creature->GetHealth()*100 / m_creature->GetMaxHealth()) < 33) && !m_bIsPhase3)
@@ -156,7 +156,7 @@ struct MANGOS_DLL_DECL boss_forgemaster_gafrostAI : public ScriptedAI
             DoCast(m_creature, SPELL_THUNDERING_STOMP);
             m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE);
             m_creature->GetMotionMaster()->Clear();
-            m_creature->GetMotionMaster()->MovePoint(0, 718.009, -229.447, 526.847);
+            m_creature->GetMotionMaster()->MovePoint(0, 718.009f, -229.447f, 526.847f);
         }
 
         if (m_bIsPhase2)
@@ -227,17 +227,17 @@ struct MANGOS_DLL_DECL boss_forgemaster_gafrostAI : public ScriptedAI
 };
 
 
-CreatureAI* GetAI_boss_forgemaster_gafrost(Creature* pCreature)
+CreatureAI* GetAI_boss_forgemaster_garfrost(Creature* pCreature)
 {
-    return new boss_forgemaster_gafrostAI(pCreature);
+    return new boss_forgemaster_garfrostAI(pCreature);
 }
 
 
-void AddSC_boss_gafrost()
+void AddSC_boss_garfrost()
 {
     Script *newscript;
     newscript = new Script;
-    newscript->Name = "boss_forgemaster_gafrost";
-    newscript->GetAI = &GetAI_boss_forgemaster_gafrost;
+    newscript->Name = "boss_forgemaster_garfrost";
+    newscript->GetAI = &GetAI_boss_forgemaster_garfrost;
     newscript->RegisterSelf();
 }

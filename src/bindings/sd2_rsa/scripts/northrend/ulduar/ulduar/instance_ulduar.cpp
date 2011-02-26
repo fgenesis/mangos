@@ -1088,7 +1088,8 @@ struct MANGOS_DLL_DECL instance_ulduar : public ScriptedInstance
         switch (instance_condition_id)
         {
            case TYPE_XT002_HARD:
-               break;
+               //break; // FG: wtf?
+               return true; // no idea
         }
     }
 

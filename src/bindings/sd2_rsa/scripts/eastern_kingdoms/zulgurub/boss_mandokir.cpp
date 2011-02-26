@@ -191,8 +191,6 @@ struct MANGOS_DLL_DECL boss_mandokirAI : public ScriptedAI
     {
         DoScriptText(SAY_AGGRO, m_creature);
 
-        m_creature->SetInCombatWithZone();
-
         uint32 uiCount = sizeof(aSpirits)/sizeof(SpawnLocations);
 
         for(uint8 i = 0; i < uiCount; ++i)
@@ -328,7 +326,7 @@ struct MANGOS_DLL_DECL boss_mandokirAI : public ScriptedAI
                 {
                     Unit* pTarget = m_creature->GetMap()->GetUnit((*i)->getUnitGuid());
 
-                    if (pTarget && pTarget->GetTypeId() == TYPEID_PLAYER && m_creature->IsWithinDistInMap(pTarget, ATTACK_DISTANCE))
+                    if (pTarget && pTarget->GetTypeId() == TYPEID_PLAYER && m_creature->CanReachWithMeleeAttack(pTarget))
                         ++uiTargetInRangeCount;
                 }
 

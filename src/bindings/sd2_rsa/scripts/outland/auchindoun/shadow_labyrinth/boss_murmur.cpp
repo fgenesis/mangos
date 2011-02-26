@@ -79,10 +79,11 @@ struct MANGOS_DLL_DECL boss_murmurAI : public ScriptedAI
 
     void SonicBoomEffect()
     {
-        ThreatList const& tList = m_creature->getThreatManager().getThreatList();
-        for (ThreatList::const_iterator itr = tList.begin();itr != tList.end(); ++itr)
+        std::vector<ObjectGuid> vGuids;
+        m_creature->FillGuidsListFromThreatList(vGuids);
+        for (std::vector<ObjectGuid>::const_iterator itr = vGuids.begin();itr != vGuids.end(); ++itr)
         {
-           Unit* target = m_creature->GetMap()->GetUnit((*itr)->getUnitGuid());
+           Unit* target = m_creature->GetMap()->GetUnit(*itr);
 
            if (target && target->GetTypeId() == TYPEID_PLAYER)
            {
@@ -134,7 +135,7 @@ struct MANGOS_DLL_DECL boss_murmurAI : public ScriptedAI
         }else MurmursTouch_Timer -= diff;
 
         //Resonance_Timer
-        if (!CanSonicBoom && !m_creature->IsWithinDistInMap(m_creature->getVictim(), ATTACK_DISTANCE))
+        if (!CanSonicBoom && !m_creature->CanReachWithMeleeAttack(m_creature->getVictim()))
         {
             if (Resonance_Timer < diff)
             {
@@ -191,6 +192,7 @@ struct MANGOS_DLL_DECL boss_murmurAI : public ScriptedAI
             DoMeleeAttackIfReady();
     }
 };
+
 CreatureAI* GetAI_boss_murmur(Creature* pCreature)
 {
     return new boss_murmurAI(pCreature);

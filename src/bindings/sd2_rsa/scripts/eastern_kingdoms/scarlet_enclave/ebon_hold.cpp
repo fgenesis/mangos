@@ -32,7 +32,7 @@ EndContentData */
 
 #include "precompiled.h"
 #include "escort_ai.h"
-#include "ObjectMgr.h"
+//#include "ObjectMgr.h"
 
 /*######
 ## npc_a_special_surprise
@@ -1178,7 +1178,7 @@ struct MANGOS_DLL_DECL npc_eye_of_acherusAI : public ScriptedAI
 
         m_creature->RemoveAurasDueToSpell(530);
 
-        Player* owner = m_creature->GetMap()->GetPlayer(ownerGuid);
+        Player* owner = killer->GetMap()->GetPlayer(ownerGuid); // FG: changed this a bit
 
         if(!owner)
             return;
@@ -1248,18 +1248,18 @@ enum
     SPELL_HARVESTER_PING_DUMMY  = 52514,
     ENTRY_GOTHIK                = 28658,
 
-    SAY_SCARLET_GHOUL_SPAWN1    = -1609286,
-    SAY_SCARLET_GHOUL_SPAWN2    = -1609285,
-    SAY_SCARLET_GHOUL_SPAWN3    = -1609284,
-    SAY_SCARLET_GHOUL_SPAWN4    = -1609283,
-    SAY_SCARLET_GHOUL_SPAWN5    = -1609282,
-    SAY_SCARLET_GHOUL_SPAWN6    = -1609281,
+    SAY_SCARLET_GHOUL_SPAWN1    = -1609300,
+    SAY_SCARLET_GHOUL_SPAWN2    = -1609301,
+    SAY_SCARLET_GHOUL_SPAWN3    = -1609302,
+    SAY_SCARLET_GHOUL_SPAWN4    = -1609303,
+    SAY_SCARLET_GHOUL_SPAWN5    = -1609304,
+    SAY_SCARLET_GHOUL_SPAWN6    = -1609305,
 
-    SAY_SCARLET_GOTHIK1         = -1609280,
-    SAY_SCARLET_GOTHIK2         = -1609279,
-    SAY_SCARLET_GOTHIK3         = -1609278,
-    SAY_SCARLET_GOTHIK4         = -1609277,
-    SAY_SCARLET_GOTHIK5         = -1609276,
+    SAY_SCARLET_GOTHIK1         = -1609306,
+    SAY_SCARLET_GOTHIK2         = -1609307,
+    SAY_SCARLET_GOTHIK3         = -1609308,
+    SAY_SCARLET_GOTHIK4         = -1609309,
+    SAY_SCARLET_GOTHIK5         = -1609310,
 };
 
 struct MANGOS_DLL_DECL mob_scarlet_ghoulAI : public ScriptedAI

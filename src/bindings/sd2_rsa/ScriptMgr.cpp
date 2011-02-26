@@ -231,13 +231,7 @@ void Script::RegisterSelf(bool bReportError)
 MANGOS_DLL_EXPORT
 char const* GetScriptLibraryVersion()
 {
-    if (!strSD2Version.empty())
-    {
-        strSD2Version.append(_FULLVERSION);
-        return strSD2Version.c_str();
-    }
-
-    return _FULLVERSION;
+    return strSD2Version.c_str();
 }
 
 MANGOS_DLL_EXPORT
@@ -520,15 +514,12 @@ bool AuraDummy(Aura const* pAura, bool apply)
 }
 
 MANGOS_DLL_EXPORT
-InstanceData* CreateInstanceData(Map *map)
+InstanceData* CreateInstanceData(Map* pMap)
 {
-    if (!map->IsDungeon())
-        return NULL;
-
-    Script *tmpscript = m_scripts[((InstanceMap*)map)->GetScriptId()];
+    Script *tmpscript = m_scripts[pMap->GetScriptId()];
 
     if (!tmpscript || !tmpscript->GetInstanceData)
         return NULL;
 
-    return tmpscript->GetInstanceData(map);
+    return tmpscript->GetInstanceData(pMap);
 }
