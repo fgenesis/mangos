@@ -10837,7 +10837,7 @@ Pet* Unit::CreateTamedPetFrom(Creature* creatureTarget,uint32 spell_id)
     return pet;
 }
 
-bool Unit::ApplySpellAura(uint32 spellID)
+bool Unit::ApplySpellAura(uint32 spellID, uint32 duration /* = 0 */)
 {
     bool added = false;
     SpellEntry const *spellInfo = sSpellStore.LookupEntry( spellID );
@@ -10861,6 +10861,8 @@ bool Unit::ApplySpellAura(uint32 spellID)
                 eff == SPELL_EFFECT_PERSISTENT_AREA_AURA)
             {
                 Aura *aur = CreateAura(spellInfo, SpellEffectIndex(i), NULL, holder, this);
+                if(duration)
+                    aur->SetAuraDuration(duration);
                 holder->AddAura(aur, SpellEffectIndex(i));
                 added = true;
             }
