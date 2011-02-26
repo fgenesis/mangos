@@ -548,7 +548,7 @@ bool ChatHandler::HandleDebugGetItemStateCommand(char* args)
                     if (container != bag)
                     {
                         PSendSysMessage("%s in bag %u at slot %u has a different container %s from slot %u!",
-                            item2->GetGuidStr().c_str(), bag->GetSlot(), item2->GetSlot(), 
+                            item2->GetGuidStr().c_str(), bag->GetSlot(), item2->GetSlot(),
                             container->GetGuidStr().c_str(), container->GetSlot());
                         error = true; continue;
                     }
@@ -667,7 +667,7 @@ bool ChatHandler::HandleDebugSpawnVehicleCommand(char* args)
     Player *plr = m_session->GetPlayer();
     Map *map = m_session->GetPlayer()->GetMap();
 
-    if (!v->Create(sObjectMgr.GenerateLowGuid(HIGHGUID_VEHICLE), map, plr->GetPhaseMask(), entry, id, plr->GetTeam()))
+    if (!v->Create(map->GenerateLocalLowGuid(HIGHGUID_VEHICLE), map, plr->GetPhaseMask(), entry, id, plr->GetTeam()))
     {
         delete v;
         return false;
@@ -1094,7 +1094,7 @@ bool ChatHandler::HandleDebugSpellModsCommand(char* args)
     if (!typeStr)
         return false;
 
-    uint16 opcode; 
+    uint16 opcode;
     if (strncmp(typeStr, "flat", strlen(typeStr)) == 0)
         opcode = SMSG_SET_FLAT_SPELL_MODIFIER;
     else if (strncmp(typeStr, "pct", strlen(typeStr)) == 0)

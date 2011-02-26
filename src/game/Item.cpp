@@ -833,14 +833,16 @@ bool Item::IsFitToSpellRequirements(SpellEntry const* spellInfo) const
 {
     ItemPrototype const* proto = GetProto();
 
-    // Enchant spells have only effect[0]
-    if(proto->IsVellum() && spellInfo->Effect[0] == SPELL_EFFECT_ENCHANT_ITEM && spellInfo->EffectItemType[0])
+    // Enchant spells only use Effect[0] (patch 3.3.2)
+    if (proto->IsVellum() && spellInfo->Effect[EFFECT_INDEX_0] == SPELL_EFFECT_ENCHANT_ITEM)
     {
-        if ((proto->SubClass == ITEM_SUBCLASS_WEAPON_ENCHANTMENT && spellInfo->EquippedItemClass == ITEM_CLASS_WEAPON) ||
-            (proto->SubClass == ITEM_SUBCLASS_ARMOR_ENCHANTMENT && spellInfo->EquippedItemClass == ITEM_CLASS_ARMOR))
-            return true;
+        // EffectItemType[0] is the associated scroll itemID, if a scroll can be made
+        if (spellInfo->EffectItemType[EFFECT_INDEX_0] == 0)
+            return false;
+        // Other checks do not apply to vellum enchants, so return final result
+        return ((proto->SubClass == ITEM_SUBCLASS_WEAPON_ENCHANTMENT && spellInfo->EquippedItemClass == ITEM_CLASS_WEAPON) ||
+                (proto->SubClass == ITEM_SUBCLASS_ARMOR_ENCHANTMENT && spellInfo->EquippedItemClass == ITEM_CLASS_ARMOR));
     }
-    // Vellum enchant case should ignore everything below
 
     if (spellInfo->EquippedItemClass != -1)                 // -1 == any item class
     {
@@ -1029,19 +1031,18 @@ void Item::SendTimeUpdate(Player* owner)
 
 Item* Item::CreateItem( uint32 item, uint32 count, Player const* player )
 {
-    if ( count < 1 )
+    if (count < 1)
         return NULL;                                        //don't create item at zero count
 
-    ItemPrototype const *pProto = ObjectMgr::GetItemPrototype( item );
-    if( pProto )
+    if (ItemPrototype const *pProto = ObjectMgr::GetItemPrototype(item))
     {
-        if ( count > pProto->GetMaxStackSize())
+        if (count > pProto->GetMaxStackSize())
             count = pProto->GetMaxStackSize();
 
         MANGOS_ASSERT(count !=0 && "pProto->Stackable==0 but checked at loading already");
 
         Item *pItem = NewItemOrBag( pProto );
-        if( pItem->Create(sObjectMgr.GenerateLowGuid(HIGHGUID_ITEM), item, player) )
+        if (pItem->Create(sObjectMgr.GenerateItemLowGuid(), item, player) )
         {
             pItem->SetCount( count );
             return pItem;

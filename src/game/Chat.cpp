@@ -41,7 +41,7 @@
 // |color|Hachievement_criteria:criteria_id|h[name]|h|r
 // |color|Harea:area_id|h[name]|h|r
 // |color|Hareatrigger:id|h[name]|h|r
-// |color|Hareatrigger_target:id|h[name]|h|r                
+// |color|Hareatrigger_target:id|h[name]|h|r
 // |color|Hcreature:creature_guid|h[name]|h|r
 // |color|Hcreature_entry:creature_id|h[name]|h|r
 // |color|Henchant:recipe_spell_id|h[prof_name: recipe_name]|h|r          - client, at shift click in recipes list dialog
@@ -53,6 +53,7 @@
 //                                                                        - client, item icon shift click
 // |color|Hitemset:itemset_id|h[name]|h|r
 // |color|Hplayer:name|h[name]|h|r                                        - client, in some messages, at click copy only name instead link, so no way generate it in client string send to server
+// |color|Hpool:pool_id|h[name]|h|r
 // |color|Hquest:quest_id:quest_level|h[name]|h|r                         - client, quest list name shift-click
 // |color|Hskill:skill_id|h[name]|h|r
 // |color|Hspell:spell_id|h[name]|h|r                                     - client, spellbook spell icon shift-click
@@ -254,6 +255,7 @@ ChatCommand * ChatHandler::getCommandTable()
         { "triggers",       SEC_ADMINISTRATOR,  false, &ChatHandler::HandleGMTriggersCommand,          "", NULL },
         { "hax",            SEC_MODERATOR,      false, &ChatHandler::HandleGMHaxCommand,               "", NULL },
         { "",               SEC_MODERATOR,      false, &ChatHandler::HandleGMCommand,                  "", NULL },
+        { "setview",        SEC_MODERATOR,      false, &ChatHandler::HandleSetViewCommand,             "", NULL },
         { NULL,             0,                  false, NULL,                                           "", NULL }
     };
 
@@ -366,6 +368,7 @@ ChatCommand * ChatHandler::getCommandTable()
         { "object",         SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleLookupObjectCommand,        "", NULL },
         { "quest",          SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleLookupQuestCommand,         "", NULL },
         { "player",         SEC_GAMEMASTER,     true,  NULL,                                           "", lookupPlayerCommandTable },
+        { "pool",           SEC_GAMEMASTER,     true,  &ChatHandler::HandleLookupPoolCommand,          "", NULL },
         { "skill",          SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleLookupSkillCommand,         "", NULL },
         { "spell",          SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleLookupSpellCommand,         "", NULL },
         { "taxinode",       SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleLookupTaxiNodeCommand,      "", NULL },
@@ -444,6 +447,14 @@ ChatCommand * ChatHandler::getCommandTable()
     {
         { "load",           SEC_ADMINISTRATOR,  true,  &ChatHandler::HandlePDumpLoadCommand,           "", NULL },
         { "write",          SEC_ADMINISTRATOR,  true,  &ChatHandler::HandlePDumpWriteCommand,          "", NULL },
+        { NULL,             0,                  false, NULL,                                           "", NULL }
+    };
+
+    static ChatCommand poolCommandTable[] =
+    {
+        { "list",           SEC_GAMEMASTER,     false, &ChatHandler::HandlePoolListCommand,            "", NULL },
+        { "spawns",         SEC_GAMEMASTER,     false, &ChatHandler::HandlePoolSpawnsCommand,          "", NULL },
+        { "",               SEC_GAMEMASTER,     true,  &ChatHandler::HandlePoolInfoCommand,            "", NULL },
         { NULL,             0,                  false, NULL,                                           "", NULL }
     };
 
@@ -744,6 +755,7 @@ ChatCommand * ChatHandler::getCommandTable()
         { "lookup",         SEC_MODERATOR,      true,  NULL,                                           "", lookupCommandTable   },
         { "modify",         SEC_MODERATOR,      false, NULL,                                           "", modifyCommandTable   },
         { "npc",            SEC_MODERATOR,      false, NULL,                                           "", npcCommandTable      },
+        { "pool",           SEC_GAMEMASTER,     true,  NULL,                                           "", poolCommandTable     },
         { "pdump",          SEC_ADMINISTRATOR,  true,  NULL,                                           "", pdumpCommandTable    },
         { "quest",          SEC_ADMINISTRATOR,  false, NULL,                                           "", questCommandTable    },
         { "reload",         SEC_ADMINISTRATOR,  true,  NULL,                                           "", reloadCommandTable   },
@@ -2311,7 +2323,7 @@ bool  ChatHandler::ExtractOptFloat(char** args, float& val, float defVal)
  * Function extract name-like string (from non-numeric or special symbol until whitespace)
  *
  * @param args variable pointer to non parsed args string, updated at function call to new position (with skipped white spaces)
- * @param lit  optional explicit literal requirement. function fail if literal is not starting substring of lit. 
+ * @param lit  optional explicit literal requirement. function fail if literal is not starting substring of lit.
  *             Note: function in same way fail if no any literal or literal not fit in this case. Need additional check for select specific fail case
  * @return     name/number-like string without whitespaces, or NULL if args empty or not appropriate content.
  */
@@ -2442,7 +2454,7 @@ char* ChatHandler::ExtractQuotedOrLiteralArg(char** args, bool asis /*= false*/)
 }
 
 /**
- * Function extract on/off literals as boolean values 
+ * Function extract on/off literals as boolean values
  *
  * @param args variable pointer to non parsed args string, updated at function call to new position (with skipped white spaces)
  * @param val  return extracted value if function success, in fail case original value unmodified
@@ -2506,7 +2518,7 @@ char* ChatHandler::ExtractLinkArg(char** args, char const* const* linkTypes /*= 
 
     if (*tail != 'H')                                       // skip color part, some links can not have color part
     {
-        while (*tail && *tail != '|')                           
+        while (*tail && *tail != '|')
             ++tail;
 
         if (!*tail)
@@ -2646,7 +2658,7 @@ char* ChatHandler::ExtractLinkArg(char** args, char const* const* linkTypes /*= 
         somethingPair[1] = somethingEnd;
     }
 
-    *args = tail;                   
+    *args = tail;
 
     SkipWhiteSpaces(args);
 
@@ -2719,7 +2731,7 @@ char* ChatHandler::ExtractKeyFromLink(char** text, char const* linkType, char** 
 }
 
 /**
- * Function extract data from shift-link "|color|LINKTYPE:RETURN:SOMETHING1|h[name]|h|r if LINKTYPE in linkTypes array 
+ * Function extract data from shift-link "|color|LINKTYPE:RETURN:SOMETHING1|h[name]|h|r if LINKTYPE in linkTypes array
  * It also extract literal/quote if not shift-link in args
  *
  * @param args       variable pointer to non parsed args string, updated at function call to new position (with skipped white spaces)
@@ -2791,23 +2803,14 @@ bool ChatHandler::ExtractUint32KeyFromLink(char** text, char const* linkType, ui
     return ExtractUInt32(&arg, value);
 }
 
-GameObject* ChatHandler::GetObjectGlobalyWithGuidOrNearWithDbGuid(uint32 lowguid,uint32 entry)
+GameObject* ChatHandler::GetGameObjectWithGuid(uint32 lowguid,uint32 entry)
 {
-    if(!m_session)
+    if (!m_session)
         return NULL;
 
     Player* pl = m_session->GetPlayer();
 
-    GameObject* obj = pl->GetMap()->GetGameObject(ObjectGuid(HIGHGUID_GAMEOBJECT, entry, lowguid));
-
-    if(!obj && sObjectMgr.GetGOData(lowguid))                   // guid is DB guid of object
-    {
-        MaNGOS::GameObjectWithDbGUIDCheck go_check(*pl,lowguid);
-        MaNGOS::GameObjectSearcher<MaNGOS::GameObjectWithDbGUIDCheck> checker(obj,go_check);
-        Cell::VisitGridObjects(pl,checker, pl->GetMap()->GetVisibilityDistance());
-    }
-
-    return obj;
+    return pl->GetMap()->GetGameObject(ObjectGuid(HIGHGUID_GAMEOBJECT, entry, lowguid));
 }
 
 enum SpellLinkType

@@ -376,9 +376,9 @@ bool Vehicle::Create(uint32 guidlow, Map *map, uint32 phaseMask, uint32 Entry, u
     //Notify the map's instance data.
     //Only works if you create the object in it, not if it is moves to that map.
     //Normally non-players do not teleport to other maps.
-    if(map->IsDungeon() && ((InstanceMap*)map)->GetInstanceData())
+    if(map->IsDungeon() && map->GetInstanceData())
     {
-        ((InstanceMap*)map)->GetInstanceData()->OnCreatureCreate(this);
+        map->GetInstanceData()->OnCreatureCreate(this);
     }
 
     if(m_vehicleInfo->m_powerType == POWER_TYPE_STEAM)
@@ -962,7 +962,7 @@ void Vehicle::InstallAllAccessories()
             if(passAddon && passAddon->vehicle_id != 0)
                 isVehicle = true;
             else
-                guid = sObjectMgr.GenerateLowGuid(HIGHGUID_UNIT);
+                guid = GetMap()->GenerateLocalLowGuid(HIGHGUID_VEHICLE); // FG: is this correct? what if vehicle changes map, is that possible?
         }
         // Create it
         Creature *pPassenger = new Creature;
