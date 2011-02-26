@@ -8715,6 +8715,10 @@ void Unit::SetDeathState(DeathState s)
     if (s == JUST_DIED)
     {
         ExitVehicle();
+
+        // FG: Unit dies, trigger on death procs (before removing auras)
+        ProcDamageAndSpell(this, PROC_FLAG_NONE, PROC_FLAG_ON_DEATH, PROC_EX_NONE, 0);
+
         RemoveAllAurasOnDeath();
         RemoveGuardians();
         RemoveMiniPet();
