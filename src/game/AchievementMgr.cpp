@@ -1008,7 +1008,7 @@ void AchievementMgr::UpdateAchievementCriteria(AchievementCriteriaTypes type, ui
                         }
                        case 162:                           // We Had It All Along *cough*
                         {
-                            if (bg->GetTypeID(true) != BATTLEGROUND_AB)
+                            if (bg->GetTypeID() != BATTLEGROUND_AB)
                                 continue;
 
                             if (!((BattleGroundAB*)bg)->IsTeamScoreInRange(((GetPlayer()->GetTeam() == HORDE) ? ALLIANCE : HORDE), 1590, 1590))
