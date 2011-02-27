@@ -1889,7 +1889,14 @@ CreatureDataAddon const* Creature::GetCreatureAddon() const
         return addon;
 
     // dependent from difficulty mode entry
-    return ObjectMgr::GetCreatureTemplateAddon(GetCreatureInfo()->Entry);
+    if (GetEntry() != GetCreatureInfo()->Entry)
+    {
+        if (CreatureDataAddon const* addon =  ObjectMgr::GetCreatureTemplateAddon(GetCreatureInfo()->Entry))
+            return addon;
+    }
+
+    // fallback to entry of normal mode
+    return ObjectMgr::GetCreatureTemplateAddon(GetEntry());
 }
 
 //creature_addon table
