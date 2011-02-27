@@ -3131,6 +3131,9 @@ void Spell::cast(bool skipCheck)
             {
                 AddTriggeredSpell(52874);                   // Fan of Knives (offhand)
             }
+            // Tricks of the trade
+            else if (m_spellInfo->Id == 57933)
+                AddTriggeredSpell(59628);                   // Tricks of the trade selfbuff
             break;
         case SPELLFAMILY_HUNTER:
         {
