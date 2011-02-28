@@ -1600,22 +1600,14 @@ void WorldSession::HandleMoveSetCanFlyAckOpcode( WorldPacket & recv_data )
     recv_data >> movementInfo;
     recv_data >> Unused<float>();                           // unk2
 
-    Unit * target;
-    if (_player->GetObjectGuid() == guid)
-        target = _player;
-
-    else if (!_player->IsSelfMover() && _player->GetMover()->GetObjectGuid() == guid)
-        target = _player->GetMover();
-
-    else
+    if (_player->GetMover()->GetObjectGuid() != guid)
     {
-        DEBUG_LOG("WorldSession::HandleMoveSetCanFlyAckOpcode: player %s, "
-            "mover %s, received %s", _player->GetGuidStr().c_str(),
-            _player->GetMover()->GetGuidStr().c_str(), guid.GetString().c_str());
+        DEBUG_LOG("WorldSession::HandleMoveSetCanFlyAckOpcode: player %s, mover %s, received %s, ignored",
+            _player->GetGuidStr().c_str(), _player->GetMover()->GetGuidStr().c_str(), guid.GetString().c_str());
         return;
     }
 
-    target->m_movementInfo.SetMovementFlags(movementInfo.GetMovementFlags());
+    _player->GetMover()->m_movementInfo.SetMovementFlags(movementInfo.GetMovementFlags());
 }
 
 void WorldSession::HandleRequestPetInfoOpcode( WorldPacket & /*recv_data */)
