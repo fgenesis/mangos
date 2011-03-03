@@ -4303,6 +4303,10 @@ bool Unit::AddSpellAuraHolder(SpellAuraHolder *holder)
                     case SPELL_AURA_POWER_BURN_MANA:
                     // FG: some more exceptions
                     case SPELL_AURA_MOD_DAMAGE_FROM_CASTER: // required for Serpent Sting (blizz hackfix?)
+                    case SPELL_AURA_MOD_ATTACKER_SPELL_AND_WEAPON_CRIT_CHANCE: // for Deadly Poison
+                    case SPELL_AURA_MOD_MELEE_HASTE:  // for Icy Touch
+                    case SPELL_AURA_MOD_RANGED_HASTE: // for Icy Touch
+                    case SPELL_AURA_MOD_DAMAGE_TAKEN: // for Hemorrhage
                         break;
                     case SPELL_AURA_PERIODIC_ENERGIZE:      // all or self or clear non-stackable
                     default:                                // not allow
