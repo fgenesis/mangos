@@ -3445,35 +3445,6 @@ void Aura::HandleAuraModShapeshift(bool apply, bool Real)
                 case FORM_BEAR:
                 case FORM_DIREBEAR:
                 {
-                    // Heart of the Wild
-                    Unit::AuraList const& mStats = target->GetAurasByType(SPELL_AURA_MOD_STAT);
-                    for(Unit::AuraList::const_iterator i = mStats.begin(); i != mStats.end(); ++i)
-                    {
-                        switch ((*i)->GetSpellProto()->Id)
-                        {
-                            case 17003:
-                            case 17004:
-                            case 17005:
-                            case 17006:
-                            case 24894:
-                            {
-                                int32 statsBonus = (*i)->GetSpellProto()->EffectBasePoints[1];
-                                if (form == FORM_CAT)
-                                    target->CastCustomSpell(target, 24900, &statsBonus, NULL, NULL, true);
-                                else
-                                {
-                                    target->CastCustomSpell(target, 24899, &statsBonus, NULL, NULL, true);
-                                    int32 health = statsBonus * target->GetMaxHealth() / 100;
-                                    target->CastCustomSpell(target, 25142, &health, NULL, NULL, true);
-                                }
-                                break;
-                            }
-                            default:
-                                continue;
-                        }
-                        break;
-                    }
-
                     // get furor proc chance
                     int32 furorChance = 0;
                     Unit::AuraList const& mDummy = target->GetAurasByType(SPELL_AURA_DUMMY);
@@ -5892,6 +5863,25 @@ void Aura::HandleModTotalPercentStat(bool apply, bool /*Real*/)
     //save current HP percent before applying aura
     float healthPCT = target->GetHealthPercent();
 
+    // Heart of the Wild - stamina
+    if (apply && target->GetTypeId() == TYPEID_PLAYER && target->getClass() == CLASS_DRUID && target->GetShapeshiftForm() && m_modifier.m_miscvalue == STAT_STAMINA)
+    {
+        switch (target->GetShapeshiftForm())
+        {
+            case FORM_BEAR:
+            case FORM_DIREBEAR:
+            {
+                Player* player = (Player*)target;
+                SpellEntry const* spellInfo = player->GetKnownTalentRankById(808);
+                if (spellInfo)
+                {
+                    m_modifier.m_amount = m_modifier.m_amount + spellInfo->CalculateSimpleValue(EFFECT_INDEX_1);
+                }
+                break;
+            }
+        }
+    }
+
     for (int32 i = STAT_STRENGTH; i < MAX_STATS; i++)
     {
         if(m_modifier.m_miscvalue == i || m_modifier.m_miscvalue == -1)
@@ -6677,7 +6667,6 @@ void Aura::HandleShapeshiftBoosts(bool apply)
     {
         case FORM_CAT:
             spellId1 = 3025;
-            HotWSpellId = 24900;
             MasterShaperSpellId = 48420;
             break;
         case FORM_TREE:
@@ -6694,13 +6683,11 @@ void Aura::HandleShapeshiftBoosts(bool apply)
         case FORM_BEAR:
             spellId1 = 1178;
             spellId2 = 21178;
-            HotWSpellId = 24899;
             MasterShaperSpellId = 48418;
             break;
         case FORM_DIREBEAR:
             spellId1 = 9635;
             spellId2 = 21178;
-            HotWSpellId = 24899;
             MasterShaperSpellId = 48418;
             break;
         case FORM_BATTLESTANCE:
@@ -6876,24 +6863,6 @@ void Aura::HandleShapeshiftBoosts(bool apply)
                             continue;
                     }
                     break;
-                }
-            }
-
-            // Heart of the Wild
-            if (HotWSpellId)
-            {
-                Unit::AuraList const& mModTotalStatPct = target->GetAurasByType(SPELL_AURA_MOD_TOTAL_STAT_PERCENTAGE);
-                for(Unit::AuraList::const_iterator i = mModTotalStatPct.begin(); i != mModTotalStatPct.end(); ++i)
-                {
-                    if ((*i)->GetSpellProto()->SpellIconID == 240 && (*i)->GetModifier()->m_miscvalue == 3)
-                    {
-                        int32 HotWMod = (*i)->GetModifier()->m_amount;
-                        if(GetModifier()->m_miscvalue == FORM_CAT)
-                            HotWMod /= 2;
-
-                        target->CastCustomSpell(target, HotWSpellId, &HotWMod, NULL, NULL, true, NULL, this);
-                        break;
-                    }
                 }
             }
         }

@@ -373,6 +373,16 @@ void Player::UpdateAttackPowerAndDamage(bool ranged )
 
     float attPowerMultiplier = GetModifierValue(unitMod, TOTAL_PCT) - 1.0f;
 
+    // Heart of the Wild - attack power
+    if (!ranged && getClass() == CLASS_DRUID && GetShapeshiftForm() == FORM_CAT)
+    {
+        SpellEntry const* spellInfo = GetKnownTalentRankById(808);
+        if (spellInfo)
+        {
+            attPowerMultiplier = attPowerMultiplier + (float)spellInfo->CalculateSimpleValue(EFFECT_INDEX_1) / 100.0f;
+        }
+    }
+
     SetInt32Value(index, (uint32)base_attPower);            //UNIT_FIELD_(RANGED)_ATTACK_POWER field
     SetInt32Value(index_mod, (uint32)attPowerMod);          //UNIT_FIELD_(RANGED)_ATTACK_POWER_MODS field
     SetFloatValue(index_mult, attPowerMultiplier);          //UNIT_FIELD_(RANGED)_ATTACK_POWER_MULTIPLIER field
