@@ -23032,3 +23032,38 @@ void Player::SetRestType( RestType n_r_type, uint32 areaTriggerId /*= 0*/)
             SetFFAPvP(false);
     }
 }
+
+// FG: addition
+void Player::RewardRageForDamageDealt(CalcDamageInfo *dmgInfo, CleanDamage *cleanDamage)
+{
+    uint32 weaponSpeedHitFactor;
+
+    // Rage from Damage made (only from direct weapon damage)
+    switch(cleanDamage->attackType)
+    {
+    case BASE_ATTACK:
+        {
+            if(cleanDamage->hitOutCome == MELEE_HIT_CRIT)
+                weaponSpeedHitFactor = uint32(GetAttackTime(cleanDamage->attackType)/1000.0f * 7);
+            else
+                weaponSpeedHitFactor = uint32(GetAttackTime(cleanDamage->attackType)/1000.0f * 3.5f);
+
+            break;
+        }
+    case OFF_ATTACK:
+        {
+            if(cleanDamage->hitOutCome == MELEE_HIT_CRIT)
+                weaponSpeedHitFactor = uint32(GetAttackTime(cleanDamage->attackType)/1000.0f * 3.5f);
+            else
+                weaponSpeedHitFactor = uint32(GetAttackTime(cleanDamage->attackType)/1000.0f * 1.75f);
+
+            break;
+        }
+    case RANGED_ATTACK:
+        return; // do not add rage here
+    }
+
+    uint32 damage = dmgInfo->damage + dmgInfo->absorb; // resisted too?
+
+    ((Player*)this)->RewardRage(damage, weaponSpeedHitFactor, true);
+}
