@@ -290,10 +290,12 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
     Unit *mover = _player->GetMover();
     Player *plMover = mover && mover->GetTypeId() == TYPEID_PLAYER ? (Player*)mover : NULL;
 
+    bool beeingTele = plMover->IsBeingTeleported();
+    plMover->m_anti_JustTeleported = beeingTele; // ACH related
+
     // ignore, waiting processing in WorldSession::HandleMoveWorldportAckOpcode and WorldSession::HandleMoveTeleportAck
-    if(plMover && plMover->IsBeingTeleported())
+    if(plMover && beeingTele)
     {
-        plMover->m_anti_JustTeleported = 1; // ACH related
         recv_data.rpos(recv_data.wpos());                   // prevent warnings spam
         return;
     }
@@ -319,12 +321,6 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
         plMover->HandleFall(movementInfo);
     }
 
-    /* process position-change */
-    HandleMoverRelocation(movementInfo);
-
-    if (plMover)
-        plMover->UpdateFallInformationIfNeed(movementInfo, opcode);
-
     // ACH start
     uint32 alarm_level = 0;
     if(plMover && plMover == GetPlayer())
@@ -344,7 +340,7 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
             return;
             */
             // ... we should process packets normally, dont make them suspicious
-            
+
             clock_t curclock = clock();
 
             if(plMover->m_anti_NotificationTime + (int32)sWorld.getConfig(CONFIG_UINT32_ACH_NOTIFY_INTERVAL) < curclock)
@@ -383,6 +379,12 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
     }
     // ACH end
 
+    /* process position-change */
+    HandleMoverRelocation(movementInfo);
+
+    if (plMover)
+        plMover->UpdateFallInformationIfNeed(movementInfo, opcode);
+
     // after move info set
     if (opcode == MSG_MOVE_SET_WALK_MODE || opcode == MSG_MOVE_SET_RUN_MODE)
         mover->UpdateWalkMode(mover, false);
@@ -391,60 +393,6 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
     data << mover->GetPackGUID();             // write guid
     movementInfo.Write(data);                               // write data
     mover->SendMessageToSetExcept(&data, _player);
-
-    if(plMover)                                             // nothing is charmed, or player charmed
-    {
-        plMover->SetPosition(movementInfo.GetPos()->x, movementInfo.GetPos()->y, movementInfo.GetPos()->z, movementInfo.GetPos()->o);
-        plMover->m_movementInfo = movementInfo;
-        plMover->UpdateFallInformationIfNeed(movementInfo, opcode);
-
-        // after move info set
-        if ((opcode == MSG_MOVE_SET_WALK_MODE || opcode == MSG_MOVE_SET_RUN_MODE))
-            plMover->UpdateWalkMode(plMover, false);
-
-        if(plMover->isMovingOrTurning())
-            plMover->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
-
-        if(movementInfo.GetPos()->z < -500.0f)
-        {
-            if(plMover->InBattleGround()
-                && plMover->GetBattleGround()
-                && plMover->GetBattleGround()->HandlePlayerUnderMap(_player))
-            {
-                // do nothing, the handle already did if returned true
-            }
-            else
-            {
-                // NOTE: this is actually called many times while falling
-                // even after the player has been teleported away
-                // TODO: discard movement packets after the player is rooted
-                if(plMover->isAlive())
-                {
-                    plMover->EnvironmentalDamage(DAMAGE_FALL_TO_VOID, plMover->GetMaxHealth());
-                    // pl can be alive if GM/etc
-                    if(!plMover->isAlive())
-                    {
-                        // change the death state to CORPSE to prevent the death timer from
-                        // starting in the next player update
-                        plMover->KillPlayer();
-                        plMover->BuildPlayerRepop();
-                    }
-                }
-
-                // cancel the death timer here if started
-                plMover->RepopAtGraveyard();
-            }
-        }
-    }
-    else                                                    // creature charmed
-    {
-        if(mover->IsInWorld())
-        {
-            mover->GetMap()->CreatureRelocation((Creature*)mover, movementInfo.GetPos()->x, movementInfo.GetPos()->y, movementInfo.GetPos()->z, movementInfo.GetPos()->o);
-            if(((Creature*)mover)->IsVehicle())
-                ((Vehicle*)mover)->RellocatePassengers(mover->GetMap());
-        }
-    }
 }
 
 void WorldSession::HandleForceSpeedChangeAckOpcodes(WorldPacket &recv_data)
@@ -931,7 +879,7 @@ void WorldSession::HandleMoverRelocation(MovementInfo& movementInfo)
     }
     else                                                    // creature charmed
     {
-        if (mover->IsInWorld())
+        if (mover->IsInWorld() && mover->GetTypeId() == TYPEID_UNIT)
         {
             mover->GetMap()->CreatureRelocation((Creature*)mover, movementInfo.GetPos()->x, movementInfo.GetPos()->y, movementInfo.GetPos()->z, movementInfo.GetPos()->o);
             if(((Creature*)mover)->IsVehicle())
@@ -940,12 +888,12 @@ void WorldSession::HandleMoverRelocation(MovementInfo& movementInfo)
     }
 }
 
-uint32 WorldSession::ACH_CheckMoveInfo(uint32 opcode, MovementInfo* movementInfoPtr, Player *plMover)
+uint32 WorldSession::ACH_CheckMoveInfo(uint32 opcode, const MovementInfo* movementInfoPtr, Player *plMover)
 {
     if(!plMover) // player to check
         return true; // this does not necessarily have to be an error, just return anything here, as long as it works
 
-    MovementInfo& movementInfo = *movementInfoPtr;
+    const MovementInfo& movementInfo = *movementInfoPtr;
 
     uint32 alarm_level = 0; // "impact" generated, > 0 for suspicious packets
 

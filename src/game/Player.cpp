@@ -607,7 +607,7 @@ Player::Player (WorldSession *session): Unit(), m_mover(this), m_camera(this), m
     m_anti_Last_HSpeed =  7.0f;   //horizontal speed, default RUN speed
     m_anti_Last_VSpeed = -2.3f;   //vertical speed, default max jump height
 
-    m_anti_JustTeleported = 0;    //seted when player was teleported
+    m_anti_JustTeleported = false;    //seted when player was teleported
     m_anti_TeleToPlane_Count = 0; //Teleport To Plane alarm counter
 
     m_anti_AlarmCount = 0;        //alarm counter
@@ -1774,7 +1774,7 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
     }
 
     //movement anticheat
-    m_anti_JustTeleported = 1;
+    m_anti_JustTeleported = true;
     //end movement anticheat
 
     // preparing unsummon pet if lost (we must get pet before teleportation or will not find it later)

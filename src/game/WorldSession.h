@@ -838,7 +838,7 @@ class MANGOS_DLL_SPEC WorldSession
         inline float GetXPMultiQuest(void) { return m_XPMultiQuest; }
         void SetXPMultiKill(float m);
         void SetXPMultiQuest(float m);
-        uint32 ACH_CheckMoveInfo(uint32 opcode, MovementInfo* movementInfoPtr, Player *plMover);
+        uint32 ACH_CheckMoveInfo(uint32 opcode, const MovementInfo* movementInfoPtr, Player *plMover);
         std::string GetIP(void);
 
     private:
