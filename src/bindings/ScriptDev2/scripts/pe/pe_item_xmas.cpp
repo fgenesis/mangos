@@ -114,7 +114,9 @@ static uint32 modelList[] =
     18809,
     18810,
     18811,  // .... all xmas end
-    19603   // the evil cow
+    19603,  // the evil cow
+    26101   // valkyr
+
 };
 
 
