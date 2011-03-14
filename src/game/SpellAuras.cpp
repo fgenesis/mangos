@@ -2958,6 +2958,27 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                     ((Player*)target)->AddSpellMod(m_spellmod, apply);
                     return;
                 }
+                // FG: Glyph of Blessing of Wisdom (TODO: remove in 4.x)
+                case 57979:
+                {
+                    if (target->GetTypeId() != TYPEID_PLAYER)
+                        return;
+
+                    if (apply)
+                    {
+                        SpellModifier *mod = new SpellModifier;
+                        mod->op = SPELLMOD_DURATION;
+                        mod->value = m_modifier.m_amount * MINUTE * IN_MILLISECONDS;
+                        mod->type = SPELLMOD_FLAT;
+                        mod->spellId = GetId();
+                        mod->mask = UI64LIT(0x10000); // taken from family flags, not sure if its correct
+                        mod->mask2= UI64LIT(0x0);
+                        m_spellmod = mod;
+                    }
+
+                    ((Player*)target)->AddSpellMod(m_spellmod, apply);
+                    return;
+                }
             }
 
             break;
