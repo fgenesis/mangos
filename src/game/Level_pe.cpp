@@ -62,7 +62,7 @@ bool ChatHandler::HandleMyinfoCommand(char* args)
     if(m_session->GetPlayer()->IsMyinfoForbidden())
     {
         PSendSysMessage("You are not allowed to set your info.");
-        CharacterDatabase.PExecute("UPDATE character_myinfo SET `msg`='<forbidden>' WHERE guid=%u",guid);
+        CharacterDatabase.PExecute("UPDATE character_myinfo SET msg='<forbidden>' WHERE guid=%u",guid);
         return true;
     }
 
@@ -70,7 +70,7 @@ bool ChatHandler::HandleMyinfoCommand(char* args)
 
     if(!msg.length())
     {
-        CharacterDatabase.PExecute("UPDATE character_myinfo SET `msg`='' WHERE guid=%u",guid);
+        CharacterDatabase.PExecute("UPDATE character_myinfo SET msg='' WHERE guid=%u",guid);
         PSendSysMessage("Personal info message deleted.");
         return true;
     }
@@ -111,22 +111,29 @@ bool ChatHandler::HandleUnstuckCommand(char* args)
 
 bool ChatHandler::HandleTargetAndDeleteObjectCommand(char *args)
 {
-
+    Player* pl = m_session->GetPlayer();
     QueryResult *result;
 
-    if(*args)
+    uint32 id = args && *args ? atoi((char*)args) : 0;
+
+    if(id)
     {
-        int32 id = atoi((char*)args);
-        if(id)
-            result = WorldDatabase.PQuery("SELECT `guid`, `id`, `position_x`, `position_y`, `position_z`, `orientation`, `map`, (POW(`position_x` - %f, 2) + POW(`position_y` - %f, 2) + POW(`position_z` - %f, 2)) as `order` FROM `gameobject` WHERE `map` = %i AND `id` = '%u' ORDER BY `order` ASC LIMIT 1", m_session->GetPlayer()->GetPositionX(), m_session->GetPlayer()->GetPositionY(), m_session->GetPlayer()->GetPositionZ(), m_session->GetPlayer()->GetMapId(),id);
-        else
-            result = WorldDatabase.PQuery(
-            "SELECT `guid`, `id`, `position_x`, `position_y`, `position_z`, `orientation`, `map`, (POW(`position_x` - %f, 2) + POW(`position_y` - %f, 2) + POW(`position_z` - %f, 2)) as `order` "
-            "FROM `gameobject`,`gameobject_template` WHERE `gameobject_template`.`entry` = `gameobject`.`id` AND `map` = %i AND `name` LIKE '%%%s%%' ORDER BY `order` ASC LIMIT 1",
-            m_session->GetPlayer()->GetPositionX(), m_session->GetPlayer()->GetPositionY(), m_session->GetPlayer()->GetPositionZ(), m_session->GetPlayer()->GetMapId(),args);
+        // copied from HandleGameObjectNearCommand
+        result = WorldDatabase.PQuery("SELECT guid, id, position_x, position_y, position_z, map, "
+        "(POW(position_x - '%f', 2) + POW(position_y - '%f', 2) + POW(position_z - '%f', 2)) AS order_ "
+        "FROM gameobject WHERE map='%u' AND (POW(position_x - '%f', 2) + POW(position_y - '%f', 2) + POW(position_z - '%f', 2)) <= '%f' ORDER BY order_",
+        pl->GetPositionX(), pl->GetPositionY(), pl->GetPositionZ(),
+        pl->GetMapId(), pl->GetPositionX(), pl->GetPositionY(), pl->GetPositionZ(),distance*distance);
     }
     else
-        result = WorldDatabase.PQuery("SELECT `guid`, `id`, `position_x`, `position_y`, `position_z`, `orientation`, `map`, (POW(`position_x` - %f, 2) + POW(`position_y` - %f, 2) + POW(`position_z` - %f, 2)) as `order` FROM `gameobject` WHERE `map` = %i ORDER BY `order` ASC LIMIT 1", m_session->GetPlayer()->GetPositionX(), m_session->GetPlayer()->GetPositionY(), m_session->GetPlayer()->GetPositionZ(), m_session->GetPlayer()->GetMapId());
+    {
+        // copied from HandleGameObjectNearCommand, added id = '...' to WHERE part
+        result = WorldDatabase.PQuery("SELECT guid, id, position_x, position_y, position_z, map, "
+        "(POW(position_x - '%f', 2) + POW(position_y - '%f', 2) + POW(position_z - '%f', 2)) AS order_ "
+        "FROM gameobject WHERE map='%u' AND (POW(position_x - '%f', 2) + POW(position_y - '%f', 2) + POW(position_z - '%f', 2)) <= '%f' AND id = '%u' ORDER BY order_",
+        pl->GetPositionX(), pl->GetPositionY(), pl->GetPositionZ(),
+        pl->GetMapId(), pl->GetPositionX(), pl->GetPositionY(), pl->GetPositionZ(),distance*distance, id);
+    }
 
     if (!result)
     {
@@ -234,24 +241,9 @@ bool ChatHandler::HandleAddEmoteCommand(char* args)
     }
     target->SetUInt32Value(UNIT_NPC_EMOTESTATE,emote);
 
-    bool exists = false;
-    QueryResult *result = WorldDatabase.PQuery("SELECT guid FROM creature_addon WHERE guid=%u",target->GetGUIDLow());
-    if(result)
-    {
-        delete result;
-        exists = true;
-    }
-
-    if(exists)
-    {
-        WorldDatabase.PExecute("UPDATE creature_addon SET emote=%u WHERE guid=%u",emote,target->GetGUIDLow());
-        SendSysMessage("Creature_addon emote updated");
-    }
-    else
-    {
-        WorldDatabase.PExecute("REPLACE INTO creature_addon (guid, emote) VALUES (%u,%u)",target->GetGUIDLow(),emote);
-        SendSysMessage("Creature_addon emote assigned");
-    }
+    WorldDatabase.PExecute("DELETE FROM creature_addon WHERE guid=%u", target->GetGUIDLow());
+    WorldDatabase.PExecute("UPDATE creature_addon SET emote=%u WHERE guid=%u",emote,target->GetGUIDLow());
+    SendSysMessage("Creature_addon emote updated");
 
     return true;
 }

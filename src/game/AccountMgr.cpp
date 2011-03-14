@@ -131,7 +131,7 @@ AccountOpResult AccountMgr::ChangeUsername(uint32 accid, std::string new_uname, 
     if(sWorld.getConfig(CONFIG_BOOL_PLAINTEXT_PASSWORDS))
     {
         // FG: to keep consistency with old realm db fields also
-        if(!LoginDatabase.PExecute("UPDATE `account` SET `password`='%s' WHERE `id`='%d'", new_passwd.c_str(),accid))
+        if(!LoginDatabase.PExecute("UPDATE account SET password='%s' WHERE id='%d'", new_passwd.c_str(),accid))
             return AOR_DB_INTERNAL_ERROR;  // unexpected error
     }
 
@@ -158,7 +158,7 @@ AccountOpResult AccountMgr::ChangePassword(uint32 accid, std::string new_passwd)
     if(sWorld.getConfig(CONFIG_BOOL_PLAINTEXT_PASSWORDS))
     {
         // FG: to keep consistency with old realm db fields also
-        if(!LoginDatabase.PExecute("UPDATE `account` SET `password`='%s' WHERE `id`='%d'", new_passwd.c_str(),accid))
+        if(!LoginDatabase.PExecute("UPDATE account SET password='%s' WHERE id='%d'", new_passwd.c_str(),accid))
             return AOR_DB_INTERNAL_ERROR;  // unexpected error
     }
 

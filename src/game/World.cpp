@@ -2522,7 +2522,7 @@ void World::UpdateOnlineStats(void)
 {
     uint32 ac = GetPlayerCountByTeam(ALLIANCE);
     uint32 hc = GetPlayerCountByTeam(HORDE);
-    WorldDatabase.PExecute("INSERT INTO `www_onlinestats` (`time`,`realmid`,`a`,`h`) VALUES('%u','%u','%u','%u')",time(NULL),realmID,ac,hc);
+    WorldDatabase.PExecute("INSERT INTO www_onlinestats (time,realmid,a,h) VALUES('%u','%u','%u','%u')",time(NULL),realmID,ac,hc);
 }
 
 uint32 World::GetPlayerCountByTeam(uint32 t)
