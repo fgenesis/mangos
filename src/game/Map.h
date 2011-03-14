@@ -354,6 +354,18 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>
 
         template<class T>
             void RemoveFromGrid(T*, NGridType *, Cell const&);
+
+        // FG: custom stuff
+        uint32 _massSpawnLowGUID;
+
+    public:
+        
+        uint32 GetMassSpawnGUIDLow(void)
+        {
+            uint32 ret = 0x00FFF7FE + _massSpawnLowGUID;
+            ++_massSpawnLowGUID;
+            _massSpawnLowGUID %= 0x800;
+        }
 };
 
 class MANGOS_DLL_SPEC WorldMap : public Map

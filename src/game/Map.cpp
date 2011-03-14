@@ -75,7 +75,8 @@ Map::Map(uint32 id, time_t expiry, uint32 InstanceId, uint8 SpawnMode)
   m_VisibleDistance(DEFAULT_VISIBILITY_DISTANCE), m_persistentState(NULL),
   m_activeNonPlayersIter(m_activeNonPlayers.end()),
   i_gridExpiry(expiry), m_TerrainData(sTerrainMgr.LoadTerrain(id)),
-  i_data(NULL), i_script_id(0)
+  i_data(NULL), i_script_id(0),
+  _massSpawnLowGUID(0)
 {
     m_CreatureGuids.Set(sObjectMgr.GetFirstCreatureLowGuid());
     m_GameObjectGuids.Set(sObjectMgr.GetFirstGameObjectLowGuid());
