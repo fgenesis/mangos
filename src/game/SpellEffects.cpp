@@ -6035,6 +6035,9 @@ void Spell::EffectWeaponDmg(SpellEffectIndex eff_idx)
                 Item* weapon = ((Player*)m_caster)->GetWeaponForAttack(m_attackType,true,true);
                 if (weapon && weapon->GetProto()->SubClass == ITEM_SUBCLASS_WEAPON_DAGGER)
                     totalDamagePercentMod *= 1.45f;         // 145% to daggers
+
+                // FG: HACK: award CP
+                EffectAddComboPoints(0);
             }
             break;
         }
