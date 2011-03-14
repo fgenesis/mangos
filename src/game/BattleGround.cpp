@@ -1221,6 +1221,7 @@ void BattleGround::AddPlayer(Player *plr)
 
             plr->SetHealth(plr->GetMaxHealth());
             plr->SetPower(POWER_MANA, plr->GetMaxPower(POWER_MANA));
+            plr->SetPower(POWER_RAGE, 0);
         }
     }
     else
