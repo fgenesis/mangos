@@ -1798,33 +1798,18 @@ Creature* WorldObject::SummonCreature(uint32 id, float x, float y, float z, floa
     if (GetTypeId()==TYPEID_PLAYER)
         team = ((Player*)this)->GetTeam();
 
-    // FIXME: Setup near to finish point because GetObjectBoundingRadius set in Create but some Create calls can be dependent from proper position
-    // if creature have creature_template_addon.auras with persistent point for example or script call
+    CreatureCreatePos pos(GetMap(), x, y, x, ang, GetPhaseMask());
+
     if (x == 0.0f && y == 0.0f && z == 0.0f)
-        GetClosePoint(x, y, z, 0);
+        pos = CreatureCreatePos(this, GetOrientation(), CONTACT_DISTANCE, ang);
 
-    pCreature->Relocate(x, y, z, ang);
-
-    if (!pCreature->Create(GetMap()->GenerateLocalLowGuid(HIGHGUID_UNIT), GetMap(), GetPhaseMask(), id, team))
+    if (!pCreature->Create(GetMap()->GenerateLocalLowGuid(HIGHGUID_UNIT), pos, id, team))
     {
         delete pCreature;
         return NULL;
     }
 
-    if (x == 0.0f && y == 0.0f && z == 0.0f)
-    {
-        GetClosePoint(x, y, z, pCreature->GetObjectBoundingRadius());
-        pCreature->Relocate(x, y, z, ang);
-    }
-
-    pCreature->SetSummonPoint(x, y, z, ang);
-
-    if(!pCreature->IsPositionValid())
-    {
-        sLog.outError("Creature (guidlow %d, entry %d) not summoned. Suggested coordinates isn't valid (X: %f Y: %f)",pCreature->GetGUIDLow(),pCreature->GetEntry(),pCreature->GetPositionX(),pCreature->GetPositionY());
-        delete pCreature;
-        return NULL;
-    }
+    pCreature->SetSummonPoint(pos);
 
     // Active state set before added to map
     pCreature->SetActiveObjectState(asActiveObject);
@@ -1848,7 +1833,8 @@ Creature* WorldObject::SummonCreatureCustom(uint32 id, float x, float y, float z
 
     // uh oh evil hack! this should avoid GUID conflicts by not really letting the core know we generated objects with
     // this guid. the problem is: by using massive emitters, creature guids could reach the overflow limit and crash server!
-    if (!pCreature->Create(GetMap()->GetMassSpawnGUIDLow(), GetMap(), GetPhaseMask(), id, team))
+    CreatureCreatePos pos(GetMap(), x, y, z, ang, GetPhaseMask());
+    if (!pCreature->Create(GetMap()->GetMassSpawnGUIDLow(), pos, id, team))
     {
         sLog.outError("-- FG: SummonCreatureCustom() failed!");
         delete pCreature;
@@ -1883,7 +1869,8 @@ Vehicle* WorldObject::SummonVehicle(uint32 id, float x, float y, float z, float 
     Map *map = GetMap();
     Team team = (GetTypeId()==TYPEID_PLAYER) ? ((Player*)this)->GetTeam() : TEAM_NONE;
 
-    if(!v->Create(map->GenerateLocalLowGuid(HIGHGUID_VEHICLE), map, GetPhaseMask(), id, vehicleId, team))
+    CreatureCreatePos pos(map, x, y, z, ang, GetPhaseMask());
+    if(!v->Create(map->GenerateLocalLowGuid(HIGHGUID_VEHICLE), pos, id, vehicleId, team))
     {
         delete v;
         return NULL;

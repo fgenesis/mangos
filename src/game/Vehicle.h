@@ -89,7 +89,7 @@ class Vehicle : public Creature
 
         void Die();
         void Respawn();
-        bool Create (uint32 guidlow, Map *map, uint32 phaseMask, uint32 Entry, uint32 vehicleId, Team team);
+        bool Create(uint32 guidlow, CreatureCreatePos& cPos, uint32 Entry, uint32 vehicleId, Team team);
 
         void SetDeathState(DeathState s);                   // overwrite virtual Creature::SetDeathState and Unit::SetDeathState
         void Update(uint32 update_diff, uint32 diff);                           // overwrite virtual Creature::Update and Unit::Update

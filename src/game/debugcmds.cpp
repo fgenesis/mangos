@@ -666,10 +666,9 @@ bool ChatHandler::HandleDebugSpawnVehicleCommand(char* args)
     Vehicle *v = new Vehicle;
 
     Player *plr = m_session->GetPlayer();
+    CreatureCreatePos pos(plr, plr->GetOrientation());
     float px, py, pz;
     plr->GetClosePoint(px, py, pz, plr->GetObjectBoundingRadius());
-
-    v->Relocate(px, py, pz, plr->GetOrientation());
 
     if (!v->IsPositionValid())
     {
@@ -679,15 +678,15 @@ bool ChatHandler::HandleDebugSpawnVehicleCommand(char* args)
         return false;
     }
 
-    Map *map = m_session->GetPlayer()->GetMap();
-
-    if (!v->Create(map->GenerateLocalLowGuid(HIGHGUID_VEHICLE), map, plr->GetPhaseMask(), entry, id, plr->GetTeam()))
+    if (!v->Create(pos.GetMap()->GenerateLocalLowGuid(HIGHGUID_VEHICLE), pos, entry, id, plr->GetTeam()))
     {
         delete v;
         return false;
     }
 
-    map->Add((Creature*)v);
+    v->Relocate(px, py, pz, plr->GetOrientation());
+
+    pos.GetMap()->Add((Creature*)v);
     v->AIM_Initialize();
 
     return true;

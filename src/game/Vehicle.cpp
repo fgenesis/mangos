@@ -338,10 +338,11 @@ void Vehicle::RegeneratePower(Powers power)
     ModifyPower(power, (int32)addvalue);
 }
 
-bool Vehicle::Create(uint32 guidlow, Map *map, uint32 phaseMask, uint32 Entry, uint32 vehicleId, Team team)
+bool Vehicle::Create(uint32 guidlow, CreatureCreatePos& cPos, uint32 Entry, uint32 vehicleId, Team team)
 {
+    Map *map = cPos.GetMap();
     SetMap(map);
-    SetPhaseMask(phaseMask,false);
+    SetPhaseMask(cPos.GetPhaseMask(), false);
 
     CreatureInfo const *cinfo = sObjectMgr.GetCreatureTemplate(Entry);
     if(!cinfo)
@@ -364,6 +365,13 @@ bool Vehicle::Create(uint32 guidlow, Map *map, uint32 phaseMask, uint32 Entry, u
     }
     if(!SetVehicleId(vehicleId))
         return false;
+
+    cPos.SelectFinalPoint(this);
+
+    if (!cPos.Relocate(this))
+        return false;
+
+    m_defaultMovementType = IDLE_MOTION_TYPE;
 
     LoadCreatureAddon();
 
@@ -976,8 +984,8 @@ void Vehicle::InstallAllAccessories()
                     continue;
                 entry = data->id;
             }
-
-            if(!pPassenger->Create(guid, GetMap(), GetPhaseMask(), entry))
+            CreatureCreatePos pos(GetMap(), GetPositionX(), GetPositionY(), GetPositionZ(), GetOrientation(), GetPhaseMask());
+            if(!pPassenger->Create(guid, pos, entry))
                 continue;
             pPassenger->LoadFromDB(guid, GetMap());
             pPassenger->Relocate(GetPositionX(), GetPositionY(), GetPositionZ());

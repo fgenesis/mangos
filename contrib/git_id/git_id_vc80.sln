@@ -1,24 +1,8 @@
-﻿
-Microsoft Visual Studio Solution File, Format Version 8.00
+Microsoft Visual Studio Solution File, Format Version 9.00
+# Visual Studio 2005
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "git_id", "git_id_vc80.vcproj", "{AD81BF86-050B-4605-8AF2-03C01967D784}"
-	ProjectSection(ProjectDependencies) = postProject
-	EndProjectSection
 EndProject
 Global
-	GlobalSection(SolutionConfiguration) = preSolution
-		Debug = Debug
-		Release = Release
-	EndGlobalSection
-	GlobalSection(ProjectConfiguration) = postSolution
-		{AD81BF86-050B-4605-8AF2-03C01967D784}.Debug.ActiveCfg = Debug|Win32
-		{AD81BF86-050B-4605-8AF2-03C01967D784}.Debug.Build.0 = Debug|Win32
-		{AD81BF86-050B-4605-8AF2-03C01967D784}.Release.ActiveCfg = Release|Win32
-		{AD81BF86-050B-4605-8AF2-03C01967D784}.Release.Build.0 = Release|Win32
-	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-	EndGlobalSection
-	GlobalSection(ExtensibilityAddIns) = postSolution
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
 		Release|Win32 = Release|Win32
