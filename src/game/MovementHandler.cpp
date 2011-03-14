@@ -290,11 +290,15 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
     Unit *mover = _player->GetMover();
     Player *plMover = mover && mover->GetTypeId() == TYPEID_PLAYER ? (Player*)mover : NULL;
 
-    bool beeingTele = plMover->IsBeingTeleported();
-    plMover->m_anti_JustTeleported = beeingTele; // ACH related
+    bool beeingTele = false;
+    if(plMover)
+    {
+        beeingTele = plMover->IsBeingTeleported();
+        plMover->m_anti_JustTeleported = beeingTele; // ACH related
+    }
 
     // ignore, waiting processing in WorldSession::HandleMoveWorldportAckOpcode and WorldSession::HandleMoveTeleportAck
-    if(plMover && beeingTele)
+    if(/*plMover &&*/ beeingTele)
     {
         recv_data.rpos(recv_data.wpos());                   // prevent warnings spam
         return;
