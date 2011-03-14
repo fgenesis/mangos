@@ -68,6 +68,7 @@
 #include "VirtualPlayerMgr.h"
 #include "Language.h"
 #include "NetworkUsageMonitor.h"
+#include "Database/QueryCounter.h"
 #include "PunishMgr.h"
 
 
@@ -946,6 +947,17 @@ void World::LoadConfigSettings(bool reload)
     setConfig(CONFIG_UINT32_ACH_IMPACT_TELEPORT_TO_PLANE_FLAT,     sConfig.GetIntDefault("ACH.Impact.Plane.Flat",100));
     setConfig(CONFIG_UINT32_ACH_IMPACT_TELEPORT_TO_PLANE_MULTI,    sConfig.GetIntDefault("ACH.Impact.Plane.Multi",50));
 
+    setConfig(CONFIG_UINT32_QUERYCOUNTER_SAVE_INTERVAL, sConfig.GetIntDefault("QueryCounter.SaveInterval", 0));
+    if(!getConfig(CONFIG_UINT32_QUERYCOUNTER_SAVE_INTERVAL))
+        sLog.outError("QueryCounter: Save interval = 0, disabled.");
+    else
+    {
+        // we do that here, so the settings can be reloaded
+        sQueryCounter.SetEnabled(sConfig.GetBoolDefault("QueryCounter.Enabled", false));
+        sQueryCounter.SetDatabase(&CharacterDatabase);
+        sQueryCounter.SetStartTime(GetStartTime());
+    }
+
     // FG: -end-
 
 }
@@ -1467,6 +1479,7 @@ void World::SetInitialWorldSettings()
     sPunishMgr.Load();
 
     m_timers[WUPDATE_NETMON].SetInterval(getConfig(CONFIG_UINT32_NETMON_SAVE_INTERVAL) * IN_MILLISECONDS);
+    m_timers[WUPDATE_QUERYCOUNTER].SetInterval(getConfig(CONFIG_UINT32_QUERYCOUNTER_SAVE_INTERVAL) * IN_MILLISECONDS);
     // FG: -end-
 
     sLog.outString( "WORLD: World initialized" );
@@ -1678,6 +1691,12 @@ void World::Update(uint32 diff)
     {
         m_timers[WUPDATE_NETMON].Reset();
         sNetMon.SaveData();
+    }
+
+    if(m_timers[WUPDATE_QUERYCOUNTER].Passed())
+    {
+        m_timers[WUPDATE_QUERYCOUNTER].Reset();
+        sQueryCounter.SaveData();
     }
 
     /// </ul>
