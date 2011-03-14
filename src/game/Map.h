@@ -360,11 +360,12 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>
 
     public:
         
-        uint32 GetMassSpawnGUIDLow(void)
+        inline uint32 GetMassSpawnGUIDLow(void)
         {
-            uint32 ret = 0x00FFF7FE + _massSpawnLowGUID;
+            uint32 ret = 0x00FFF7FE + _massSpawnLowGUID; // OMG HACK
             ++_massSpawnLowGUID;
             _massSpawnLowGUID %= 0x800;
+            return ret;
         }
 };
 

@@ -6037,7 +6037,7 @@ void Spell::EffectWeaponDmg(SpellEffectIndex eff_idx)
                     totalDamagePercentMod *= 1.45f;         // 145% to daggers
 
                 // FG: HACK: award CP
-                EffectAddComboPoints(0);
+                EffectAddComboPoints(EFFECT_INDEX_0);
             }
             break;
         }

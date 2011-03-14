@@ -115,6 +115,7 @@ bool ChatHandler::HandleTargetAndDeleteObjectCommand(char *args)
     QueryResult *result;
 
     uint32 id = args && *args ? atoi((char*)args) : 0;
+    float distance = 100*100; // should be ok as max.
 
     if(id)
     {
@@ -143,7 +144,7 @@ bool ChatHandler::HandleTargetAndDeleteObjectCommand(char *args)
 
     Field *fields = result->Fetch();
     uint32 guid32 = fields[0].GetUInt32();
-    uint32 id = fields[1].GetUInt32();
+    id = fields[1].GetUInt32();
     float x = fields[2].GetFloat();
     float y = fields[3].GetFloat();
     float z = fields[4].GetFloat();
