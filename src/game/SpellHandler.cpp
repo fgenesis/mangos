@@ -378,7 +378,7 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
     recvPacket >> targets.ReadForCaster(mover);
 
     // some spell cast packet including more data (for projectiles?)
-    if (unk_flags & 0x02)
+    /*if (unk_flags & 0x02)
     {
         uint8 unk1;
 
@@ -394,7 +394,9 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
             recvPacket >> guid.ReadAsPacked();
             recvPacket >> movementInfo;
         }
-    }
+    }*/
+    // FG: just to make it STFU
+    recvPacket.rpos(recvPacket.size());
 
     // auto-selection buff level base at target level (in spellInfo)
     if (Unit* target = targets.getUnitTarget())
