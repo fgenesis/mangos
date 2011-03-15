@@ -17,7 +17,7 @@
 #
 
 if(USE_RSA_SD2)
-	add_subdirectory(ScriptDev2)
-else()
 	add_subdirectory(sd2_rsa)
+else()
+	add_subdirectory(ScriptDev2)
 endif()
