@@ -3460,6 +3460,10 @@ void Spell::update(uint32 difftime)
     {
         case SPELL_STATE_PREPARING:
         {
+            // FG: check if target is still visible (stealth + LOS check)
+            if(m_caster->GetTypeId() == TYPEID_PLAYER && !IsTargetVisibleAndInLOS())
+                cancel();
+
             if(m_timer)
             {
                 if(difftime >= m_timer)
@@ -3473,6 +3477,14 @@ void Spell::update(uint32 difftime)
         } break;
         case SPELL_STATE_CASTING:
         {
+            // FG: check if target is still visible (stealth + LOS check)
+            // FIXME: this is not correct, channeling should continue, just drop a tick:
+            /* "For channeled spells, however, the mob may not be attacked one second or another,
+               or perhaps the effect that the spell gives (such as [Mind Flay]) may not proc,
+               but the next tick where there is no obstruction during that span, it will continue." */
+            if(m_caster->GetTypeId() == TYPEID_PLAYER && !IsTargetVisibleAndInLOS())
+                cancel();
+
             if(m_timer > 0)
             {
                 if( m_caster->GetTypeId() == TYPEID_PLAYER )
@@ -7449,4 +7461,12 @@ void Spell::CancelGlobalCooldown()
         m_caster->GetCharmInfo()->GetGlobalCooldownMgr().CancelGlobalCooldown(m_spellInfo);
     else if (m_caster->GetTypeId() == TYPEID_PLAYER)
         ((Player*)m_caster)->GetGlobalCooldownMgr().CancelGlobalCooldown(m_spellInfo);
+}
+
+bool Spell::IsTargetVisibleAndInLOS(void) const
+{
+    if(Unit *target = m_targets.getUnitTarget())
+        return target->isVisibleForOrDetect(m_caster, m_caster, true) && m_caster->IsWithinLOSInMap(target);
+
+    return false;
 }
