@@ -3460,8 +3460,8 @@ void Spell::update(uint32 difftime)
     {
         case SPELL_STATE_PREPARING:
         {
-            // FG: check if target is still visible (stealth + LOS check)
-            if(m_caster->GetTypeId() == TYPEID_PLAYER && !IsTargetVisibleAndInLOS())
+            // FG: check if target is still visible (stealth + LOS check) -- spells with cast time
+            if(m_caster->GetTypeId() == TYPEID_PLAYER && GetCastTime() && !IsTargetVisibleAndInLOS())
                 cancel();
 
             if(m_timer)
@@ -3477,13 +3477,32 @@ void Spell::update(uint32 difftime)
         } break;
         case SPELL_STATE_CASTING:
         {
-            // FG: check if target is still visible (stealth + LOS check)
-            // FIXME: this is not correct, channeling should continue, just drop a tick:
+            // FG: check if target is still visible (stealth + LOS check) -- channeled spells
+            // FIXME: this is not correct, channeling should continue, just drop a tick.
             /* "For channeled spells, however, the mob may not be attacked one second or another,
                or perhaps the effect that the spell gives (such as [Mind Flay]) may not proc,
                but the next tick where there is no obstruction during that span, it will continue." */
-            if(m_caster->GetTypeId() == TYPEID_PLAYER && !IsTargetVisibleAndInLOS())
-                cancel();
+            if(m_caster->GetTypeId() == TYPEID_PLAYER && IsChanneledSpell(m_spellInfo))
+            {
+                // HACK: LOS detection, unknown if there is a spell attribute for this
+                bool checkLOS = true;
+                for(uint32 idx = 0; idx < MAX_EFFECT_INDEX; ++idx)
+                {
+                    if(m_spellInfo->Effect[idx] == SPELL_EFFECT_APPLY_AURA)
+                    {
+                        switch(m_spellInfo->EffectApplyAuraName[idx])
+                        {
+                            case SPELL_AURA_BIND_SIGHT:
+                            case SPELL_AURA_MOD_POSSESS:
+                            case SPELL_AURA_MOD_STALKED:
+                                checkLOS = false;
+                                break;
+                        }
+                    }
+                }
+                if(checkLOS && !IsTargetVisibleAndInLOS())
+                    cancel();
+            }
 
             if(m_timer > 0)
             {
