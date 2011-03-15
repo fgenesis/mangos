@@ -38,7 +38,7 @@ struct VehicleSeat
 
 typedef std::map<int8, VehicleSeat> SeatMap;
 
-class VehicleKit
+class MANGOS_DLL_SPEC VehicleKit
 {
     public:
 
@@ -78,7 +78,7 @@ enum PowerType
 typedef std::map<int8, VehicleSeat> SeatMap;
 
 
-class Vehicle : public Creature
+class MANGOS_DLL_SPEC Vehicle : public Creature
 {
     public:
         explicit Vehicle();

@@ -2451,6 +2451,10 @@ class MANGOS_DLL_SPEC Player : public Unit
 
         bool IsSessionValid(void) { return IsInWorld() && !GetSession()->PlayerLogout(); }
 
+        // by rsa
+        void CompletedAchievement(AchievementEntry const* entry);
+        void CompletedAchievement(uint32 uiAchievementID);
+
 
     protected:
         
