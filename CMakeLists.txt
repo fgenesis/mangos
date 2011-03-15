@@ -104,6 +104,9 @@ option(TBB_USE_EXTERNAL "Use external TBB" 0)
 option(USE_STD_MALLOC "Use standard malloc instead of TBB" 0)
 option(ACE_USE_EXTERNAL "Use external ACE" 0)
 
+# FG: SD2 version switcher
+option(USE_RSA_SD2 "Use rsa SD2 fork" 0)
+
 find_package(PCHSupport)
 
 # Add options for compile of mangos

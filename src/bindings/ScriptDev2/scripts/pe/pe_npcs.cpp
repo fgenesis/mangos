@@ -7,6 +7,7 @@
 ## thx Loockas for this NPC script, original author unknown
 ####*/
 
+/*
 #define SPELL_MIND_NUMBING_POISON    25810   //Viper
 #define SPELL_CRIPPLING_POISON       30981    //Viper
 #define SPELL_DEADLY_POISON          34655   //Venomous Snake
@@ -99,14 +100,16 @@ CreatureAI* GetAI_npc_snake_trap_serpents(Creature* pCreature)
 {
     return new npc_snake_trap_serpentsAI(pCreature);
 }
-
+*/
 
 void AddSC_pe_npcs()
 {
+    /*
     Script *newscript;
 
     newscript = new Script;
     newscript->Name = "npc_snake_trap_serpents";
     newscript->GetAI = &GetAI_npc_snake_trap_serpents;
     newscript->RegisterSelf();
+    */
 }

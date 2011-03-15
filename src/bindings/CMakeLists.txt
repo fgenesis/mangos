@@ -16,4 +16,8 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
-add_subdirectory(ScriptDev2)
+if(USE_RSA_SD2)
+	add_subdirectory(ScriptDev2)
+else()
+	add_subdirectory(sd2_rsa)
+endif()
