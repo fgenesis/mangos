@@ -3650,39 +3650,17 @@ void Spell::EffectApplyAura(SpellEffectIndex eff_idx)
         return;
     }
 
-    // FG: apply additional auras on aura apply -- very hacky
-    if(caster->GetTypeId() == TYPEID_PLAYER)
+    // Mixology - increase effect and duration of alchemy spells which the caster has
+    if(caster->GetTypeId() == TYPEID_PLAYER && Aur->GetSpellProto()->SpellFamilyName == SPELLFAMILY_POTION
+        && caster->HasAura(53042))
     {
-        switch(Aur->GetSpellProto()->SpellFamilyName)
+        SpellSpecific spellSpec = GetSpellSpecific(Aur->GetSpellProto()->Id);
+        if(spellSpec == SPELL_BATTLE_ELIXIR || spellSpec == SPELL_GUARDIAN_ELIXIR || spellSpec == SPELL_FLASK_ELIXIR)
         {
-            case SPELLFAMILY_POTION:
+            if(caster->HasSpell(Aur->GetSpellProto()->EffectTriggerSpell[0]))
             {
-                // Mixology - increase effect and duration of alchemy spells which the caster has
-                if(caster->HasAura(53042))
-                {
-                    SpellSpecific spellSpec = GetSpellSpecific(Aur->GetSpellProto()->Id);
-                    if(spellSpec == SPELL_BATTLE_ELIXIR || spellSpec == SPELL_GUARDIAN_ELIXIR || spellSpec == SPELL_FLASK_ELIXIR)
-                    {
-                        if(caster->HasSpell(Aur->GetSpellProto()->EffectTriggerSpell[0]))
-                        {
-                           duration *= 2.0f;
-                           Aur->GetModifier()->m_amount *= 1.3f;
-                        }
-                    }
-                }
-                break;
-            }
-            case SPELLFAMILY_DRUID:
-            {
-                // FG: Item - Druid T10 Balance 2P Bonus
-                if(m_spellInfo->Id == 16870)
-                {
-                    if(caster->HasAura(70718))
-                    {
-                        caster->CastSpell(caster, 70721, true);
-                    }
-                }
-                break;
+               duration *= 2.0f;
+               Aur->GetModifier()->m_amount *= 1.3f;
             }
         }
     }
