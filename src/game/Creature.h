@@ -253,6 +253,7 @@ struct CreatureExtendedInfo
     uint32 minloot;
     float SpellDmgMulti;
     float XPMulti;
+    uint32 stayInAir;
     uint32 honor;
     // originally from vehicle patch, moved here from creature_addon
     uint32 vehicle_id;
@@ -479,7 +480,7 @@ class MANGOS_DLL_SPEC Creature : public Unit
         bool IsCivilian() const { return GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_CIVILIAN; }
         bool CanWalk() const { return GetCreatureInfo()->InhabitType & INHABIT_GROUND; }
         bool CanSwim() const { return GetCreatureInfo()->InhabitType & INHABIT_WATER; }
-        bool CanFly()  const { return GetCreatureInfo()->InhabitType & INHABIT_AIR; }
+        bool CanFly()  const { return GetCreatureInfo()->InhabitType & INHABIT_AIR || (GetCreatureExtendedInfo() && GetCreatureExtendedInfo()->stayInAir); }
 
         bool IsTrainerOf(Player* player, bool msg) const;
         bool CanInteractWithBattleMaster(Player* player, bool msg) const;

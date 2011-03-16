@@ -1509,6 +1509,11 @@ bool Creature::FallGround()
     if (getDeathState() != JUST_DIED)
         return false;
 
+    // FG: there are NPCs that should not fall down (eg lich king) - same check is done in CanFly()
+    if(CreatureExtendedInfo const *exinfo = GetCreatureExtendedInfo())
+        if(exinfo->stayInAir)
+            return false;
+
     // use larger distance for vmap height search than in most other cases
     float tz = GetTerrain()->GetHeight(GetPositionX(), GetPositionY(), GetPositionZ(), true, MAX_FALL_DISTANCE);
 

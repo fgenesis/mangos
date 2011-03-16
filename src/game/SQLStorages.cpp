@@ -50,7 +50,7 @@ SQLStorage sWorldTemplate(WorldTemplatesrcfmt, WorldTemplatedstfmt, "map","world
 
 
 // FG
-const char CreatureExtendedFormat[]="ififfiis";
+const char CreatureExtendedFormat[]="ififfiiis";
 const char PlayerDropTemplateFormat[]="iiiiifiiiiii"; 
 SQLStorage sCreatureExtendedStorage(CreatureExtendedFormat,"entry","creature_extended");
 
