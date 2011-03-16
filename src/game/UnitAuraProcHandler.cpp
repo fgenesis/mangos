@@ -2248,9 +2248,12 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
                 // FG: Item - Paladin T10 Holy 2P Bonus
                 case 70755:
                 {
+                    // TODO: This check is not needed in 4.x and must be removed
+                    if (!procSpell || procSpell->Id != 31842)
+                        return SPELL_AURA_PROC_FAILED;
                     triggered_spell_id = 71166;
                     break;
-                }
+                }     
                 // Anger Capacitor
                 case 71406:                                 // normal
                 case 71545:                                 // heroic
