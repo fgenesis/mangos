@@ -806,12 +806,13 @@ void ObjectMgr::ConvertCreatureAddonAuras(CreatureDataAddon* addon, char const* 
     endAura.spell_id = 0;
 }
 
-void ObjectMgr::ConvertCreatureAddonPassengers(CreatureDataAddon* addon, char const* table, char const* guidEntryStr)
+void ObjectMgr::ConvertCreatureAddonPassengers(CreatureExtendedInfo* exinfo, char const* table)
 {
+    const char *guidEntryStr = "Entry"; // FG: HACK: too lazy to rewrite everything
     // Now add the passengers, format "creature_entry/guid seatindex creature_entry/guid seatindex..."
     char *p,*s;
     std::vector<int> val;
-    s=p=(char*)reinterpret_cast<char const*>(addon->passengers);
+    s=p=(char*)reinterpret_cast<char const*>(exinfo->passengers);
     if(p)
     {
         while (p[0]!=0)
@@ -827,13 +828,12 @@ void ObjectMgr::ConvertCreatureAddonPassengers(CreatureDataAddon* addon, char co
             val.push_back(atoi(s));
 
         // free char* loaded memory
-        delete[] (char*)reinterpret_cast<char const*>(addon->passengers);
+        delete[] (char*)reinterpret_cast<char const*>(exinfo->passengers);
 
         // wrong list
         if (val.size()%2)
         {
-            addon->auras = NULL;
-            sLog.outErrorDb("Creature (%s: %u) has wrong `passengers` data in `%s`.",guidEntryStr,addon->guidOrEntry,table);
+            sLog.outErrorDb("Creature (%s: %u) has wrong `passengers` data in `%s`.",guidEntryStr,exinfo->Entry,table);
             return;
         }
     }
@@ -841,17 +841,17 @@ void ObjectMgr::ConvertCreatureAddonPassengers(CreatureDataAddon* addon, char co
     // empty list
     if(val.empty())
     {
-        addon->passengers = NULL;
+        exinfo->passengers = NULL;
         return;
     }
 
     // replace by new structures array
-    const_cast<CreatureDataAddonPassengers*&>(addon->passengers) = new CreatureDataAddonPassengers[val.size()/2+1];
+    const_cast<CreatureDataAddonPassengers*&>(exinfo->passengers) = new CreatureDataAddonPassengers[val.size()/2+1];
 
     uint32 i=0;
     for(uint32 j=0; j<val.size()/2; ++j)
     {
-        CreatureDataAddonPassengers& cPas = const_cast<CreatureDataAddonPassengers&>(addon->passengers[i]);
+        CreatureDataAddonPassengers& cPas = const_cast<CreatureDataAddonPassengers&>(exinfo->passengers[i]);
         if(!strcmp(guidEntryStr, "Entry"))
             cPas.entry = (uint32)val[2*j+0];
         else
@@ -859,19 +859,19 @@ void ObjectMgr::ConvertCreatureAddonPassengers(CreatureDataAddon* addon, char co
         cPas.seat_idx = (int8)val[2*j+1];
         if ( cPas.seat_idx > 7 )
         {
-            sLog.outErrorDb("Creature (%s: %u) has wrong seat %u for creature %u in `passengers` field in `%s`.",guidEntryStr,addon->guidOrEntry,cPas.seat_idx,cPas.entry,table);
+            sLog.outErrorDb("Creature (%s: %u) has wrong seat %u for creature %u in `passengers` field in `%s`.",guidEntryStr,exinfo->Entry,cPas.seat_idx,cPas.entry,table);
             continue;
         }
         if(cPas.entry == 0 && cPas.guid == 0)
         {
-            sLog.outErrorDb("Creature (%s: %u) has NULL creature entry/guid in `passengers` field in `%s`.",guidEntryStr,addon->guidOrEntry,table);
+            sLog.outErrorDb("Creature (%s: %u) has NULL creature entry/guid in `passengers` field in `%s`.",guidEntryStr,exinfo->Entry,table);
             continue;
         }
         if(cPas.entry > 0)
         {
             if(!sCreatureStorage.LookupEntry<CreatureInfo>(cPas.entry))
             {
-                sLog.outErrorDb("Creature (%s: %u) has wrong creature entry/guid %u `passengers` field in `%s`.",guidEntryStr,addon->guidOrEntry,cPas.entry,table);
+                sLog.outErrorDb("Creature (%s: %u) has wrong creature entry/guid %u `passengers` field in `%s`.",guidEntryStr,exinfo->Entry,cPas.entry,table);
                 continue;
             }
         }
@@ -879,7 +879,7 @@ void ObjectMgr::ConvertCreatureAddonPassengers(CreatureDataAddon* addon, char co
         {
             if(mCreatureDataMap.find(cPas.guid)==mCreatureDataMap.end())
             {
-                sLog.outErrorDb("Creature (%s: %u) has wrong creature entry/guid %u `passengers` field in `%s`.",guidEntryStr,addon->guidOrEntry,cPas.guid,table);
+                sLog.outErrorDb("Creature (%s: %u) has wrong creature entry/guid %u `passengers` field in `%s`.",guidEntryStr,exinfo->Entry,cPas.guid,table);
                 continue;
             }
         }
@@ -887,7 +887,7 @@ void ObjectMgr::ConvertCreatureAddonPassengers(CreatureDataAddon* addon, char co
     }
 
     // fill terminator element (after last added)
-    CreatureDataAddonPassengers& endPassenger = const_cast<CreatureDataAddonPassengers&>(addon->passengers[i]);
+    CreatureDataAddonPassengers& endPassenger = const_cast<CreatureDataAddonPassengers&>(exinfo->passengers[i]);
     endPassenger.entry = 0;
     endPassenger.guid = 0;
     endPassenger.seat_idx = -1;
@@ -932,7 +932,6 @@ void ObjectMgr::LoadCreatureAddons(SQLStorage& creatureaddons, char const* entry
         }
 
         ConvertCreatureAddonAuras(const_cast<CreatureDataAddon*>(addon), creatureaddons.GetTableName(), entryName);
-        ConvertCreatureAddonPassengers(const_cast<CreatureDataAddon*>(addon), creatureaddons.GetTableName(), entryName);
     }
 }
 
@@ -8901,6 +8900,8 @@ void ObjectMgr::LoadCreaturesExtended(void)
             {
                 sLog.outError("Entry %u XPMulti is negative!");
             }
+
+            ConvertCreatureAddonPassengers(const_cast<CreatureExtendedInfo*>(exinfo), sCreatureExtendedStorage.GetTableName());
         }
     }
 }

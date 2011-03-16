@@ -6665,7 +6665,7 @@ bool Player::RewardHonor(Unit *uVictim, uint32 groupsize, float honor)
                 return false;
 
             // FG: custom honor values
-            const CreatureExtendedInfo *exinfo = sCreatureExtendedStorage.LookupEntry<CreatureExtendedInfo>(cVictim->GetEntry());
+            const CreatureExtendedInfo *exinfo = cVictim->GetCreatureExtendedInfo();
             if(exinfo)
                 honor = exinfo->honor ? exinfo->honor : 100;
             else
@@ -8232,7 +8232,7 @@ void Player::SendLoot(ObjectGuid guid, LootType loot_type)
 
                     // FG: handle minloot
                     uint32 minloot = 0;
-                    const CreatureExtendedInfo *exinfo = sCreatureExtendedStorage.LookupEntry<CreatureExtendedInfo>(creature->GetEntry());
+                    const CreatureExtendedInfo *exinfo = creature->GetCreatureExtendedInfo();
                     if(exinfo)
                         minloot = exinfo->minloot;
                     // FG: -end-

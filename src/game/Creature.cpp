@@ -383,7 +383,7 @@ bool Creature::UpdateEntry(uint32 Entry, Team team, const CreatureData *data /*=
     UpdateAllStats();
 
     // FG
-    const CreatureExtendedInfo *exinfo = sCreatureExtendedStorage.LookupEntry<CreatureExtendedInfo>(Entry);
+    const CreatureExtendedInfo *exinfo = GetCreatureExtendedInfo();
     if(exinfo && exinfo->size > 0)
         SetFloatValue(OBJECT_FIELD_SCALE_X,exinfo->size);
     else
@@ -1918,6 +1918,11 @@ bool Creature::IsOutOfThreatArea(Unit* pVictim) const
     //Use AttackDistance in distance check if threat radius is lower. This prevents creature bounce in and out of combat every update tick.
     return !pVictim->IsWithinDist3d(CombatStartX, CombatStartY, CombatStartZ,
         ThreatRadius > AttackDist ? ThreatRadius : AttackDist);
+}
+
+CreatureExtendedInfo const* Creature::GetCreatureExtendedInfo() const
+{
+    return ObjectMgr::GetCreatureExtendedInfo(GetEntry());
 }
 
 CreatureDataAddon const* Creature::GetCreatureAddon() const

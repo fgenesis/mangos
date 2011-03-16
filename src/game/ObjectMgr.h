@@ -528,6 +528,11 @@ class ObjectMgr
             return sCreatureInfoAddonStorage.LookupEntry<CreatureDataAddon>(entry);
         }
 
+        static CreatureExtendedInfo const *GetCreatureExtendedInfo( uint32 entry )
+        {
+            return sCreatureExtendedStorage.LookupEntry<CreatureExtendedInfo>(entry);
+        }
+
         static ItemPrototype const* GetItemPrototype(uint32 id) { return sItemStorage.LookupEntry<ItemPrototype>(id); }
 
         static InstanceTemplate const* GetInstanceTemplate(uint32 map)
@@ -1174,7 +1179,7 @@ class ObjectMgr
     private:
         void LoadCreatureAddons(SQLStorage& creatureaddons, char const* entryName, char const* comment);
         void ConvertCreatureAddonAuras(CreatureDataAddon* addon, char const* table, char const* guidEntryStr);
-        void ConvertCreatureAddonPassengers(CreatureDataAddon* addon, char const* table, char const* guidEntryStr);
+        void ConvertCreatureAddonPassengers(CreatureExtendedInfo* exnfo, char const* table);
         void LoadQuestRelationsHelper(QuestRelationsMap& map, char const* table);
         void LoadVendors(char const* tableName, bool isTemplates);
         void LoadTrainers(char const* tableName, bool isTemplates);

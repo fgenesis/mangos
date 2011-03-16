@@ -1354,7 +1354,7 @@ void Unit::CalculateSpellDamage(SpellNonMeleeDamage *damageInfo, int32 damage, S
     // FG: custom spell damage multipliers, must calculate before mods/absorb/resist
     if(GetTypeId() == TYPEID_UNIT)
     {
-        const CreatureExtendedInfo *exinfo = sCreatureExtendedStorage.LookupEntry<CreatureExtendedInfo>(GetEntry());
+        const CreatureExtendedInfo *exinfo = ((Creature*)this)->GetCreatureExtendedInfo();
         if(exinfo)
         {
             sLog.outDebug("-- CalculateSpellDamage: multi %f applied to dmg %u",exinfo->SpellDmgMulti, damage);

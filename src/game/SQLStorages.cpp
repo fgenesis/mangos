@@ -23,9 +23,9 @@
 
 const char CreatureInfosrcfmt[]="iiiiiiiiiisssiiiiiiiiiiifffiffiifiiiiiiiiiiffiiiiiiiiiiiiiiiiiiiisiiffliiiiiiiliiiiis";
 const char CreatureInfodstfmt[]="iiiiiiiiiisssiiiiiiiiiiifffiffiifiiiiiiiiiiffiiiiiiiiiiiiiiiiiiiisiiffliiiiiiiliiiiii";
-const char CreatureDataAddonInfofmt[]="iiibbiiiss";
+const char CreatureDataAddonInfofmt[]="iiibbiis";
 const char CreatureModelfmt[]="iffbii";
-const char CreatureInfoAddonInfofmt[]="iiibbiiiss";
+const char CreatureInfoAddonInfofmt[]="iiibbiis";
 const char EquipmentInfofmt[]="iiii";
 const char GameObjectInfosrcfmt[]="iiissssiifiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiis";
 const char GameObjectInfodstfmt[]="iiissssiifiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii";
@@ -50,6 +50,7 @@ SQLStorage sWorldTemplate(WorldTemplatesrcfmt, WorldTemplatedstfmt, "map","world
 
 
 // FG
-const char CreatureExtendedFormat[]="ififfi";
+const char CreatureExtendedFormat[]="ififfiis";
 const char PlayerDropTemplateFormat[]="iiiiifiiiiii"; 
 SQLStorage sCreatureExtendedStorage(CreatureExtendedFormat,"entry","creature_extended");
+

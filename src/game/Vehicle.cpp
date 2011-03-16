@@ -358,10 +358,10 @@ bool Vehicle::Create(uint32 guidlow, CreatureCreatePos& cPos, uint32 Entry, uint
 
     if(!vehicleId)
     {
-        CreatureDataAddon const *cainfo = GetCreatureAddon();
-        if(!cainfo)
+        CreatureExtendedInfo const *exinfo = GetCreatureExtendedInfo();
+        if(!exinfo)
             return false;
-        vehicleId = cainfo->vehicle_id;
+        vehicleId = exinfo->vehicle_id;
     }
     if(!SetVehicleId(vehicleId))
         return false;
@@ -949,10 +949,10 @@ void Vehicle::InstallAllAccessories()
     if(!GetMap())
        return;
 
-    CreatureDataAddon const *cainfo = GetCreatureAddon();
-    if(!cainfo || !cainfo->passengers)
+    CreatureExtendedInfo const *exinfo = GetCreatureExtendedInfo();
+    if(!exinfo || !exinfo->passengers)
         return;
-    for (CreatureDataAddonPassengers const* cPassanger = cainfo->passengers; cPassanger->seat_idx != -1; ++cPassanger)
+    for (CreatureDataAddonPassengers const* cPassanger = exinfo->passengers; cPassanger->seat_idx != -1; ++cPassanger)
     {
         // Continue if seat already taken
         if(GetPassenger(cPassanger->seat_idx))
@@ -965,9 +965,8 @@ void Vehicle::InstallAllAccessories()
             guid = cPassanger->guid;
         else
         {
-            CreatureDataAddon const* passAddon;
-            passAddon = ObjectMgr::GetCreatureTemplateAddon(cPassanger->entry);
-            if(passAddon && passAddon->vehicle_id != 0)
+            CreatureExtendedInfo const* passExt = ObjectMgr::GetCreatureExtendedInfo(cPassanger->entry);
+            if(passExt && passExt->vehicle_id != 0)
                 isVehicle = true;
             else
                 guid = GetMap()->GenerateLocalLowGuid(HIGHGUID_VEHICLE); // FG: is this correct? what if vehicle changes map, is that possible?

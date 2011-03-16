@@ -178,18 +178,6 @@ struct EquipmentInfo
     uint32  equipentry[3];
 };
 
-// FG
-struct CreatureExtendedInfo
-{
-    uint32 Entry;
-    float size;
-    uint32 minloot;
-    float SpellDmgMulti;
-    float XPMulti;
-    uint32 honor;
-};
-
-
 // from `creature` table
 struct CreatureData
 {
@@ -236,8 +224,6 @@ struct CreatureDataAddon
     uint8  pvp_state;                                       // UnitPVPStateFlags
     uint32 emote;
     uint32 splineFlags;
-    uint32 vehicle_id;
-    CreatureDataAddonPassengers const* passengers;          // loaded as char* "entry1 seatid1 entry2 seatid2 ... "
     CreatureDataAddonAura const* auras;                     // loaded as char* "spell1 spell2 ... "
 };
 
@@ -257,6 +243,20 @@ struct CreatureModelRace
     uint32 racemask;                                        // Races it applies to (and then a player source must exist for selection)
     uint32 creature_entry;                                  // Modelid from creature_template.entry will be selected
     uint32 modelid_racial;                                  // Explicit modelid. Used if creature_template entry is not defined
+};
+
+// FG
+struct CreatureExtendedInfo
+{
+    uint32 Entry;
+    float size;
+    uint32 minloot;
+    float SpellDmgMulti;
+    float XPMulti;
+    uint32 honor;
+    // originally from vehicle patch, moved here from creature_addon
+    uint32 vehicle_id;
+    CreatureDataAddonPassengers const* passengers;          // loaded as char* "entry1 seatid1 entry2 seatid2 ... "
 };
 
 // GCC have alternative #pragma pack() syntax and old gcc version not support pack(pop), also any gcc version not support it at some platform
@@ -583,6 +583,7 @@ class MANGOS_DLL_SPEC Creature : public Unit
 
         CreatureInfo const *GetCreatureInfo() const { return m_creatureInfo; }
         CreatureDataAddon const* GetCreatureAddon() const;
+        CreatureExtendedInfo const* GetCreatureExtendedInfo() const; // FG: extra func for extended custom table data
 
         static uint32 ChooseDisplayId(const CreatureInfo *cinfo, const CreatureData *data = NULL, GameEventCreatureData const* eventData = NULL);
 

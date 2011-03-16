@@ -604,9 +604,9 @@ void WorldSession::HandleSpellClick( WorldPacket & recv_data )
         return;
 
     uint32 vehicleId = 0;
-    CreatureDataAddon const *cainfo = unit->GetCreatureAddon();
-    if(cainfo)
-        vehicleId = cainfo->vehicle_id;
+    CreatureExtendedInfo const *exinfo = unit->GetCreatureExtendedInfo();
+    if(exinfo)
+        vehicleId = exinfo->vehicle_id;
 
     // handled other (hacky) way to avoid overwriting auras
     if(vehicleId || unit->IsVehicle())
