@@ -747,6 +747,11 @@ void Spell::prepareDataForTriggerSystem()
                 if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x0001800000800000) || (m_spellInfo->SpellFamilyFlags2 & 0x00000040))
                     m_canTrigger = true;
                 break;
+            case SPELLFAMILY_DRUID:
+                // Clearcasting needs to trigger T10 2P Bonus
+                if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x0020000000000000))
+                    m_canTrigger = true;
+                break;
             case SPELLFAMILY_ROGUE:
                 // For poisons need do it
                 if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x000000101001E000))
