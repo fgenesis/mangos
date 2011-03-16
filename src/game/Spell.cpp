@@ -3493,15 +3493,24 @@ void Spell::update(uint32 difftime)
                 bool checkLOS = true;
                 for(uint32 idx = 0; idx < MAX_EFFECT_INDEX; ++idx)
                 {
-                    if(m_spellInfo->Effect[idx] == SPELL_EFFECT_APPLY_AURA)
+                    switch(m_spellInfo->Effect[idx])
                     {
-                        switch(m_spellInfo->EffectApplyAuraName[idx])
+                        case SPELL_EFFECT_APPLY_AURA:
                         {
-                            case SPELL_AURA_BIND_SIGHT:
-                            case SPELL_AURA_MOD_POSSESS:
-                            case SPELL_AURA_MOD_STALKED:
-                                checkLOS = false;
-                                break;
+                            switch(m_spellInfo->EffectApplyAuraName[idx])
+                            {
+                                case SPELL_AURA_BIND_SIGHT:
+                                case SPELL_AURA_MOD_POSSESS:
+                                case SPELL_AURA_MOD_STALKED:
+                                    checkLOS = false;
+                                    break;
+                            }
+                            break;
+                        }
+                        case SPELL_EFFECT_TELEPORT_UNITS:
+                        {
+                            checkLOS = false;
+                            break;
                         }
                     }
                 }
@@ -7492,5 +7501,6 @@ bool Spell::IsTargetVisibleAndInLOS(void) const
     if(Unit *target = m_targets.getUnitTarget())
         return target->isVisibleForOrDetect(m_caster, m_caster, true) && m_caster->IsWithinLOSInMap(target);
 
-    return false;
+    // these as target are always ok
+    return m_targets.getItemTarget() || m_targets.getGOTarget() || m_targets.getCorpseTargetGUID();
 }
