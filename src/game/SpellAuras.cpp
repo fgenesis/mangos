@@ -5893,7 +5893,9 @@ void Aura::HandleModTotalPercentStat(bool apply, bool /*Real*/)
     float healthPCT = target->GetHealthPercent();
 
     // Heart of the Wild - stamina
-    if (apply && target->GetTypeId() == TYPEID_PLAYER && target->getClass() == CLASS_DRUID && target->GetShapeshiftForm() && m_modifier.m_miscvalue == STAT_STAMINA)
+    if (apply && target->GetTypeId() == TYPEID_PLAYER && target->getClass() == CLASS_DRUID && target->GetShapeshiftForm() && m_modifier.m_miscvalue == STAT_STAMINA
+        && m_spellAuraHolder->GetSpellProto()->SpellFamilyName == SPELLFAMILY_DRUID // for 1178, 9635 (bear form & dire bear form)
+        && m_spellAuraHolder->GetSpellProto()->SpellFamilyFlags2 & 0x00000002)
     {
         switch (target->GetShapeshiftForm())
         {
