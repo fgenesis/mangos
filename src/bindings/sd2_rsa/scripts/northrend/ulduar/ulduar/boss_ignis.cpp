@@ -212,6 +212,9 @@ struct MANGOS_DLL_DECL mob_iron_constructAI : public ScriptedAI
             m_creature->RemoveAurasDueToSpell(SPELL_FREEZE_ANIM);
         m_bIsInCombat = true;
 
+        if (!m_pInstance)
+            return;
+
         if (Creature* pTemp = m_creature->GetMap()->GetCreature( m_pInstance->GetData64(NPC_IGNIS)))
         {
             if (pTemp->isAlive())
