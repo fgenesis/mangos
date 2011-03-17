@@ -531,6 +531,8 @@ void Spell::EffectSchoolDMG(SpellEffectIndex effect_idx)
                         m_currentBasePoints[EFFECT_INDEX_1] = basepoints * m_currentBasePoints[EFFECT_INDEX_2] / (100 * GetSpellAuraMaxTicks(m_spellInfo));
 
                         //Remove auras in DoT part
+                        if (!m_caster->HasAura(56235))
+                            unitTarget->RemoveAurasByCasterSpell(aura->GetId(), m_caster->GetGUID()); 
                         break;
                     }
                 }
