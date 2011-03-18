@@ -10934,7 +10934,10 @@ bool Unit::ApplySpellAura(uint32 spellID, uint32 duration /* = 0 */)
             {
                 Aura *aur = CreateAura(spellInfo, SpellEffectIndex(i), NULL, holder, this);
                 if(duration)
+                {
+                    aur->SetAuraMaxDuration(duration);
                     aur->SetAuraDuration(duration);
+                }
                 holder->AddAura(aur, SpellEffectIndex(i));
                 added = true;
             }
