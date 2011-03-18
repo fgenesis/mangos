@@ -34,6 +34,7 @@ struct t_Locations
     uint32 map_num;
     float x, y, z, o;
     uint32 spellID;
+    uint32 spellID2;
     bool state;
     bool active;
     uint32 encounter;
@@ -41,13 +42,13 @@ struct t_Locations
 
 static t_Locations PortalLoc[]=
 {
-{-3631600,MAP_NUM,-17.1928f, 2211.44f, 30.1158f,3.14f,70856,true,true,TYPE_TELEPORT}, //
-{-3631601,MAP_NUM,-503.62f, 2211.47f, 62.8235f,3.14f,70856,false,true,TYPE_MARROWGAR},  //
-{-3631602,MAP_NUM,-615.145f, 2211.47f, 199.972f,0,70857,false,true,TYPE_DEATHWHISPER}, //
-{-3631603,MAP_NUM,-549.131f, 2211.29f, 539.291f,0,70858,false,true,TYPE_FLIGHT_WAR}, //
-{-3631604,MAP_NUM,4198.42f, 2769.22f, 351.065f,0,70859,false,true,TYPE_SAURFANG}, //
-{-3631606,MAP_NUM,4356.580078f, 2565.75f, 220.401993f,4.90f,70861,false,true,TYPE_VALITHRIA}, //
-{-3631607,MAP_NUM,528.767273f, -2124.845947f, 1043.1f,3.14f, 70860,false,true,TYPE_KINGS_OF_ICC}, //
+{-3631600,MAP_NUM,-17.1928f, 2211.44f, 30.1158f,3.14f,70856,0,true,true,TYPE_TELEPORT}, //
+{-3631601,MAP_NUM,-503.62f, 2211.47f, 62.8235f,3.14f,70856,0,false,true,TYPE_MARROWGAR},  //
+{-3631602,MAP_NUM,-615.145f, 2211.47f, 199.972f,0,70857,0,false,true,TYPE_DEATHWHISPER}, //
+{-3631603,MAP_NUM,-549.131f, 2211.29f, 539.291f,0,70858,0,false,true,TYPE_FLIGHT_WAR}, //
+{-3631604,MAP_NUM,4198.42f, 2769.22f, 351.065f,0,70859,0,false,true,TYPE_SAURFANG}, //
+{-3631606,MAP_NUM,4356.580078f, 2565.75f, 220.401993f,4.90f,70861,0,false,true,TYPE_VALITHRIA}, //
+{-3631607,MAP_NUM,528.767273f, -2124.845947f, 1053.1f,3.14f, 70860,34873,false,true,TYPE_KINGS_OF_ICC}, //
 };
 
 
@@ -57,10 +58,13 @@ bool GOGossipSelect_go_icecrown_teleporter(Player *pPlayer, GameObject* pGo, uin
 
     if(!pPlayer->getAttackers().empty()) return false;
 
+    if (PortalLoc[action].spellID)
+        pPlayer->ApplySpellAura(PortalLoc[action].spellID, 8000);
+    if (PortalLoc[action].spellID2)
+        pPlayer->ApplySpellAura(PortalLoc[action].spellID2, 8000);
+
     if(action >= 0 && action < PORTALS_COUNT)
-    pPlayer->TeleportTo(PortalLoc[action].map_num, PortalLoc[action].x, PortalLoc[action].y, PortalLoc[action].z, PortalLoc[action].o);
-    if (PortalLoc[action].spellID != 0 )
-        pPlayer->ApplySpellAura(PortalLoc[action].spellID, 2000);
+        pPlayer->TeleportTo(PortalLoc[action].map_num, PortalLoc[action].x, PortalLoc[action].y, PortalLoc[action].z, PortalLoc[action].o);
 
     pPlayer->CLOSE_GOSSIP_MENU();
     return true;
