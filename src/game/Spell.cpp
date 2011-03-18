@@ -7502,8 +7502,10 @@ bool Spell::IsTargetVisibleAndInLOS(void) const
         return target->isVisibleForOrDetect(m_caster, m_caster, true) && m_caster->IsWithinLOSInMap(target);
 
     // these as target are always ok
-    return m_targets.getItemTarget() || m_targets.getGOTarget() || m_targets.getCorpseTargetGUID()
-        || (m_targets.m_targetMask & (TARGET_FLAG_DEST_LOCATION | TARGET_FLAG_GLYPH | TARGET_FLAG_UNK1)); // more?
+    //return m_targets.getItemTarget() || m_targets.getGOTarget() || m_targets.getCorpseTargetGUID()
+    //    || (m_targets.m_targetMask & (TARGET_FLAG_DEST_LOCATION | TARGET_FLAG_GLYPH | TARGET_FLAG_UNK1)); // more?
 
     // TODO: with TARGET_FLAG_DEST_LOCATION, do LOS check for target coords? not sure.
+
+    return true; // all other cases -- too error prone to check all possible other cases
 }
