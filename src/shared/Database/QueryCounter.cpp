@@ -14,21 +14,20 @@ QueryCounter::~QueryCounter()
 {
 }
 
-void QueryCounter::SetDatabase(DatabaseType *db)
+void QueryCounter::SetDatabase(Database *db)
 {
     Guard g(m_mutex); // just to be safe
     m_pDatabase = db;
 }
 
-void QueryCounter::CountQuery(const char *qstr, uint32 qtime /* = 0 */)
+void QueryCounter::CountQuery(const Database *db, const char *qstr)
 {
     if(!m_enable)
         return;
 
     Guard g(m_mutex);
-    QueryInfo& qi = m_store[qstr]; // auto-initialized if not present
+    QueryInfo& qi = m_store[db->GetIdent()][qstr]; // auto-initialized if not present
     ++qi.count;
-    qi.totalTime += qtime;
 }
 
 void QueryCounter::SaveData(void)
@@ -46,16 +45,19 @@ void QueryCounter::SaveData(void)
 
     Guard g(m_mutex);
 
-    //m_enable = false; // need to disable recording for this moment, otherwise PExecute() calling CountQuery() again would deadlock
     m_pDatabase->BeginTransaction();
     m_pDatabase->PExecute("DELETE FROM query_counter WHERE starttime = "UI64FMTD, m_starttime);
-    for (QueryCountStore::iterator it = m_store.begin(); it != m_store.end(); ++it)
+    for (DBQueryCountStore::iterator dbi =  m_store.begin(); dbi != m_store.end(); ++dbi)
     {
-        std::string esc(it->first);
-        m_pDatabase->escape_string(esc);
-        m_pDatabase->PExecute("INSERT INTO query_counter VALUES ("UI64FMTD", '%s', "UI64FMTD", "UI64FMTD")",
-            m_starttime, esc.c_str(), it->second.count, it->second.totalTime);
+        char dbIdent = dbi->first;
+        QueryCountStore &qcs = dbi->second;
+        for (QueryCountStore::iterator it = qcs.begin(); it != qcs.end(); ++it)
+        {
+            std::string esc(it->first);
+            m_pDatabase->escape_string(esc);
+            m_pDatabase->PExecute("INSERT INTO query_counter VALUES ("UI64FMTD", '%c', '%s', "UI64FMTD")",
+                m_starttime, dbIdent, esc.c_str(), it->second.count);
+        }
     }
     m_pDatabase->CommitTransaction();
-    //m_enable = true;
 }

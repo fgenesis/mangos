@@ -517,6 +517,11 @@ bool Master::_StartDB()
         return false;
     }
 
+    // for query counter
+    WorldDatabase.SetIdent('w');
+    CharacterDatabase.SetIdent('c');
+    LoginDatabase.SetIdent('r');
+
     sLog.outString("Realm running as realm ID %d", realmID);
 
     ///- Clean the database before starting

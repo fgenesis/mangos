@@ -14,27 +14,29 @@ public:
     QueryCounter();
     ~QueryCounter();
 
-    void CountQuery(const char *qstr, uint32 qtime = 0);
+    void CountQuery(const Database *db, const char *qstr);
     void SaveData(void);
     void SetEnabled(bool b) { m_enable = b; }
-    void SetDatabase(DatabaseType *db);
+    void SetDatabase(Database *db);
     void SetStartTime(uint64 t) { m_starttime = t; }
 
 private:
-    struct QueryInfo
+    typedef std::pair<char, std::string> QueryIndex;
+    struct QueryInfo // wrapper for auto-init with 0
     {
-        QueryInfo(): count(0), totalTime(0) {}
+        QueryInfo(): count(0) {}
         uint64 count;
-        uint64 totalTime;
     };
+    // a bit overcomplicated maybe, but better then indexing with std::pair<ident, query>
     typedef std::map<std::string, QueryInfo> QueryCountStore;
+    typedef std::map<char, QueryCountStore> DBQueryCountStore;
 
     typedef ACE_Recursive_Thread_Mutex LockType;
     typedef ACE_Guard<LockType> Guard;
 
-    DatabaseType *m_pDatabase;
+    Database *m_pDatabase;
     uint64 m_starttime;
-    QueryCountStore m_store;
+    DBQueryCountStore m_store;
     LockType m_mutex;
     bool m_enable;
     

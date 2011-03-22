@@ -225,7 +225,7 @@ bool Database::PExecuteLog(const char * format,...)
         }
     }
 
-    sQueryCounter.CountQuery(format);
+    sQueryCounter.CountQuery(this, format);
 
     return Execute(szQuery);
 }
@@ -246,7 +246,7 @@ QueryResult* Database::PQuery(const char *format,...)
         return false;
     }
 
-    sQueryCounter.CountQuery(format);
+    sQueryCounter.CountQuery(this, format);
 
     return Query(szQuery);
 }
@@ -267,7 +267,7 @@ QueryNamedResult* Database::PQueryNamed(const char *format,...)
         return false;
     }
 
-    sQueryCounter.CountQuery(format);
+    sQueryCounter.CountQuery(this, format);
 
     return QueryNamed(szQuery);
 }
@@ -313,7 +313,7 @@ bool Database::PExecute(const char * format,...)
         return false;
     }
 
-    sQueryCounter.CountQuery(format);
+    sQueryCounter.CountQuery(this, format);
 
     return Execute(szQuery);
 }
@@ -335,7 +335,7 @@ bool Database::DirectPExecute(const char * format,...)
         return false;
     }
 
-    sQueryCounter.CountQuery(format);
+    sQueryCounter.CountQuery(this, format);
 
     return DirectExecute(szQuery);
 }
