@@ -280,7 +280,13 @@ void Item::UpdateDuration(Player* owner, uint32 diff)
 
     if (GetUInt32Value(ITEM_FIELD_DURATION)<=diff)
     {
+        // variables to hold item location and entry data after item gets destroyed
+        uint32 itemEntry = GetEntry();
+        uint8 bagSlot = GetBagSlot();
+        uint8 slot = GetSlot();
+        uint16 pos = GetPos();
         owner->DestroyItem(GetBagSlot(), GetSlot(), true);
+        owner->HandleDestroyItemReplace(itemEntry, bagSlot, slot, pos);
         return;
     }
 
