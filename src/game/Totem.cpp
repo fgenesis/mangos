@@ -32,14 +32,14 @@ Totem::Totem() : Creature(CREATURE_SUBTYPE_TOTEM)
     m_type = TOTEM_PASSIVE;
 }
 
-bool Totem::Create(uint32 guidlow, CreatureCreatePos& cPos, uint32 Entry, Unit* owner)
+bool Totem::Create(uint32 guidlow, CreatureCreatePos& cPos, CreatureInfo const* cinfo, Unit* owner)
 {
     SetMap(cPos.GetMap());
     SetPhaseMask(cPos.GetPhaseMask(), false);
 
     Team team = owner->GetTypeId() == TYPEID_PLAYER ? ((Player*)owner)->GetTeam() : TEAM_NONE;
 
-    if (!CreateFromProto(guidlow, Entry, team))
+    if (!CreateFromProto(guidlow, cinfo, team))
         return false;
 
     // special model selection case for totems
@@ -161,10 +161,10 @@ void Totem::SetOwner(Unit* owner)
 
 Unit *Totem::GetOwner()
 {
-    ObjectGuid ownerGuid = GetOwnerGuid();
-    if (ownerGuid.IsEmpty())
-        return NULL;
-    return ObjectAccessor::GetUnit(*this, ownerGuid);
+    if (ObjectGuid ownerGuid = GetOwnerGuid())
+        return ObjectAccessor::GetUnit(*this, ownerGuid);
+
+    return NULL;
 }
 
 void Totem::SetTypeBySummonSpell(SpellEntry const * spellProto)

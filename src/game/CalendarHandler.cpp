@@ -27,19 +27,19 @@
 
 void WorldSession::HandleCalendarGetCalendar(WorldPacket &/*recv_data*/)
 {
-    DEBUG_LOG("WORLD: CMSG_CALENDAR_GET_CALENDAR");     // empty
+    DEBUG_LOG("WORLD: CMSG_CALENDAR_GET_CALENDAR");         // empty
 
     time_t cur_time = time(NULL);
 
-    WorldPacket data(SMSG_CALENDAR_SEND_CALENDAR,4+4*0+4+4*0+4+4);
+    WorldPacket data(SMSG_CALENDAR_SEND_CALENDAR, 4+4*0+4+4*0+4+4);
 
     // TODO: calendar invite event output
-    data << (uint32) 0;                                     //invite node count
+    data << (uint32) 0;                                     // invite node count
     // TODO: calendar event output
-    data << (uint32) 0;                                     //event count
+    data << (uint32) 0;                                     // event count
 
-    data << uint32(cur_time);                               // current time, unix timestamp
-    data << uint32(secsToTimeBitFields(cur_time));          // current time, time bit fields
+    data << (uint32) 0;                                     // Current Unix Time?
+    data << (uint32) secsToTimeBitFields(cur_time);         // current packed time
 
     uint32 counter = 0;
     size_t p_counter = data.wpos();
@@ -62,32 +62,30 @@ void WorldSession::HandleCalendarGetCalendar(WorldPacket &/*recv_data*/)
     }
     data.put<uint32>(p_counter,counter);
 
-    data << uint32(/*INSTANCE_RESET_SCHEDULE_START_TIME +*/ sWorld.getConfig(CONFIG_UINT32_INSTANCE_RESET_TIME_HOUR) * HOUR);
-    counter = 0;
-    p_counter = data.wpos();
-    data << uint32(counter);                                // Instance reset intervals
-    for(MapDifficultyMap::const_iterator itr = sMapDifficultyMap.begin(); itr != sMapDifficultyMap.end(); ++itr)
+    data << (uint32) 1135753200;                            // base date (28.12.2005 12:00)
+    data << (uint32) 0;                                     // raid reset count
+    data << (uint32) 0;                                     // holidays count
+    /*
+    for(uint32 i = 0; i < holidays_count; ++i)
     {
-        uint32 map_diff_pair = itr->first;
-        uint32 mapid = PAIR32_LOPART(map_diff_pair);
-        Difficulty difficulty = Difficulty(PAIR32_HIPART(map_diff_pair));
-        MapDifficulty const* mapDiff = &itr->second;
+        data << uint32(0);                                  // Holidays.dbc ID
+        data << uint32(0);                                  // Holidays.dbc region
+        data << uint32(0);                                  // Holidays.dbc looping
+        data << uint32(0);                                  // Holidays.dbc priority
+        data << uint32(0);                                  // Holidays.dbc calendarFilterType
 
-        if (!mapDiff->resetTime || difficulty != REGULAR_DIFFICULTY)
-            continue;
+        for(uint32 j = 0; j < 26; j++)
+            data << uint32(0);                              // Holidays.dbc date
 
-        const MapEntry* map = sMapStore.LookupEntry(mapid);
+        for(uint32 j = 0; j < 10; j++)
+            data << uint32(0);                              // Holidays.dbc duration
 
-        uint32 period = DungeonResetScheduler::GetMaxResetTimeFor(mapDiff);
+        for(uint32 j = 0; j < 10; j++)
+            data << uint32(0);                              // Holidays.dbc calendarFlags
 
-        data << uint32(mapid);
-        data << uint32(period);
-        data << uint32(map->instanceResetOffset);
-        ++counter;
+        data << "";                                         // Holidays.dbc textureFilename
     }
-    data.put<uint32>(p_counter,counter);
-
-    data << (uint32) 0;                                     // unk counter 5
+    */
     //DEBUG_LOG("Sending calendar");
     //data.hexlike();
     SendPacket(&data);
@@ -218,7 +216,6 @@ void WorldSession::HandleCalendarEventRsvp(WorldPacket &recv_data)
     //recv_data >> uint64
     //recv_data >> uint64
     //recv_data >> uint32
-
 }
 
 void WorldSession::HandleCalendarEventRemoveInvite(WorldPacket &recv_data)
@@ -272,7 +269,7 @@ void WorldSession::HandleCalendarComplain(WorldPacket &recv_data)
 
 void WorldSession::HandleCalendarGetNumPending(WorldPacket & /*recv_data*/)
 {
-    DEBUG_LOG("WORLD: CMSG_CALENDAR_GET_NUM_PENDING");  // empty
+    DEBUG_LOG("WORLD: CMSG_CALENDAR_GET_NUM_PENDING");      // empty
 
     WorldPacket data(SMSG_CALENDAR_SEND_NUM_PENDING, 4);
     data << uint32(0);                                      // 0 - no pending invites, 1 - some pending invites

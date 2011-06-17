@@ -35,11 +35,11 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
     uint8 bagIndex, slot;
     uint8 unk_flags;                                        // flags (if 0x02 - some additional data are received)
     uint8 cast_count;                                       // next cast if exists (single or not)
-    uint64 item_guid;
+    ObjectGuid itemGuid;
     uint32 glyphIndex;                                      // something to do with glyphs?
     uint32 spellid;                                         // casted spell id
 
-    recvPacket >> bagIndex >> slot >> cast_count >> spellid >> item_guid >> glyphIndex >> unk_flags;
+    recvPacket >> bagIndex >> slot >> cast_count >> spellid >> itemGuid >> glyphIndex >> unk_flags;
 
     // TODO: add targets.read() check
     Player* pUser = _player;
@@ -67,7 +67,7 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
         return;
     }
 
-    if (pItem->GetGUID() != item_guid)
+    if (pItem->GetObjectGuid() != itemGuid)
     {
         recvPacket.rpos(recvPacket.wpos());                 // prevent spam at not read packet tail
         pUser->SendEquipError(EQUIP_ERR_ITEM_NOT_FOUND, NULL, NULL );
@@ -92,7 +92,7 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
         return;
     }
 
-    uint8 msg = pUser->CanUseItem(pItem);
+    InventoryResult msg = pUser->CanUseItem(pItem);
     if (msg != EQUIP_ERR_OK)
     {
         recvPacket.rpos(recvPacket.wpos());                 // prevent spam at not read packet tail
@@ -251,7 +251,7 @@ void WorldSession::HandleOpenItemOpcode(WorldPacket& recvPacket)
             uint32 entry = fields[0].GetUInt32();
             uint32 flags = fields[1].GetUInt32();
 
-            pItem->SetUInt64Value(ITEM_FIELD_GIFTCREATOR, 0);
+            pItem->SetGuidValue(ITEM_FIELD_GIFTCREATOR, ObjectGuid());
             pItem->SetEntry(entry);
             pItem->SetUInt32Value(ITEM_FIELD_FLAGS, flags);
             pItem->SetState(ITEM_CHANGED, pUser);
@@ -263,7 +263,11 @@ void WorldSession::HandleOpenItemOpcode(WorldPacket& recvPacket)
             pUser->DestroyItem(pItem->GetBagSlot(), pItem->GetSlot(), true);
             return;
         }
-        CharacterDatabase.PExecute("DELETE FROM character_gifts WHERE item_guid = '%u'", pItem->GetGUIDLow());
+
+        static SqlStatementID delGifts ;
+
+        SqlStatement stmt = CharacterDatabase.CreateStatement(delGifts, "DELETE FROM character_gifts WHERE item_guid = ?");
+        stmt.PExecute(pItem->GetGUIDLow());
     }
     else
         pUser->SendLoot(pItem->GetObjectGuid(),LOOT_CORPSE);
@@ -335,11 +339,6 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
 
     DEBUG_LOG("WORLD: got cast spell packet, spellId - %u, cast_count: %u, unk_flags %u, data length = %i",
         spellId, cast_count, unk_flags, (uint32)recvPacket.size());
-
-    // vehicle spells are handled by CMSG_PET_CAST_SPELL,
-    // but player is still able to cast own spells
-    if(!_player->GetCharmGuid().IsEmpty() && _player->GetCharmGuid() == _player->GetVehicleGUID())
-        mover = _player;
 
     SpellEntry const *spellInfo = sSpellStore.LookupEntry(spellId );
 
@@ -483,7 +482,7 @@ void WorldSession::HandleCancelAuraOpcode( WorldPacket& recvPacket)
     SpellAuraHolder *holder = _player->GetSpellAuraHolder(spellId);
 
     // not own area auras can't be cancelled (note: maybe need to check for aura on holder and not general on spell)
-    if (holder && holder->GetCasterGUID() != _player->GetGUID() && HasAreaAuraEffect(holder->GetSpellProto()))
+    if (holder && holder->GetCasterGuid() != _player->GetObjectGuid() && HasAreaAuraEffect(holder->GetSpellProto()))
         return;
 
     // non channeled case
@@ -594,149 +593,108 @@ void WorldSession::HandleSpellClick( WorldPacket & recv_data )
     ObjectGuid guid;
     recv_data >> guid;
 
+    if (_player->isInCombat())                              // client prevent click and set different icon at combat state
+        return;
+
     Creature *unit = _player->GetMap()->GetAnyTypeCreature(guid);
-
-    if(!_player->IsWithinDistInMap(unit, 10))
+    if (!unit || unit->isInCombat())                        // client prevent click and set different icon at combat state
         return;
 
-    // cheater?
-    if(!unit->HasFlag(UNIT_NPC_FLAGS,UNIT_NPC_FLAG_SPELLCLICK))
-        return;
-
-    uint32 vehicleId = 0;
-    CreatureExtendedInfo const *exinfo = unit->GetCreatureExtendedInfo();
-    if(exinfo)
-        vehicleId = exinfo->vehicle_id;
-
-    // handled other (hacky) way to avoid overwriting auras
-    if(vehicleId || unit->IsVehicle())
+    SpellClickInfoMapBounds clickPair = sObjectMgr.GetSpellClickInfoMapBounds(unit->GetEntry());
+    for(SpellClickInfoMap::const_iterator itr = clickPair.first; itr != clickPair.second; ++itr)
     {
-        if(!unit->isAlive())
-            return;
-
-        if(_player->GetVehicle())
-            return;
-
-        if(!_player->GetVehicleGUID().IsEmpty())
-            return;
-
-        // create vehicle if no one present and kill the original creature to avoid double, triple etc spawns
-        if(!unit->IsVehicle())
+        if (itr->second.IsFitToRequirements(_player))
         {
-            Vehicle *v = _player->SummonVehicle(unit->GetEntry(), unit->GetPositionX(), unit->GetPositionY(), unit->GetPositionZ(), unit->GetOrientation(), vehicleId);
-            if(!v)
-                return;
+            Unit *caster = (itr->second.castFlags & 0x1) ? (Unit*)_player : (Unit*)unit;
+            Unit *target = (itr->second.castFlags & 0x2) ? (Unit*)_player : (Unit*)unit;
 
-            if(v->GetVehicleFlags() & VF_DESPAWN_NPC)
-            {
-                v->SetSpawnDuration(unit->GetRespawnDelay()*IN_MILLISECONDS);
-                unit->SetDeathState(JUST_DIED);
-                unit->RemoveCorpse();
-                unit->SetHealth(0);
-            }
-            unit = v;
-        }
-
-        if(((Vehicle*)unit)->GetVehicleData())
-            if(uint32 r_aura = ((Vehicle*)unit)->GetVehicleData()->req_aura)
-                if(!_player->HasAura(r_aura))
-                    return;
-
-        _player->EnterVehicle((Vehicle*)unit, 0);
-    }
-    else
-    {
-        SpellClickInfoMapBounds clickPair = sObjectMgr.GetSpellClickInfoMapBounds(unit->GetEntry());
-        for(SpellClickInfoMap::const_iterator itr = clickPair.first; itr != clickPair.second; ++itr)
-        {
-            if (itr->second.IsFitToRequirements(_player))
-            {
-                Unit *caster = (itr->second.castFlags & 0x1) ? (Unit*)_player : (Unit*)unit;
-                Unit *target = (itr->second.castFlags & 0x2) ? (Unit*)_player : (Unit*)unit;
-
-                caster->CastSpell(target, itr->second.spellId, true);
-            }
+            caster->CastSpell(target, itr->second.spellId, true);
         }
     }
 }
 
-void WorldSession::HandleMirrrorImageDataRequest( WorldPacket & recv_data )
+void WorldSession::HandleGetMirrorimageData(WorldPacket& recv_data)
 {
-    sLog.outDebug("WORLD: CMSG_GET_MIRRORIMAGE_DATA");
-    uint64 guid;
+    DEBUG_FILTER_LOG(LOG_FILTER_SPELL_CAST, "WORLD: CMSG_GET_MIRRORIMAGE_DATA");
+
+    ObjectGuid guid;
     recv_data >> guid;
 
-    // Get unit for which data is needed by client
-    Unit *unit = ObjectAccessor::GetUnit(*_player, guid);
-    if (!unit)
+    Creature* pCreature = _player->GetMap()->GetAnyTypeCreature(guid);
+
+    if (!pCreature)
         return;
 
-    // Get creator of the unit
-    Unit *creator = ObjectAccessor::GetUnit(*_player, unit->GetCreatorGuid());
-    if (!creator)
-        creator = unit;
+    Unit::AuraList const& images = pCreature->GetAurasByType(SPELL_AURA_MIRROR_IMAGE);
 
-    if (!creator)
+    if (images.empty())
         return;
+
+    Unit* pCaster = images.front()->GetCaster();
 
     WorldPacket data(SMSG_MIRRORIMAGE_DATA, 68);
-    data << (uint64)guid;
-    data << (uint32)creator->GetDisplayId();
-    if (creator->GetTypeId() == TYPEID_PLAYER)
+
+    data << guid;
+    data << (uint32)pCreature->GetDisplayId();
+
+    data << (uint8)pCreature->getRace();
+    data << (uint8)pCreature->getGender();
+    data << (uint8)pCreature->getClass();
+
+    if (pCaster && pCaster->GetTypeId() == TYPEID_PLAYER)
     {
-        Player* pCreator = (Player *)creator;
-        data << (uint8)pCreator->getRace();                         // race
-        data << (uint8)pCreator->getGender();                       // gender
-        data << (uint8)pCreator->getClass();                        // class
-        data << (uint8)pCreator->GetByteValue(PLAYER_BYTES, 0);     // skin
-        data << (uint8)pCreator->GetByteValue(PLAYER_BYTES, 1);     // face
-        data << (uint8)pCreator->GetByteValue(PLAYER_BYTES, 2);     // hair
-        data << (uint8)pCreator->GetByteValue(PLAYER_BYTES, 3);     // haircolor
-        data << (uint8)pCreator->GetByteValue(PLAYER_BYTES_2, 0);   // facialhair
+        Player* pPlayer = (Player*)pCaster;
 
-        data << (uint32)0;                    // unknown
+        // skin, face, hair, haircolor
+        data << (uint8)pPlayer->GetByteValue(PLAYER_BYTES, 0);
+        data << (uint8)pPlayer->GetByteValue(PLAYER_BYTES, 1);
+        data << (uint8)pPlayer->GetByteValue(PLAYER_BYTES, 2);
+        data << (uint8)pPlayer->GetByteValue(PLAYER_BYTES, 3);
 
-        static const EquipmentSlots ItemSlots[] =
-        {
-            EQUIPMENT_SLOT_HEAD,
-            EQUIPMENT_SLOT_SHOULDERS,
-            EQUIPMENT_SLOT_BODY,
-            EQUIPMENT_SLOT_CHEST,
-            EQUIPMENT_SLOT_WAIST,
-            EQUIPMENT_SLOT_LEGS,
-            EQUIPMENT_SLOT_FEET,
-            EQUIPMENT_SLOT_WRISTS,
-            EQUIPMENT_SLOT_HANDS,
-            EQUIPMENT_SLOT_BACK,
-            EQUIPMENT_SLOT_TABARD,
-            EQUIPMENT_SLOT_END
-        };
+        // facial hair
+        data << (uint8)pPlayer->GetByteValue(PLAYER_BYTES_2, 0);
 
-        // Display items in visible slots
-        for (EquipmentSlots const* itr = &ItemSlots[0]; *itr != EQUIPMENT_SLOT_END; ++itr)
-            if (Item const* item =  pCreator->GetItemByPos(INVENTORY_SLOT_BAG_0, *itr))
-                data << (uint32)item->GetProto()->DisplayInfoID;    // display id
-            else
-                data << (uint32)0;                    // no item found, so no id
+        // guild id
+        data << (uint32)pPlayer->GetGuildId();
+
+        if (pPlayer->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_HIDE_HELM))
+            data << (uint32)0;
+        else
+            data << (uint32)pPlayer->GetItemDisplayIdInSlot(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_HEAD);
+
+        data << (uint32)pPlayer->GetItemDisplayIdInSlot(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_SHOULDERS);
+        data << (uint32)pPlayer->GetItemDisplayIdInSlot(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_BODY);
+        data << (uint32)pPlayer->GetItemDisplayIdInSlot(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_CHEST);
+        data << (uint32)pPlayer->GetItemDisplayIdInSlot(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_WAIST);
+        data << (uint32)pPlayer->GetItemDisplayIdInSlot(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_LEGS);
+        data << (uint32)pPlayer->GetItemDisplayIdInSlot(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_FEET);
+        data << (uint32)pPlayer->GetItemDisplayIdInSlot(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_WRISTS);
+        data << (uint32)pPlayer->GetItemDisplayIdInSlot(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_HANDS);
+
+        if (pPlayer->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_HIDE_CLOAK))
+            data << (uint32)0;
+        else
+            data << (uint32)pPlayer->GetItemDisplayIdInSlot(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_BACK);
+
+        data << (uint32)pPlayer->GetItemDisplayIdInSlot(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_TABARD);
     }
     else
     {
-        // Skip player data for creatures
+        // pCaster may have been NULL (usually not expected, but may happen at disconnect, etc)
+        // OR
+        // pCaster is not player, data is taken from CreatureDisplayInfoExtraEntry by model already
+        data << (uint8)0;
+        data << (uint8)0;
+        data << (uint8)0;
+        data << (uint8)0;
+
+        data << (uint8)0;
+
         data << (uint32)0;
-        data << (uint32)0;
-        data << (uint32)0;
-        data << (uint32)0;
-        data << (uint32)0;
-        data << (uint32)0;
-        data << (uint32)0;
-        data << (uint32)0;
-        data << (uint32)0;
-        data << (uint32)0;
-        data << (uint32)0;
-        data << (uint32)0;
-        data << (uint32)0;
-        data << (uint32)0;
+
+        for (int i = 0; i < 11; ++i)
+            data << (uint32)0;
     }
 
-    SendPacket( &data );
+    SendPacket(&data);
 }

@@ -20,6 +20,10 @@
     \ingroup mangosd
 */
 
+#ifndef WIN32
+    #include "PosixDaemon.h"
+#endif
+
 #include "WorldSocketMgr.h"
 #include "Common.h"
 #include "Master.h"
@@ -197,6 +201,9 @@ int Master::Run()
     ///- Initialize the World
     sWorld.SetInitialWorldSettings();
 
+    #ifndef WIN32
+    detachDaemon();
+    #endif
     //server loaded successfully => enable async DB requests
     //this is done to forbid any async transactions during server startup!
     CharacterDatabase.AllowAsyncTransactions();
@@ -301,7 +308,7 @@ int Master::Run()
     }
 
     ///- Launch the world listener socket
-    std::string wsport  = sConfig.GetStringDefault ("WorldServerPort", "0");
+    uint16 wsport = sWorld.getConfig (CONFIG_UINT32_PORT_WORLD);
     std::string bind_ip = sConfig.GetStringDefault ("BindIP", "0.0.0.0");
 
     if (sWorldSocketMgr->StartNetwork (wsport, bind_ip) == -1)

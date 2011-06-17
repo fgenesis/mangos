@@ -445,7 +445,7 @@ std::string VirtualPlayerMgr::_GenerateName(uint32 s) // syllables
             DEBUG_LOG("VPM: NameGen: '%s' cant be normalized!",name.c_str());
             name = "";
         }
-        if(sObjectMgr.GetPlayerGUIDByName(name))
+        if(!!sObjectMgr.GetPlayerGuidByName(name))
         {
             DEBUG_LOG("VPM: NameGen: '%s' already exists as real character",name.c_str());
             name = "";
@@ -822,7 +822,7 @@ VirtualPlayer *VirtualPlayerMgr::_GenerateNewChar(void)
     VirtualPlayer vp;
     vp.id = _maxCharID;
     vp.name = _GenerateName( urand(2,4) );
-    vp.guid = sObjectMgr.GeneratePlayerLowGuid();
+    vp.guid = (uint64)sObjectMgr.GeneratePlayerLowGuid();
     vp.xp = 0;
     vp.zone = 0;
     vp.quests = 0;

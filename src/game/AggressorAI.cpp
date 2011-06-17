@@ -37,7 +37,7 @@ AggressorAI::Permissible(const Creature *creature)
     return PERMIT_BASE_NO;
 }
 
-AggressorAI::AggressorAI(Creature *c) : CreatureAI(c), i_victimGuid(0), i_state(STATE_NORMAL), i_tracker(TIME_INTERVAL_LOOK)
+AggressorAI::AggressorAI(Creature *c) : CreatureAI(c), i_state(STATE_NORMAL), i_tracker(TIME_INTERVAL_LOOK)
 {
 }
 
@@ -73,7 +73,7 @@ void AggressorAI::EnterEvadeMode()
     if (!m_creature->isAlive())
     {
         DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "Creature stopped attacking, he is dead [guid=%u]", m_creature->GetGUIDLow());
-        i_victimGuid = 0;
+        i_victimGuid.Clear();
         m_creature->CombatStop(true);
         m_creature->DeleteThreatList();
         return;
@@ -104,7 +104,7 @@ void AggressorAI::EnterEvadeMode()
         //i_tracker.Reset(TIME_INTERVAL_LOOK);
     }
 
-    if(!m_creature->isCharmed() && (!m_creature->GetVehicle() || m_creature->GetVehicleGUID().IsEmpty()))
+    if (!m_creature->isCharmed())
     {
         m_creature->RemoveAllAuras();
 
@@ -114,7 +114,7 @@ void AggressorAI::EnterEvadeMode()
     }
 
     m_creature->DeleteThreatList();
-    i_victimGuid = 0;
+    i_victimGuid.Clear();
     m_creature->CombatStop(true);
     m_creature->SetLootRecipient(NULL);
     m_creature->ResetObtainedDamage();
@@ -127,7 +127,7 @@ AggressorAI::UpdateAI(const uint32 /*diff*/)
     if(!m_creature->SelectHostileTarget() || !m_creature->getVictim())
         return;
 
-    i_victimGuid = m_creature->getVictim()->GetGUID();
+    i_victimGuid = m_creature->getVictim()->GetObjectGuid();
 
     DoMeleeAttackIfReady();
 }
@@ -147,7 +147,7 @@ AggressorAI::AttackStart(Unit *u)
 
     if(m_creature->Attack(u,true))
     {
-        i_victimGuid = u->GetGUID();
+        i_victimGuid = u->GetObjectGuid();
 
         m_creature->AddThreat(u);
         m_creature->SetInCombatWith(u);

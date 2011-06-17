@@ -16,17 +16,35 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "MemoryLeaks.h"
-#include "Policies/SingletonImp.h"
+#ifndef _GUILDMGR_H
+#define _GUILDMGR_H
 
-INSTANTIATE_SINGLETON_1( MemoryManager ) ;
+#include "Common.h"
+#include "Policies/Singleton.h"
 
-MemoryManager::MemoryManager( )
+class Guild;
+class ObjectGuid;
+
+class GuildMgr
 {
-    #if COMPILER == MICROSOFT
-    // standard leak check initialization
-    //_CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-    // uncomment to disable Visual Leak Detector from code
-    //VLDDisable();
-    #endif
-}
+        typedef UNORDERED_MAP<uint32, Guild*> GuildMap;
+
+        GuildMap m_GuildMap;
+    public:
+        GuildMgr();
+        ~GuildMgr();
+
+        void AddGuild(Guild* guild);
+        void RemoveGuild(uint32 guildId);
+
+        Guild* GetGuildById(uint32 guildId) const;
+        Guild* GetGuildByName(std::string const& name) const;
+        Guild* GetGuildByLeader(ObjectGuid const& guid) const;
+        std::string GetGuildNameById(uint32 guildId) const;
+
+        void LoadGuilds();
+};
+
+#define sGuildMgr MaNGOS::Singleton<GuildMgr>::Instance()
+
+#endif // _GUILDMGR_H

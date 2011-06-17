@@ -38,7 +38,7 @@ bool ChatHandler::UnlockMove(char* args)
         player = m_session->GetPlayer();
     WorldPacket data;
     data.Initialize( SMSG_FORCE_MOVE_UNROOT );
-    data.appendPackGUID(player->GetGUID());
+    data.appendPackGUID(player->GetObjectGuid().GetRawValue());
     player->GetSession()->SendPacket( &data );
     return true;
 }
@@ -50,7 +50,7 @@ bool ChatHandler::LockMove(char* args)
         player = m_session->GetPlayer();
     WorldPacket data;
     data.Initialize( SMSG_FORCE_MOVE_ROOT );
-    data.appendPackGUID(player->GetGUID());
+    data.appendPackGUID(player->GetObjectGuid().GetRawValue());
     data << (uint32)2;
     player->GetSession()->SendPacket( &data );
     return true;
@@ -858,21 +858,21 @@ bool ChatHandler::HandleCharacterAutodumpCommand(char *args)
     char* cname = strtok (args, " ");
     if (!cname || !*cname)
         return false;
-    uint64 guid64 = 0;
+    ObjectGuid guid64;
     uint32 accid = 0;
     Player *target = sObjectMgr.GetPlayer(cname);
     std::string normalName;
     if(target)
     {
         // player online
-        guid64 = target->GetGUID();
+        guid64 = target->GetObjectGuid();
         accid = target->GetSession()->GetAccountId();
         normalName = target->GetName();
     }
     else
     {
         // player offline, ask DB
-        guid64 = sObjectMgr.GetPlayerGUIDByName(cname);
+        guid64 = sObjectMgr.GetPlayerGuidByName(cname);
         accid = sObjectMgr.GetPlayerAccountIdByGUID(guid64);
         if(guid64 && accid)
         {

@@ -94,11 +94,13 @@ void WorldSession::HandleGroupInviteOpcode( WorldPacket & recv_data )
         SendPartyResult(PARTY_OP_INVITE, membername, ERR_PLAYER_WRONG_FACTION);
         return;
     }
+
     if(GetPlayer()->GetInstanceId() != 0 && player->GetInstanceId() != 0 && GetPlayer()->GetInstanceId() != player->GetInstanceId() && GetPlayer()->GetMapId() == player->GetMapId())
     {
         SendPartyResult(PARTY_OP_INVITE, membername, ERR_TARGET_NOT_IN_INSTANCE_S);
         return;
     }
+
     // just ignore us
     if(player->GetSocial()->HasIgnore(GetPlayer()->GetObjectGuid()))
     {
@@ -109,6 +111,12 @@ void WorldSession::HandleGroupInviteOpcode( WorldPacket & recv_data )
     Group *group = GetPlayer()->GetGroup();
     if( group && group->isBGGroup() )
         group = GetPlayer()->GetOriginalGroup();
+
+    if(group && group->isRaidGroup() && !player->GetAllowLowLevelRaid() && (player->getLevel() < sWorld.getConfig(CONFIG_UINT32_MIN_LEVEL_FOR_RAID)))
+    {
+        SendPartyResult(PARTY_OP_INVITE, "", ERR_RAID_DISALLOWED_BY_LEVEL);
+        return;
+    }
 
     Group *group2 = player->GetGroup();
     if( group2 && group2->isBGGroup() )
@@ -313,8 +321,7 @@ void WorldSession::HandleGroupUninviteOpcode(WorldPacket & recv_data)
     if (!grp)
         return;
 
-    ObjectGuid guid = grp->GetMemberGuid(membername);
-    if (!guid.IsEmpty())
+    if (ObjectGuid guid = grp->GetMemberGuid(membername))
     {
         Player::RemoveFromGroup(grp, guid);
         return;
@@ -552,8 +559,11 @@ void WorldSession::HandleGroupChangeSubGroupOpcode( WorldPacket & recv_data )
     // everything is fine, do it
     if (Player* player = sObjectMgr.GetPlayer(name.c_str()))
         group->ChangeMembersGroup(player, groupNr);
-    else if (uint64 guid = sObjectMgr.GetPlayerGUIDByName(name.c_str()))
-        group->ChangeMembersGroup(guid, groupNr);
+    else
+    {
+        if (ObjectGuid guid = sObjectMgr.GetPlayerGuidByName(name.c_str()))
+            group->ChangeMembersGroup(guid, groupNr);
+    }
 }
 
 void WorldSession::HandleGroupAssistantLeaderOpcode( WorldPacket & recv_data )
@@ -630,7 +640,7 @@ void WorldSession::HandleRaidReadyCheckOpcode( WorldPacket & recv_data )
 
         // everything is fine, do it
         WorldPacket data(MSG_RAID_READY_CHECK, 8);
-        data << GetPlayer()->GetGUID();
+        data << ObjectGuid(GetPlayer()->GetObjectGuid());
         group->BroadcastPacket(&data, false, -1);
 
         group->OfflineReadyCheck();
@@ -959,4 +969,14 @@ void WorldSession::HandleOptOutOfLootOpcode( WorldPacket & recv_data )
 
     if(unkn != 0)
         sLog.outError("CMSG_GROUP_PASS_ON_LOOT: activation not implemented!");
+}
+
+void WorldSession::HandleSetAllowLowLevelRaidOpcode( WorldPacket & recv_data )
+{
+    DEBUG_LOG("WORLD: Received CMSG_SET_ALLOW_LOW_LEVEL_RAID: %4X", recv_data.GetOpcode());
+
+    uint8 allow;
+    recv_data >> allow;
+
+    GetPlayer()->SetAllowLowLevelRaid(allow);
 }
