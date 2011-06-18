@@ -56,7 +56,7 @@ void PunishMgr::Load(void)
     QueryResult *result = LoginDatabase.Query("SELECT what, action, arg FROM punish_action");
     if(result)
     {
-        barGoLink bar(result->GetRowCount());
+        BarGoLink bar(result->GetRowCount());
 
         do
         {
@@ -86,7 +86,7 @@ void PunishMgr::Load(void)
     result = LoginDatabase.Query("SELECT value, action, arg FROM punish_value");
     if(result)
     {
-        barGoLink bar(result->GetRowCount());
+        BarGoLink bar(result->GetRowCount());
 
         do
         {

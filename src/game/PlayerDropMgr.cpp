@@ -22,7 +22,7 @@ void LoadPlayerDrops(void)
         return;
     }
 
-    barGoLink bar(result->GetRowCount());
+    BarGoLink bar(result->GetRowCount());
 
     std::ostringstream ssFailed;
 

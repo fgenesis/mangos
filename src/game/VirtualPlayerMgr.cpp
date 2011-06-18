@@ -822,7 +822,7 @@ VirtualPlayer *VirtualPlayerMgr::_GenerateNewChar(void)
     VirtualPlayer vp;
     vp.id = _maxCharID;
     vp.name = _GenerateName( urand(2,4) );
-    vp.guid = (uint64)sObjectMgr.GeneratePlayerLowGuid();
+    vp.guid = ObjectGuid((uint64)sObjectMgr.GeneratePlayerLowGuid());
     vp.xp = 0;
     vp.zone = 0;
     vp.quests = 0;
