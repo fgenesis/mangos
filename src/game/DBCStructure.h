@@ -23,6 +23,7 @@
 #include "DBCEnums.h"
 #include "Path.h"
 #include "Platform/Define.h"
+#include "SpellClassMask.h"
 
 #include <map>
 #include <set>
@@ -491,6 +492,13 @@ struct AchievementCriteriaEntry
             uint32  killCount;                              // 4
         } honorable_kill;
 
+        // ACHIEVEMENT_CRITERIA_TYPE_USE_LFD_TO_GROUP_WITH_PLAYERS    = 119
+        struct
+        {
+            uint32  unused;                                 // 3
+            uint32  dungeonsComplete;                       // 4
+        } use_lfg;
+
         struct
         {
             uint32  value;                                  // 3        m_asset_id
@@ -809,6 +817,18 @@ struct CurrencyTypesEntry
     uint32    BitIndex;                                     // 3        m_bitIndex bit index in PLAYER_FIELD_KNOWN_CURRENCIES (1 << (index-1))
 };
 
+struct DungeonEncounterEntry
+{
+    uint32 Id;                                              // 0        unique id
+    uint32 mapId;                                           // 1        map id
+    uint32 Difficulty;                                      // 2        instance mode
+    uint32 encounterData;                                   // 3        time to reach?
+    uint32 encounterIndex;                                  // 4        encounter index for creating completed mask
+    char*  encounterName[16];                               // 5-20     encounter name
+    //uint32 nameFlags;                                     // 21       language flags
+    //uint32 unk1;                                          // 22
+};
+
 struct DurabilityCostsEntry
 {
     uint32    Itemlvl;                                      // 0        m_ID
@@ -925,16 +945,16 @@ struct FactionTemplateEntry
 
 struct GameObjectDisplayInfoEntry
 {
-    uint32      Displayid;                                  // 0        m_ID
+    uint32      Displayid;                                  // 0
     // char* filename;                                      // 1        m_modelName
-                                                            // 2-11     m_Sound
-    float  unknown12;                                       // 12       m_geoBoxMinX (use first value as interact dist, mostly in hacks way)
-                                                            // 13       m_geoBoxMinY
-                                                            // 14       m_geoBoxMinZ
-                                                            // 15       m_geoBoxMaxX
-                                                            // 16       m_geoBoxMaxY
-                                                            // 17       m_geoBoxMaxZ
-                                                            // 18       m_objectEffectPackageID
+    // uint32 unknown2[10];                                 // 2-11     m_Sound
+    float       minX;                                       // 12       m_geoBoxMinX (use first value as interact dist, mostly in hacks way)
+    float       minY;                                       // 13       m_geoBoxMinY
+    float       minZ;                                       // 14       m_geoBoxMinZ
+    float       maxX;                                       // 15       m_geoBoxMaxX
+    float       maxY;                                       // 16       m_geoBoxMaxY
+    float       maxZ;                                       // 17       m_geoBoxMaxZ
+    // uint32 unknown18;                                    // 18       m_objectEffectPackageID
 };
 
 struct GemPropertiesEntry
@@ -1150,6 +1170,44 @@ struct ItemSetEntry
     uint32    required_skill_value;                         // 52       m_requiredSkillRank
 };
 
+struct LFGDungeonEntry
+{
+    uint32  ID;                                             // 0     m_ID
+    //char*   name[16];                                     // 1-17  m_name_lang
+    uint32  minlevel;                                       // 18    m_minLevel
+    uint32  maxlevel;                                       // 19    m_maxLevel
+    uint32  reclevel;                                       // 20    m_target_level
+    uint32  recminlevel;                                    // 21    m_target_level_min
+    uint32  recmaxlevel;                                    // 22    m_target_level_max
+    uint32  map;                                            // 23    m_mapID
+    uint32  difficulty;                                     // 24    m_difficulty
+    uint32  flags;                                          // 25    m_flags
+    uint32  type;                                           // 26    m_typeID
+    uint32  faction;                                        // 27    m_faction
+    //char*   unk3;                                         // 28    m_textureFilename
+    uint32  expansion;                                      // 29    m_expansionLevel
+    uint32  index;                                          // 30    m_order_index
+    uint32  grouptype;                                      // 31    m_group_id
+    //char*   desc[16];                                     // 32-47 m_description_lang
+    //uint32 unk5                                           // 48 language flags?
+    // Helpers
+    uint32 Entry() const { return ID + (type << 24); }
+};
+
+struct LFGDungeonExpansionEntry
+{
+    uint32  ID;                                             // 0    m_ID
+    uint32  dungeonID;                                      // 1    m_lfg_id
+    uint32  expansion;                                      // 2    m_expansion_level
+    uint32  randomEntry;                                    // 3    m_random_id, inside of which is used this record
+    uint32  minlevelHard;                                   // 4    m_hard_level_min
+    uint32  maxlevelHard;                                   // 5    m_hard_level_max
+    uint32  minlevel;                                       // 6    m_target_level_min
+    uint32  maxlevel;                                       // 7    m_target_level_max
+    // Helpers
+    bool IsRandom() const { return randomEntry == 0; }
+};
+
 /*struct LfgDungeonsEntry
 {
     m_ID
@@ -1216,7 +1274,7 @@ struct MapEntry
     uint32  MapID;                                          // 0        m_ID
     //char*       internalname;                             // 1        m_Directory
     uint32  map_type;                                       // 2        m_InstanceType
-    //uint32 mapFlags;                                      // 3        m_Flags (0x100 - CAN_CHANGE_PLAYER_DIFFICULTY)
+    uint32 mapFlags;                                        // 3        m_Flags (0x100 - CAN_CHANGE_PLAYER_DIFFICULTY)
     //uint32 isPvP;                                         // 4        m_PVP 0 or 1 for battlegrounds (not arenas)
     char*   name[16];                                       // 5-20     m_MapName_lang
                                                             // 21 string flags
@@ -1232,7 +1290,7 @@ struct MapEntry
     float   ghost_entrance_y;                               // 61       m_corpseY entrance y coordinate in ghost mode  (in most cases = normal entrance)
     //uint32  timeOfDayOverride;                            // 62       m_timeOfDayOverride
     uint32  addon;                                          // 63       m_expansionID
-                                                            // 64       m_raidOffset
+    uint32  instanceResetOffset;                            // 64       m_raidOffset
     //uint32 maxPlayers;                                    // 65       m_maxPlayers
 
     // Helpers
@@ -1259,6 +1317,11 @@ struct MapEntry
     {
         return MapID == 0 || MapID == 1 || MapID == 530 || MapID == 571;
     }
+
+    bool IsTransport() const
+    {
+        return map_type == MAP_COMMON &&  mapFlags == 1;
+    }
 };
 
 struct MapDifficultyEntry
@@ -1266,8 +1329,8 @@ struct MapDifficultyEntry
     //uint32      Id;                                       // 0        m_ID
     uint32      MapId;                                      // 1        m_mapID
     uint32      Difficulty;                                 // 2        m_difficulty (for arenas: arena slot)
-    //char*       areaTriggerText[16];                      // 3-18     m_message_lang (text showed when transfer to map failed)
-    //uint32      textFlags;                                // 19 
+    char*       areaTriggerText[16];                        // 3-18     m_message_lang (text showed when transfer to map failed)
+    uint32      mapDifficultyFlags;                         // 19
     uint32      resetTime;                                  // 20       m_raidDuration in secs, 0 if no fixed reset time
     uint32      maxPlayers;                                 // 21       m_maxPlayers some heroic versions have 0 when expected same amount as in normal version
     //char*       difficultyString;                         // 22       m_difficultystring
@@ -1512,6 +1575,29 @@ struct SoundEntriesEntry
                                                             // 29       m_soundEntriesAdvancedID
 };
 
+// template arguments for declaration
+#define CFM_ARGS_1  ClassFlag N1
+#define CFM_ARGS_2  CFM_ARGS_1, ClassFlag N2
+#define CFM_ARGS_3  CFM_ARGS_2, ClassFlag N3
+#define CFM_ARGS_4  CFM_ARGS_3, ClassFlag N4
+#define CFM_ARGS_5  CFM_ARGS_4, ClassFlag N5
+#define CFM_ARGS_6  CFM_ARGS_5, ClassFlag N6
+#define CFM_ARGS_7  CFM_ARGS_6, ClassFlag N7
+#define CFM_ARGS_8  CFM_ARGS_7, ClassFlag N8
+#define CFM_ARGS_9  CFM_ARGS_8, ClassFlag N9
+#define CFM_ARGS_10 CFM_ARGS_9, ClassFlag N10
+
+// template values for function calls
+#define CFM_VALUES_1  N1
+#define CFM_VALUES_2  CFM_VALUES_1, N2
+#define CFM_VALUES_3  CFM_VALUES_2, N3
+#define CFM_VALUES_4  CFM_VALUES_3, N4
+#define CFM_VALUES_5  CFM_VALUES_4, N5
+#define CFM_VALUES_6  CFM_VALUES_5, N6
+#define CFM_VALUES_7  CFM_VALUES_6, N7
+#define CFM_VALUES_8  CFM_VALUES_7, N8
+#define CFM_VALUES_9  CFM_VALUES_8, N9
+#define CFM_VALUES_10 CFM_VALUES_9, N10
 
 struct ClassFamilyMask
 {
@@ -1520,6 +1606,7 @@ struct ClassFamilyMask
 
     ClassFamilyMask() : Flags(0), Flags2(0) {}
     explicit ClassFamilyMask(uint64 familyFlags, uint32 familyFlags2 = 0) : Flags(familyFlags), Flags2(familyFlags2) {}
+    ClassFamilyMask(uint32 f0, uint32 f1, uint32 f2): Flags(uint64(f0) | (uint64(f1) << 32)), Flags2(f2) {}
 
     bool Empty() const { return Flags == 0 && Flags2 == 0; }
     bool operator! () const { return Empty(); }
@@ -1540,12 +1627,254 @@ struct ClassFamilyMask
         return Flags & mask;
     }
 
-    ClassFamilyMask& operator|= (ClassFamilyMask const& mask)
+    // test if specified bits are set (run-time)
+    bool test(size_t offset) const
     {
-        Flags |= mask.Flags;
-        Flags2 |= mask.Flags2;
+        return reinterpret_cast<uint8 const*>(this)[offset >> 3] & (uint8(1) << (offset & 7));
+    }
+
+    // test if specified bits are set (compile-time)
+    template <CFM_ARGS_1>
+    bool test() const
+    {
+        return Flags  & BitMask<uint64, true,  CFM_VALUES_1>::value ||
+               Flags2 & BitMask<uint32, false, CFM_VALUES_1>::value;
+    }
+
+    template <CFM_ARGS_2>
+    bool test() const
+    {
+        return Flags  & BitMask<uint64, true,  CFM_VALUES_2>::value ||
+               Flags2 & BitMask<uint32, false, CFM_VALUES_2>::value;
+    }
+
+    template <CFM_ARGS_3>
+    bool test() const
+    {
+        return Flags  & BitMask<uint64, true,  CFM_VALUES_3>::value ||
+               Flags2 & BitMask<uint32, false, CFM_VALUES_3>::value;
+    }
+
+    template <CFM_ARGS_4>
+    bool test() const
+    {
+        return Flags  & BitMask<uint64, true,  CFM_VALUES_4>::value ||
+               Flags2 & BitMask<uint32, false, CFM_VALUES_4>::value;
+    }
+
+    template <CFM_ARGS_5>
+    bool test() const
+    {
+        return Flags  & BitMask<uint64, true,  CFM_VALUES_5>::value ||
+               Flags2 & BitMask<uint32, false, CFM_VALUES_5>::value;
+    }
+
+    template <CFM_ARGS_6>
+    bool test() const
+    {
+        return Flags  & BitMask<uint64, true,  CFM_VALUES_6>::value ||
+               Flags2 & BitMask<uint32, false, CFM_VALUES_6>::value;
+    }
+
+    template <CFM_ARGS_7>
+    bool test() const
+    {
+        return Flags  & BitMask<uint64, true,  CFM_VALUES_7>::value ||
+               Flags2 & BitMask<uint32, false, CFM_VALUES_7>::value;
+    }
+
+    template <CFM_ARGS_8>
+    bool test() const
+    {
+        return Flags  & BitMask<uint64, true,  CFM_VALUES_8>::value ||
+               Flags2 & BitMask<uint32, false, CFM_VALUES_8>::value;
+    }
+
+    template <CFM_ARGS_9>
+    bool test() const
+    {
+        return Flags  & BitMask<uint64, true,  CFM_VALUES_9>::value ||
+               Flags2 & BitMask<uint32, false, CFM_VALUES_9>::value;
+    }
+
+    template <CFM_ARGS_10>
+    bool test() const
+    {
+        return Flags  & BitMask<uint64, true,  CFM_VALUES_10>::value ||
+               Flags2 & BitMask<uint32, false, CFM_VALUES_10>::value;
+    }
+
+    // named constructors (compile-time)
+    template <CFM_ARGS_1>
+    static ClassFamilyMask create()
+    {
+        return ClassFamilyMask(BitMask<uint64, true,  CFM_VALUES_1>::value,
+                               BitMask<uint32, false, CFM_VALUES_1>::value);
+    }
+
+    template <CFM_ARGS_2>
+    static ClassFamilyMask create()
+    {
+        return ClassFamilyMask(BitMask<uint64, true,  CFM_VALUES_2>::value,
+                               BitMask<uint32, false, CFM_VALUES_2>::value);
+    }
+
+    template <CFM_ARGS_3>
+    static ClassFamilyMask create()
+    {
+        return ClassFamilyMask(BitMask<uint64, true,  CFM_VALUES_3>::value,
+                               BitMask<uint32, false, CFM_VALUES_3>::value);
+    }
+
+    template <CFM_ARGS_4>
+    static ClassFamilyMask create()
+    {
+        return ClassFamilyMask(BitMask<uint64, true,  CFM_VALUES_4>::value,
+                               BitMask<uint32, false, CFM_VALUES_4>::value);
+    }
+
+    template <CFM_ARGS_5>
+    static ClassFamilyMask create()
+    {
+        return ClassFamilyMask(BitMask<uint64, true,  CFM_VALUES_5>::value,
+                               BitMask<uint32, false, CFM_VALUES_5>::value);
+    }
+
+    template <CFM_ARGS_6>
+    static ClassFamilyMask create()
+    {
+        return ClassFamilyMask(BitMask<uint64, true,  CFM_VALUES_6>::value,
+                               BitMask<uint32, false, CFM_VALUES_6>::value);
+    }
+
+    template <CFM_ARGS_7>
+    static ClassFamilyMask create()
+    {
+        return ClassFamilyMask(BitMask<uint64, true,  CFM_VALUES_7>::value,
+                               BitMask<uint32, false, CFM_VALUES_7>::value);
+    }
+
+    template <CFM_ARGS_8>
+    static ClassFamilyMask create()
+    {
+        return ClassFamilyMask(BitMask<uint64, true,  CFM_VALUES_8>::value,
+                               BitMask<uint32, false, CFM_VALUES_8>::value);
+    }
+
+    template <CFM_ARGS_9>
+    static ClassFamilyMask create()
+    {
+        return ClassFamilyMask(BitMask<uint64, true,  CFM_VALUES_9>::value,
+                               BitMask<uint32, false, CFM_VALUES_9>::value);
+    }
+
+    template <CFM_ARGS_10>
+    static ClassFamilyMask create()
+    {
+        return ClassFamilyMask(BitMask<uint64, true,  CFM_VALUES_10>::value,
+                               BitMask<uint32, false, CFM_VALUES_10>::value);
+    }
+
+    // comparison operators
+    bool operator== (ClassFamilyMask const& rhs) const
+    {
+        return Flags == rhs.Flags && Flags2 == rhs.Flags2;
+    }
+
+    bool operator!= (ClassFamilyMask const& rhs) const
+    {
+        return Flags != rhs.Flags || Flags2 != rhs.Flags2;
+    }
+
+    // bitwise operators
+    ClassFamilyMask operator& (ClassFamilyMask const& rhs) const
+    {
+        return ClassFamilyMask(Flags & rhs.Flags, Flags2 & rhs.Flags2);
+    }
+
+    ClassFamilyMask operator| (ClassFamilyMask const& rhs) const
+    {
+        return ClassFamilyMask(Flags | rhs.Flags, Flags2 | rhs.Flags2);
+    }
+
+    ClassFamilyMask operator^ (ClassFamilyMask const& rhs) const
+    {
+        return ClassFamilyMask(Flags ^ rhs.Flags, Flags2 ^ rhs.Flags2);
+    }
+
+    ClassFamilyMask operator~ () const
+    {
+        return ClassFamilyMask(~Flags, ~Flags2);
+    }
+
+    // assignation operators
+    ClassFamilyMask& operator= (ClassFamilyMask const& rhs)
+    {
+        Flags  = rhs.Flags;
+        Flags2 = rhs.Flags2;
         return *this;
     }
+
+    ClassFamilyMask& operator&= (ClassFamilyMask const& rhs)
+    {
+        Flags  &= rhs.Flags;
+        Flags2 &= rhs.Flags2;
+        return *this;
+    }
+
+    ClassFamilyMask& operator|= (ClassFamilyMask const& rhs)
+    {
+        Flags  |= rhs.Flags;
+        Flags2 |= rhs.Flags2;
+        return *this;
+    }
+
+    ClassFamilyMask& operator^= (ClassFamilyMask const& rhs)
+    {
+        Flags  ^= rhs.Flags;
+        Flags2 ^= rhs.Flags2;
+        return *this;
+    }
+
+    // templates used for compile-time mask calculation
+private:
+    enum { LOW_WORD_SIZE = 64 };
+
+    template <typename T, int Val, bool IsLow, bool InRange>
+    struct DoShift
+    {
+        static T const value = T(1) << Val;
+    };
+
+    template <typename T, int Val>
+    struct DoShift<T, Val, false, true>
+    {
+        static T const value = T(1) << (Val - LOW_WORD_SIZE);
+    };
+
+    template <typename T, int Val, bool IsLow>
+    struct DoShift<T, Val, IsLow, false>
+    {
+        static T const value = 0;
+    };
+
+    template <int N, bool IsLow>
+    struct IsInRange
+    {
+        static bool const value = IsLow ? N < LOW_WORD_SIZE : N >= LOW_WORD_SIZE;
+    };
+
+    template <typename T, bool IsLow, int N1, int N2 = -1, int N3 = -1, int N4 = -1, int N5 = -1, int N6 = -1, int N7 = -1, int N8 = -1, int N9 = -1, int N10 = -1>
+    struct BitMask
+    {
+        static T const value = DoShift<T, N1, IsLow, IsInRange<N1, IsLow>::value>::value | BitMask<T, IsLow, N2, N3, N4, N5, N6, N7, N8, N9, N10, -1>::value;
+    };
+
+    template <typename T, bool IsLow>
+    struct BitMask<T, IsLow, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1>
+    {
+        static T const value = 0;
+    };
 };
 
 #define MAX_SPELL_REAGENTS 8
@@ -1689,6 +2018,67 @@ struct SpellEntry
     bool IsFitToFamily(SpellFamily family, ClassFamilyMask const& mask) const
     {
         return SpellFamily(SpellFamilyName) == family && IsFitToFamilyMask(mask);
+    }
+
+    // compile time version
+    template <SpellFamily family, CFM_ARGS_1>
+    bool IsFitToFamily() const
+    {
+        return SpellFamily(SpellFamilyName) == family && SpellFamilyFlags.test<CFM_VALUES_1>();
+    }
+
+    template <SpellFamily family, CFM_ARGS_2>
+    bool IsFitToFamily() const
+    {
+        return SpellFamily(SpellFamilyName) == family && SpellFamilyFlags.test<CFM_VALUES_2>();
+    }
+
+    template <SpellFamily family, CFM_ARGS_3>
+    bool IsFitToFamily() const
+    {
+        return SpellFamily(SpellFamilyName) == family && SpellFamilyFlags.test<CFM_VALUES_3>();
+    }
+
+    template <SpellFamily family, CFM_ARGS_4>
+    bool IsFitToFamily() const
+    {
+        return SpellFamily(SpellFamilyName) == family && SpellFamilyFlags.test<CFM_VALUES_4>();
+    }
+
+    template <SpellFamily family, CFM_ARGS_5>
+    bool IsFitToFamily() const
+    {
+        return SpellFamily(SpellFamilyName) == family && SpellFamilyFlags.test<CFM_VALUES_5>();
+    }
+
+    template <SpellFamily family, CFM_ARGS_6>
+    bool IsFitToFamily() const
+    {
+        return SpellFamily(SpellFamilyName) == family && SpellFamilyFlags.test<CFM_VALUES_6>();
+    }
+
+    template <SpellFamily family, CFM_ARGS_7>
+    bool IsFitToFamily() const
+    {
+        return SpellFamily(SpellFamilyName) == family && SpellFamilyFlags.test<CFM_VALUES_7>();
+    }
+
+    template <SpellFamily family, CFM_ARGS_8>
+    bool IsFitToFamily() const
+    {
+        return SpellFamily(SpellFamilyName) == family && SpellFamilyFlags.test<CFM_VALUES_8>();
+    }
+
+    template <SpellFamily family, CFM_ARGS_9>
+    bool IsFitToFamily() const
+    {
+        return SpellFamily(SpellFamilyName) == family && SpellFamilyFlags.test<CFM_VALUES_9>();
+    }
+
+    template <SpellFamily family, CFM_ARGS_10>
+    bool IsFitToFamily() const
+    {
+        return SpellFamily(SpellFamilyName) == family && SpellFamilyFlags.test<CFM_VALUES_10>();
     }
 
     private:
@@ -1938,10 +2328,10 @@ struct VehicleEntry
     float   m_cameraYawOffset;                              // 33
     uint32  m_uiLocomotionType;                             // 34
     float   m_msslTrgtImpactTexRadius;                      // 35
-    uint32  m_uiSeatIndicatorType;                          // 36       m_vehicleUIIndicatorID
-    uint32  m_powerType;                                    // 37       m_powerDisplayID
-                                                            // 38 new in 3.1
-                                                            // 39 new in 3.1
+    uint32  m_uiSeatIndicatorType;                          // 36
+    uint32  m_powerType;                                    // 37, new in 3.1 - powerType
+                                                            // 38, new in 3.1
+                                                            // 39, new in 3.1
 };
 
 struct VehicleSeatEntry
@@ -2004,7 +2394,6 @@ struct VehicleSeatEntry
                                                             // 55       m_cameraEnteringZoom"
                                                             // 56       m_cameraSeatZoomMin
                                                             // 57       m_cameraSeatZoomMax
-
     bool IsUsable() const { return m_flags & SEAT_FLAG_USABLE; }
 };
 
@@ -2023,6 +2412,7 @@ struct WMOAreaTableEntry
     uint32 areaId;                                          // 10       m_AreaTableID (AreaTable.dbc)
     //char *Name[16];                                       //          m_AreaName_lang
     //uint32 nameFlags;
+
 };
 
 struct WorldMapAreaEntry

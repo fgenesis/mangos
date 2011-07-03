@@ -32,6 +32,7 @@
 #include "Item.h"
 #include "Player.h"
 #include "World.h"
+#include "AuctionHouseBot.h"
 
 /**
  * Creates a new MailSender object.
@@ -203,6 +204,13 @@ void MailDraft::SendReturnToSender(uint32 sender_acc, ObjectGuid sender_guid, Ob
         return;
     }
 
+    // Hack - if aucbot functional, drop returned to this mail anywhere
+    if (sender_guid == auctionbot.GetAHBplayerGUID())
+    {
+        deleteIncludedItems(true);
+        return;
+    }
+
     // prepare mail and send in other case
     bool needItemDelay = false;
 
@@ -239,6 +247,16 @@ void MailDraft::SendReturnToSender(uint32 sender_acc, ObjectGuid sender_guid, Ob
  */
 void MailDraft::SendMailTo(MailReceiver const& receiver, MailSender const& sender, MailCheckMask checked, uint32 deliver_delay)
 {
+    // Hack - if aucbot functional, drop sended to this mail anywhere
+    if (receiver.GetPlayerGuid() == auctionbot.GetAHBplayerGUID())
+    {
+        if (!m_items.empty())
+        {
+            deleteIncludedItems(true);
+        }
+        return;
+    }
+
     Player* pReceiver = receiver.GetPlayer();               // can be NULL
 
     uint32 pReceiverAccount = 0;

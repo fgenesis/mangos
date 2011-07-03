@@ -1091,7 +1091,7 @@ enum Opcodes
     SMSG_SEND_UNLEARN_SPELLS                        = 0x41E,
     SMSG_PROPOSE_LEVEL_GRANT                        = 0x41F,
     CMSG_ACCEPT_LEVEL_GRANT                         = 0x420,
-    SMSG_REFER_A_FRIEND_FAILURE                     = 0x421,
+    SMSG_REFER_A_FRIEND_ERROR                       = 0x421,
     SMSG_SPLINE_MOVE_SET_FLYING                     = 0x422,
     SMSG_SPLINE_MOVE_UNSET_FLYING                   = 0x423,
     SMSG_SUMMON_CANCEL                              = 0x424,
@@ -1352,8 +1352,8 @@ enum Opcodes
 enum SessionStatus
 {
     STATUS_AUTHED = 0,                                      ///< Player authenticated (_player==NULL, m_playerRecentlyLogout = false or will be reset before handler call, m_GUID have garbage)
-    STATUS_LOGGEDIN,                                        ///< Player in game (_player!=NULL, m_GUID == _player->GetGUID(), inWorld())
-    STATUS_TRANSFER,                                        ///< Player transferring to another map (_player!=NULL, m_GUID == _player->GetGUID(), !inWorld())
+    STATUS_LOGGEDIN,                                        ///< Player in game (_player!=NULL, m_GUID == _player->GetObjectGuid(), inWorld())
+    STATUS_TRANSFER,                                        ///< Player transferring to another map (_player!=NULL, m_GUID == _player->GetObjectGuid(), !inWorld())
     STATUS_LOGGEDIN_OR_RECENTLY_LOGGEDOUT,                  ///< _player!= NULL or _player==NULL && m_playerRecentlyLogout, m_GUID store last _player guid)
     STATUS_NEVER,                                           ///< Opcode not accepted from client (deprecated or server side only)
     STATUS_UNHANDLED                                        ///< We don' handle this opcode yet

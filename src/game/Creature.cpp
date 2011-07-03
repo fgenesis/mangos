@@ -157,8 +157,7 @@ bool CreatureCreatePos::Relocate(Creature* cr) const
 
 Creature::Creature(CreatureSubtype subtype) :
 Unit(), i_AI(NULL),
-lootForPickPocketed(false), lootForBody(false), lootForSkin(false), m_groupLootTimer(0), m_groupLootId(0),
-m_lootMoney(0), m_lootGroupRecipientId(0),
+lootForPickPocketed(false), lootForBody(false), lootForSkin(false),m_lootMoney(0),
 m_corpseDecayTimer(0), m_respawnTime(0), m_respawnDelay(25), m_corpseDelay(60), m_respawnradius(5.0f),
 m_subtype(subtype), m_defaultMovementType(IDLE_MOTION_TYPE), m_equipmentId(0),
 m_AlreadyCallAssistance(false), m_AlreadySearchedAssistance(false),
@@ -168,9 +167,6 @@ m_creatureInfo(NULL), m_splineFlags(SPLINEFLAG_WALKMODE)
 {
     m_regenTimer = 200;
     m_valuesCount = UNIT_END;
-
-    for(int i = 0; i < CREATURE_MAX_SPELLS; ++i)
-        m_spells[i] = 0;
 
     m_CreatureSpellCooldowns.clear();
     m_CreatureCategoryCooldowns.clear();
@@ -197,6 +193,9 @@ void Creature::AddToWorld()
         GetMap()->GetObjectsStore().insert<Creature>(GetObjectGuid(), (Creature*)this);
 
     Unit::AddToWorld();
+
+    if (GetVehicleKit())
+        GetVehicleKit()->Reset();
 }
 
 void Creature::RemoveFromWorld()
@@ -210,7 +209,7 @@ void Creature::RemoveFromWorld()
 
 void Creature::RemoveCorpse()
 {
-    if ((getDeathState() != CORPSE && !m_isDeadByDefault) || (getDeathState() != ALIVE && m_isDeadByDefault))
+    if (((getDeathState() != CORPSE && getDeathState() != GHOULED) && !m_isDeadByDefault) || (getDeathState() != ALIVE && m_isDeadByDefault))
         return;
 
     m_corpseDecayTimer = 0;
@@ -299,6 +298,7 @@ bool Creature::InitEntry(uint32 Entry, CreatureData const* data /*=NULL*/, GameE
     SetDisplayId(display_id);
 
     SetByteValue(UNIT_FIELD_BYTES_0, 2, minfo->gender);
+    SetByteValue(UNIT_FIELD_BYTES_0, 3, uint8(cinfo->powerType));
 
     // Load creature equipment
     if (eventData && eventData->equipment_id)
@@ -393,9 +393,6 @@ bool Creature::UpdateEntry(uint32 Entry, Team team, const CreatureData *data /*=
         else
             SetPvP(false);
     }
-
-    for(int i = 0; i < CREATURE_MAX_SPELLS; ++i)
-        m_spells[i] = GetCreatureInfo()->spells[i];
 
     SetVehicleId(GetCreatureInfo()->vehicleId);
 
@@ -493,6 +490,9 @@ void Creature::Update(uint32 update_diff, uint32 diff)
                     UpdateEntry(m_originalEntry, TEAM_NONE, NULL, eventData);
                 }
 
+                if (GetDisplayId() != GetNativeDisplayId() )
+                    SetDisplayId(GetNativeDisplayId() );
+
                 CreatureInfo const *cinfo = GetCreatureInfo();
 
                 SelectLevel(cinfo);
@@ -543,8 +543,9 @@ void Creature::Update(uint32 update_diff, uint32 diff)
                     else
                         StopGroupLoot();
                 }
+                m_Events.Update(update_diff);
+                _UpdateSpells(update_diff);
             }
-
             break;
         }
         case ALIVE:
@@ -593,6 +594,10 @@ void Creature::Update(uint32 update_diff, uint32 diff)
             // CORPSE/DEAD state will processed at next tick (in other case death timer will be updated unexpectedly)
             if(!isAlive())
                 break;
+
+            if (IsPet())                           // Regenerated before
+                break;
+
             RegenerateAll(update_diff);
             break;
         }
@@ -605,27 +610,9 @@ void Creature::Update(uint32 update_diff, uint32 diff)
     }
 }
 
-void Creature::StartGroupLoot( Group* group, uint32 timer )
-{
-    m_groupLootId = group->GetId();
-    m_groupLootTimer = timer;
-}
-
-void Creature::StopGroupLoot()
-{
-    if (!m_groupLootId)
-        return;
-
-    if (Group* group = sObjectMgr.GetGroupById(m_groupLootId))
-        group->EndRoll();
-
-    m_groupLootTimer = 0;
-    m_groupLootId = 0;
-}
-
 void Creature::RegenerateAll(uint32 update_diff)
 {
-    if (m_regenTimer > 0)
+    if(m_regenTimer > 0)
     {
         if(update_diff >= m_regenTimer)
             m_regenTimer = 0;
@@ -638,36 +625,83 @@ void Creature::RegenerateAll(uint32 update_diff)
     if (!isInCombat() || IsPolymorphed())
         RegenerateHealth();
 
-    RegenerateMana();
+    Regenerate(getPowerType());
 
     m_regenTimer = REGEN_TIME_FULL;
 }
 
-void Creature::RegenerateMana()
+void Creature::Regenerate(Powers power)
 {
-    uint32 curValue = GetPower(POWER_MANA);
-    uint32 maxValue = GetMaxPower(POWER_MANA);
+    uint32 curValue = GetPower(power);
+    uint32 maxValue = GetMaxPower(power);
 
     if (curValue >= maxValue)
         return;
 
-    uint32 addvalue = 0;
+    float addvalue = 0.0f;
 
-    // Combat and any controlled creature
-    if (isInCombat() || GetCharmerOrOwnerGuid())
+    switch(power)
     {
-        if(!IsUnderLastManaUseEffect())
+        case POWER_MANA:
         {
-            float ManaIncreaseRate = sWorld.getConfig(CONFIG_FLOAT_RATE_POWER_MANA);
-            float Spirit = GetStat(STAT_SPIRIT);
+            // Combat and any controlled creature
+            if (isInCombat() || !GetCharmerOrOwnerGuid().IsEmpty())
+            {
+                if(!IsUnderLastManaUseEffect())
+                {
+                    float ManaIncreaseRate = sWorld.getConfig(CONFIG_FLOAT_RATE_POWER_MANA);
+                    float Spirit = GetStat(STAT_SPIRIT);
 
-            addvalue = uint32((Spirit / 5.0f + 17.0f) * ManaIncreaseRate);
+                    addvalue = int32((Spirit / 5.0f + 17.0f) * ManaIncreaseRate);
+                }
+            }
+            else
+                addvalue = maxValue / 3;
+            break;
         }
-    }
-    else
-        addvalue = maxValue / 3;
+        case POWER_ENERGY:
+            if (IsVehicle())
+            {
+                if (VehicleEntry const* vehicleInfo = sVehicleStore.LookupEntry(GetCreatureInfo()->vehicleId))
+                {
 
-    ModifyPower(POWER_MANA, addvalue);
+                    switch (vehicleInfo->m_powerType)
+                    {
+                        case ENERGY_TYPE_PYRITE:
+                        case ENERGY_TYPE_BLOOD:
+                        case ENERGY_TYPE_OOZE:
+                        break;
+
+                        case ENERGY_TYPE_STEAM:
+                        default:
+                            addvalue = 10 * sWorld.getConfig(CONFIG_FLOAT_RATE_POWER_ENERGY);
+                        break;
+                    }
+                }
+            }
+            else
+                addvalue = 20 * sWorld.getConfig(CONFIG_FLOAT_RATE_POWER_ENERGY);
+            break;
+        case POWER_FOCUS:
+            addvalue = 24 * sWorld.getConfig(CONFIG_FLOAT_RATE_POWER_FOCUS);
+            break;
+        default:
+            return;
+    }
+
+    // Apply modifiers (if any)
+
+    AuraList const& ModPowerRegenAuras = GetAurasByType(SPELL_AURA_MOD_POWER_REGEN);
+    for(AuraList::const_iterator i = ModPowerRegenAuras.begin(); i != ModPowerRegenAuras.end(); ++i)
+        if ((*i)->GetModifier()->m_miscvalue == power)
+            addvalue += (*i)->GetModifier()->m_amount;
+
+    AuraList const& ModPowerRegenPCTAuras = GetAurasByType(SPELL_AURA_MOD_POWER_REGEN_PERCENT);
+    for(AuraList::const_iterator i = ModPowerRegenPCTAuras.begin(); i != ModPowerRegenPCTAuras.end(); ++i)
+        if ((*i)->GetModifier()->m_miscvalue == power)
+            addvalue *= ((*i)->GetModifier()->m_amount + 100) / 100.0f;
+
+    ModifyPower(power, int32(addvalue));
 }
 
 void Creature::RegenerateHealth()
@@ -743,6 +777,7 @@ bool Creature::AIM_Initialize()
 
 bool Creature::Create(uint32 guidlow, CreatureCreatePos& cPos, CreatureInfo const* cinfo, Team team /*= TEAM_NONE*/, const CreatureData *data /*= NULL*/, GameEventCreatureData const* eventData /*= NULL*/)
 {
+
     SetMap(cPos.GetMap());
     SetPhaseMask(cPos.GetPhaseMask(), false);
 
@@ -964,56 +999,6 @@ void Creature::PrepareBodyLootState()
 }
 
 /**
- * Return original player who tap creature, it can be different from player/group allowed to loot so not use it for loot code
- */
-Player* Creature::GetOriginalLootRecipient() const
-{
-    return m_lootRecipientGuid ? ObjectAccessor::FindPlayer(m_lootRecipientGuid) : NULL;
-}
-
-/**
- * Return group if player tap creature as group member, independent is player after leave group or stil be group member
- */
-Group* Creature::GetGroupLootRecipient() const
-{
-    // original recipient group if set and not disbanded
-    return m_lootGroupRecipientId ? sObjectMgr.GetGroupById(m_lootGroupRecipientId) : NULL;
-}
-
-/**
- * Return player who can loot tapped creature (member of group or single player)
- *
- * In case when original player tap creature as group member then group tap prefered.
- * This is for example important if player after tap leave group.
- * If group not exist or disbanded or player tap creature not as group member return player
- */
-Player* Creature::GetLootRecipient() const
-{
-    // original recipient group if set and not disbanded
-    Group* group = GetGroupLootRecipient();
-
-    // original recipient player if online
-    Player* player = GetOriginalLootRecipient();
-
-    // if group not set or disbanded return original recipient player if any
-    if (!group)
-        return player;
-
-    // group case
-
-    // return player if it still be in original recipient group
-    if (player && player->GetGroup() == group)
-        return player;
-
-    // find any in group
-    for(GroupReference *itr = group->GetFirstMember(); itr != NULL; itr = itr->next())
-        if (Player *p = itr->getSource())
-            return p;
-
-    return NULL;
-}
-
-/**
  * Set player and group (if player group member) who tap creature
  */
 void Creature::SetLootRecipient(Unit *unit)
@@ -1164,19 +1149,33 @@ void Creature::SelectLevel(const CreatureInfo *cinfo, float percentHealth, float
     else
         SetHealthPercent(percentHealth);
 
-    // mana
-    uint32 minmana = std::min(cinfo->maxmana, cinfo->minmana);
-    uint32 maxmana = std::max(cinfo->maxmana, cinfo->minmana);
-    uint32 mana = minmana + uint32(rellevel * (maxmana - minmana));
-
-    SetCreateMana(mana);
-    SetMaxPower(POWER_MANA, mana);                          //MAX Mana
-    SetPower(POWER_MANA, mana);
-
-    // TODO: set UNIT_FIELD_POWER*, for some creature class case (energy, etc)
-
     SetModifierValue(UNIT_MOD_HEALTH, BASE_VALUE, float(health));
-    SetModifierValue(UNIT_MOD_MANA, BASE_VALUE, float(mana));
+
+    Powers powerType = Powers(cinfo->powerType);
+    uint32 maxPower = 0;
+
+    switch(powerType)
+    {
+        case POWER_MANA:
+        {
+            uint32 minmana = std::min(cinfo->maxmana, cinfo->minmana);
+            uint32 maxmana = std::max(cinfo->maxmana, cinfo->minmana);
+            maxPower = minmana + uint32(rellevel * (maxmana - minmana));
+
+            SetCreateMana(maxPower);
+            break;
+        }
+        case POWER_ENERGY:
+        {
+            maxPower = uint32(GetCreatePowers(powerType) * cinfo->power_mod);
+            break;
+        }
+    }
+
+    SetMaxPower(powerType, maxPower);
+    SetPower(powerType, maxPower);
+
+    SetModifierValue(UnitMods(UNIT_MOD_POWER_START + powerType), BASE_VALUE, float(maxPower));
 
     // damage
     float damagemod = _GetDamageMod(rank);
@@ -1255,6 +1254,10 @@ bool Creature::CreateFromProto(uint32 guidlow, CreatureInfo const* cinfo, Team t
 
     if (!UpdateEntry(cinfo->Entry, team, data, eventData, false))
         return false;
+
+    // Checked at startup
+    if (GetCreatureInfo()->vehicleId)
+        SetVehicleId(GetCreatureInfo()->vehicleId);
 
     return true;
 }
@@ -1647,14 +1650,16 @@ SpellEntry const *Creature::ReachWithSpellAttack(Unit *pVictim)
     if(!pVictim)
         return NULL;
 
-    for(uint32 i = 0; i < CREATURE_MAX_SPELLS; ++i)
+    for(uint32 i = 0; i <= GetSpellMaxIndex(); ++i)
     {
-        if(!m_spells[i])
+        uint32 spellID = GetSpell(i);
+        if(!spellID)
             continue;
-        SpellEntry const *spellInfo = sSpellStore.LookupEntry(m_spells[i] );
+
+        SpellEntry const *spellInfo = sSpellStore.LookupEntry(spellID);
         if(!spellInfo)
         {
-            sLog.outError("WORLD: unknown spell id %i", m_spells[i]);
+            sLog.outError("WORLD: unknown spell id %i", spellID);
             continue;
         }
 
@@ -1699,14 +1704,16 @@ SpellEntry const *Creature::ReachWithSpellCure(Unit *pVictim)
     if(!pVictim)
         return NULL;
 
-    for(uint32 i = 0; i < CREATURE_MAX_SPELLS; ++i)
+    for(uint32 i = 0; i <= GetSpellMaxIndex(); ++i)
     {
-        if(!m_spells[i])
+        uint32 spellID = GetSpell(i);
+        if (spellID)
             continue;
-        SpellEntry const *spellInfo = sSpellStore.LookupEntry(m_spells[i] );
+
+        SpellEntry const *spellInfo = sSpellStore.LookupEntry(spellID);
         if(!spellInfo)
         {
-            sLog.outError("WORLD: unknown spell id %i", m_spells[i]);
+            sLog.outError("WORLD: unknown spell id %i", spellID);
             continue;
         }
 
@@ -2087,10 +2094,50 @@ Unit* Creature::SelectAttackingTarget(AttackingTarget target, uint32 position) c
             advance(r, position);
             return GetMap()->GetUnit((*r)->getUnitGuid());
         }
-        // TODO: implement these
-        //case ATTACKING_TARGET_RANDOM_PLAYER:
-        //case ATTACKING_TARGET_TOPAGGRO_PLAYER:
-        //case ATTACKING_TARGET_BOTTOMAGGRO_PLAYER:
+        case ATTACKING_TARGET_RANDOM_PLAYER:
+        {
+            std::vector<Unit*> threatPlayers;
+            threatPlayers.reserve(threatlist.size());
+            for (; i != threatlist.end(); ++i)
+            {
+                Unit *target = GetMap()->GetUnit((*i)->getUnitGuid());
+                if (target && target->GetTypeId() == TYPEID_PLAYER)
+                    threatPlayers.push_back(target);
+            }
+            if (threatPlayers.empty() || position >= threatPlayers.size())
+                return NULL;
+            return threatPlayers[urand(position, threatPlayers.size()-1)];
+        }
+        case ATTACKING_TARGET_TOPAGGRO_PLAYER:
+        {
+            for (; i != threatlist.end(); ++i)
+            {
+                Unit *target = GetMap()->GetUnit((*i)->getUnitGuid());
+                if (target && target->GetTypeId() == TYPEID_PLAYER)
+                {
+                    if (!position)
+                        return target;
+                    else
+                        --position;
+                }
+            }
+            return NULL;
+        }
+        case ATTACKING_TARGET_BOTTOMAGGRO_PLAYER:
+        {
+            for (; r != threatlist.rend(); ++r)
+            {
+                Unit *target = GetMap()->GetUnit((*r)->getUnitGuid());
+                if (target && target->GetTypeId() == TYPEID_PLAYER)
+                {
+                    if (!position)
+                        return target;
+                    else
+                        --position;
+                }
+            }
+            return NULL;
+        }
     }
 
     return NULL;
@@ -2145,36 +2192,12 @@ bool Creature::IsInEvadeMode() const
     return !i_motionMaster.empty() && i_motionMaster.GetCurrentMovementGeneratorType() == HOME_MOTION_TYPE;
 }
 
-float Creature::GetBaseSpeed() const
-{
-    if( IsPet() )
-    {
-        switch( ((Pet*)this)->getPetType() )
-        {
-            case SUMMON_PET:
-            case HUNTER_PET:
-            {
-                //fixed speed fur hunter (and summon!?) pets
-                return 1.15f;
-            }
-            case GUARDIAN_PET:
-            case MINI_PET:
-            {
-                //speed of CreatureInfo for guardian- and minipets
-                break;
-            }
-        }
-    }
-    return m_creatureInfo->speed_run;
-}
-
 bool Creature::HasSpell(uint32 spellID) const
 {
-    uint8 i;
-    for(i = 0; i < CREATURE_MAX_SPELLS; ++i)
-        if(spellID == m_spells[i])
-            break;
-    return i < CREATURE_MAX_SPELLS;                         // break before end of iteration of known spells
+    for(uint8 i = 0; i <= GetSpellMaxIndex(); ++i)
+        if (spellID == GetSpell(i))
+            return true;
+    return false;
 }
 
 time_t Creature::GetRespawnTimeEx() const
@@ -2543,4 +2566,41 @@ void Creature::SpawnInMaps(uint32 db_guid, CreatureData const* data)
 bool Creature::HasStaticDBSpawnData() const
 {
     return sObjectMgr.GetCreatureData(GetGUIDLow()) != NULL;
+}
+
+uint32 Creature::GetSpell(uint8 index, uint8 activeState)
+{
+    if (index > GetSpellMaxIndex(activeState))
+        return 0;
+
+    CreatureSpellsList const* spellList = sObjectMgr.GetCreatureSpells(GetEntry(), activeState);
+    if (!spellList)
+        return 0;
+
+    CreatureSpellsList::const_iterator itr = spellList->find(index);
+
+    if (itr == spellList->end())
+        return 0;
+
+    CreatureSpellEntry const* spellEntry = &itr->second;
+
+    if (!spellEntry)
+        return 0;
+
+    if (spellEntry->disabled)
+        return 0;
+
+    // other checks there
+
+    return spellEntry->spell;
+}
+
+uint8 Creature::GetSpellMaxIndex(uint8 activeState)
+{
+    CreatureSpellsList const* spellList = sObjectMgr.GetCreatureSpells(GetEntry(),activeState);
+    if (!spellList)
+        return 0;
+
+    return (spellList ? spellList->rbegin()->first : 0);
+
 }

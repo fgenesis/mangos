@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="9.00"
 	Name="shared"
 	ProjectGUID="{90297C34-F231-4DF4-848E-A74BCC0E40ED}"
 	RootNamespace="shared"
@@ -640,6 +640,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\shared\DelayExecutor.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\shared\DelayExecutor.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\shared\Errors.h"
 				>
 			</File>
@@ -712,14 +720,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\shared\Auth\md5.c"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\shared\Auth\md5.h"
-				>
-			</File>
-			<File
 				RelativePath="..\..\src\shared\Auth\SARC4.cpp"
 				>
 			</File>
@@ -733,6 +733,10 @@
 			</File>
 			<File
 				RelativePath="..\..\src\shared\Auth\Sha1.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\shared\Auth\WardenKeyGeneration.h"
 				>
 			</File>
 		</Filter>
@@ -817,6 +821,10 @@
 					Outputs="revision.h"
 				/>
 			</FileConfiguration>
+		</File>
+		<File
+			RelativePath="..\..\src\shared\revision_R2.h"
+			>
 		</File>
 		<File
 			RelativePath="..\..\src\shared\revision_nr.h"

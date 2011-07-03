@@ -193,6 +193,32 @@ ObjectUpdater::Visit(GridRefManager<T> &m)
     }
 }
 
+bool RaiseDeadObjectCheck::operator()(Corpse* u)
+{
+    // ignore bones
+    if(u->GetType() == CORPSE_BONES)
+        return false;
+    if (Player* owner = ObjectAccessor::FindPlayer(u->GetOwnerGuid()))
+        return i_fobj->IsWithinDistInMap(u, i_range);
+    else return false;
+}
+
+bool NearestCorpseInObjectRangeCheck::operator()(Corpse* u)
+{
+    // ignore bones
+    if (u->GetType() == CORPSE_BONES)
+        return false;
+
+    Player* owner = ObjectAccessor::FindPlayer(u->GetOwnerGuid());
+
+    if (owner && i_obj.IsWithinDistInMap(owner, i_range))
+    {
+        i_range = i_obj.GetDistance(owner);         // use found unit range as new range limit for next check
+        return true;
+    }
+    return false;
+}
+
 bool CannibalizeObjectCheck::operator()(Corpse* u)
 {
     // ignore bones

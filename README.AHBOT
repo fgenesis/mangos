@@ -37,8 +37,8 @@ AuctionHouseBot.UseBuyPriceForBuyer = 0
 
 AuctionHouseBot.EnableSeller enables (1) or disables (0) the Seller
 AuctionHouseBot.EnableBuyer enables (1) or disables (0) the Buyer
-AuctionHouseBot.Account is the account number (in realmd->account table) of the player you want to run as the auction bot. Note: a value of 0 will disable the bot.
-AuctionHouseBot.GUID is the GUID (in characters->characters table) of the player you want to run as the auction bot. Note: a value of 0 will disable the bot.
+AuctionHouseBot.Account is the account number (in realmd->account table) of the player you want to run as the auction bot. Note: must be setted anywhere!
+AuctionHouseBot.GUID is the GUID (in characters->characters table) of the player you want to run as the auction bot. Note: must be setted anywhere!
 AuctionHouseBot.VendorItems is a boolean value (0 or 1) that indicates whether to include Vendor only items
 AuctionHouseBot.LootItems  is a boolean value (0 or 1) that indicates whether to include Loot/Fish/Skin/etc. only items
 AuctionHouseBot.OtherItems  is a boolean value (0 or 1) that indicates whether to include Other items not covered by the first 2

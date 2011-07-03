@@ -56,9 +56,16 @@ GameObject::GameObject() : WorldObject(),
     m_spawnedByDefault = true;
     m_useTimes = 0;
     m_spellId = 0;
+    m_captureTime = 1000;
+    m_captureTicks = CAPTURE_SLIDER_NEUTRAL;        // 50 = 1/2* 100 (this is calculated in percents)
+    m_captureState = CAPTURE_STATE_NEUTRAL;
+    m_ownerFaction = TEAM_NONE;
+    m_progressFaction = TEAM_NONE;
     m_cooldownTime = 0;
 
     m_rotation = 0;
+
+    m_health = 0;
 }
 
 GameObject::~GameObject()
@@ -117,7 +124,7 @@ bool GameObject::Create(uint32 guidlow, uint32 name_id, Map *map, uint32 phaseMa
         return false;
     }
 
-    Object::_Create(guidlow, goinfo->id, HIGHGUID_GAMEOBJECT);
+    Object::_Create(ObjectGuid(HIGHGUID_GAMEOBJECT, goinfo->id, guidlow));
 
     m_goInfo = goinfo;
 
@@ -149,21 +156,120 @@ bool GameObject::Create(uint32 guidlow, uint32 name_id, Map *map, uint32 phaseMa
     SetGoArtKit(0);                                         // unknown what this is
     SetGoAnimProgress(animprogress);
 
+    if (goinfo->type == GAMEOBJECT_TYPE_DESTRUCTIBLE_BUILDING)
+    {
+        m_health = GetMaxHealth();
+        // destructible GO's show their "HP" as their animprogress
+        SetGoAnimProgress(255);
+    }
+
     //Notify the map's instance data.
     //Only works if you create the object in it, not if it is moves to that map.
     //Normally non-players do not teleport to other maps.
     if (InstanceData* iData = map->GetInstanceData())
         iData->OnObjectCreate(this);
 
+    if (goinfo->type == GAMEOBJECT_TYPE_TRANSPORT)
+    {
+        SetUInt32Value(GAMEOBJECT_LEVEL, goinfo->transport.pause);
+        if (goinfo->transport.startOpen)
+            SetGoState(GO_STATE_ACTIVE);
+    }
+
     return true;
 }
 
-void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
+void GameObject::Update(uint32 update_diff, uint32 diff)
 {
     if (GetObjectGuid().IsMOTransport())
     {
         //((Transport*)this)->Update(p_time);
         return;
+    }
+
+    if (GetGoType() == GAMEOBJECT_TYPE_CAPTURE_POINT)
+    {
+        if (m_captureTime < diff)
+        {
+            // get go info -> search radius
+            GameObjectInfo const* info = this->GetGOInfo();
+
+            if (!info)
+                return;
+
+            float radius = info->capturePoint.radius;
+
+            std::list<Player*> pointPlayers;
+
+            MaNGOS::AnyPlayerInObjectRangeCheck u_check(this, radius);
+            MaNGOS::PlayerListSearcher<MaNGOS::AnyPlayerInObjectRangeCheck > checker(pointPlayers, u_check);
+            Cell::VisitWorldObjects(this, checker, radius);
+
+            for (std::list<Player*>::iterator itr = pointPlayers.begin(); itr != pointPlayers.end(); ++itr)
+            {
+                if (m_CapturePlayersSet.find((*itr)->GetObjectGuid()) != m_CapturePlayersSet.end())
+                    continue;
+                else
+                {
+                    // each faction in its list
+                    if (((Player*)(*itr))->GetTeam() == ALLIANCE)
+                        m_AlliancePlayersSet.insert((*itr)->GetObjectGuid());
+                    else if (((Player*)(*itr))->GetTeam() == HORDE)
+                        m_HordePlayersSet.insert((*itr)->GetObjectGuid());
+
+                    // also use a general list to make things easy for now
+                    m_CapturePlayersSet.insert((*itr)->GetObjectGuid());
+                }
+            }
+
+            // return if no players found
+            if (m_CapturePlayersSet.empty())
+                return;
+
+            for (std::set<ObjectGuid>::iterator itr = m_CapturePlayersSet.begin(); itr != m_CapturePlayersSet.end(); ++itr)
+            {
+                if (Player* p_captor = GetMap()->GetPlayer(*itr))
+                {
+                    // check the radius for the players already in the set; remove those which are not valid
+                    if (!p_captor->IsWithinDistInMap(this, radius))
+                    {
+                        p_captor->SendUpdateWorldState(info->capturePoint.worldState1, 0);
+                        m_CapturePlayersSet.erase(p_captor->GetObjectGuid());
+
+                        // also erase from faction sets
+                        if (p_captor->GetTeam() == ALLIANCE)
+                            m_AlliancePlayersSet.erase(p_captor->GetObjectGuid());
+                        else if (p_captor->GetTeam() == HORDE)
+                            m_HordePlayersSet.erase(p_captor->GetObjectGuid());
+                    }
+                    else
+                    {
+                        // check use conditions:
+                        if (!p_captor->isAlive())
+                            return;
+                        if (p_captor->HasStealthAura())
+                            return;
+                        if (p_captor->HasInvisibilityAura())
+                            return;
+                        if (!p_captor->IsPvP() && !sWorld.IsPvPRealm())
+                            return;
+                        if (p_captor->IsTaxiFlying())
+                            return;
+                        if (p_captor->HasMovementFlag(MOVEFLAG_FLYING))
+                            return;
+                        if (p_captor->isGameMaster())
+                            return;
+
+                        // if conditions are ok, then use the button
+                        // further checks and calculations will be done in the use function
+                        Use(p_captor);
+                    }
+                }
+            }
+            m_captureTime = 1000;
+        }
+        else
+            m_captureTime -= diff;
     }
 
     switch (m_lootState)
@@ -195,7 +301,7 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
 
                             SendForcedObjectUpdate();
 
-                            SendGameObjectCustomAnim(GetObjectGuid());
+                            SendGameObjectCustomAnim(GetObjectGuid(),0);
                         }
 
                         m_lootState = GO_READY;             // can be successfully open with some chance
@@ -359,6 +465,15 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
                         m_cooldownTime = 0;
                     }
                     break;
+                case GAMEOBJECT_TYPE_CHEST:
+                    if (m_groupLootId)
+                    {
+                        if(update_diff < m_groupLootTimer)
+                            m_groupLootTimer -= update_diff;
+                        else
+                            StopGroupLoot();
+                    }
+                    break;
                 default:
                     break;
             }
@@ -397,6 +512,14 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
                 if (Unit* owner = GetOwner())
                     owner->RemoveGameObject(this, false);
 
+                SetRespawnTime(0);
+                Delete();
+                return;
+            }
+
+            // Wild Summoned GOs also should be deleted
+            if (IsWildSummoned())
+            {
                 SetRespawnTime(0);
                 Delete();
                 return;
@@ -688,6 +811,15 @@ bool GameObject::IsTransport() const
     return gInfo->type == GAMEOBJECT_TYPE_TRANSPORT || gInfo->type == GAMEOBJECT_TYPE_MO_TRANSPORT;
 }
 
+// is Dynamic transport = non-stop Transport
+bool GameObject::IsDynTransport() const
+{
+    // If something is marked as a transport, don't transmit an out of range packet for it.
+    GameObjectInfo const * gInfo = GetGOInfo();
+    if(!gInfo) return false;
+    return gInfo->type == GAMEOBJECT_TYPE_MO_TRANSPORT || (gInfo->type == GAMEOBJECT_TYPE_TRANSPORT && !gInfo->transport.pause);
+}
+
 Unit* GameObject::GetOwner() const
 {
     return ObjectAccessor::GetUnit(*this, GetOwnerGuid());
@@ -721,12 +853,17 @@ bool GameObject::isVisibleForInState(Player const* u, WorldObject const* viewPoi
             return false;
 
         // special invisibility cases
-        /* TODO: implement trap stealth, take look at spell 2836
-        if(GetGOInfo()->type == GAMEOBJECT_TYPE_TRAP && GetGOInfo()->trap.stealthed && u->IsHostileTo(GetOwner()))
+        if(GetGOInfo()->type == GAMEOBJECT_TYPE_TRAP && GetGOInfo()->trap.stealthed)
         {
-            if(check stuff here)
+            if(u->HasAura(2836) && u->isInFront(this, 15.0f))   // hack, maybe values are wrong
+                return true;
+
+            if (GetOwner() && u->IsFriendlyTo(GetOwner()))
+                return true;
+
+            if(m_lootState == GO_READY)
                 return false;
-        }*/
+        }
     }
 
     // check distance
@@ -793,7 +930,7 @@ bool GameObject::ActivateToQuest(Player *pTarget) const
                 //look for battlegroundAV for some objects which are only activated after mine gots captured by own team
                 if (GetEntry() == BG_AV_OBJECTID_MINE_N || GetEntry() == BG_AV_OBJECTID_MINE_S)
                     if (BattleGround *bg = pTarget->GetBattleGround())
-                        if (bg->GetTypeID() == BATTLEGROUND_AV && !(((BattleGroundAV*)bg)->PlayerCanDoMineQuest(GetEntry(),pTarget->GetTeam())))
+                        if (bg->GetTypeID(true) == BATTLEGROUND_AV && !(((BattleGroundAV*)bg)->PlayerCanDoMineQuest(GetEntry(),pTarget->GetTeam())))
                             return false;
                 return true;
             }
@@ -1147,7 +1284,7 @@ void GameObject::Use(Unit* user)
 
             // this appear to be ok, however others exist in addition to this that should have custom (ex: 190510, 188692, 187389)
             if (time_to_restore && info->goober.customAnim)
-                SendGameObjectCustomAnim(GetObjectGuid());
+                SendGameObjectCustomAnim(GetObjectGuid(), info->goober.customAnim);
             else
                 SetGoState(GO_STATE_ACTIVE);
 
@@ -1393,6 +1530,10 @@ void GameObject::Use(Unit* user)
 
             spellId = info->spellcaster.spellId;
 
+            // dismount players
+            if (user && user->IsMounted())
+                user->RemoveSpellsCausingAura(SPELL_AURA_MOUNTED);
+
             AddUse();
             break;
         }
@@ -1440,6 +1581,8 @@ void GameObject::Use(Unit* user)
                 BattleGround *bg = player->GetBattleGround();
                 if (!bg)
                     return;
+                if (player->GetVehicle())
+                    return;
                 // BG flag click
                 // AB:
                 // 15001
@@ -1476,6 +1619,8 @@ void GameObject::Use(Unit* user)
                 BattleGround *bg = player->GetBattleGround();
                 if (!bg)
                     return;
+                if (player->GetVehicle())
+                    return;
                 // BG flag dropped
                 // WS:
                 // 179785 - Silverwing Flag
@@ -1489,15 +1634,15 @@ void GameObject::Use(Unit* user)
                     {
                         case 179785:                        // Silverwing Flag
                             // check if it's correct bg
-                            if (bg->GetTypeID() == BATTLEGROUND_WS)
+                            if (bg->GetTypeID(true) == BATTLEGROUND_WS)
                                 bg->EventPlayerClickedOnFlag(player, this);
                             break;
                         case 179786:                        // Warsong Flag
-                            if (bg->GetTypeID() == BATTLEGROUND_WS)
+                            if (bg->GetTypeID(true) == BATTLEGROUND_WS)
                                 bg->EventPlayerClickedOnFlag(player, this);
                             break;
                         case 184142:                        // Netherstorm Flag
-                            if (bg->GetTypeID() == BATTLEGROUND_EY)
+                            if (bg->GetTypeID(true) == BATTLEGROUND_EY)
                                 bg->EventPlayerClickedOnFlag(player, this);
                             break;
                     }
@@ -1514,17 +1659,73 @@ void GameObject::Use(Unit* user)
             // Computer may very well blow up after stealing your bank accounts and wreck your car.
             // Use() object at own risk.
 
+            // the main ideea is that every use increases or decreases a counter
+            // the slider can be updated by ticks
+            // then we can check for the transition events (when counter = a value, trigger a certain event)
+
+            // Can we expect that only player object are able to trigger a capture point or
+            // ToDo- research: could dummy creatures be involved?
+
+            if (user->GetTypeId() != TYPEID_PLAYER)
+                return;
+
+            Player* player = (Player*)user;
+
             GameObjectInfo const* info = GetGOInfo();
 
             if (!info)
                 return;
 
-            // Can we expect that only player object are able to trigger a capture point or
-            // could dummy creatures be involved?
-            //if (user->GetTypeId() != TYPEID_PLAYER)
-                //return;
+            // some values used in the event
+            uint32 m_neutralPercent = info->capturePoint.neutralPercent;
 
-            //Player* player = (Player*)user;
+            // unk how to use these yet
+            //uint32 m_maxTime = info->capturePoint.maxTime;
+            //uint32 m_minTime = info->capturePoint.minTime;
+
+            // we need to check which is the faction with the most players inside
+            m_progressFaction = m_AlliancePlayersSet.size() > m_HordePlayersSet.size() ? ALLIANCE : HORDE;
+
+            // calculate the number of players which are actually capturing the point
+            // if is bigger than the max players, then use the max players
+            uint8 m_RangePlayers = 0;
+            if (m_progressFaction == ALLIANCE)
+                m_RangePlayers = m_AlliancePlayersSet.size() - m_HordePlayersSet.size();
+            else if (m_progressFaction == HORDE)
+                m_RangePlayers = m_HordePlayersSet.size() - m_AlliancePlayersSet.size();
+
+            // no more players than max players
+            if (m_RangePlayers > info->capturePoint.maxSuperiority)
+                m_RangePlayers = info->capturePoint.maxSuperiority;
+
+            // this shouldn't happen we need to make sure it doesn't
+            if (m_RangePlayers < info->capturePoint.minSuperiority)
+                return;
+
+            // default value to increase the slider is 1/max players
+            // we multiply this value with the number of players in range
+
+            double m_sliderTick = m_RangePlayers * ((double)1 / (double)info->capturePoint.maxSuperiority);
+
+            // calculate the slider movement only for the major faction
+            if (player->GetTeam() == m_progressFaction)
+            {
+                if (m_progressFaction == ALLIANCE)
+                {
+                    if (m_captureTicks < CAPTURE_SLIDER_ALLIANCE)
+                        m_captureTicks += m_sliderTick;
+                }
+                else if (m_progressFaction == HORDE)
+                {
+                    if (m_captureTicks > CAPTURE_SLIDER_HORDE)
+                        m_captureTicks -= m_sliderTick;
+                }
+            }
+
+            // send world state
+            player->SendUpdateWorldState(info->capturePoint.worldState1, 1);
+            player->SendUpdateWorldState(info->capturePoint.worldstate2, (uint32)m_captureTicks);
+            player->SendUpdateWorldState(info->capturePoint.worldstate3, m_neutralPercent);
 
             // ID1 vs ID2 are possibly related to team. The world states should probably
             // control which event to be used. For this to work, we need a far better system for
@@ -1534,49 +1735,119 @@ void GameObject::Use(Unit* user)
             // Call every event, which is obviously wrong, but can help in further development. For
             // the time being script side can process events and determine which one to use. It
             // require of course that some object call go->Use()
-            if (info->capturePoint.winEventID1)
+            // win event can happen when a faction captures the tower with the slider at max range
+
+            // win event ally
+            // ally wins tower with max points
+            if ((uint32)m_captureTicks == CAPTURE_SLIDER_ALLIANCE && m_captureState == CAPTURE_STATE_PROGRESS)
             {
-                if (!sScriptMgr.OnProcessEvent(info->capturePoint.winEventID1, user, this, true))
-                    GetMap()->ScriptsStart(sEventScripts, info->capturePoint.winEventID1, user, this);
+                if (info->capturePoint.winEventID1)
+                {
+                    if (!sScriptMgr.OnProcessEvent(info->capturePoint.winEventID1, user, this, true))
+                        GetMap()->ScriptsStart(sEventScripts, info->capturePoint.winEventID1, user, this);
+
+                    m_captureState = CAPTURE_STATE_WIN;
+                }
             }
-            if (info->capturePoint.winEventID2)
+            // win event horde
+            // horde wins a tower with max points
+            else if ((uint32)m_captureTicks == CAPTURE_SLIDER_HORDE && m_captureState == CAPTURE_STATE_PROGRESS)
             {
-                if (!sScriptMgr.OnProcessEvent(info->capturePoint.winEventID2, user, this, true))
-                    GetMap()->ScriptsStart(sEventScripts, info->capturePoint.winEventID2, user, this);
+                if (info->capturePoint.winEventID2)
+                {
+                    if (!sScriptMgr.OnProcessEvent(info->capturePoint.winEventID2, user, this, true))
+                        GetMap()->ScriptsStart(sEventScripts, info->capturePoint.winEventID2, user, this);
+
+                    m_captureState = CAPTURE_STATE_WIN;
+                }
             }
 
-            if (info->capturePoint.contestedEventID1)
+            // contest event can happen when a player succeeds in attacking a tower which belongs to the opposite faction; owner doesn't change
+
+            // contest event aly
+            // horde attack tower which is in progress or is won by alliance
+            if (m_ownerFaction == ALLIANCE && m_progressFaction == HORDE && m_captureState != CAPTURE_STATE_CONTEST && (m_captureState == CAPTURE_STATE_PROGRESS || m_captureState == CAPTURE_STATE_WIN))
             {
-                if (!sScriptMgr.OnProcessEvent(info->capturePoint.contestedEventID1, user, this, true))
-                    GetMap()->ScriptsStart(sEventScripts, info->capturePoint.contestedEventID1, user, this);
+                if (info->capturePoint.contestedEventID1)
+                {
+                    if (!sScriptMgr.OnProcessEvent(info->capturePoint.contestedEventID1, user, this, true))
+                        GetMap()->ScriptsStart(sEventScripts, info->capturePoint.contestedEventID1, user, this);
+
+                    m_captureState = CAPTURE_STATE_CONTEST;
+                }
             }
-            if (info->capturePoint.contestedEventID2)
+            // contest event horde
+            // alliance attack tower which is in progress or is won by horde
+            else if (m_ownerFaction == HORDE && m_progressFaction == ALLIANCE && m_captureState != CAPTURE_STATE_CONTEST && (m_captureState == CAPTURE_STATE_PROGRESS || m_captureState == CAPTURE_STATE_WIN))
             {
-                if (!sScriptMgr.OnProcessEvent(info->capturePoint.contestedEventID2, user, this, true))
-                    GetMap()->ScriptsStart(sEventScripts, info->capturePoint.contestedEventID2, user, this);
+                if (info->capturePoint.contestedEventID2)
+                {
+                    if (!sScriptMgr.OnProcessEvent(info->capturePoint.contestedEventID2, user, this, true))
+                        GetMap()->ScriptsStart(sEventScripts, info->capturePoint.contestedEventID2, user, this);
+
+                    m_captureState = CAPTURE_STATE_CONTEST;
+                }
             }
 
-            if (info->capturePoint.progressEventID1)
+            // the progress event can be achieved when a faction passes on its color on the slider or retakes the tower from a contested state
+
+            // progress event aly
+            // alliance takes the tower from neutral to alliance OR alliance takes the tower from contested to allaince
+            if (((uint32)m_captureTicks == CAPTURE_SLIDER_NEUTRAL + m_neutralPercent/2 + 1 && m_captureState == CAPTURE_STATE_NEUTRAL && m_progressFaction == ALLIANCE) || (m_captureState == CAPTURE_STATE_CONTEST && m_progressFaction == ALLIANCE))
             {
-                if (!sScriptMgr.OnProcessEvent(info->capturePoint.progressEventID1, user, this, true))
-                    GetMap()->ScriptsStart(sEventScripts, info->capturePoint.progressEventID1, user, this);
+                if (info->capturePoint.progressEventID1)
+                {
+                    if (!sScriptMgr.OnProcessEvent(info->capturePoint.progressEventID1, user, this, true))
+                        GetMap()->ScriptsStart(sEventScripts, info->capturePoint.progressEventID1, user, this);
+
+                    // set capture state to aly
+                    m_captureState = CAPTURE_STATE_PROGRESS;
+                    m_ownerFaction = ALLIANCE;
+                }
             }
-            if (info->capturePoint.progressEventID2)
+            // progress event horde
+            // horde takes the tower from neutral to horde OR horde takes the tower from contested to horde
+            else if (((uint32)m_captureTicks == CAPTURE_SLIDER_NEUTRAL - m_neutralPercent/2 - 1 && m_captureState == CAPTURE_STATE_NEUTRAL && m_progressFaction == HORDE) || (m_captureState == CAPTURE_STATE_CONTEST && player->GetTeam() == HORDE))
             {
-                if (!sScriptMgr.OnProcessEvent(info->capturePoint.progressEventID2, user, this, true))
-                    GetMap()->ScriptsStart(sEventScripts, info->capturePoint.progressEventID2, user, this);
+                if (info->capturePoint.progressEventID2)
+                {
+                    if (!sScriptMgr.OnProcessEvent(info->capturePoint.progressEventID2, user, this, true))
+                        GetMap()->ScriptsStart(sEventScripts, info->capturePoint.progressEventID2, user, this);
+
+                    // set capture state to horde
+                    m_captureState = CAPTURE_STATE_PROGRESS;
+                    m_ownerFaction = HORDE;
+                }
             }
 
-            if (info->capturePoint.neutralEventID1)
+            // neutral event can happen when one faction takes the tower from the opposite faction and makes it neutral
+
+            // neutral event aly
+            // horde takes the tower from alliance to neutral
+            if ((uint32)m_captureTicks == CAPTURE_SLIDER_NEUTRAL + m_neutralPercent/2 && m_captureState == CAPTURE_STATE_CONTEST && m_progressFaction == HORDE)
             {
-                if (!sScriptMgr.OnProcessEvent(info->capturePoint.neutralEventID1, user, this, true))
-                    GetMap()->ScriptsStart(sEventScripts, info->capturePoint.neutralEventID1, user, this);
+                if (info->capturePoint.neutralEventID1)
+                {
+                    if (!sScriptMgr.OnProcessEvent(info->capturePoint.neutralEventID1, user, this, true))
+                        GetMap()->ScriptsStart(sEventScripts, info->capturePoint.neutralEventID1, user, this);
+
+                    m_captureState = CAPTURE_STATE_NEUTRAL;
+                    m_ownerFaction = TEAM_NONE;
+                }
             }
-            if (info->capturePoint.neutralEventID2)
+            // neutral event horde
+            // alliance takes the tower from horde to neutral
+            else if ((uint32)m_captureTicks == CAPTURE_SLIDER_NEUTRAL - m_neutralPercent/2 && m_captureState == CAPTURE_STATE_CONTEST && m_progressFaction == ALLIANCE)
             {
-                if (!sScriptMgr.OnProcessEvent(info->capturePoint.neutralEventID2, user, this, true))
-                    GetMap()->ScriptsStart(sEventScripts, info->capturePoint.neutralEventID2, user, this);
-            }
+                if (info->capturePoint.neutralEventID2)
+                {
+                    if (!sScriptMgr.OnProcessEvent(info->capturePoint.neutralEventID2, user, this, true))
+                        GetMap()->ScriptsStart(sEventScripts, info->capturePoint.neutralEventID2, user, this);
+
+                    m_captureState = CAPTURE_STATE_NEUTRAL;
+                    m_ownerFaction = TEAM_NONE;
+                }
+           }
 
             // Some has spell, need to process those further.
             return;
@@ -1623,6 +1894,90 @@ void GameObject::Use(Unit* user)
     targets.setUnitTarget(user);
 
     spell->prepare(&targets);
+}
+
+bool GameObject::IsInRange(float x, float y, float z, float radius) const
+{
+    GameObjectDisplayInfoEntry const *info = sGameObjectDisplayInfoStore.LookupEntry(GetUInt32Value(GAMEOBJECT_DISPLAYID));
+    if (!info)
+        return IsWithinDist3d(x, y, z, radius);
+
+    float dx = x - GetPositionX();
+    float dy = y - GetPositionY();
+    float dz = z - GetPositionZ();
+    float dist = sqrt(dx*dx + dy*dy);
+
+    if (dist <= CONTACT_DISTANCE)   // prevent division by 0
+        return true;
+
+    float sinA = sin(GetOrientation());
+    float cosA = cos(GetOrientation());
+    float sinB = dx / dist;
+    float cosB = dy / dist;
+
+    dx = dist * (cosA * cosB + sinA * sinB);
+    dy = dist * (cosA * sinB - sinA * cosB);
+
+    return dx < info->maxX + radius && dx > info->minX - radius
+        && dy < info->maxY + radius && dy > info->minY - radius
+        && dz < info->maxZ + radius && dz > info->minZ - radius;
+}
+
+void GameObject::DamageTaken(Unit* pDoneBy, uint32 damage)
+{
+    if (GetGoType() != GAMEOBJECT_TYPE_DESTRUCTIBLE_BUILDING || !m_health)
+        return;
+
+    DEBUG_FILTER_LOG(LOG_FILTER_DAMAGE, "GO damage taken: %u to health %u", damage, m_health);
+
+    if (m_health > damage)
+        m_health -= damage;
+    else
+        m_health = 0;
+
+    if (HasFlag(GAMEOBJECT_FLAGS, GO_FLAG_DAMAGED)) // from damaged to destroyed
+    {
+        if (!m_health)
+        {
+            RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_DAMAGED);
+            SetFlag(GAMEOBJECT_FLAGS, GO_FLAG_DESTROYED);
+            SetDisplayId(m_goInfo->destructibleBuilding.destroyedDisplayId);
+            GetMap()->ScriptsStart(sEventScripts, m_goInfo->destructibleBuilding.destroyedEvent, pDoneBy, this);
+        }
+    }
+    else                                            // from intact to damaged
+    {
+        if (m_health <= m_goInfo->destructibleBuilding.damagedNumHits)
+        {
+            SetFlag(GAMEOBJECT_FLAGS, GO_FLAG_DAMAGED);
+            SetDisplayId(m_goInfo->destructibleBuilding.damagedDisplayId);
+            GetMap()->ScriptsStart(sEventScripts, m_goInfo->destructibleBuilding.damageEvent, pDoneBy, this);
+            // if we have a "dead" display we can "kill" the building after its damaged
+            if (m_goInfo->destructibleBuilding.destroyedDisplayId)
+            {
+                m_health = m_goInfo->destructibleBuilding.damagedNumHits;
+                if (!m_health)
+                    m_health = 1;
+            }
+            // otherwise we just handle it as "destroyed"
+            else
+                m_health = 0;
+         }
+    }
+    SetGoAnimProgress(m_health * 255 / GetMaxHealth());
+}
+
+void GameObject::Rebuild(Unit* pWho)
+{
+    if (GetGoType() != GAMEOBJECT_TYPE_DESTRUCTIBLE_BUILDING)
+        return;
+
+    RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_DAMAGED | GO_FLAG_DESTROYED);
+    SetDisplayId(m_goInfo->displayId);
+    m_health = GetMaxHealth();
+    GetMap()->ScriptsStart(sEventScripts, m_goInfo->destructibleBuilding.rebuildingEvent, pWho, this);
+
+    SetGoAnimProgress(255);
 }
 
 // overwrite WorldObject function for proper name localization
@@ -1804,7 +2159,7 @@ float GameObject::GetObjectBoundingRadius() const
     // 1. This is clearly hack way because GameObjectDisplayInfoEntry have 6 floats related to GO sizes, but better that use DEFAULT_WORLD_OBJECT_SIZE
     // 2. In some cases this must be only interactive size, not GO size, current way can affect creature target point auto-selection in strange ways for big underground/virtual GOs
     if (m_displayInfo)
-        return fabs(m_displayInfo->unknown12) * GetObjectScale();
+        return fabs(m_displayInfo->minX) * GetObjectScale();
 
     return DEFAULT_WORLD_OBJECT_SIZE;
 }
@@ -1887,4 +2242,24 @@ void GameObject::SpawnInMaps(uint32 db_guid, GameObjectData const* data)
 bool GameObject::HasStaticDBSpawnData() const
 {
     return sObjectMgr.GetGOData(GetGUIDLow()) != NULL;
+}
+
+bool GameObject::IsWildSummoned() const
+{
+    // All Wild GOs are summoned by a spell and have no owner entry
+    if (!GetSpellId() || !GetOwnerGuid().IsEmpty())
+        return false;
+
+    // This check is likely not needed
+    if (SpellEntry const* spellInfo = sSpellStore.LookupEntry(GetSpellId()))
+    {
+        for (int eff_idx = 0; eff_idx < MAX_EFFECT_INDEX; ++eff_idx)
+        {
+            if (spellInfo->Effect[eff_idx] == SPELL_EFFECT_SUMMON_OBJECT_WILD && GetEntry() == spellInfo->EffectMiscValue[eff_idx])
+                return true;
+        }
+    }
+
+    // Also possible add MANGOS_ASSERT(false) or weaker bug-report to note this unexpected case.
+    return false;
 }

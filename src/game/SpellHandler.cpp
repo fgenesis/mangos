@@ -30,6 +30,10 @@
 #include "Vehicle.h"
 #include "SpellAuras.h"
 
+#include <G3D/Vector3.h>
+
+using G3D::Vector3;
+
 void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
 {
     uint8 bagIndex, slot;
@@ -344,8 +348,8 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
     recvPacket >> unk_flags;                                // flags (if 0x02 - some additional data are received)
 
     // ignore for remote control state (for player case)
-    Unit* mover = _player->GetMover();
-    if (mover != _player && mover->GetTypeId()==TYPEID_PLAYER)
+    Unit* _mover = GetPlayer()->GetMover();
+    if (_mover != GetPlayer() && _mover->GetTypeId()==TYPEID_PLAYER)
     {
         recvPacket.rpos(recvPacket.wpos());                 // prevent spam at ignore packet
         return;
@@ -353,6 +357,10 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
 
     DEBUG_LOG("WORLD: got cast spell packet, spellId - %u, cast_count: %u, unk_flags %u, data length = %i",
         spellId, cast_count, unk_flags, (uint32)recvPacket.size());
+
+    /* process anticheat check */
+    if (!GetPlayer()->GetAntiCheat()->DoAntiCheatCheck(CHECK_SPELL, spellId, CMSG_CAST_SPELL))
+        return;
 
     SpellEntry const *spellInfo = sSpellStore.LookupEntry(spellId );
 
@@ -363,10 +371,29 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
         return;
     }
 
+    //  Players on vehicles may cast many simple spells (like knock) from self
+
+    Unit* mover = NULL;
+
+    if (spellInfo->AttributesEx6 & SPELL_ATTR_EX6_UNK12 && _mover->IsCharmerOrOwnerPlayerOrPlayerItself())
+        mover = _mover->GetCharmerOrOwnerPlayerOrPlayerItself();
+    else
+        mover = _mover;
+
+    // casting own spells on some vehicles
+    if (mover->GetObjectGuid().IsVehicle() && mover->GetCharmerOrOwnerPlayerOrPlayerItself())
+    {
+        Player *plr = mover->GetCharmerOrOwnerPlayerOrPlayerItself();
+        if (mover->GetVehicleKit()->GetSeatInfo(plr) &&
+           (mover->GetVehicleKit()->GetSeatInfo(plr)->m_flags & SEAT_FLAG_CAN_ATTACK ||
+            mover->GetVehicleKit()->GetSeatInfo(plr)->m_flags & SEAT_FLAG_CAN_CAST ))
+            mover = plr;
+    }
+
     if (mover->GetTypeId()==TYPEID_PLAYER)
     {
         // not have spell in spellbook or spell passive and not casted by client
-        if (!((Player*)mover)->HasActiveSpell (spellId) || IsPassiveSpell(spellInfo))
+        if ( ((Player*)mover)->GetUInt16Value(PLAYER_FIELD_BYTES2, 0) == 0 && !((Player*)mover)->HasActiveSpell (spellId) || IsPassiveSpell(spellInfo))
         {
             sLog.outError("World: Player %u casts spell %u which he shouldn't have", mover->GetGUIDLow(), spellId);
             //cheater? kick? ban?
@@ -607,11 +634,11 @@ void WorldSession::HandleSpellClick( WorldPacket & recv_data )
     ObjectGuid guid;
     recv_data >> guid;
 
-    if (_player->isInCombat())                              // client prevent click and set different icon at combat state
+    Creature *unit = _player->GetMap()->GetAnyTypeCreature(guid);
+    if (!unit)
         return;
 
-    Creature *unit = _player->GetMap()->GetAnyTypeCreature(guid);
-    if (!unit || unit->isInCombat())                        // client prevent click and set different icon at combat state
+    if (_player->isInCombat() && !guid.IsVehicle())                              // client prevent click and set different icon at combat state
         return;
 
     SpellClickInfoMapBounds clickPair = sObjectMgr.GetSpellClickInfoMapBounds(unit->GetEntry());
@@ -624,6 +651,50 @@ void WorldSession::HandleSpellClick( WorldPacket & recv_data )
 
             caster->CastSpell(target, itr->second.spellId, true);
         }
+    }
+}
+
+
+void WorldSession::HandleUpdateProjectilePosition(WorldPacket& recvPacket)
+{
+    ObjectGuid casterGuid;  // actually target ?
+    uint32 spellId;         // Spell Id
+    uint8  castCount;       //
+    float m_targetX, m_targetY, m_targetZ; // Position of missile hit
+
+    recvPacket >> casterGuid;
+    recvPacket >> spellId;
+    recvPacket >> castCount;
+
+    recvPacket >> m_targetX >> m_targetY >> m_targetZ;
+
+    // Do we need unit as we use 3d position anyway ?
+    Unit* pCaster = GetPlayer()->GetMap()->GetUnit(casterGuid);
+    if (!pCaster)
+        return;
+
+    SpellEntry const *spellInfo = sSpellStore.LookupEntry(spellId);
+
+    if(!spellInfo)
+    {
+        sLog.outError("CMSG_UPDATE_PROJECTILE_POSITION: unknown spell id %u", spellId);
+        recvPacket.rpos(recvPacket.wpos());                 // prevent spam at ignore packet
+        return;
+    }
+
+    WorldPacket data(SMSG_NOTIFY_MISSILE_TRAJECTORY_COLLISION, 8+1+4+4+4);
+    data << casterGuid;
+    data << castCount;
+    data << m_targetX;
+    data << m_targetY;
+    data << m_targetZ;
+    SendPacket(&data);
+
+    for(int i = 0; i < 3; ++i)
+    {
+        if(spellInfo->EffectTriggerSpell[i])
+            if (SpellEntry const* spellInfoT = sSpellStore.LookupEntry(spellInfo->EffectTriggerSpell[i]))
+                pCaster->CastSpell(m_targetX, m_targetY, m_targetZ, spellInfoT, true);
     }
 }
 

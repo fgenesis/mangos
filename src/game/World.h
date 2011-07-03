@@ -198,6 +198,14 @@ enum eConfigUInt32Values
     CONFIG_UINT32_CHARDELETE_MIN_LEVEL,
     CONFIG_UINT32_GUID_RESERVE_SIZE_CREATURE,
     CONFIG_UINT32_GUID_RESERVE_SIZE_GAMEOBJECT,
+    CONFIG_UINT32_ANTICHEAT_GMLEVEL,
+    CONFIG_UINT32_ANTICHEAT_ACTION_DELAY,
+    CONFIG_UINT32_NUMTHREADS,
+    CONFIG_UINT32_RANDOM_BG_RESET_HOUR,
+    CONFIG_UINT32_RAF_MAXGRANTLEVEL,
+    CONFIG_UINT32_RAF_MAXREFERALS,
+    CONFIG_UINT32_RAF_MAXREFERERS,
+    CONFIG_UINT32_LFG_MAXKICKS,
     CONFIG_UINT32_MIN_LEVEL_FOR_RAID,
 
     // FG: custom configs below
@@ -223,6 +231,9 @@ enum eConfigUInt32Values
     CONFIG_UINT32_AUTOBAN_MIN_COUNTED_BANTIME,
     CONFIG_UINT32_NETMON_SAVE_INTERVAL,
     CONFIG_UINT32_QUERYCOUNTER_SAVE_INTERVAL,
+    // mangosR2
+    CONFIG_UINT32_PLAYERBOT_MAXBOTS,
+    CONFIG_UINT32_PLAYERBOT_RESTRICTLEVEL,
 
     CONFIG_UINT32_VALUE_COUNT
 };
@@ -260,6 +271,8 @@ enum eConfigFloatValues
     CONFIG_FLOAT_RATE_XP_KILL,
     CONFIG_FLOAT_RATE_XP_QUEST,
     CONFIG_FLOAT_RATE_XP_EXPLORE,
+    CONFIG_FLOAT_RATE_RAF_XP,
+    CONFIG_FLOAT_RATE_RAF_LEVELPERLEVEL,
     CONFIG_FLOAT_RATE_REPUTATION_GAIN,
     CONFIG_FLOAT_RATE_REPUTATION_LOWLEVEL_KILL,
     CONFIG_FLOAT_RATE_REPUTATION_LOWLEVEL_QUEST,
@@ -309,6 +322,9 @@ enum eConfigFloatValues
     CONFIG_FLOAT_GHOST_RUN_SPEED_WORLD,
     CONFIG_FLOAT_GHOST_RUN_SPEED_BG,
 
+    CONFIG_FLOAT_PLAYERBOT_MINDISTANCE,
+    CONFIG_FLOAT_PLAYERBOT_MAXDISTANCE,
+
     CONFIG_FLOAT_VALUE_COUNT
 };
 
@@ -333,6 +349,7 @@ enum eConfigBoolValues
     CONFIG_BOOL_GM_LOG_TRADE,
     CONFIG_BOOL_GM_LOWER_SECURITY,
     CONFIG_BOOL_GM_ALLOW_ACHIEVEMENT_GAINS,
+    CONFIG_BOOL_GM_ANNOUNCE_BAN,
     CONFIG_BOOL_SKILL_PROSPECTING,
     CONFIG_BOOL_ALWAYS_MAX_SKILL_FOR_LEVEL,
     CONFIG_BOOL_WEATHER,
@@ -362,10 +379,12 @@ enum eConfigBoolValues
     CONFIG_BOOL_ARENA_AUTO_DISTRIBUTE_POINTS,
     CONFIG_BOOL_ARENA_QUEUE_ANNOUNCER_JOIN,
     CONFIG_BOOL_ARENA_QUEUE_ANNOUNCER_EXIT,
+    CONFIG_BOOL_ARENA_QUEUE_ANNOUNCER_START,
     CONFIG_BOOL_KICK_PLAYER_ON_BAD_PACKET,
     CONFIG_BOOL_STATS_SAVE_ONLY_ON_LOGOUT,
     CONFIG_BOOL_CLEAN_CHARACTER_DB,
     CONFIG_BOOL_VMAP_INDOOR_CHECK,
+    CONFIG_BOOL_LOOT_CHESTS_IGNORE_DB,
     CONFIG_BOOL_PET_UNSUMMON_AT_MOUNT,
 
     // FG: custom configs (bool)
@@ -376,6 +395,20 @@ enum eConfigBoolValues
     CONFIG_BOOL_NETMON_RECORD_INCOMING,
     CONFIG_BOOL_NETMON_SAVE_OUTGOING,
     CONFIG_BOOL_NETMON_SAVE_INCOMING,
+
+    // mangosR2
+    CONFIG_BOOL_RAID_FLAGS_UNIQUE,
+    CONFIG_BOOL_ANTICHEAT_ENABLE,
+    CONFIG_BOOL_ANTICHEAT_WARDEN,
+    CONFIG_BOOL_ALLOW_FLIGHT_ON_OLD_MAPS,
+    CONFIG_BOOL_ARMORY_SUPPORT,
+    CONFIG_BOOL_LFG_ENABLE,
+    CONFIG_BOOL_LFR_ENABLE,
+    CONFIG_BOOL_LFG_DEBUG_ENABLE,
+    CONFIG_BOOL_LFR_EXTEND,
+    CONFIG_BOOL_PLAYERBOT_DISABLE,
+    CONFIG_BOOL_PLAYERBOT_DEBUGWHISPER,
+    CONFIG_BOOL_CHECK_GO_IN_PATH,
 
     CONFIG_BOOL_VALUE_COUNT
 };
@@ -485,6 +518,7 @@ class World
 
         WorldSession* FindSession(uint32 id) const;
         void AddSession(WorldSession *s);
+        void SendBroadcast();
         bool RemoveSession(uint32 id);
         /// Get the number of current active sessions
         void UpdateMaxSessionCounters();
@@ -538,6 +572,7 @@ class World
         /// Next daily quests reset time
         time_t GetNextDailyQuestsResetTime() const { return m_NextDailyQuestReset; }
         time_t GetNextWeeklyQuestsResetTime() const { return m_NextWeeklyQuestReset; }
+        time_t GetNextRandomBGResetTime() const { return m_NextRandomBGReset; }
 
         /// Get the maximum skill level a player can reach
         uint16 GetConfigMaxSkillValue() const
@@ -550,8 +585,9 @@ class World
         void LoadConfigSettings(bool reload = false);
 
         void SendWorldText(int32 string_id, ...);
+        void SendWorldTextWithSecurity(AccountTypes security, int32 string_id, ...);
         void SendGlobalText(const char* text, WorldSession *self);
-        void SendGlobalMessage(WorldPacket *packet, WorldSession *self = 0, uint32 team = 0);
+        void SendGlobalMessage(WorldPacket *packet, WorldSession *self = 0, uint32 team = 0, AccountTypes security = SEC_PLAYER);
         void SendZoneMessage(uint32 zone, WorldPacket *packet, WorldSession *self = 0, uint32 team = 0);
         void SendZoneText(uint32 zone, const char *text, WorldSession *self = 0, uint32 team = 0);
         void SendServerMessage(ServerMessageType type, const char *text = "", Player* player = NULL);
@@ -643,6 +679,7 @@ class World
 
         void InitDailyQuestResetTime();
         void InitWeeklyQuestResetTime();
+
         void SetMonthlyQuestResetTime(bool initialize = true);
         void ResetDailyQuests();
         void ResetWeeklyQuests();
@@ -653,6 +690,10 @@ class World
         void AutoBroadcast(void);
         void UpdateOnlineStats(void);
         uint32 GetPlayerCountByTeam(uint32);
+
+        // mangosR2
+        void InitRandomBGResetTime();
+        void ResetRandomBG();
 
     private:
         void setConfig(eConfigUInt32Values index, char const* fieldname, uint32 defvalue);
@@ -723,6 +764,8 @@ class World
         time_t m_NextDailyQuestReset;
         time_t m_NextWeeklyQuestReset;
         time_t m_NextMonthlyQuestReset;
+
+        time_t m_NextRandomBGReset;
 
         //Player Queue
         Queue m_QueuedSessions;

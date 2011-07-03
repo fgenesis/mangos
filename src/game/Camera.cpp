@@ -157,5 +157,6 @@ ViewPoint::~ViewPoint()
     if (!m_cameras.empty())
     {
         sLog.outError("ViewPoint destructor called, but some cameras referenced to it");
+        m_cameras.clear();
     }
 }

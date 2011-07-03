@@ -1156,6 +1156,8 @@ ScriptLoadResult ScriptMgr::LoadScriptLibrary(const char* libName)
 
     m_hScriptLib = MANGOS_LOAD_LIBRARY(name.c_str());
 
+    sLog.outString( ">> Loading %s Script library", name.c_str());
+
     if (!m_hScriptLib)
         return SCRIPT_LOAD_ERR_NOT_FOUND;
 
@@ -1163,6 +1165,7 @@ ScriptLoadResult ScriptMgr::LoadScriptLibrary(const char* libName)
         GetScriptHookPtr((P), (N));             \
         if (!(P))                               \
         {                                       \
+            sLog.outError("ScriptMgr::LoadScriptLibrary(): function %s not found!", N); \
             /* prevent call before init */      \
             m_pOnFreeScriptLibrary = NULL;      \
             UnloadScriptLibrary();              \

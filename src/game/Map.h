@@ -192,7 +192,8 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>
         bool IsRegularDifficulty() const { return GetDifficulty() == REGULAR_DIFFICULTY; }
         uint32 GetMaxPlayers() const;                       // dependent from map difficulty
         uint32 GetMaxResetDelay() const;                    // dependent from map difficulty
-        MapDifficulty const* GetMapDifficulty() const;      // dependent from map difficulty
+
+        MapDifficultyEntry const* GetMapDifficulty() const; // dependent from map difficulty
         bool Instanceable() const; // FG: implementation in Map.cpp, added some extra stuff
 
         // NOTE: this duplicate of Instanceable(), but Instanceable() can be changed when BG also will be instanceable
@@ -247,12 +248,12 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>
 
         void AddUpdateObject(Object *obj)
         {
-            i_objectsToClientUpdate.insert(obj);
+            i_objectsToClientUpdateQueue.push(obj);
         }
 
         void RemoveUpdateObject(Object *obj)
         {
-            i_objectsToClientUpdate.erase( obj );
+            i_objectsToClientNotUpdate.insert(obj);
         }
 
         // DynObjects currently
@@ -314,6 +315,8 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>
 
         void SendObjectUpdates();
         std::set<Object *> i_objectsToClientUpdate;
+        std::set<Object *> i_objectsToClientNotUpdate;
+        std::queue<Object*> i_objectsToClientUpdateQueue;
 
     protected:
         MapEntry const* i_mapEntry;
@@ -356,7 +359,6 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>
         ObjectGuidGenerator<HIGHGUID_GAMEOBJECT> m_GameObjectGuids;
         ObjectGuidGenerator<HIGHGUID_DYNAMICOBJECT> m_DynObjectGuids;
         ObjectGuidGenerator<HIGHGUID_PET> m_PetGuids;
-        ObjectGuidGenerator<HIGHGUID_VEHICLE> m_VehicleGuids;
 
         // Type specific code for add/remove to/from grid
         template<class T>
@@ -402,7 +404,7 @@ class MANGOS_DLL_SPEC DungeonMap : public Map
         void Remove(Player *, bool);
         void Update(const uint32&);
         bool Reset(InstanceResetMethod method);
-        void PermBindAllPlayers(Player *player);
+        void PermBindAllPlayers(Player *player, bool permanent = true);
         void UnloadAll(bool pForce);
         bool CanEnter(Player* player);
         void SendResetWarnings(uint32 timeLeft) const;
@@ -458,4 +460,5 @@ Map::Visit(const Cell& cell, TypeContainerVisitor<T, CONTAINER> &visitor)
         getNGrid(x, y)->Visit(cell_x, cell_y, visitor);
     }
 }
+
 #endif

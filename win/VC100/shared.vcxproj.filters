@@ -48,6 +48,9 @@
     <ClCompile Include="..\..\src\shared\Log.cpp">
       <Filter>Log</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\shared\DelayExecutor.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\shared\ProgressBar.cpp">
       <Filter>Util</Filter>
     </ClCompile>
@@ -64,9 +67,6 @@
       <Filter>Auth</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\shared\Auth\HMACSHA1.cpp">
-      <Filter>Auth</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\shared\Auth\md5.c">
       <Filter>Auth</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\shared\Auth\SARC4.cpp">
@@ -131,6 +131,9 @@
     <ClInclude Include="..\..\src\shared\ByteBuffer.h">
       <Filter>Util</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\shared\DelayExecutor.h">
+      <Filter>Util</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\shared\Errors.h">
       <Filter>Util</Filter>
     </ClInclude>
@@ -161,9 +164,6 @@
     <ClInclude Include="..\..\src\shared\Auth\HMACSHA1.h">
       <Filter>Auth</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\shared\Auth\md5.h">
-      <Filter>Auth</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\shared\Auth\SARC4.h">
       <Filter>Auth</Filter>
     </ClInclude>
@@ -176,8 +176,11 @@
     <ClInclude Include="..\..\src\shared\revision_sql.h" />
     <ClInclude Include="..\..\src\shared\ServiceWin32.h" />
     <ClInclude Include="..\..\src\shared\Threading.h" />
-    <ClInclude Include="..\..\src\shared\Database\SqlPreparedStatement.h">
+    <ClCompile Include="..\..\src\shared\Database\SqlPreparedStatement.h">
       <Filter>Database</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\src\shared\Auth\WardenKeyGeneration.h">
+      <Filter>Auth</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

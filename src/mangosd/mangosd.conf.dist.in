@@ -42,7 +42,7 @@ ConfVersion=2010100901
 #	CharacterDatabaseConnections
 #		 Amount of connections to database which will be used for SELECT queries. Maximum 16 connections per database.
 #		 Please, note, for data consistency only one connection for each database is used for transactions and async SELECTs.
-#		 So formula to find out how many connections will be established: X = ¹_connections + 1
+#		 So formula to find out how many connections will be established: X = ï¿½_connections + 1
 #		 Default: 1 connection for SELECT statements
 #
 #    MaxPingTime
@@ -188,6 +188,12 @@ BindIP = "0.0.0.0"
 #        Default: 1 (Enable)
 #                 0 (Disabled)
 #
+#    ACE mtmaps
+#    MapUpdate.Threads
+#        Number of threads to run if the binary was compiled with mtmaps support.
+#        Default: 2
+#        For stable works 1-3 threads (?) testing. Recommendation for low LA - (num of CPU - 1).
+#
 ###################################################################################################################
 
 UseProcessors = 0
@@ -213,6 +219,7 @@ UpdateUptimeInterval = 10
 MaxCoreStuckTime = 0
 AddonChannel = 1
 CleanCharacterDB = 1
+MapUpdate.Threads = 2
 
 ###################################################################################################################
 # SERVER LOGGING
@@ -368,6 +375,78 @@ GmLogTimestamp = 0
 GmLogPerAccount = 0
 RaLogFile = ""
 LogColors = ""
+
+# Chat log parameters
+ChatLogEnable = 0
+
+# If this is enabled, all $d in file names are replaced with current date
+# This does include innormative lexics log
+ChatLogDateSplit = 1
+
+# If this is enabled, UTF8 header is written into new files
+ChatLogUTFHeader = 1
+
+# If this is enabled, chat log will ignore messages with unprintable chars
+ChatLogIgnoreUnprintable = 1
+
+# Chat log files
+ChatLogChatFile = main_chat-$d.log
+ChatLogPartyFile = party_chat-$d.log
+ChatLogGuildFile = guild_chat-$d.log
+ChatLogWhisperFile = whisper_chat-$d.log
+ChatLogChannelFile = channel_chat-$d.log
+ChatLogRaidFile = raid_chat-$d.log
+ChatLogBattleGroundFile = bg_chat-$d.log
+
+# Chat log screen logging
+ChatLogChatScreen = 0
+ChatLogPartyScreen = 0
+ChatLogGuildScreen = 0
+ChatLogWhisperScreen = 0
+ChatLogChannelScreen = 0
+ChatLogRaidScreen = 0
+ChatLogBattleGroundScreen = 0
+
+# Lexics cutter parameters
+LexicsCutterEnable = 1
+
+LexicsCutterInnormativeCut = 1
+LexicsCutterCutReplacement = &!@^%!^&*!!!
+LexicsCutterLogFile = innormative-$d.log
+LexicsCutterScreenLog = 0
+LexicsCutterAnalogsFile = letter_analogs.txt
+LexicsCutterWordsFile = innormative_words.txt
+
+# Where to cut lexics
+LexicsCutInChat = 1
+LexicsCutInParty = 1
+LexicsCutInGuild = 1
+LexicsCutInWhisper = 1
+LexicsCutInChannel = 1
+LexicsCutInRaid = 1
+LexicsCutInBattleGround = 1
+
+# Ignore word spaces like: W O R D
+LexicsCutterIgnoreSpaces = 1
+
+# Ignore repeats like: WWOOOORRRRRD
+LexicsCutterIgnoreRepeats = 1
+
+# --- Action:
+# ---   0: log only
+# ---   1: sheep
+# ---   2: stun
+# ---   3: kill
+# ---   4: leave 5 health
+# ---   5: disable chat
+# ---   6: stuck (works as stun + 50% health)
+# ---   7: resurrection sickness
+# ---   8: shear
+LexicsCutterAction = 0
+LexicsCutterActionDuration = 60000
+
+# Do not perform action on GM if this is enabled
+LexicsCutterNoActionOnGM = 1
 
 ###################################################################################################################
 # SERVER SETTINGS
@@ -570,7 +649,7 @@ LogColors = ""
 #        Default: 10
 #
 #   BirthdayTime
-#        Set to birthday (date in unix time), By default 28th August 2005, when MaNGOS got it’s name
+#        Set to birthday (date in unix time), By default 28th August 2005, when MaNGOS got itï¿½s name
 #        Default: 1125180000
 #
 #    Instance.IgnoreLevel
@@ -632,6 +711,10 @@ LogColors = ""
 #        Increase to store more guild_bank events in table - minimum is 25 (GUILD_BANK_MAX_LOGS) for each guild_bank tab
 #        Useful when you don't want old log events to be overwritten by new, but increasing can slow down performance
 #        Default: 25
+#
+#    Loot.IgnoreChestGroupRulesFromDB
+#        Ignore database setting for loot rules for chests
+#        Default: 0 (disable)
 #
 #    TimerBar.Fatigue.GMLevel
 #        Disable/enable fatigue for security level (0..4) or high
@@ -714,6 +797,16 @@ LogColors = ""
 #                 0 - unsummon only for flying mounts
 #        Default: 1 - unsummon for any mount
 #
+#    RaidFlags.Unique
+#        Set raid flags (assistant, main assistant, main tank) unique in raid
+#        Default: 0 - flags not unique
+#                 1 - flags unique, not more then 1 player may have this flag
+#
+#    WOWArmorySupport
+#        Support collect statistics for Shadez WOW Armory frontend
+#        Default: 0 - don't support
+#                 1 - supported
+#
 #    ClientCacheVersion
 #        Client cache version for client cache data reset. Use any different from DB value and not recently used for triggering reset.
 #        Default: 0 (use DB value from world DB db_version.cache_id field)
@@ -745,6 +838,11 @@ LogColors = ""
 #        Minimal player level to join raid groups (only affects existing raid groups, party->raid convert ignored)
 #        You can bypass this setting by typing "/script SetAllowLowLevelRaid(true/false)" command in chat
 #        Default: 10
+#
+#    CheckGOInPath
+#        very simple checking for GO in unit path (for avoid problems with teleport throwgh door ).
+#        may use many CPU resources!
+#        Default: 0
 #
 ###################################################################################################################
 
@@ -794,6 +892,7 @@ Quests.Weekly.ResetHour = 6
 Quests.IgnoreRaid = 0
 Guild.EventLogRecordsCount = 100
 Guild.BankEventLogRecordsCount = 25
+Loot.IgnoreChestGroupRulesFromDB = 1
 TimerBar.Fatigue.GMLevel = 4
 TimerBar.Fatigue.Max = 60
 TimerBar.Breath.GMLevel = 4
@@ -813,6 +912,9 @@ SkillChance.Milling = 0
 OffhandCheckAtSpellUnlearn = 0
 OffhandCheckAtTalentsReset = 0
 PetUnsummonAtMount = 1
+RaidFlags.Unique = 0
+AllowFlightOnOldMaps = 0
+WOWArmorySupport = 0
 ClientCacheVersion = 0
 Event.Announce = 0
 BeepAtStart = 1
@@ -820,6 +922,7 @@ ShowProgressBars = 1
 WaitAtStartupError = 0
 Motd = "Welcome to the Massive Network Game Object Server."
 Raid.MinLevel = 10
+CheckGOInPath = 0
 
 ###################################################################################################################
 # PLAYER INTERACTION
@@ -868,6 +971,29 @@ AllowTwoSide.Interaction.Mail = 0
 AllowTwoSide.WhoList = 0
 AllowTwoSide.AddFriend = 0
 TalentsInspecting = 1
+
+###################################################################################################################
+# AUTO BROADCAST
+#
+#    AutoBroadcast.On
+#        Enable auto broadcast
+#        Default: 0 - off
+#                 1 - on
+#
+#    AutoBroadcast.Center
+#        Display method
+#        Default: 0 - announce
+#                 1 - notify
+#                 2 - both
+#
+#    AutoBroadcast.Timer
+#        Timer for auto broadcast
+#
+###################################################################################################################
+
+AutoBroadcast.On = 0
+AutoBroadcast.Center = 0
+AutoBroadcast.Timer = 30000
 
 ###################################################################################################################
 # CREATURE AND GAMEOBJECT SETTINGS
@@ -1127,6 +1253,11 @@ Channel.SilentlyGMJoin = 0
 #        Default: 1 (enable)
 #                 0 (disable)
 #
+#    GM.AnnounceBan
+#        If enabled bans and mutes are announced for all characters on realm with system message
+#        Default: 0 (disable)
+#                 1 (enable)
+#
 ###################################################################################################################
 
 GM.LoginState            = 2
@@ -1140,6 +1271,7 @@ GM.LogTrade              = 1
 GM.StartLevel            = 1
 GM.LowerSecurity         = 0
 GM.AllowAchievementGain  = 1
+GM.AnnounceBan           = 0
 
 ###################################################################################################################
 # VISIBILITY AND RADIUSES
@@ -1447,6 +1579,10 @@ Death.Ghost.RunSpeed.Battleground = 1.0
 #        Default: 1800000 (30 minutes)
 #                 0 - disable premade group matches (group always added to bg team in normal way)
 #
+#    BattleGround.Random.ResetHour
+#        Hour when random bg reset (0..23)
+#        Default: 6
+#
 ###################################################################################################################
 
 Battleground.CastDeserter = 1
@@ -1455,6 +1591,7 @@ Battleground.QueueAnnouncer.Start = 0
 Battleground.InvitationType = 0
 BattleGround.PrematureFinishTimer = 300000
 BattleGround.PremadeGroupWaitForMatch = 1800000
+BattleGround.Random.ResetHour = 6
 
 ###################################################################################################################
 # ARENA CONFIG
@@ -1491,6 +1628,11 @@ BattleGround.PremadeGroupWaitForMatch = 1800000
 #        Default: 0 (disable)
 #                 1 (enable)
 #
+#    Arena.QueueAnnouncer.Start
+#        Enable arena queue announcer posting to chat at Arena start
+#        Default: 0 (disable)
+#                 1 (enable)
+#
 #    Arena.ArenaSeason.ID
 #        Current area season id show in client
 #        Default: 1
@@ -1515,6 +1657,7 @@ Arena.AutoDistributePoints = 0
 Arena.AutoDistributeInterval = 7
 Arena.QueueAnnouncer.Join = 0
 Arena.QueueAnnouncer.Exit = 0
+Arena.QueueAnnouncer.Start = 0
 Arena.ArenaSeason.ID = 1
 Arena.ArenaSeasonPrevious.ID = 0
 Arena.StartRating = -1
@@ -1553,6 +1696,88 @@ Network.OutUBuff = 65536
 Network.TcpNodelay = 1
 Network.KickOnBadPacket = 0
 
+
+###################################################################################################################
+# AUCTION HOUSE BOT SETTINGS
+#
+#    AuctionHouseBot.EnableSeller
+#        Enable/Disable the part of AHBot that puts items up for auction
+#    Default 0 (disabled)
+#
+#    AuctionHouseBot.EnableBuyer
+#        Enable/Disable the part of AHBot that buys items from players
+#    Default 0 (disabled)
+#
+#    Auction House Bot character data
+#        AuctionHouseBot.Account is the account number (in realmd->account table) of the player you want to run as the auction bot.
+#       AuctionHouseBot.GUID is the GUID (in characters->characters table) of the player you want to run as the auction bot.
+#    Default: NONE (must be setted anywhere on true account and character!)
+#
+#    AuctionHouseBot.VendorItems
+#        Include items that can be bought from vendors.
+#    Default 0
+#
+#    AuctionHouseBot.LootItems
+#        Include items that can be looted or fished for.
+#    Default 1
+#
+#    AuctionHouseBot.OtherItems
+#        Include misc. items.
+#    Default 0
+#
+#    AuctionHouseBot.Bonding_types
+#        Indicates which bonding types to allow seller to put up for auction
+#            No_Bind
+#             Default 1
+#            Bind_When_Picked_Up
+#             Default 0
+#            Bind_When_Equipped
+#             Default 1
+#            Bind_When_Use
+#             Default 1
+#            Bind_Quest_Item
+#             Default 0
+# /dev/rsa modify: values of this (AuctionHouseBot.Bonding_types) is integer
+# 0 - disable this type item
+# (1 - 65535) - is koefficient to SellPrice for this type item
+#
+#    AuctionHouseBot.ItemsPerCycle
+#        Number of Items to Add/Remove from the AH during mass operations
+#    Default 200
+#
+#    AuctionHouseBot.UseBuyPriceForSeller
+#        Should the Seller use BuyPrice or SellPrice to determine Bid Prices
+#    Default 0 (use SellPrice)
+#
+#    AuctionHouseBot.MaxItemLevel
+#    /dev/rsa modify:  Maximum item level for auction bot sell
+#    Default 200
+#
+#    AuctionHouseBot.UseBuyPriceForBuyer
+#        Should the Buyer use BuyPrice or SellPrice to determine Bid Prices
+#    Default 0 (use SellPrice)
+#
+#    All other settings have been moved to sql
+#
+#
+###################################################################################################################
+
+AuctionHouseBot.EnableSeller = 0
+AuctionHouseBot.EnableBuyer = 0
+AuctionHouseBot.Account = (ACCOUNT NUMBER)
+AuctionHouseBot.GUID = (GUID)
+AuctionHouseBot.VendorItems = 0
+AuctionHouseBot.LootItems = 1
+AuctionHouseBot.OtherItems = 0
+AuctionHouseBot.No_Bind = 1
+AuctionHouseBot.Bind_When_Picked_Up = 0
+AuctionHouseBot.Bind_When_Equipped = 1
+AuctionHouseBot.Bind_When_Use = 1
+AuctionHouseBot.Bind_Quest_Item = 0
+AuctionHouseBot.ItemsPerCycle = 200
+AuctionHouseBot.UseBuyPriceForSeller = 0
+AuctionHouseBot.UseBuyPriceForBuyer = 0
+AuctionHouseBot.MaxItemLevel = 200
 
 ###################################################################################################################
 # CONSOLE, REMOTE ACCESS AND SOAP
@@ -1618,6 +1843,36 @@ SOAP.Port = 7878
 
 
 ###################################################################################################################
+# ANTICHEAT
+# Initially from gimly, CWN && many other. current from /dev/rsa
+# all other config optons moved to SQL
+#
+#    Anticheat.Enable
+#        Enable Movement Anticheat
+#        Default: 0 - off
+#                 1 - on
+#
+#    Anticheat.DelayAfterAction
+#        Delay new action after occured action.
+#        Default: 30 seconds - 30
+#
+#    Anticheat.GmLevel
+#        Only accounts that are below this gm-level or exact at the same, are reported for cheating.
+#        Default: Only normal Players - 0
+#
+#    Anticheat.Warden
+#        Enable Warden from TOM_RUS checks
+#        Default: 0 - off
+#                 1 - on
+#
+###################################################################################################################
+
+Anticheat.Enable = 1
+Anticheat.DelayAfterAction = 30
+Anticheat.GmLevel = 0
+Anticheat.Warden  = 0
+
+###################################################################################################################
 #    CharDelete.Method
 #        Character deletion behavior
 #        Default: 0  - Completely remove the character from the database
@@ -1640,79 +1895,75 @@ SOAP.Port = 7878
 #
 ###################################################################################################################
 
-CharDelete.Method = 0
-CharDelete.MinLevel = 0
+CharDelete.Method = 1
+CharDelete.MinLevel = 10
 CharDelete.KeepDays = 30
 
 ###################################################################################################################
-# AUCTION HOUSE BOT SETTINGS
-#
-#    AuctionHouseBot.EnableSeller
-#        Enable/Disable the part of AHBot that puts items up for auction
-#    Default 0 (disabled)
-#
-#    AuctionHouseBot.EnableBuyer
-#        Enable/Disable the part of AHBot that buys items from players
-#    Default 0 (disabled)
-#
-#    Auction House Bot character data
-#        AuctionHouseBot.Account is the account number (in realmd->account table) of the player you want to run as the auction bot.
-#       AuctionHouseBot.GUID is the GUID (in characters->characters table) of the player you want to run as the auction bot.
-#    Default: 0 (Auction House Bot disabled)
-#
-#    AuctionHouseBot.VendorItems
-#        Include items that can be bought from vendors.
-#    Default 0
-#
-#    AuctionHouseBot.LootItems
-#        Include items that can be looted or fished for.
-#    Default 1
-#
-#    AuctionHouseBot.OtherItems
-#        Include misc. items.
-#    Default 0
-#
-#    AuctionHouseBot.Bonding_types
-#        Indicates which bonding types to allow seller to put up for auction
-#            No_Bind
-#             Default 1
-#            Bind_When_Picked_Up
-#             Default 0
-#            Bind_When_Equipped
-#             Default 1
-#            Bind_When_Use
-#             Default 1
-#            Bind_Quest_Item
-#             Default 0
-#
-#    AuctionHouseBot.ItemsPerCycle
-#        Number of Items to Add/Remove from the AH during mass operations
-#    Default 200
-#
-#    AuctionHouseBot.UseBuyPriceForSeller
-#        Should the Seller use BuyPrice or SellPrice to determine Bid Prices
-#    Default 0 (use SellPrice)
-#
-#    AuctionHouseBot.UseBuyPriceForBuyer
-#        Should the Buyer use BuyPrice or SellPrice to determine Bid Prices
-#    Default 0 (use SellPrice)
-#
-#    All other settings have been moved to sql
+#    Refer-A-Friend system by Mas0n
+#    RAF.MaxGrantLevel       = 60  (max level for granting level bonuses)
+#    RAF.MaxReferals         = 5   (max referals for one account)
+#    RAF.MaxReferers         = 5   (max referred accounts for one account)
+#    Rate.RAF.XP             = 3   (XP bonus for referred friends in party)
+#    Rate.RAF.LevelPerLevel  = 0.5 (bonus levels per referal level)
 #
 ###################################################################################################################
+RAF.MaxGrantLevel       = 60
+RAF.MaxReferals         = 5
+RAF.MaxReferers         = 5
+Rate.RAF.XP             = 3
+Rate.RAF.LevelPerLevel  = 0.5
 
-AuctionHouseBot.EnableSeller = 0
-AuctionHouseBot.EnableBuyer = 0
-AuctionHouseBot.Account = 0
-AuctionHouseBot.GUID = 0
-AuctionHouseBot.VendorItems = 0
-AuctionHouseBot.LootItems = 1
-AuctionHouseBot.OtherItems = 0
-AuctionHouseBot.No_Bind = 1
-AuctionHouseBot.Bind_When_Picked_Up = 0
-AuctionHouseBot.Bind_When_Equipped = 1
-AuctionHouseBot.Bind_When_Use = 1
-AuctionHouseBot.Bind_Quest_Item = 0
-AuctionHouseBot.ItemsPerCycle = 200
-AuctionHouseBot.UseBuyPriceForSeller = 0
-AuctionHouseBot.UseBuyPriceForBuyer = 0
+
+###################################################################################################################
+#    LFG Dungeon finder system
+#
+#    LFR.Enable              = 0
+#        enabling Raid finder
+#    LFG.Enable              = 0
+#        enabling Dungeon finder
+#    LFG.Debug              = 0
+#        enabling Dungeon finder debug mode
+#    LFR.Extend              = 0
+#        enabling Raid finder extended operations (not blizzlike!)
+#    LFG.MaxKicks            = 5
+###################################################################################################################
+LFR.Enable              = 1
+LFG.Enable              = 0
+LFG.Debug               = 0
+LFR.Extend              = 0
+LFG.MaxKicks            = 5
+
+###################################################################################################################
+# PLAYERBOTAI CONFIGURATION
+#
+#    PlayerbotAI.DisableBots
+#        Disable the bot command and bot menu
+#        Default: 0 - off
+#                 1 - on
+#
+#    PlayerbotAI.DebugWhisper
+#        Enable debug output by whispering master
+#        Default: 0 - off
+#                 1 - on
+#
+#    PlayerbotAI.FollowDistanceMin
+#    PlayerbotAI.FollowDistanceMax
+#        Min. and Max. follow distance for bots
+#        Default: 0.5 / 1.0
+#
+#    PlayerbotAI.MaxNumBots
+#        Limits the number of bots per account (Max 9)
+#        Default: 9
+#
+#    PlayerbotAI.RestrictBotLevel
+#        Restrict the allowed bot level (Current Max 80)
+#        Default: 80
+#
+###################################################################################################################
+PlayerbotAI.DisableBots = 1
+PlayerbotAI.DebugWhisper = 0
+PlayerbotAI.FollowDistanceMin = 0.5
+PlayerbotAI.FollowDistanceMax = 1.0
+PlayerbotAI.MaxNumBots = 9
+PlayerbotAI.RestrictBotLevel = 80

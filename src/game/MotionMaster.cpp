@@ -68,6 +68,8 @@ void MotionMaster::UpdateMotion(uint32 diff)
     if (m_owner->hasUnitState(UNIT_STAT_CAN_NOT_MOVE))
         return;
 
+    if ( !empty() )
+    {
     MANGOS_ASSERT( !empty() );
     m_cleanFlag |= MMCF_UPDATE;
 
@@ -100,6 +102,7 @@ void MotionMaster::UpdateMotion(uint32 diff)
             m_cleanFlag &= ~MMCF_RESET;
         }
     }
+  } else return;
 }
 
 void MotionMaster::DirectClean(bool reset, bool all)
@@ -108,16 +111,21 @@ void MotionMaster::DirectClean(bool reset, bool all)
     {
         MovementGenerator *curr = top();
         pop();
-        curr->Finalize(*m_owner);
 
-        if (!isStatic(curr))
+        if (m_owner && m_owner->IsInWorld())
+            curr->Finalize(*m_owner);
+
+        if (!isStatic( curr ))
             delete curr;
     }
 
     if (!all && reset)
     {
-        MANGOS_ASSERT( !empty() );
-        top()->Reset(*m_owner);
+        if (!empty())
+        {
+            MANGOS_ASSERT( !empty() );
+            top()->Reset(*m_owner);
+        }
     }
 }
 
@@ -138,9 +146,11 @@ void MotionMaster::DelayedClean(bool reset, bool all)
     {
         MovementGenerator *curr = top();
         pop();
-        curr->Finalize(*m_owner);
 
-        if (!isStatic(curr))
+        if (m_owner && m_owner->IsInWorld())
+            curr->Finalize(*m_owner);
+
+        if (!isStatic( curr ))
             m_expList->push_back(curr);
     }
 }
@@ -440,10 +450,12 @@ void MotionMaster::propagateSpeedChange()
 
 MovementGeneratorType MotionMaster::GetCurrentMovementGeneratorType() const
 {
-    if (empty())
-        return IDLE_MOTION_TYPE;
+    MovementGenerator* curr = empty() ? NULL : top();
 
-    return top()->GetMovementGeneratorType();
+    if (curr)
+        return curr->GetMovementGeneratorType();
+    else
+        return IDLE_MOTION_TYPE;
 }
 
 bool MotionMaster::GetDestination(float &x, float &y, float &z)

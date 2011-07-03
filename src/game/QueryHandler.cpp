@@ -189,7 +189,7 @@ void WorldSession::HandleCreatureQueryOpcode( WorldPacket & recv_data )
             data << uint32(ci->ModelId[i]);
 
         data << float(ci->unk16);                           // health modifier
-        data << float(ci->unk17);                           // power modifier
+        data << float(ci->power_mod);                           // power modifier
         data << uint8(ci->RacialLeader);
         for(uint32 i = 0; i < 6; ++i)
             data << uint32(ci->questItems[i]);              // itemId[6], quest drop
@@ -332,7 +332,7 @@ void WorldSession::HandleNpcTextQueryOpcode( WorldPacket & recv_data )
 
     GossipText const* pGossip = sObjectMgr.GetGossipText(textID);
 
-    WorldPacket data( SMSG_NPC_TEXT_UPDATE, 100 );          // guess size
+    WorldPacket data( SMSG_NPC_TEXT_UPDATE, 100 );         // guess size
     data << textID;
 
     if (!pGossip)

@@ -98,6 +98,10 @@ class MANGOS_DLL_SPEC ChatHandler
         void PSendSysMessage(         const char *format, ...) ATTR_PRINTF(2,3);
         void PSendSysMessage(         int32     entry, ...  );
 
+        void SendGlobalSysMessage(const char *str);
+        void PSendGlobalSysMessage(const char *format, ...) ATTR_PRINTF(2,3);
+        void PSendGlobalSysMessage(int32 entry, ...  );
+
         bool ParseCommands(const char* text);
         ChatCommand const* FindCommand(char const* text);
 
@@ -120,8 +124,6 @@ class MANGOS_DLL_SPEC ChatHandler
         bool HasLowerSecurity(Player* target, ObjectGuid guid = ObjectGuid(), bool strong = false);
         bool HasLowerSecurityAccount(WorldSession* target, uint32 account, bool strong = false);
 
-        void SendGlobalSysMessage(const char *str);
-
         bool SetDataForCommandInTable(ChatCommand *table, const char* text, uint32 security, std::string const& help);
         void ExecuteCommand(const char* text);
         bool ShowHelpForCommand(ChatCommand *table, const char* cmd);
@@ -141,6 +143,10 @@ class MANGOS_DLL_SPEC ChatHandler
         bool HandleAccountSetAddonCommand(char* args);
         bool HandleAccountSetGmLevelCommand(char* args);
         bool HandleAccountSetPasswordCommand(char* args);
+
+        bool HandleAccountFriendAddCommand(char* args);
+        bool HandleAccountFriendDeleteCommand(char* args);
+        bool HandleAccountFriendListCommand(char* args);
 
         bool HandleAuctionAllianceCommand(char* args);
         bool HandleAuctionGoblinCommand(char* args);
@@ -199,6 +205,7 @@ class MANGOS_DLL_SPEC ChatHandler
         bool HandleDebugSpellCoefsCommand(char* args);
         bool HandleDebugSpellModsCommand(char* args);
         bool HandleDebugUpdateWorldStateCommand(char* args);
+        bool HandleDebugSendCalendarResultCommand(char* args);
 
         bool HandleDebugPlayCinematicCommand(char* args);
         bool HandleDebugPlayMovieCommand(char* args);
@@ -284,6 +291,7 @@ class MANGOS_DLL_SPEC ChatHandler
         bool HandleLookupAccountEmailCommand(char* args);
         bool HandleLookupAccountIpCommand(char* args);
         bool HandleLookupAccountNameCommand(char* args);
+
         bool HandleLookupAchievementCommand(char* args);
         bool HandleLookupAreaCommand(char* args);
         bool HandleLookupCreatureCommand(char* args);
@@ -323,6 +331,8 @@ class MANGOS_DLL_SPEC ChatHandler
         bool HandleModifyArenaCommand(char* args);
         bool HandleModifyPhaseCommand(char* args);
         bool HandleModifyGenderCommand(char* args);
+
+        bool HandleModifyPowerTypeCommand(char* args);
 
         //-----------------------Npc Commands-----------------------
         bool HandleNpcAddCommand(char* args);
@@ -465,6 +475,9 @@ class MANGOS_DLL_SPEC ChatHandler
         bool HandleReloadVehicleDataCommand(char* args);
         bool HandleReloadVehicleSeatDataCommand(char* args);
 
+        bool HandleReloadSpellDisabledCommand(char* args);
+        bool HandleReloadAntiCheatCommand(char* args);
+
         bool HandleResetAchievementsCommand(char* args);
         bool HandleResetAllCommand(char* args);
         bool HandleResetHonorCommand(char* args);
@@ -586,6 +599,7 @@ class MANGOS_DLL_SPEC ChatHandler
         bool HandleRepairitemsCommand(char* args);
         bool HandleStableCommand(char* args);
         bool HandleWaterwalkCommand(char* args);
+        bool HandlePlayerbotCommand(char* args);
         bool HandleQuitCommand(char* args);
 
         //! Development Commands

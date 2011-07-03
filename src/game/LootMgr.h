@@ -94,11 +94,14 @@ struct LootStoreItem
                                                             // Checks correctness of values
 };
 
+typedef std::set<uint32> AllowedLooterSet;
+
 struct LootItem
 {
     uint32  itemid;
     uint32  randomSuffix;
     int32   randomPropertyId;
+    AllowedLooterSet allowedGUIDs;
     uint16  conditionId       :16;                          // allow compiler pack structure
     uint8   count             : 8;
     bool    is_looted         : 1;
@@ -117,6 +120,9 @@ struct LootItem
     // Basic checks for player/item compatibility - if false no chance to see the item in the loot
     bool AllowedForPlayer(Player const * player) const;
     LootSlotType GetSlotTypeForSharedLoot(PermissionTypes permission, Player* viewer, bool condition_ok = false) const;
+
+    void AddAllowedLooter(Player const* player);
+    AllowedLooterSet* GetAllowedLooters() { return &allowedGUIDs; }
 };
 
 typedef std::vector<LootItem> LootItemList;

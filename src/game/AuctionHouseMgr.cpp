@@ -157,8 +157,8 @@ void AuctionHouseMgr::SendAuctionWonMail(AuctionEntry *auction)
             // FIXME: for offline player need also
             bidder->GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_WON_AUCTIONS, 1);
         }
-        else
-            RemoveAItem(pItem->GetGUIDLow());               // we have to remove the item, before we delete it !!
+
+        RemoveAItem(pItem->GetGUIDLow());               // we have to remove the item from auction, before we delete it !!
 
         // will delete item or place to receiver mail list
         MailDraft(msgAuctionWonSubject.str(), msgAuctionWonBody.str())
@@ -461,6 +461,7 @@ void AuctionHouseMgr::LoadAuctions()
 
 void AuctionHouseMgr::AddAItem(Item* it)
 {
+    WriteGuard guard(i_lock);
     MANGOS_ASSERT(it);
     MANGOS_ASSERT(mAitems.find(it->GetGUIDLow()) == mAitems.end());
     mAitems[it->GetGUIDLow()] = it;
@@ -468,6 +469,7 @@ void AuctionHouseMgr::AddAItem(Item* it)
 
 bool AuctionHouseMgr::RemoveAItem(uint32 id)
 {
+    WriteGuard guard(i_lock);
     ItemMap::iterator i = mAitems.find(id);
     if (i == mAitems.end())
     {
@@ -615,8 +617,10 @@ void AuctionHouseObject::BuildListBidderItems(WorldPacket& data, Player* player,
     for (AuctionEntryMap::const_iterator itr = AuctionsMap.begin();itr != AuctionsMap.end();++itr)
     {
         AuctionEntry *Aentry = itr->second;
-        if (Aentry->moneyDeliveryTime)
+
+        if (!Aentry || Aentry->moneyDeliveryTime)
             continue;
+
         if (Aentry && Aentry->bidder == player->GetGUIDLow())
         {
             if (itr->second->BuildAuctionInfo(data))
@@ -818,8 +822,10 @@ void WorldSession::BuildListAuctionItems(std::list<AuctionEntry*> &auctions, Wor
     for (std::list<AuctionEntry*>::const_iterator itr = auctions.begin(); itr != auctions.end();++itr)
     {
         AuctionEntry *Aentry = *itr;
-        if (Aentry->moneyDeliveryTime)
+
+        if (!Aentry || Aentry->moneyDeliveryTime)
             continue;
+
         Item *item = sAuctionMgr.GetAItem(Aentry->itemGuidLow);
         if (!item)
             continue;
@@ -885,8 +891,10 @@ void AuctionHouseObject::BuildListPendingSales(WorldPacket& data, Player* player
     for (AuctionEntryMap::const_iterator itr = AuctionsMap.begin(); itr != AuctionsMap.end(); ++itr)
     {
         AuctionEntry *Aentry = itr->second;
-        if (!Aentry->moneyDeliveryTime)
+
+        if (!Aentry || !Aentry->moneyDeliveryTime)
             continue;
+
         if (Aentry && Aentry->owner == player->GetGUIDLow())
         {
             Item *pItem = sAuctionMgr.GetAItem(Aentry->itemGuidLow);

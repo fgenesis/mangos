@@ -75,6 +75,13 @@ void MapManager::LoadTransports()
             continue;
         }
 
+        // setting mapID's, binded to transport GO
+        if (goinfo->moTransport.mapID)
+        {
+            m_mapOnTransportGO.insert(std::make_pair(goinfo->moTransport.mapID,t));
+            DEBUG_LOG("Loading transport %u between %s, %s map id %u", entry, name.c_str(), goinfo->name, goinfo->moTransport.mapID);
+        }
+
         // sLog.outString("Loading transport %d between %s, %s", entry, name.c_str(), goinfo->name);
 
         std::set<uint32> mapsUsed;
@@ -121,6 +128,7 @@ void MapManager::LoadTransports()
 
     sLog.outString();
     sLog.outString( ">> Loaded %u transports", count );
+    sLog.outString( ">> Loaded %u transports with mapID's", m_mapOnTransportGO.size() );
 
     // check transport data DB integrity
     result = WorldDatabase.Query("SELECT gameobject.guid,gameobject.id,transports.name FROM gameobject,transports WHERE gameobject.id = transports.entry");
@@ -141,6 +149,22 @@ void MapManager::LoadTransports()
     }
 }
 
+bool MapManager::IsTransportMap(uint32 mapid)
+{
+    TransportGOMap::const_iterator itr = m_mapOnTransportGO.find(mapid);
+    if (itr != m_mapOnTransportGO.end())
+        return true;
+    return false;
+}
+
+Transport* MapManager::GetTransportByGOMapId(uint32 mapid)
+{
+    TransportGOMap::const_iterator itr = m_mapOnTransportGO.find(mapid);
+    if (itr != m_mapOnTransportGO.end())
+        return itr->second;
+    return NULL;
+}
+
 Transport::Transport() : GameObject()
 {
     m_updateFlag = (UPDATEFLAG_TRANSPORT | UPDATEFLAG_HIGHGUID | UPDATEFLAG_HAS_POSITION | UPDATEFLAG_ROTATION);
@@ -158,7 +182,7 @@ bool Transport::Create(uint32 guidlow, uint32 mapid, float x, float y, float z, 
         return false;
     }
 
-    Object::_Create(guidlow, 0, HIGHGUID_MO_TRANSPORT);
+    Object::_Create(ObjectGuid(HIGHGUID_MO_TRANSPORT, guidlow));
 
     GameObjectInfo const* goinfo = ObjectMgr::GetGameObjectInfo(guidlow);
 

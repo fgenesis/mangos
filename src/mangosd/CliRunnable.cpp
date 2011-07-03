@@ -409,27 +409,33 @@ bool ChatHandler::HandleCharacterDeletedOldCommand(char* args)
 bool ChatHandler::HandleCharacterEraseCommand(char* args)
 {
     char* nameStr = ExtractLiteralArg(&args);
+
     if (!nameStr)
         return false;
 
-    Player* target;
-    ObjectGuid target_guid;
-    std::string target_name;
-    if (!ExtractPlayerTarget(&nameStr, &target, &target_guid, &target_name))
+    std::string target_name = nameStr;
+
+    if(!normalizePlayerName(target_name))
         return false;
 
-    uint32 account_id;
+    ObjectGuid target_guid = sObjectMgr.GetPlayerGuidByName(nameStr);
+    uint32 account_id = sObjectMgr.GetPlayerAccountIdByGUID(target_guid);
+
+    if (target_guid.IsEmpty() || !account_id)
+    {
+        SendSysMessage(LANG_PLAYER_NOT_FOUND);
+        SetSentErrorMessage(true);
+        return true;
+    }
+
+    Player* target = ObjectAccessor::FindPlayerByName(nameStr);
 
     if (target)
-    {
-        account_id = target->GetSession()->GetAccountId();
         target->GetSession()->KickPlayer();
-    }
-    else
-        account_id = sObjectMgr.GetPlayerAccountIdByGUID(target_guid);
 
     std::string account_name;
-    sAccountMgr.GetName (account_id,account_name);
+
+    sAccountMgr.GetName(account_id,account_name);
 
     Player::DeleteFromDB(target_guid, account_id, true, true);
     PSendSysMessage(LANG_CHARACTER_DELETED, target_name.c_str(), target_guid.GetCounter(), account_name.c_str(), account_id);

@@ -487,7 +487,7 @@ void Map::Update(const uint32 &t_diff)
     {
         Player* plr = m_mapRefIter->getSource();
 
-        if (!plr->IsInWorld() || !plr->IsPositionValid())
+        if (!plr || !plr->IsInWorld() || !plr->IsPositionValid())
             continue;
 
         //lets update mobs/objects in ALL visible cells around player!
@@ -626,7 +626,9 @@ void Map::Remove(Player *player, bool remove)
     SendRemoveTransports(player);
     UpdateObjectVisibility(player,cell,p);
 
-    player->ResetMap();
+    if (!player->GetPlayerbotAI())
+        player->ResetMap();
+
     if( remove )
         DeleteFromWorld(player);
 }
@@ -845,20 +847,20 @@ void Map::UnloadAll(bool pForce)
     }
 }
 
-MapDifficulty const* Map::GetMapDifficulty() const
+MapDifficultyEntry const* Map::GetMapDifficulty() const
 {
     return GetMapDifficultyData(GetId(),GetDifficulty());
 }
 
 uint32 Map::GetMaxPlayers() const
 {
-    if(MapDifficulty const* mapDiff = GetMapDifficulty())
+    if(MapDifficultyEntry const* mapDiff = GetMapDifficulty())
     {
         if(mapDiff->maxPlayers || IsRegularDifficulty())    // Normal case (expect that regular difficulty always have correct maxplayers)
             return mapDiff->maxPlayers;
         else                                                // DBC have 0 maxplayers for heroic instances with expansion < 2
         {                                                   // The heroic entry exists, so we don't have to check anything, simply return normal max players
-            MapDifficulty const* normalDiff = GetMapDifficultyData(i_id, REGULAR_DIFFICULTY);
+            MapDifficultyEntry const* normalDiff = GetMapDifficultyData(i_id, REGULAR_DIFFICULTY);
             return normalDiff ? normalDiff->maxPlayers : 0;
         }
     }
@@ -1352,7 +1354,7 @@ bool DungeonMap::Add(Player *player)
 
                 // no reason crash if we can fix state
                 player->UnbindInstance(GetId(), GetDifficulty());
-            }
+          }
 
             // bind to the group or keep using the group save
             if (!groupBind)
@@ -1380,12 +1382,14 @@ bool DungeonMap::Add(Player *player)
                 }
                 // if the group/leader is permanently bound to the instance
                 // players also become permanently bound when they enter
-                if (groupBind->perm)
+                if (groupBind->perm && IsDungeon())
                 {
-                    WorldPacket data(SMSG_INSTANCE_SAVE_CREATED, 4);
-                    data << uint32(0);
+                    WorldPacket data(SMSG_PENDING_RAID_LOCK, 9);
+                    data << uint32(60000);
+                    data << groupBind->state->GetCompletedEncountersMask();
+                    data << uint8(0);
                     player->GetSession()->SendPacket(&data);
-                    player->BindToInstance(GetPersistanceState(), true);
+                    player->SetPendingBind(GetPersistanceState(), 60000);
                 }
             }
         }
@@ -1445,7 +1449,7 @@ bool DungeonMap::Reset(InstanceResetMethod method)
 
     if(HavePlayers())
     {
-        if(method == INSTANCE_RESET_ALL)
+        if(method == INSTANCE_RESET_ALL || method == INSTANCE_RESET_CHANGE_DIFFICULTY)
         {
             // notify the players to leave the instance so it can be reset
             for(MapRefManager::iterator itr = m_mapRefManager.begin(); itr != m_mapRefManager.end(); ++itr)
@@ -1476,7 +1480,7 @@ bool DungeonMap::Reset(InstanceResetMethod method)
     return m_mapRefManager.isEmpty();
 }
 
-void DungeonMap::PermBindAllPlayers(Player *player)
+void DungeonMap::PermBindAllPlayers(Player *player, bool permanent)
 {
     Group *group = player->GetGroup();
     // group members outside the instance group don't get bound
@@ -1488,7 +1492,7 @@ void DungeonMap::PermBindAllPlayers(Player *player)
         InstancePlayerBind *bind = plr->GetBoundInstance(GetId(), GetDifficulty());
         if (!bind || !bind->perm)
         {
-            plr->BindToInstance(GetPersistanceState(), true);
+            plr->BindToInstance(GetPersistanceState(), permanent);
             WorldPacket data(SMSG_INSTANCE_SAVE_CREATED, 4);
             data << uint32(0);
             plr->GetSession()->SendPacket(&data);
@@ -1496,7 +1500,7 @@ void DungeonMap::PermBindAllPlayers(Player *player)
 
         // if the leader is not in the instance the group will not get a perm bind
         if (group && group->GetLeaderGuid() == plr->GetObjectGuid())
-            group->BindToInstance(GetPersistanceState(), true);
+            group->BindToInstance(GetPersistanceState(), permanent);
     }
 }
 
@@ -3026,7 +3030,8 @@ Creature* Map::GetCreature(ObjectGuid guid)
  */
 Pet* Map::GetPet(ObjectGuid guid)
 {
-    return m_objectsStore.find<Pet>(guid, (Pet*)NULL);
+    Pet* pet = ObjectAccessor::FindPet(guid);         // return only in world pets
+    return pet && pet->GetMap() == this ? pet : NULL;
 }
 
 /**
@@ -3127,6 +3132,14 @@ void Map::SendObjectUpdates()
 {
     UpdateDataMapType update_players;
 
+    while(!i_objectsToClientUpdateQueue.empty())
+    {
+        if (i_objectsToClientNotUpdate.find(i_objectsToClientUpdateQueue.front()) == i_objectsToClientNotUpdate.end())
+            i_objectsToClientUpdate.insert(i_objectsToClientUpdateQueue.front());
+        i_objectsToClientUpdateQueue.pop();
+    }
+    i_objectsToClientNotUpdate.clear();
+
     while(!i_objectsToClientUpdate.empty())
     {
         Object* obj = *i_objectsToClientUpdate.begin();
@@ -3149,6 +3162,7 @@ uint32 Map::GenerateLocalLowGuid(HighGuid guidhigh)
     switch(guidhigh)
     {
         case HIGHGUID_UNIT:
+        case HIGHGUID_VEHICLE:
             return m_CreatureGuids.Generate();
         case HIGHGUID_GAMEOBJECT:
             return m_GameObjectGuids.Generate();
@@ -3156,8 +3170,6 @@ uint32 Map::GenerateLocalLowGuid(HighGuid guidhigh)
             return m_DynObjectGuids.Generate();
         case HIGHGUID_PET:
             return m_PetGuids.Generate();
-        case HIGHGUID_VEHICLE:
-            return m_VehicleGuids.Generate();
         default:
             MANGOS_ASSERT(0);
     }

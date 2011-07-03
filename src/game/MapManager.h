@@ -25,6 +25,7 @@
 #include "ace/Recursive_Thread_Mutex.h"
 #include "Map.h"
 #include "GridStates.h"
+#include "MapUpdater.h"
 
 class Transport;
 class BattleGround;
@@ -146,6 +147,12 @@ class MANGOS_DLL_DECL MapManager : public MaNGOS::Singleton<MapManager, MaNGOS::
         uint32 GetNumInstances();
         uint32 GetNumPlayersInInstances();
 
+        /* transport GO/map identification*/
+        typedef std::map<uint32/*map_id*/, Transport*> TransportGOMap;
+        TransportGOMap m_mapOnTransportGO;
+
+        bool IsTransportMap(uint32 mapid);
+        Transport* GetTransportByGOMapId(uint32 mapid);
 
         //get list of all maps
         const MapMapType& Maps() const { return i_maps; }
@@ -176,6 +183,8 @@ class MANGOS_DLL_DECL MapManager : public MaNGOS::Singleton<MapManager, MaNGOS::
 
         uint32 i_gridCleanUpDelay;
         MapMapType i_maps;
+
+        MapUpdater m_updater;
         IntervalTimer i_timer;
 };
 

@@ -103,6 +103,17 @@ bool ChatHandler::HandleMuteCommand(char* args)
     std::string nameLink = playerLink(target_name);
 
     PSendSysMessage(LANG_YOU_DISABLE_CHAT, nameLink.c_str(), notspeaktime);
+
+    if (sWorld.getConfig(CONFIG_BOOL_GM_ANNOUNCE_BAN))
+    {
+        std::string GMnameLink;
+        if (m_session)
+            GMnameLink = playerLink(m_session->GetPlayerName());
+        else
+            GMnameLink = "";
+        PSendGlobalSysMessage(LANG_MUTE_ANNOUNCE, GMnameLink.c_str(), nameLink.c_str(), notspeaktime);
+    }
+
     return true;
 }
 
@@ -286,10 +297,11 @@ bool ChatHandler::HandleTriggerCommand(char* args)
                 ShowItemListHelper(at->requiredItem2, loc_idx, pl);
         }
 
-        if (at->requiredQuest)
+        if (at->requiredQuestA || at->requiredQuestH)
         {
             SendSysMessage(LANG_TRIGGER_REQ_QUEST_NORMAL);
-            ShowQuestListHelper(at->requiredQuest, loc_idx, pl);
+            ShowQuestListHelper(at->requiredQuestA, loc_idx, pl);
+            ShowQuestListHelper(at->requiredQuestH, loc_idx, pl);
         }
 
         if (at->heroicKey || at->heroicKey2)
@@ -302,10 +314,11 @@ bool ChatHandler::HandleTriggerCommand(char* args)
                 ShowItemListHelper(at->heroicKey2, loc_idx, pl);
         }
 
-        if (at->requiredQuestHeroic)
+        if (at->requiredQuestHeroicA || at->requiredQuestHeroicH)
         {
             SendSysMessage(LANG_TRIGGER_REQ_QUEST_HEROIC);
-            ShowQuestListHelper(at->requiredQuestHeroic, loc_idx, pl);
+            ShowQuestListHelper(at->requiredQuestHeroicA, loc_idx, pl);
+            ShowQuestListHelper(at->requiredQuestHeroicH, loc_idx, pl);
         }
     }
 
@@ -1451,6 +1464,33 @@ bool ChatHandler::HandleLookupFactionCommand(char* args)
     return true;
 }
 
+bool ChatHandler::HandleModifyPowerTypeCommand(char* args)
+{
+    if(!*args)
+        return false;
+
+    int32 type = atoi((char*)args);
+
+    if (type < 0 || type >= MAX_POWERS)
+    {
+        SendSysMessage(LANG_BAD_VALUE);
+        SetSentErrorMessage(true);
+        return false;
+    }
+
+    Unit* target = getSelectedUnit();
+    if (!target)
+    {
+        SendSysMessage(LANG_SELECT_CHAR_OR_CREATURE);
+        SetSentErrorMessage(true);
+        return false;
+    }
+
+    target->setPowerType(Powers(type));
+
+    return true;
+}
+
 bool ChatHandler::HandleModifyRepCommand(char* args)
 {
     if (!*args)
@@ -1849,6 +1889,7 @@ bool ChatHandler::HandleNpcDeleteCommand(char* args)
     switch (unit->GetSubtype())
     {
         case CREATURE_SUBTYPE_GENERIC:
+//        case CREATURE_SUBTYPE_VEHICLE:
         {
             unit->CombatStop();
             if (CreatureData const* data = sObjectMgr.GetCreatureData(unit->GetGUIDLow()))

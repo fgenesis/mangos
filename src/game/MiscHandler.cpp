@@ -500,12 +500,12 @@ void WorldSession::HandleSetSelectionOpcode( WorldPacket & recv_data )
     ObjectGuid guid;
     recv_data >> guid;
 
-    _player->SetSelectionGuid(guid);
-
     // update reputation list if need
     Unit* unit = ObjectAccessor::GetUnit(*_player, guid );  // can select group members at diff maps
     if (!unit)
         return;
+
+    _player->SetSelectionGuid(guid);
 
     if(FactionTemplateEntry const* factionTemplateEntry = sFactionTemplateStore.LookupEntry(unit->getFaction()))
         _player->GetReputationMgr().SetVisible(factionTemplateEntry);
@@ -841,7 +841,6 @@ void WorldSession::HandleAreaTriggerOpcode(WorldPacket & recv_data)
         return;
     }
 
-    // NULL if all values default (non teleport trigger)
     AreaTrigger const* at = sObjectMgr.GetAreaTrigger(Trigger_ID);
     if (!at)
         return;
@@ -894,67 +893,57 @@ void WorldSession::HandleAreaTriggerOpcode(WorldPacket & recv_data)
             pl->ResurrectPlayer(0.5f);
             pl->SpawnCorpseBones();
         }
-
-        // check trigger requirements
-        bool missingItem = false;
-        bool missingLevel = false;
-        bool missingQuest = false;
-
-        if (pl->getLevel() < at->requiredLevel && !sWorld.getConfig(CONFIG_BOOL_INSTANCE_IGNORE_LEVEL))
-            missingLevel = true;
-
-        // must have one or the other, report the first one that's missing
-        if (at->requiredItem)
-        {
-            if (!pl->HasItemCount(at->requiredItem, 1) &&
-                (!at->requiredItem2 || !GetPlayer()->HasItemCount(at->requiredItem2, 1)))
-                missingItem = true;
-        }
-        else if (at->requiredItem2 && !pl->HasItemCount(at->requiredItem2, 1))
-            missingItem = true;
-
-        bool isRegularTargetMap = !targetMapEntry->IsDungeon() || pl->GetDifficulty(targetMapEntry->IsRaid()) == REGULAR_DIFFICULTY;
-
-        if (!isRegularTargetMap)
-        {
-            if (at->heroicKey)
-            {
-                if (!pl->HasItemCount(at->heroicKey, 1) &&
-                    (!at->heroicKey2 || !pl->HasItemCount(at->heroicKey2, 1)))
-                    missingItem = true;
-            }
-            else if (at->heroicKey2 && !pl->HasItemCount(at->heroicKey2, 1))
-                missingItem = true;
-        }
-
-        if (!isRegularTargetMap)
-        {
-            if (at->requiredQuestHeroic && !pl->GetQuestRewardStatus(at->requiredQuestHeroic))
-                missingQuest = true;
-        }
-        else
-        {
-            if (at->requiredQuest && !pl->GetQuestRewardStatus(at->requiredQuest))
-                missingQuest = true;
-        }
-
-        if (missingItem || missingLevel || missingQuest)
-        {
-            // hack for "Opening of the Dark Portal"
-            if (missingQuest && at->target_mapId == 269)
-                SendAreaTriggerMessage("%s", at->requiredFailedText.c_str());
-            else if (missingQuest && targetMapEntry->IsContinent())// do not report anything for quest areatriggers
-                return;
-            // hack for TBC heroics
-            else if (missingLevel && !targetMapEntry->IsRaid() && GetPlayer()->GetDifficulty(false) == DUNGEON_DIFFICULTY_HEROIC && targetMapEntry->addon == 1)
-                SendAreaTriggerMessage(GetMangosString(LANG_LEVEL_MINREQUIRED), at->requiredLevel);
-            else
-                pl->SendTransferAborted(at->target_mapId, TRANSFER_ABORT_DIFFICULTY, pl->GetDifficulty(targetMapEntry->IsRaid()));
-            return;
-        }
     }
 
-    GetPlayer()->TeleportTo(at->target_mapId, at->target_X, at->target_Y, at->target_Z, at->target_Orientation, TELE_TO_NOT_LEAVE_TRANSPORT);
+    switch (GetPlayer()->GetAreaTriggerLockStatus(at, GetPlayer()->GetDifficulty(targetMapEntry->IsRaid())))
+    {
+        case AREA_LOCKSTATUS_OK:
+            GetPlayer()->TeleportTo(at->target_mapId, at->target_X, at->target_Y, at->target_Z, at->target_Orientation, TELE_TO_NOT_LEAVE_TRANSPORT);
+            return;
+        case AREA_LOCKSTATUS_TOO_LOW_LEVEL:
+            SendAreaTriggerMessage(GetMangosString(LANG_LEVEL_MINREQUIRED), at->requiredLevel);
+            return;
+        case AREA_LOCKSTATUS_QUEST_NOT_COMPLETED:
+            if(at->target_mapId == 269)
+            {
+                SendAreaTriggerMessage("%s", at->requiredFailedText.c_str());
+                return;
+            }
+            // No break here!
+        case AREA_LOCKSTATUS_MISSING_ITEM:
+            {
+                MapDifficultyEntry const* mapDiff = GetMapDifficultyData(targetMapEntry->MapID,GetPlayer()->GetDifficulty(targetMapEntry->IsRaid()));
+                if (mapDiff && mapDiff->mapDifficultyFlags & MAP_DIFFICULTY_FLAG_CONDITION)
+                {
+                    SendAreaTriggerMessage(mapDiff->areaTriggerText[GetSessionDbcLocale()]);
+                }
+                // do not report anything for quest areatriggers
+                DEBUG_LOG("HandleAreaTriggerOpcode:  LockAreaStatus %u, do action", uint8(GetPlayer()->GetAreaTriggerLockStatus(at, GetPlayer()->GetDifficulty(targetMapEntry->IsRaid()))));
+                return;
+            }
+        case AREA_LOCKSTATUS_MISSING_DIFFICULTY:
+            {
+                Difficulty difficulty = GetPlayer()->GetDifficulty(targetMapEntry->IsRaid());
+                GetPlayer()->SendTransferAborted(at->target_mapId, TRANSFER_ABORT_DIFFICULTY, difficulty > RAID_DIFFICULTY_10MAN_HEROIC ? RAID_DIFFICULTY_10MAN_HEROIC : difficulty);
+                return;
+            }
+        case AREA_LOCKSTATUS_INSUFFICIENT_EXPANSION:
+            GetPlayer()->SendTransferAborted(at->target_mapId, TRANSFER_ABORT_INSUF_EXPAN_LVL, targetMapEntry->Expansion());
+            return;
+        case AREA_LOCKSTATUS_NOT_ALLOWED:
+            GetPlayer()->SendTransferAborted(at->target_mapId, TRANSFER_ABORT_MAP_NOT_ALLOWED);
+            return;
+        // TODO: messages for other cases
+        case AREA_LOCKSTATUS_RAID_LOCKED:
+        case AREA_LOCKSTATUS_UNKNOWN_ERROR:
+            {
+                GetPlayer()->SendTransferAborted(at->target_mapId, TRANSFER_ABORT_ERROR);
+                return;
+            }
+        default:
+            DEBUG_LOG("HandleAreaTriggerOpcode: unhandled LockAreaStatus %u, do nothing", uint8(GetPlayer()->GetAreaTriggerLockStatus(at, GetPlayer()->GetDifficulty(targetMapEntry->IsRaid()))));
+            return;
+    }
 }
 
 void WorldSession::HandleUpdateAccountData(WorldPacket &recv_data)
@@ -1104,13 +1093,18 @@ void WorldSession::HandleNextCinematicCamera( WorldPacket & /*recv_data*/ )
 void WorldSession::HandleMoveTimeSkippedOpcode( WorldPacket & recv_data )
 {
     /*  WorldSession::Update( WorldTimer::getMSTime() );*/
-    DEBUG_LOG( "WORLD: Time Lag/Synchronization Resent/Update" );
+//    DEBUG_LOG( "WORLD: Time Lag/Synchronization Resent/Update" );
 
     ObjectGuid guid;
+    uint32 time_skipped;
 
     recv_data >> guid.ReadAsPacked();
-    recv_data >> Unused<uint32>();
+    recv_data >> time_skipped;
 
+    DEBUG_LOG( "WORLD: Time Lag/Synchronization Resent/Update, data = %d", time_skipped);
+
+    if (GetPlayer()->GetObjectGuid() == guid)
+        GetPlayer()->GetAntiCheat()->SetTimeSkipped(time_skipped);
     /*
         ObjectGuid guid;
         uint32 time_skipped;
@@ -1143,7 +1137,7 @@ void WorldSession::HandleMoveUnRootAck(WorldPacket& recv_data)
     recv_data >> guid;
 
     // now can skip not our packet
-    if(_player->GetGUID() != guid)
+    if(_player->GetObjectGuid() != guid)
     {
         recv_data.rpos(recv_data.wpos());                   // prevent warnings spam
         return;
@@ -1196,16 +1190,6 @@ void WorldSession::HandleSetActionBarTogglesOpcode(WorldPacket& recv_data)
     }
 
     GetPlayer()->SetByteValue(PLAYER_FIELD_BYTES, 2, ActionBar);
-}
-
-void WorldSession::HandleWardenDataOpcode(WorldPacket& recv_data)
-{
-    recv_data.read_skip<uint8>();
-    /*
-        uint8 tmp;
-        recv_data >> tmp;
-        DEBUG_LOG("Received opcode CMSG_WARDEN_DATA, not resolve.uint8 = %u", tmp);
-    */
 }
 
 void WorldSession::HandlePlayedTime(WorldPacket& recv_data)
@@ -1649,14 +1633,21 @@ void WorldSession::HandleMoveSetCanFlyAckOpcode( WorldPacket & recv_data )
     recv_data >> movementInfo;
     recv_data >> Unused<float>();                           // unk2
 
-    if (_player->GetMover()->GetObjectGuid() != guid)
+    Unit * target;
+
+    if (GetPlayer()->GetObjectGuid() == guid)
+        target = GetPlayer();
+    else if (!GetPlayer()->IsSelfMover() && GetPlayer()->GetMover()->GetObjectGuid() == guid)
+        target = GetPlayer()->GetMover();
+    else
     {
-        DEBUG_LOG("WorldSession::HandleMoveSetCanFlyAckOpcode: player %s, mover %s, received %s, ignored",
-            _player->GetGuidStr().c_str(), _player->GetMover()->GetGuidStr().c_str(), guid.GetString().c_str());
+        DEBUG_LOG("WorldSession::HandleMoveSetCanFlyAckOpcode: player %s, "
+            "mover %s, received %s", _player->GetGuidStr().c_str(),
+            GetPlayer()->GetMover()->GetGuidStr().c_str(), guid.GetString().c_str());
         return;
     }
 
-    _player->GetMover()->m_movementInfo.SetMovementFlags(movementInfo.GetMovementFlags());
+    target->m_movementInfo.SetMovementFlags(movementInfo.GetMovementFlags());
 }
 
 void WorldSession::HandleRequestPetInfoOpcode( WorldPacket & /*recv_data */)
@@ -1719,4 +1710,104 @@ void WorldSession::HandleHearthandResurrect(WorldPacket & /*recv_data*/)
     _player->BuildPlayerRepop();
     _player->ResurrectPlayer(100);
     _player->TeleportToHomebind();
+}
+
+// Refer-A-Friend
+void WorldSession::HandleGrantLevel(WorldPacket& recv_data)
+{
+    DEBUG_LOG("WORLD: CMSG_GRANT_LEVEL");
+
+    ObjectGuid guid;
+    recv_data >> guid.ReadAsPacked();
+
+    if (!guid.IsPlayer())
+        return;
+
+    Player * target = sObjectMgr.GetPlayer(guid);
+
+    // cheating and other check
+    ReferAFriendError err = _player->GetReferFriendError(target, false);
+
+    if (err)
+    {
+        _player->SendReferFriendError(err, target);
+        return;
+    }
+
+    target->AccessGrantableLevel(_player->GetObjectGuid());
+
+    WorldPacket data(SMSG_PROPOSE_LEVEL_GRANT, 8);
+    data << _player->GetPackGUID();
+    target->GetSession()->SendPacket(&data);
+}
+
+void WorldSession::HandleAcceptGrantLevel(WorldPacket& recv_data)
+{
+    DEBUG_LOG("WORLD: CMSG_ACCEPT_LEVEL_GRANT");
+
+    ObjectGuid guid;
+    recv_data >> guid.ReadAsPacked();
+
+    if (!guid.IsPlayer())
+        return;
+
+    if (!_player->IsAccessGrantableLevel(guid))
+        return;
+
+    _player->AccessGrantableLevel(ObjectGuid());
+    Player * grant_giver = sObjectMgr.GetPlayer(guid);
+
+    if (!grant_giver)
+        return;
+
+    if (grant_giver->GetGrantableLevels())
+        grant_giver->ChangeGrantableLevels(0);
+    else
+        return;
+
+    _player->GiveLevel(_player->getLevel() + 1);
+}
+
+void WorldSession::HandleInstanceLockResponse(WorldPacket& recvPacket)
+{
+    DEBUG_LOG("WORLD: CMSG_INSTANCE_LOCK_WARNING_RESPONSE");
+    uint8 accept;
+    recvPacket >> accept;
+
+    if (!GetPlayer()->HasPendingBind())
+    {
+        sLog.outDetail("InstanceLockResponse: Player %s (guid %u) tried to bind himself/teleport to graveyard without a pending bind!", _player->GetName(), _player->GetGUIDLow());
+        return;
+    }
+
+    if (accept)
+        GetPlayer()->BindToInstance();
+    else
+        GetPlayer()->RepopAtGraveyard();
+
+    GetPlayer()->SetPendingBind(NULL, 0);
+}
+
+void WorldSession::HandleSetSavedInstanceExtend(WorldPacket& recv_data)
+{
+    DEBUG_LOG("WORLD: CMSG_SET_SAVED_INSTANCE_EXTEND");
+
+    uint32 map_id;
+    uint32 difficulty;
+    uint8  _extend;
+
+    recv_data >> map_id;
+    recv_data >> difficulty;
+    recv_data >> _extend;
+
+    DEBUG_LOG("SetSavedInstanceExtend: Player %s (guid %u) tried to extend (code %d) instance map %d difficulty %d ", GetPlayer()->GetName(), GetPlayer()->GetGUIDLow(), _extend, map_id, difficulty);
+
+    if (InstancePlayerBind* bind = GetPlayer()->GetBoundInstance(map_id, Difficulty(difficulty)))
+    {
+        GetPlayer()->BindToInstance(bind->state, bind->perm, false, bool(_extend));
+    }
+    else
+    {
+        sLog.outError("SetSavedInstanceExtend: Player tryed to extend instance, but not bound to.");
+    }
 }

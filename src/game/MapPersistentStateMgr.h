@@ -25,7 +25,6 @@
 #include "ace/Thread_Mutex.h"
 #include <list>
 #include <map>
-#include "Utilities/UnorderedMapSet.h"
 #include "Database/DatabaseEnv.h"
 #include "DBCEnums.h"
 #include "DBCStores.h"
@@ -34,7 +33,7 @@
 
 struct InstanceTemplate;
 struct MapEntry;
-struct MapDifficulty;
+struct MapDifficultyEntry;
 struct GameObjectData;
 struct CreatureData;
 
@@ -53,6 +52,17 @@ struct MapCellObjectGuids
 typedef UNORDERED_MAP<uint32/*cell_id*/,MapCellObjectGuids> MapCellObjectGuidsMap;
 
 class MapPersistentStateManager;
+
+// Instance Reset Schedule is calculated from this point in time.
+// 2005-12-28 10:00:00 - 10:00:00 = 2005-12-28 00:00:00
+// We will add X hours to this value, taking X from config (10 default).
+#define INSTANCE_RESET_SCHEDULE_START_TIME  1135717200
+#define INSTANCE_MAX_RESET_OFFSET  7*DAY
+/*
+    Holds the information necessary for creating a new map for non-instanceable maps
+
+    As object Used for non-instanceable Map only
+*/
 
 class MapPersistentState
 {
@@ -142,7 +152,10 @@ class MapPersistentState
 inline bool MapPersistentState::CanBeUnload() const
 {
     // prevent unload if used for loaded map
-    return !m_usedByMap;
+    if (GetMap())
+        return false;
+    else
+        return true;
 }
 
 class WorldPersistentState : public MapPersistentState
@@ -180,7 +193,7 @@ class DungeonPersistentState : public MapPersistentState
            - any new instance is being generated
            - the first time a player bound to InstanceId logs in
            - when a group bound to the instance is loaded */
-        DungeonPersistentState(uint16 MapId, uint32 InstanceId, Difficulty difficulty, time_t resetTime, bool canReset);
+        DungeonPersistentState(uint16 MapId, uint32 InstanceId, Difficulty difficulty, time_t resetTime, bool canReset, uint32 completedEncounters);
 
         ~DungeonPersistentState();
 
@@ -203,13 +216,22 @@ class DungeonPersistentState : public MapPersistentState
            for raid/heroic instances this caches the global respawn time for the map */
         time_t GetResetTime() const { return m_resetTime; }
         void SetResetTime(time_t resetTime) { m_resetTime = resetTime; }
-        time_t GetResetTimeForDB() const;
 
         /* instances cannot be reset (except at the global reset time)
            if there are players permanently bound to it
            this is cached for the case when those players are offline */
         bool CanReset() const { return m_canReset; }
         void SetCanReset(bool canReset) { m_canReset = canReset; }
+
+        // Work with extended instances
+        bool IsExtended() const { return m_isExtended; }
+        void SetExtended(bool isExtended) { m_isExtended = isExtended; }
+
+        // DBC encounter state at kill/spellcast update/set/get
+        void UpdateEncounterState(EncounterCreditType type, uint32 creditEntry, Player* player = NULL);
+        bool IsCompleted();
+        uint32 GetCompletedEncountersMask() { return m_completedEncountersMask; }
+
 
         /* Saved when the instance is generated for the first time */
         void SaveToDB();
@@ -228,6 +250,7 @@ class DungeonPersistentState : public MapPersistentState
 
         time_t m_resetTime;
         bool m_canReset;
+        bool m_isExtended;
 
         /* the only reason the instSave-object links are kept is because
            the object-instSave links need to be broken at reset time
@@ -236,6 +259,8 @@ class DungeonPersistentState : public MapPersistentState
         GroupListType m_groupList;                          // lock MapPersistentState from unload
 
         SpawnedPoolData m_spawnedPoolData;                  // Pools spawns state for map copy
+
+        uint32 m_completedEncountersMask;                   // completed encounter mask, bit indexes are DungeonEncounter.dbc boss numbers, used for packets
 };
 
 class BattleGroundPersistentState : public MapPersistentState
@@ -296,8 +321,9 @@ class DungeonResetScheduler
             return itr != m_resetTimeByMapDifficulty.end() ? itr->second : 0;
         }
 
-        static uint32 GetMaxResetTimeFor(MapDifficulty const* mapDiff);
-        static time_t CalculateNextResetTime(MapDifficulty const* mapDiff, time_t prevResetTime);
+        static uint32 GetMaxResetTimeFor(MapDifficultyEntry const* mapDiff);
+        static time_t CalculateNextResetTime(MapDifficultyEntry const* mapDiff, time_t prevResetTime);
+
     public:                                                 // modifiers
         void SetResetTimeFor(uint32 mapid, Difficulty d, time_t t)
         {
@@ -336,7 +362,7 @@ class MANGOS_DLL_DECL MapPersistentStateManager : public MaNGOS::Singleton<MapPe
 
         // auto select appropriate MapPersistentState (sub)class by MapEntry, and autoselect appropriate way store (by instance/map id)
         // always return != NULL
-        MapPersistentState* AddPersistentState(MapEntry const* mapEntry, uint32 instanceId, Difficulty difficulty, time_t resetTime, bool canReset, bool load = false, bool initPools = true);
+        MapPersistentState* AddPersistentState(MapEntry const* mapEntry, uint32 instanceId, Difficulty difficulty, time_t resetTime, bool canReset, bool load = false, bool initPools = true, uint32 completedEncountersMask = 0);
 
         // search stored state, can be NULL in result
         MapPersistentState *GetPersistentState(uint32 mapId, uint32 InstanceId);
@@ -361,7 +387,7 @@ class MANGOS_DLL_DECL MapPersistentStateManager : public MaNGOS::Singleton<MapPe
         typedef UNORDERED_MAP<uint32 /*InstanceId or MapId*/, MapPersistentState*> PersistentStateMap;
 
         //  called by scheduler for DungeonPersistentStates
-        void _ResetOrWarnAll(uint32 mapid, Difficulty difficulty, bool warn, uint32 timeleft);
+        void _ResetOrWarnAll(uint32 mapid, Difficulty difficulty, bool warn, time_t resetTime);
         void _ResetInstance(uint32 mapid, uint32 instanceId);
         void _CleanupExpiredInstancesAtTime(time_t t);
 

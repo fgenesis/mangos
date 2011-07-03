@@ -62,6 +62,9 @@ void WorldSession::HandleMoveWorldportAckOpcode()
     if(!GetPlayer()->IsBeingTeleportedFar())
         return;
 
+    if (_player->GetVehicleKit())
+        _player->GetVehicleKit()->RemoveAllPassengers();
+
     // get start teleport coordinates (will used later in fail case)
     WorldLocation old_loc;
     GetPlayer()->GetPosition(old_loc);
@@ -190,7 +193,7 @@ void WorldSession::HandleMoveWorldportAckOpcode()
     if (mInstance)
     {
         Difficulty diff = GetPlayer()->GetDifficulty(mEntry->IsRaid());
-        if(MapDifficulty const* mapDiff = GetMapDifficultyData(mEntry->MapID,diff))
+        if(MapDifficultyEntry const* mapDiff = GetMapDifficultyData(mEntry->MapID,diff))
         {
             if (mapDiff->resetTime)
             {
@@ -369,6 +372,9 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
     }
     // ACH end
 
+    /* process anticheat check */
+    GetPlayer()->GetAntiCheat()->DoAntiCheatCheck(CHECK_MOVEMENT,movementInfo, opcode);
+
     /* process position-change */
     HandleMoverRelocation(movementInfo);
 
@@ -496,24 +502,6 @@ void WorldSession::HandleMoveNotActiveMoverOpcode(WorldPacket &recv_data)
     _player->m_movementInfo = mi;
 }
 
-void WorldSession::HandleDismissControlledVehicle(WorldPacket &recv_data)
-{
-    DEBUG_LOG("WORLD: Recvd CMSG_DISMISS_CONTROLLED_VEHICLE");
-    recv_data.hexlike();
-
-    ObjectGuid guid;
-    MovementInfo mi;
-
-    recv_data >> guid.ReadAsPacked();
-    recv_data >> mi;
-
-    ObjectGuid vehicleGUID = _player->GetCharmGuid();
-    if (!vehicleGUID)                                       // something wrong here...
-        return;
-
-    _player->m_movementInfo = mi;
-}
-
 void WorldSession::HandleMountSpecialAnimOpcode(WorldPacket& /*recvdata*/)
 {
     //DEBUG_LOG("WORLD: Recvd CMSG_MOUNTSPECIAL_ANIM");
@@ -546,12 +534,12 @@ void WorldSession::HandleMoveKnockBackAck( WorldPacket & recv_data )
     recv_data >> movementInfo;
 
     // ACH related
-    _player->m_movementInfo = movementInfo;
+    /*_player->m_movementInfo = movementInfo;
     _player->m_anti_Last_HSpeed = movementInfo.jump.xyspeed;
     _player->m_anti_Last_VSpeed = movementInfo.jump.velocity < 3.2f ? movementInfo.jump.velocity - 1.0f : 3.2f;
 
     uint32 dt = (_player->m_anti_Last_VSpeed < 0) ? (int)(ceil(_player->m_anti_Last_VSpeed/-25)*1000) : (int)(ceil(_player->m_anti_Last_VSpeed/25)*1000);
-    _player->m_anti_LastSpeedChangeTime = movementInfo.GetTime() + dt + 1000;
+    _player->m_anti_LastSpeedChangeTime = movementInfo.GetTime() + dt + 1000;*/
     // end ACH related
 
     if (!VerifyMovementInfo(movementInfo, guid))
@@ -644,8 +632,11 @@ void WorldSession::HandleMoverRelocation(MovementInfo& movementInfo)
     {
         if (movementInfo.HasMovementFlag(MOVEFLAG_ONTRANSPORT))
         {
-            if (!plMover->m_transport)
+            if (!plMover->GetTransport())
             {
+                /* process anticheat check */
+                GetPlayer()->GetAntiCheat()->DoAntiCheatCheck(CHECK_TRANSPORT,movementInfo);
+
                 // elevators also cause the client to send MOVEFLAG_ONTRANSPORT - just unmount if the guid can be found in the transport list
                 for (MapManager::TransportSet::const_iterator iter = sMapMgr.m_Transports.begin(); iter != sMapMgr.m_Transports.end(); ++iter)
                 {
@@ -653,15 +644,19 @@ void WorldSession::HandleMoverRelocation(MovementInfo& movementInfo)
                     {
                         plMover->m_transport = (*iter);
                         (*iter)->AddPassenger(plMover);
+
+                        if (plMover->GetVehicleKit())
+                            plMover->GetVehicleKit()->RemoveAllPassengers();
+
                         break;
                     }
                 }
             }
         }
-        else if (plMover->m_transport)               // if we were on a transport, leave
+        else if (plMover->GetTransport())               // if we were on a transport, leave
         {
-            plMover->m_transport->RemovePassenger(plMover);
-            plMover->m_transport = NULL;
+            plMover->GetTransport()->RemovePassenger(plMover);
+            plMover->SetTransport(NULL);
             movementInfo.ClearTransportData();
         }
 
@@ -674,7 +669,8 @@ void WorldSession::HandleMoverRelocation(MovementInfo& movementInfo)
         plMover->SetPosition(movementInfo.GetPos()->x, movementInfo.GetPos()->y, movementInfo.GetPos()->z, movementInfo.GetPos()->o);
         plMover->m_movementInfo = movementInfo;
 
-        if(movementInfo.GetPos()->z < -500.0f)
+        if((movementInfo.GetPos()->z < -500.0f) || (plMover->GetMapId() == 617 && movementInfo.GetPos()->z < 2.0f) || (plMover->GetMapId() == 572 && movementInfo.GetPos()->z < 20.0f) 
+        || (plMover->GetMapId() == 562 && movementInfo.GetPos()->z < -20.0f)) // Prevent falling under textures on some arenas
         {
             if(plMover->InBattleGround()
                 && plMover->GetBattleGround()
@@ -707,13 +703,17 @@ void WorldSession::HandleMoverRelocation(MovementInfo& movementInfo)
     }
     else                                                    // creature charmed
     {
-        if (mover->IsInWorld() && mover->GetTypeId() == TYPEID_UNIT)
+        if (mover->IsInWorld())
         {
-            mover->GetMap()->CreatureRelocation((Creature*)mover, movementInfo.GetPos()->x, movementInfo.GetPos()->y, movementInfo.GetPos()->z, movementInfo.GetPos()->o);
+            mover->m_movementInfo = movementInfo;
+            mover->SetPosition(movementInfo.GetPos()->x, movementInfo.GetPos()->y, movementInfo.GetPos()->z, movementInfo.GetPos()->o);
         }
     }
 }
 
+
+
+/* // FG: seems this is not required anymore; keeping for reference
 uint32 WorldSession::ACH_CheckMoveInfo(uint32 opcode, const MovementInfo* movementInfoPtr, Player *plMover)
 {
     if(!plMover) // player to check
@@ -956,3 +956,4 @@ uint32 WorldSession::ACH_CheckMoveInfo(uint32 opcode, const MovementInfo* moveme
     }
     return alarm_level;
 }
+*/
