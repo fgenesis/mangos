@@ -24,6 +24,8 @@
     </Filter>
     <Filter Include="PE">
       <UniqueIdentifier>{e6a813b5-5038-49a7-b7d2-1a9653aad791}</UniqueIdentifier>
+    <Filter Include="AhBot">
+      <UniqueIdentifier>{481ad376-5cba-439d-af8c-2ef73de2ed8b}</UniqueIdentifier>
     </Filter>
     <Filter Include="vmaps">
       <UniqueIdentifier>{948284d3-9d89-4609-8cdd-28a213edb53e}</UniqueIdentifier>
@@ -33,6 +35,9 @@
     </Filter>
     <Filter Include="Warden">
       <UniqueIdentifier>{dc755940-baa7-4ef4-b4ee-7c21ac97a8d8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Movement">
+      <UniqueIdentifier>{0ac140f9-89c1-4830-b673-514c5e8b4d37}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -240,6 +245,9 @@
     <ClCompile Include="..\..\src\game\Spell.cpp">
       <Filter>World/Handlers</Filter>
     </ClCompile>
+	<ClCompile Include="..\..\src\game\SpellClassMask.h">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\game\SpellAuras.cpp">
       <Filter>World/Handlers</Filter>
     </ClCompile>
@@ -274,9 +282,6 @@
       <Filter>World/Handlers</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\game\ConfusedMovementGenerator.cpp">
-      <Filter>Motion generators</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\game\DestinationHolder.cpp">
       <Filter>Motion generators</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\game\FleeingMovementGenerator.cpp">
@@ -500,9 +505,8 @@
     </ClCompile>
     <ClCompile Include="..\..\src\game\VehicleHandler.cpp" >
       <Filter>Object</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\game\AuctionHouseBot.cpp">
-      <Filter>Object</Filter>
+    <ClCompile Include="..\..\src\game\AuctionHouseBot\AuctionHouseBot.cpp">
+      <Filter>AhBot</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\game\vmap\BIH.cpp">
       <Filter>vmaps</Filter>
@@ -578,6 +582,21 @@
     </ClCompile>
     <ClCompile Include="..\..\src\game\WardenWin.cpp">
       <Filter>Warden</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\movement\MoveSplineInit.cpp">
+      <Filter>Movement</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\movement\packet_builder.cpp">
+      <Filter>Movement</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\movement\spline.cpp">
+      <Filter>Movement</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\movement\util.cpp">
+      <Filter>Movement</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\movement\MoveSpline.cpp">
+      <Filter>Movement</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -725,6 +744,9 @@
     <ClInclude Include="..\..\src\game\Spell.h">
       <Filter>World/Handlers</Filter>
     </ClInclude>
+	<ClInclude Include="..\..\src\game\SpellClassMask.h">
+      <Filter>World/Handlers</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\game\SpellAuraDefines.h">
       <Filter>World/Handlers</Filter>
     </ClInclude>
@@ -749,12 +771,6 @@
     <ClInclude Include="..\..\src\game\ConfusedMovementGenerator.h">
       <Filter>Motion generators</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\game\DestinationHolder.h">
-      <Filter>Motion generators</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\game\DestinationHolderImp.h">
-      <Filter>Motion generators</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\game\FleeingMovementGenerator.h">
       <Filter>Motion generators</Filter>
     </ClInclude>
@@ -777,9 +793,6 @@
       <Filter>Motion generators</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\game\TargetedMovementGenerator.h">
-      <Filter>Motion generators</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\game\Traveller.h">
       <Filter>Motion generators</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\game\WaypointMovementGenerator.h">
@@ -1003,9 +1016,8 @@
     </ClInclude>
     <ClInclude Include="..\..\src\game\ChatLog.h" >
       <Filter>Object</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\game\AuctionHouseBot.h">
-      <Filter>Object</Filter>
+    <ClInclude Include="..\..\src\game\AuctionHouseBot\AuctionHouseBot.h">
+      <Filter>AhBot</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\game\vmap\BIH.h">
       <Filter>vmaps</Filter>
@@ -1099,6 +1111,30 @@
     </ClInclude>
     <ClInclude Include="..\..\src\game\WardenModuleWin.h">
       <Filter>Warden</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\movement\MoveSpline.h">
+      <Filter>Movement</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\movement\MoveSplineFlag.h">
+      <Filter>Movement</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\movement\MoveSplineInit.h">
+      <Filter>Movement</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\movement\MoveSplineInitArgs.h">
+      <Filter>Movement</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\movement\packet_builder.h">
+      <Filter>Movement</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\movement\spline.h">
+      <Filter>Movement</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\movement\spline.impl.h">
+      <Filter>Movement</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\movement\typedefs.h">
+      <Filter>Movement</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

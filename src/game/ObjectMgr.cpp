@@ -1810,6 +1810,9 @@ Team ObjectMgr::GetPlayerTeamByGUID(ObjectGuid guid) const
 
 uint32 ObjectMgr::GetPlayerAccountIdByGUID(ObjectGuid guid) const
 {
+    if (!guid.IsPlayer())
+        return 0;
+
     // prevent DB access for online player
     if(Player* player = GetPlayer(guid))
         return player->GetSession()->GetAccountId();
@@ -4029,14 +4032,14 @@ void ObjectMgr::LoadGroups()
                 diff = REGULAR_DIFFICULTY;                  // default for both difficaly types
             }
 
-            if (resetTime > (time(NULL) + INSTANCE_MAX_RESET_OFFSET))
+            if (resetTime > uint64(time(NULL) + INSTANCE_MAX_RESET_OFFSET))
             {
                 MapDifficultyEntry const* mapDiff = GetMapDifficultyData(mapId,diff);
                 resetTime = DungeonResetScheduler::CalculateNextResetTime(mapDiff, time(NULL));
                 sLog.outErrorDb("ObjectMgr::Wrong reset time in group_instance corrected to: %d", resetTime);
             }
 
-            if (resetTime < (time(NULL)))
+            if (resetTime < uint64(time(NULL)))
             {
                 DEBUG_LOG("ObjectMgr::Loading extended instance for player: %d", leaderGuidLow);
                 bool isExtended = false;
@@ -9580,126 +9583,6 @@ bool ObjectMgr::IsAllowedGMAccount(uint32 id)
 CreatureInfo const* GetCreatureTemplateStore(uint32 entry)
 {
     return sCreatureStorage.LookupEntry<CreatureInfo>(entry);
-}
-
-void ObjectMgr::LoadVehicleData()
-{
-    mVehicleData.clear();
-
-    QueryResult *result = WorldDatabase.Query("SELECT entry, flags, Spell1, Spell2, Spell3, Spell4, Spell5, Spell6, Spell7, Spell8, Spell9, Spell10, req_aura FROM vehicle_data");
-    if(!result)
-    {
-        BarGoLink bar( 1 );
-        bar.step();
-
-        sLog.outString();
-        sLog.outString( ">> Loaded 0 vehicle data" );
-        sLog.outErrorDb("`vehicle_data` table is empty!");
-        return;
-    }
-
-    uint32 count = 0;
-
-    BarGoLink bar( result->GetRowCount() );
-    do
-    {
-        bar.step();
-
-        Field* fields = result->Fetch();
-
-        VehicleDataStructure VDS;
-        // NOTE : we can use spellid or creature id
-        uint32 v_entry      = fields[0].GetUInt32();
-        VDS.v_flags         = fields[1].GetUInt32();
-        for(uint8 j = 0; j < MAX_VEHICLE_SPELLS; j++)
-        {
-            VDS.v_spells[j] = fields[j+2].GetUInt32();
-        }
-        VDS.req_aura        = fields[12].GetUInt32();
-
-        VehicleEntry const *vehicleInfo = sVehicleStore.LookupEntry(v_entry);
-        if(!vehicleInfo)
-        {
-            sLog.outErrorDb("Vehicle id %u listed in `vehicle_data` does not exist",v_entry);
-            continue;
-        }
-        for(uint8 j = 0; j < MAX_VEHICLE_SPELLS; j++)
-        {
-            if(VDS.v_spells[j])
-            {
-                SpellEntry const* j_spell = sSpellStore.LookupEntry(VDS.v_spells[j]);
-                if(!j_spell)
-                {
-                    sLog.outErrorDb("Spell %u listed in `vehicle_data` does not exist, skipped",VDS.v_spells[j]);
-                    VDS.v_spells[j] = 0;
-                }
-            }
-        }
-        if(VDS.req_aura)
-        {
-            SpellEntry const* i_spell = sSpellStore.LookupEntry(VDS.req_aura);
-            if(!i_spell)
-            {
-                sLog.outErrorDb("Spell %u listed in `vehicle_data` does not exist, skipped",VDS.req_aura);
-                VDS.req_aura = 0;
-            }
-        }
-
-        mVehicleData[v_entry] = VDS;
-        ++count;
-    }
-    while (result->NextRow());
-
-    delete result;
-
-    sLog.outString();
-    sLog.outString( ">> Loaded %u vehicle data", count );
-}
-
-void ObjectMgr::LoadVehicleSeatData()
-{
-    mVehicleSeatData.clear();
-
-    QueryResult *result = WorldDatabase.Query("SELECT seat,flags FROM vehicle_seat_data");
-
-    if( !result )
-    {
-        BarGoLink bar( 1 );
-
-        bar.step();
-
-        sLog.outString();
-        sLog.outString( ">> Loaded 0 vehicle seat data" );
-        sLog.outErrorDb("`vehicle_seat_data` table is empty!");
-        return;
-    }
-    uint32 count = 0;
-
-    BarGoLink bar( result->GetRowCount() );
-    do
-    {
-        bar.step();
-
-        Field *fields = result->Fetch();
-        uint32 entry  = fields[0].GetUInt32();
-        uint32 flag   = fields[1].GetUInt32();
-
-        VehicleSeatEntry const *vsInfo = sVehicleSeatStore.LookupEntry(entry);
-        if(!vsInfo)
-        {
-            sLog.outErrorDb("Vehicle seat %u listed in `vehicle_seat_data` does not exist",entry);
-            continue;
-        }
-
-        mVehicleSeatData[entry] = flag;
-        ++count;
-    }
-    while (result->NextRow());
-
-    delete result;
-
-    sLog.outString();
-    sLog.outString( ">> Loaded %u vehicle seat data", count );
 }
 
 Quest const* GetQuestTemplateStore(uint32 entry)

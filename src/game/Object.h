@@ -358,10 +358,6 @@ class MANGOS_DLL_SPEC Object
 
         void InitValues() { _InitValues(); }
 
-        // Frozen Mod
-        void ForceValuesUpdateAtIndex(uint16);
-        // Frozen Mod
-
         virtual bool HasQuest(uint32 /* quest_id */) const { return false; }
         virtual bool HasInvolvedQuest(uint32 /* quest_id */) const { return false; }
 

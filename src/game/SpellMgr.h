@@ -114,25 +114,29 @@ inline bool IsSpellHaveEffect(SpellEntry const *spellInfo, SpellEffects effect)
     return false;
 }
 
+inline bool IsAuraApplyEffect(SpellEntry const *spellInfo, SpellEffectIndex effecIdx)
+{
+    switch (spellInfo->Effect[effecIdx])
+    {
+        case SPELL_EFFECT_APPLY_AURA:
+        case SPELL_EFFECT_APPLY_AREA_AURA_PARTY:
+        case SPELL_EFFECT_APPLY_AREA_AURA_RAID:
+        case SPELL_EFFECT_APPLY_AREA_AURA_PET:
+        case SPELL_EFFECT_APPLY_AREA_AURA_FRIEND:
+        case SPELL_EFFECT_APPLY_AREA_AURA_ENEMY:
+        case SPELL_EFFECT_APPLY_AREA_AURA_OWNER:
+            return true;
+    }
+    return false;
+}
+
 inline bool IsSpellAppliesAura(SpellEntry const *spellInfo, uint32 effectMask = ((1 << EFFECT_INDEX_0) | (1 << EFFECT_INDEX_1) | (1 << EFFECT_INDEX_2)))
 {
     for(int i = 0; i < MAX_EFFECT_INDEX; ++i)
-    {
         if (effectMask & (1 << i))
-        {
-            switch (spellInfo->Effect[i])
-            {
-                case SPELL_EFFECT_APPLY_AURA:
-                case SPELL_EFFECT_APPLY_AREA_AURA_PARTY:
-                case SPELL_EFFECT_APPLY_AREA_AURA_RAID:
-                case SPELL_EFFECT_APPLY_AREA_AURA_PET:
-                case SPELL_EFFECT_APPLY_AREA_AURA_FRIEND:
-                case SPELL_EFFECT_APPLY_AREA_AURA_ENEMY:
-                case SPELL_EFFECT_APPLY_AREA_AURA_OWNER:
-                    return true;
-            }
-        }
-    }
+            if (IsAuraApplyEffect(spellInfo, SpellEffectIndex(i)))
+                return true;
+
     return false;
 }
 
@@ -145,6 +149,19 @@ inline bool IsEffectHandledOnDelayedSpellLaunch(SpellEntry const *spellInfo, Spe
         case SPELL_EFFECT_WEAPON_PERCENT_DAMAGE:
         case SPELL_EFFECT_WEAPON_DAMAGE:
         case SPELL_EFFECT_NORMALIZED_WEAPON_DMG:
+            return true;
+        default:
+            return false;
+    }
+}
+
+inline bool IsPeriodicRegenerateEffect(SpellEntry const *spellInfo, SpellEffectIndex effecIdx)
+{
+    switch (AuraType(spellInfo->EffectApplyAuraName[effecIdx]))
+    {
+        case SPELL_AURA_PERIODIC_ENERGIZE:
+        case SPELL_AURA_PERIODIC_HEAL:
+        case SPELL_AURA_PERIODIC_HEALTH_FUNNEL:
             return true;
         default:
             return false;
@@ -609,7 +626,8 @@ enum ProcFlagsEx
     PROC_EX_RESERVED3           = 0x0008000,
     PROC_EX_EX_TRIGGER_ALWAYS   = 0x0010000,                // If set trigger always ( no matter another flags) used for drop charges
     PROC_EX_EX_ONE_TIME_TRIGGER = 0x0020000,                // If set trigger always but only one time (not used)
-    PROC_EX_PERIODIC_POSITIVE   = 0x0040000                 // For periodic heal
+    PROC_EX_PERIODIC_POSITIVE   = 0x0040000,                // For periodic heal
+    PROC_EX_DIRECT_DAMAGE       = 0x0080000                 // do not proc from absorbed damage
 };
 
 struct SpellProcEventEntry

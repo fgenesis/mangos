@@ -271,7 +271,6 @@ class AchievementMgr
         void SendAllAchievementData();
         void CompletedAchievement(AchievementEntry const* entry);
         void SendRespondInspectAchievements(Player* player);
-        void CompletedAchievement(AchievementEntry const* entry);
 
         Player* GetPlayer() const { return m_player;}
 

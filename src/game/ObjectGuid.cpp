@@ -109,3 +109,8 @@ template uint32 ObjectGuidGenerator<HIGHGUID_DYNAMICOBJECT>::Generate();
 template uint32 ObjectGuidGenerator<HIGHGUID_CORPSE>::Generate();
 template uint32 ObjectGuidGenerator<HIGHGUID_INSTANCE>::Generate();
 template uint32 ObjectGuidGenerator<HIGHGUID_GROUP>::Generate();
+
+
+// FG: extra stuff
+
+const ObjectGuid ObjectGuid::Null = ObjectGuid();

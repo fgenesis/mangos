@@ -145,7 +145,7 @@ struct SpellModifier
     int32 value;
     ClassFamilyMask mask;
     uint32 spellId;
-    Spell const* lastAffected;
+    Spell const* lastAffected;                              // mark last charge user, used for cleanup delayed remove spellmods at spell success or restore charges at cast fail (Is one pointer only need for cases mixed castes?)
 };
 
 typedef std::list<SpellModifier*> SpellModList;
@@ -1706,6 +1706,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         bool IsAffectedBySpellmod(SpellEntry const *spellInfo, SpellModifier *mod, Spell const* spell = NULL);
         template <class T> T ApplySpellMod(uint32 spellId, SpellModOp op, T &basevalue, Spell const* spell = NULL);
         void RemoveSpellMods(Spell const* spell);
+        void ResetSpellModsDueToCanceledSpell (Spell const* spell);
 
         static uint32 const infinityCooldownDelay = MONTH;  // used for set "infinity cooldowns" for spells and check
         static uint32 const infinityCooldownDelayCheck = MONTH/2;
@@ -1727,6 +1728,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         void RemoveSpellCooldown(uint32 spell_id, bool update = false);
         void RemoveSpellCategoryCooldown(uint32 cat, bool update = false);
         void SendClearCooldown( uint32 spell_id, Unit* target );
+        void SendModifyCooldown( uint32 spell_id, int32 delta);
 
         GlobalCooldownMgr& GetGlobalCooldownMgr() { return m_GlobalCooldownMgr; }
 
@@ -1895,6 +1897,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         void UpdateArmorPenetration();
         void ApplyManaRegenBonus(int32 amount, bool apply);
         void UpdateManaRegen();
+        void ApplyHealthRegenBonus(int32 amount, bool apply);
 
         ObjectGuid const& GetLootGuid() const { return m_lootGuid; }
         void SetLootGuid(ObjectGuid const& guid) { m_lootGuid = guid; }
@@ -2493,10 +2496,6 @@ class MANGOS_DLL_SPEC Player : public Unit
 
         bool IsSessionValid(void) { return IsInWorld() && !GetSession()->PlayerLogout(); }
 
-        // by rsa
-        void CompletedAchievement(AchievementEntry const* entry);
-        void CompletedAchievement(uint32 uiAchievementID);
-
         // Playerbot mod:
         // A Player can either have a playerbotMgr (to manage its bots), or have playerbotAI (if it is a bot), or
         // neither. Code that enables bots must create the playerbotMgr and set it using SetPlayerbotMgr.
@@ -2656,6 +2655,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         uint16 m_baseSpellPower;
         uint16 m_baseFeralAP;
         uint16 m_baseManaRegen;
+        uint16 m_baseHealthRegen;
         float m_armorPenetrationPct;
         int32 m_spellPenetrationItemMod;
 
@@ -2872,16 +2872,23 @@ template <class T> T Player::ApplySpellMod(uint32 spellId, SpellModOp op, T &bas
             totalpct += mod->value;
         }
 
-        if (mod->charges > 0 )
+        if (mod->charges > 0)
         {
-            --mod->charges;
-            if (mod->charges == 0)
+            if (!spell)
+                spell = FindCurrentSpellBySpellId(spellId);
+
+            // avoid double use spellmod charge by same spell
+            if (!mod->lastAffected || mod->lastAffected != spell)
             {
-                mod->charges = -1;
+                --mod->charges;
+
+                if (mod->charges == 0)
+                {
+                    mod->charges = -1;
+                    ++m_SpellModRemoveCount;
+                }
+
                 mod->lastAffected = spell;
-                if(!mod->lastAffected)
-                    mod->lastAffected = FindCurrentSpellBySpellId(spellId);
-                ++m_SpellModRemoveCount;
             }
         }
     }

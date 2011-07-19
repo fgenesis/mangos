@@ -45,12 +45,12 @@
 #include "MapPersistentStateMgr.h"
 #include "GridNotifiersImpl.h"
 #include "CellImpl.h"
-#include "Path.h"
-#include "Traveller.h"
 #include "Vehicle.h"
+#include "Transports.h"
 #include "VMapFactory.h"
 #include "MovementGenerator.h"
-#include "Transports.h"
+#include "movement/MoveSplineInit.h"
+#include "movement/MoveSpline.h"
 
 #include <math.h>
 #include <stdarg.h>
@@ -186,7 +186,8 @@ void GlobalCooldownMgr::CancelGlobalCooldown(SpellEntry const* spellInfo)
 Unit::Unit() :
     i_motionMaster(this), m_ThreatManager(this), m_HostileRefManager(this),
     m_charmInfo(NULL),
-    m_vehicleInfo(NULL)
+    m_vehicleInfo(NULL),
+    movespline(new Movement::MoveSpline())
 {
     m_objectType |= TYPEMASK_UNIT;
     m_objectTypeId = TYPEID_UNIT;
@@ -306,6 +307,9 @@ Unit::~Unit()
 
     delete m_charmInfo;
     delete m_vehicleInfo;
+    CleanupDeletedAuras();
+
+    delete movespline;
 
     // those should be already removed at "RemoveFromWorld()" call
     MANGOS_ASSERT(m_gameObj.size() == 0);
@@ -377,7 +381,7 @@ void Unit::Update( uint32 update_diff, uint32 p_time )
     ModifyAuraState(AURA_STATE_HEALTHLESS_20_PERCENT, GetHealth() < GetMaxHealth()*0.20f);
     ModifyAuraState(AURA_STATE_HEALTHLESS_35_PERCENT, GetHealth() < GetMaxHealth()*0.35f);
     ModifyAuraState(AURA_STATE_HEALTH_ABOVE_75_PERCENT, GetHealth() > GetMaxHealth()*0.75f);
-
+    UpdateSplineMovement(p_time);
     i_motionMaster.UpdateMotion(p_time);
 }
 
@@ -390,61 +394,6 @@ bool Unit::haveOffhandWeapon() const
         return ((Player*)this)->GetWeaponForAttack(OFF_ATTACK,true,true);
     else
         return false;
-}
-
-void Unit::SendMonsterMove(float NewPosX, float NewPosY, float NewPosZ, SplineType type, SplineFlags flags, uint32 Time, Player* player, ...)
-{
-    va_list vargs;
-    va_start(vargs,player);
-
-    float moveTime = (float)Time;
-
-    WorldPacket data( SMSG_MONSTER_MOVE, (41 + GetPackGUID().size()) );
-    data << GetPackGUID();
-    data << uint8(0);                                       // new in 3.1 bool, used to toggle MOVEFLAG2_UNK4 = 0x0040 on client side
-    data << GetPositionX() << GetPositionY() << GetPositionZ();
-    data << uint32(WorldTimer::getMSTime());
-
-    data << uint8(type);                                    // unknown
-    switch(type)
-    {
-        case SPLINETYPE_NORMAL:                             // normal packet
-            break;
-        case SPLINETYPE_STOP:                               // stop packet (raw pos?)
-            va_end(vargs);
-            SendMessageToSet( &data, true );
-            return;
-        case SPLINETYPE_FACINGSPOT:                         // facing spot, not used currently
-        {
-            data << float(va_arg(vargs,double));
-            data << float(va_arg(vargs,double));
-            data << float(va_arg(vargs,double));
-            break;
-        }
-        case SPLINETYPE_FACINGTARGET:
-            data << uint64(va_arg(vargs,uint64));           // ObjectGuid in fact
-            break;
-        case SPLINETYPE_FACINGANGLE:
-            data << float(va_arg(vargs,double));            // facing angle
-            break;
-    }
-
-    data << uint32(flags);                                  // splineflags
-    data << uint32(moveTime);                               // Time in between points
-    if (flags & SPLINEFLAG_TRAJECTORY)
-    {
-        data << float(va_arg(vargs, double));               // Z jump speed
-        data << uint32(0);                                  // walk time after jump
-    }
-    data << uint32(1);                                      // 1 single waypoint
-    data << NewPosX << NewPosY << NewPosZ;                  // the single waypoint Point B
-
-    va_end(vargs);
-
-    if(player)
-        player->GetSession()->SendPacket(&data);
-    else
-        SendMessageToSet( &data, true );
 }
 
 void Unit::SendMonsterMoveJump(float NewPosX, float NewPosY, float NewPosZ, float vert_speed, uint32 flags, uint32 Time, Player* player)
@@ -480,26 +429,6 @@ void Unit::SendMonsterMoveJump(float NewPosX, float NewPosY, float NewPosZ, floa
         player->GetSession()->SendPacket(&data);
     else
         SendMessageToSet( &data, true );
-}
-
-void Unit::SendMonsterMoveWithSpeed(float x, float y, float z, uint32 transitTime, Player* player)
-{
-    if (!transitTime)
-    {
-        if(GetTypeId()==TYPEID_PLAYER)
-        {
-            Traveller<Player> traveller(*(Player*)this);
-            transitTime = traveller.GetTotalTravelTimeTo(x, y, z);
-        }
-        else
-        {
-            Traveller<Creature> traveller(*(Creature*)this);
-            transitTime = traveller.GetTotalTravelTimeTo(x, y, z);
-        }
-    }
-    //float orientation = (float)atan2((double)dy, (double)dx);
-    SplineFlags flags = GetTypeId() == TYPEID_PLAYER ? SPLINEFLAG_WALKMODE : ((Creature*)this)->GetSplineFlags();
-    SendMonsterMove(x, y, z, SPLINETYPE_NORMAL, flags, transitTime, player);
 }
 
 bool Unit::SetPosition(float x, float y, float z, float orientation, bool teleport)
@@ -586,13 +515,13 @@ void Unit::SendMonsterMoveTransport(WorldObject *transport, SplineType type, Spl
     SendMessageToSet(&data, true);
 }
 
-void Unit::SendHeartBeat(bool toSelf)
+void Unit::SendHeartBeat()
 {
     m_movementInfo.UpdateTime(WorldTimer::getMSTime());
     WorldPacket data(MSG_MOVE_HEARTBEAT, 64);
     data << GetPackGUID();
     data << m_movementInfo;
-    SendMessageToSet(&data, toSelf);
+    SendMessageToSet(&data, true);
 }
 
 void Unit::resetAttackTimer(WeaponAttackType type)
@@ -922,15 +851,6 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
             player_tap->SendDirectMessage(&data);
         }
 
-        // Reward player, his pets, and group/raid members
-        if (player_tap != pVictim && bRewardIsAllowed)
-        {
-            if (group_tap)
-                group_tap->RewardGroupAtKill(pVictim, player_tap);
-            else if (player_tap)
-                player_tap->RewardSinglePlayerAtKill(pVictim);
-        }
-
         DEBUG_FILTER_LOG(LOG_FILTER_DAMAGE,"DealDamageAttackStop");
 
         // stop combat
@@ -1095,6 +1015,15 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
             }
         }
 
+        // Reward player, his pets, and group/raid members
+        if (player_tap != pVictim && bRewardIsAllowed)
+        {
+            if (group_tap)
+                group_tap->RewardGroupAtKill(pVictim, player_tap);
+            else if (player_tap)
+                player_tap->RewardSinglePlayerAtKill(pVictim);
+        }
+
         // last damage from non duel opponent or opponent controlled creature
         if(duel_hasEnded)
         {
@@ -1228,7 +1157,23 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
                             if(spell->m_spellInfo->InterruptFlags & SPELL_INTERRUPT_FLAG_ABORT_ON_DMG) // Always interrupt, even on absorbed.
                                 pVictim->InterruptSpell(CurrentSpellTypes(i));
                             else
-                                spell->Delayed();
+                            {
+                                // some spells should be considered as DoT, but are triggered spells
+                                // TODO: needs some research, maybe attribute SPELL_ATTR_EX3_UNK25
+                                if (spellProto)
+                                {
+                                    switch (spellProto->Id)
+                                    {
+                                        case 62188:                              // Biting Cold (Hodir)
+                                        case 65722:                              // Slag Pot (Ignis)
+                                        case 65723:                              // Slag Pot (Ignis) (h)
+                                            break;
+                                        default:
+                                            spell->Delayed();
+                                            break;
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -1338,6 +1283,12 @@ void Unit::CastSpell(Unit* Victim, SpellEntry const *spellInfo, bool triggered, 
             sLog.outError("CastSpell: unknown spell by caster: %s triggered by aura %u (eff %u)", GetGuidStr().c_str(), triggeredByAura->GetId(), triggeredByAura->GetEffIndex());
         else
             sLog.outError("CastSpell: unknown spell by caster: %s", GetGuidStr().c_str());
+        return;
+    }
+
+    if(!Victim)
+    {
+        sLog.outError("CastSpell: cast spell %u by caster %s failed - victim is NULL", spellInfo->Id, GetGuidStr().c_str());
         return;
     }
 
@@ -1453,7 +1404,7 @@ void Unit::CastSpell(float x, float y, float z, SpellEntry const *spellInfo, boo
             sLog.outError("CastSpell(x,y,z): unknown spell by caster: %s", GetGuidStr().c_str());
         return;
     }
-	
+
     if(sObjectMgr.IsSpellDisabled(spellInfo->Id))
         return;
 
@@ -1489,7 +1440,7 @@ uint32 Unit::SpellNonMeleeDamageLog(Unit *pVictim, uint32 spellID, uint32 damage
     return damageInfo.damage;
 }
 
-void Unit::CalculateSpellDamage(SpellNonMeleeDamage *damageInfo, int32 damage, SpellEntry const *spellInfo, WeaponAttackType attackType)
+void Unit::CalculateSpellDamage(SpellNonMeleeDamage *damageInfo, int32 damage, SpellEntry const *spellInfo, WeaponAttackType attackType, float DamageMultiplier)
 {
     SpellSchoolMask damageSchoolMask = damageInfo->schoolMask;
     Unit *pVictim = damageInfo->target;
@@ -1525,6 +1476,8 @@ void Unit::CalculateSpellDamage(SpellNonMeleeDamage *damageInfo, int32 damage, S
         {
             //Calculate damage bonus
             damage = MeleeDamageBonusDone(pVictim, damage, attackType, spellInfo, SPELL_DIRECT_DAMAGE);
+            if (DamageMultiplier != 1.0f)
+                damage = int32(damage * DamageMultiplier);
             damage = pVictim->MeleeDamageBonusTaken(this, damage, attackType, spellInfo, SPELL_DIRECT_DAMAGE);
 
             // if crit add critical bonus
@@ -1546,6 +1499,8 @@ void Unit::CalculateSpellDamage(SpellNonMeleeDamage *damageInfo, int32 damage, S
         {
             // Calculate damage bonus
             damage = SpellDamageBonusDone(pVictim, spellInfo, damage, SPELL_DIRECT_DAMAGE);
+            if (DamageMultiplier != 1.0f)
+                damage = int32(damage * DamageMultiplier);
             damage = pVictim->SpellDamageBonusTaken(this, spellInfo, damage, SPELL_DIRECT_DAMAGE);
 
             // If crit add critical bonus
@@ -1618,13 +1573,13 @@ void Unit::DealSpellDamage(SpellNonMeleeDamage *damageInfo, bool durabilityLoss)
     for (uint32 i = 0; i < 3; ++i)
     {
         if (spellProto->Effect[i] == SPELL_EFFECT_WEAPON_DAMAGE_NOSCHOOL || spellProto->Effect[i] == SPELL_EFFECT_WEAPON_PERCENT_DAMAGE || spellProto->Effect[i] == SPELL_EFFECT_WEAPON_DAMAGE || spellProto->Effect[i] == SPELL_EFFECT_NORMALIZED_WEAPON_DMG)
-        {    
+        {
             hasWeaponDmgEffect = true;
             break;
         }
     }
 
-    if (!(damageInfo->HitInfo & HITINFO_MISS) && hasWeaponDmgEffect) 
+    if (!(damageInfo->HitInfo & HITINFO_MISS) && hasWeaponDmgEffect)
     {
         WeaponAttackType attType = GetWeaponAttackType(spellProto);
         // on weapon hit casts
@@ -1904,6 +1859,7 @@ void Unit::CalculateMeleeDamage(Unit *pVictim, uint32 damage, CalcDamageInfo *da
     if(int32(damageInfo->damage) > 0)
     {
         damageInfo->procVictim |= PROC_FLAG_TAKEN_ANY_DAMAGE;
+        damageInfo->procEx |= PROC_EX_DIRECT_DAMAGE;
 
         // Calculate absorb & resists
         uint32 absorb_affected_damage = CalcNotIgnoreAbsorbDamage(damageInfo->damage,damageInfo->damageSchoolMask);
@@ -1917,6 +1873,8 @@ void Unit::CalculateMeleeDamage(Unit *pVictim, uint32 damage, CalcDamageInfo *da
         if (damageInfo->resist)
             damageInfo->HitInfo|=HITINFO_RESIST;
 
+        if (damageInfo->damage <= 0)
+            damageInfo->procEx &= ~PROC_EX_DIRECT_DAMAGE;
     }
     else // Umpossible get negative result but....
         damageInfo->damage = 0;
@@ -2424,26 +2382,6 @@ void Unit::CalculateDamageAbsorbAndResist(Unit *pCaster, SpellSchoolMask schoolM
                 }
                 break;
             }
-            case SPELLFAMILY_PALADIN:
-            {
-                // Ardent Defender
-                if (spellProto->SpellIconID == 2135)
-                {
-                    // Apply absorb only on damage below 35% hp
-                    int32 absorbableDamage = RemainingDamage + 0.35f * pCaster->GetMaxHealth() - pCaster->GetHealth();
-                    if (absorbableDamage > RemainingDamage)
-                        absorbableDamage = RemainingDamage;
-                    if (absorbableDamage > 0)
-                        RemainingDamage -= absorbableDamage * currentAbsorb / 100;
-
-                    // 66233 is cooldown aura
-                    if (!((Player*)pCaster)->HasAura(66233))
-                        preventDeathSpell = (*i)->GetSpellProto();
-
-                    continue;
-                }
-                break;
-           }
             case SPELLFAMILY_DEATHKNIGHT:
             {
                 // Shadow of Death
@@ -2507,7 +2445,7 @@ void Unit::CalculateDamageAbsorbAndResist(Unit *pCaster, SpellSchoolMask schoolM
                     if (absorbableDamage > 0)
                         RemainingDamage -= absorbableDamage * currentAbsorb / 100;
                     continue;
-                }      
+                }
                 break;
             }
             default:
@@ -3455,7 +3393,7 @@ SpellMissInfo Unit::MagicSpellHitResult(Unit *pVictim, SpellEntry const *spell)
     modHitChance+=GetTotalAuraModifierByMiscMask(SPELL_AURA_MOD_INCREASES_SPELL_PCT_TO_HIT, schoolMask);
     // Chance hit from victim SPELL_AURA_MOD_ATTACKER_SPELL_HIT_CHANCE auras
     modHitChance+= pVictim->GetTotalAuraModifierByMiscMask(SPELL_AURA_MOD_ATTACKER_SPELL_HIT_CHANCE, schoolMask);
-    
+
     // Cloak of Shadows - should be ignored by Chaos Bolt
     // handling of CoS aura is wrong? should be resist, not miss
     if (spell->SpellFamilyName == SPELLFAMILY_WARLOCK && spell->SpellIconID == 3178)
@@ -4105,29 +4043,21 @@ void Unit::SetInFront(Unit const* target)
     SetOrientation(GetAngle(target));
 }
 
-void Unit::SetFacingTo(float ori, bool bToSelf /*= false*/)
+void Unit::SetFacingTo(float ori)
 {
-    // update orientation at server
-    SetOrientation(ori);
-
-    // and client
-    SendHeartBeat(bToSelf);
+    Movement::MoveSplineInit init(*this);
+    init.SetFacing(ori);
+    init.Launch();
 }
 
-// Consider move this to Creature:: since only creature appear to be able to use this
 void Unit::SetFacingToObject(WorldObject* pObject)
 {
-    if (GetTypeId() != TYPEID_UNIT)
-        return;
-
     // never face when already moving
     if (!IsStopped())
         return;
 
     // TODO: figure out under what conditions creature will move towards object instead of facing it where it currently is.
-
-    SetOrientation(GetAngle(pObject));
-    SendMonsterMove(GetPositionX(), GetPositionY(), GetPositionZ(), SPLINETYPE_FACINGTARGET, ((Creature*)this)->GetSplineFlags(), 0, NULL, pObject->GetObjectGuid().GetRawValue());
+    SetFacingTo(GetAngle(pObject));
 }
 
 bool Unit::isInAccessablePlaceFor(Creature const* c) const
@@ -6171,8 +6101,8 @@ bool Unit::Attack(Unit *victim, bool meleeAttack)
     if(!isAlive() || !victim->IsInWorld() || !victim->isAlive())
         return false;
 
-    // player cannot attack while mounted or in vehicle (exclude special vehicles)if 
-    if (GetTypeId()==TYPEID_PLAYER && (IsMounted() || 
+    // player cannot attack while mounted or in vehicle (exclude special vehicles)if
+    if (GetTypeId()==TYPEID_PLAYER && (IsMounted() ||
         (GetVehicle() && (!GetVehicle()->GetSeatInfo(this) ||
         !(GetVehicle()->GetSeatInfo(this)->m_flags & (SEAT_FLAG_CAN_CAST | SEAT_FLAG_CAN_ATTACK))))))
         return false;
@@ -6751,7 +6681,7 @@ Unit* Unit::SelectMagnetTarget(Unit *victim, Spell* spell, SpellEffectIndex eff)
         return NULL;
 
     // Magic case
-    if (spell && (spell->m_spellInfo->PreventionType == SPELL_PREVENTION_TYPE_SILENCE || 
+    if (spell && (spell->m_spellInfo->PreventionType == SPELL_PREVENTION_TYPE_SILENCE ||
                   spell->m_spellInfo->DmgClass == SPELL_DAMAGE_CLASS_MAGIC ||
                   spell->m_spellInfo->DmgClass == SPELL_DAMAGE_CLASS_NONE ))
     {
@@ -6814,6 +6744,10 @@ void Unit::SendEnergizeSpellLog(Unit *pVictim, uint32 SpellID, uint32 Damage, Po
 
 void Unit::EnergizeBySpell(Unit *pVictim, uint32 SpellID, uint32 Damage, Powers powertype)
 {
+    // don't energize isolated units (banished)
+    if (pVictim->hasUnitState(UNIT_STAT_ISOLATED))
+        return;
+
     SendEnergizeSpellLog(pVictim, SpellID, Damage, powertype);
     // needs to be called after sending spell log
     pVictim->ModifyPower(powertype, Damage);
@@ -7217,7 +7151,7 @@ uint32 Unit::SpellDamageBonusDone(Unit *pVictim, SpellEntry const *spellProto, u
                 for(Unit::AuraList::const_iterator i = dummyAuras.begin(); i != dummyAuras.end(); ++i)
                 {
                     if ((found && (*i)->GetSpellProto()->EffectMiscValue[(*i)->GetEffIndex()] == 7244) || //Glacier Rot
-                        (isIcyTouch && (*i)->GetSpellProto()->SpellIconID == 2721))                       //Improved Icy Touch 
+                        (isIcyTouch && (*i)->GetSpellProto()->SpellIconID == 2721))                       //Improved Icy Touch
                     {
                         DoneTotalMod *= ((*i)->GetModifier()->m_amount+100.0f) / 100.0f;
                     }
@@ -8089,6 +8023,9 @@ uint32 Unit::MeleeDamageBonusDone(Unit *pVictim, uint32 pdamage,WeaponAttackType
         AuraList const& mModDamageDone = GetAurasByType(SPELL_AURA_MOD_DAMAGE_DONE);
         for(AuraList::const_iterator i = mModDamageDone.begin(); i != mModDamageDone.end(); ++i)
         {
+            if (!(*i)->GetHolder() || (*i)->GetHolder()->IsDeleted())
+                continue;
+
             if (((*i)->GetModifier()->m_miscvalue & schoolMask ||                        // schoolmask has to fit with the intrinsic spell school
                 (*i)->GetSpellProto()->AttributesEx4 & SPELL_ATTR_EX4_PET_SCALING_AURA) &&  // completely schoolmask-independend: pet scaling auras
                                                                                             // Those auras have SPELL_SCHOOL_MASK_MAGIC, but anyway should also affect
@@ -8127,6 +8064,9 @@ uint32 Unit::MeleeDamageBonusDone(Unit *pVictim, uint32 pdamage,WeaponAttackType
         AuraList const& mModDamagePercentDone = GetAurasByType(SPELL_AURA_MOD_DAMAGE_PERCENT_DONE);
         for(AuraList::const_iterator i = mModDamagePercentDone.begin(); i != mModDamagePercentDone.end(); ++i)
         {
+            if (!(*i)->GetHolder() || (*i)->GetHolder()->IsDeleted())
+                continue;
+
             if ((*i)->GetModifier()->m_miscvalue & schoolMask &&                         // schoolmask has to fit with the intrinsic spell school
                 (*i)->GetModifier()->m_miscvalue & GetMeleeDamageSchoolMask() &&         // AND schoolmask has to fit with weapon damage school (essential for non-physical spells)
                 (((*i)->GetSpellProto()->EquippedItemClass == -1) ||                     // general, weapon independent
@@ -8155,6 +8095,9 @@ uint32 Unit::MeleeDamageBonusDone(Unit *pVictim, uint32 pdamage,WeaponAttackType
         AuraList const& mOverrideClassScript= owner->GetAurasByType(SPELL_AURA_OVERRIDE_CLASS_SCRIPTS);
         for(AuraList::const_iterator i = mOverrideClassScript.begin(); i != mOverrideClassScript.end(); ++i)
         {
+            if (!(*i)->GetHolder() || (*i)->GetHolder()->IsDeleted())
+                continue;
+
             if (!(*i)->isAffectedOnSpell(spellProto))
                 continue;
 
@@ -8204,6 +8147,9 @@ uint32 Unit::MeleeDamageBonusDone(Unit *pVictim, uint32 pdamage,WeaponAttackType
     AuraList const& mclassScritAuras = GetAurasByType(SPELL_AURA_OVERRIDE_CLASS_SCRIPTS);
     for(AuraList::const_iterator i = mclassScritAuras.begin(); i != mclassScritAuras.end(); ++i)
     {
+        if (!(*i)->GetHolder() || (*i)->GetHolder()->IsDeleted())
+            continue;
+
         switch((*i)->GetMiscValue())
         {
             // Dirty Deeds
@@ -9049,38 +8995,6 @@ bool Unit::canDetectInvisibilityOf(Unit const* u) const
     return false;
 }
 
-struct UpdateWalkModeHelper
-{
-    explicit UpdateWalkModeHelper(Unit* _source) : source(_source) {}
-    void operator()(Unit* unit) const { unit->UpdateWalkMode(source, true); }
-    Unit* source;
-};
-
-void Unit::UpdateWalkMode(Unit* source, bool self)
-{
-    if (GetTypeId() == TYPEID_PLAYER)
-        CallForAllControlledUnits(UpdateWalkModeHelper(source), CONTROLLED_PET|CONTROLLED_GUARDIANS|CONTROLLED_CHARM|CONTROLLED_MINIPET);
-    else if (self)
-    {
-        bool on = source->GetTypeId() == TYPEID_PLAYER
-            ? ((Player*)source)->HasMovementFlag(MOVEFLAG_WALK_MODE)
-            : ((Creature*)source)->HasSplineFlag(SPLINEFLAG_WALKMODE);
-
-        if (on)
-        {
-            if (((Creature*)this)->IsPet() && hasUnitState(UNIT_STAT_FOLLOW))
-                ((Creature*)this)->AddSplineFlag(SPLINEFLAG_WALKMODE);
-        }
-        else
-        {
-            if (((Creature*)this)->IsPet())
-                ((Creature*)this)->RemoveSplineFlag(SPLINEFLAG_WALKMODE);
-        }
-    }
-    else
-        CallForAllControlledUnits(UpdateWalkModeHelper(source), CONTROLLED_PET|CONTROLLED_GUARDIANS|CONTROLLED_CHARM|CONTROLLED_MINIPET);
-}
-
 void Unit::UpdateSpeed(UnitMoveType mtype, bool forced, float ratio)
 {
     // not in combat pet have same speed as owner
@@ -9177,11 +9091,6 @@ void Unit::UpdateSpeed(UnitMoveType mtype, bool forced, float ratio)
     }
 
     float bonus = non_stack_bonus > stack_bonus ? non_stack_bonus : stack_bonus;
-
-    //apply creature's base speed
-    if(GetTypeId() == TYPEID_UNIT)
-        bonus *= ((Creature*)this)->GetBaseSpeed();
-
     // now we ready for speed calculation
     float speed  = main_speed_mod ? bonus*(100.0f + main_speed_mod)/100.0f : bonus;
 
@@ -9347,20 +9256,8 @@ void Unit::SetDeathState(DeathState s)
         RemoveMiniPet();
         UnsummonAllTotems();
 
-        // after removing a Fearaura (in RemoveAllAurasOnDeath)
-        // Unit::SetFeared is called and makes that creatures attack player again
-        if (GetTypeId() == TYPEID_UNIT)
-        {
-            clearUnitState(UNIT_STAT_MOVING);
-
-            GetMap()->CreatureRelocation((Creature*)this, GetPositionX(), GetPositionY(), GetPositionZ(), GetOrientation());
-            SendMonsterMove(GetPositionX(), GetPositionY(), GetPositionZ(), SPLINETYPE_NORMAL, SPLINEFLAG_WALKMODE, 0);
-        }
-        else
-        {
-            if (!IsStopped())
-                StopMoving();
-        }
+        StopMoving();
+        DisableSpline();
 
         ModifyAuraState(AURA_STATE_HEALTHLESS_20_PERCENT, false);
         ModifyAuraState(AURA_STATE_HEALTHLESS_35_PERCENT, false);
@@ -9650,6 +9547,13 @@ int32 Unit::CalculateSpellDamage(Unit const* target, SpellEntry const* spellProt
     }
 
     int32 value = basePoints;
+
+    // Life Burst (Malygos) hack
+    if (spellProto->Id == 57143)
+    {
+        value /= 2;
+        comboDamage = value;
+    }
 
     // random damage
     if (comboDamage != 0 && unitPlayer && target && (target->GetObjectGuid() == unitPlayer->GetComboTargetGuid() || IsAreaOfEffectSpell(spellProto)))
@@ -10381,7 +10285,7 @@ void Unit::CleanupsBeforeDelete()
         else
             getHostileRefManager().deleteReferences();
         RemoveAllAuras(AURA_REMOVE_BY_DELETE);
-        GetMotionMaster()->Clear(false);                    // remove different non-standard movement generators.
+        GetMotionMaster()->Clear(false,true);         // remove all movement generators.
     }
     WorldObject::CleanupsBeforeDelete();
 }
@@ -11201,12 +11105,9 @@ void Unit::StopMoving()
     if (!IsInWorld())
         return;
 
-    // send explicit stop packet
-    // player expected for correct work SPLINEFLAG_WALKMODE
-    SendMonsterMove(GetPositionX(), GetPositionY(), GetPositionZ(), SPLINETYPE_STOP, GetTypeId() == TYPEID_PLAYER ? SPLINEFLAG_WALKMODE : SPLINEFLAG_NONE, 0);
-
-    // update position and orientation for near players
-    SendHeartBeat(false);
+    Movement::MoveSplineInit init(*this);
+    init.SetFacing(GetOrientation());
+    init.Launch();
 }
 
 void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 time)
@@ -11893,6 +11794,8 @@ void Unit::SetPhaseMask(uint32 newPhaseMask, bool update)
 
 void Unit::NearTeleportTo( float x, float y, float z, float orientation, bool casting /*= false*/ )
 {
+    DisableSpline();
+
     if(GetTypeId() == TYPEID_PLAYER)
         ((Player*)this)->TeleportTo(GetMapId(), x, y, z, orientation, TELE_TO_NOT_LEAVE_TRANSPORT | TELE_TO_NOT_LEAVE_COMBAT | TELE_TO_NOT_UNSUMMON_PET | (casting ? TELE_TO_SPELL : 0));
     else
@@ -11906,7 +11809,7 @@ void Unit::NearTeleportTo( float x, float y, float z, float orientation, bool ca
 
         SetPosition(x, y, z, orientation, true);
 
-        SendHeartBeat(false);
+        SendHeartBeat();
 
         // finished relocation, movegen can different from top before creature relocation,
         // but apply Reset expected to be safe in any case
@@ -11916,55 +11819,19 @@ void Unit::NearTeleportTo( float x, float y, float z, float orientation, bool ca
     }
 }
 
-void Unit::MonsterMove(float x, float y, float z, uint32 transitTime)
+void Unit::MonsterMoveWithSpeed(float x, float y, float z, float speed)
 {
-    SplineFlags flags = GetTypeId() == TYPEID_PLAYER ? SPLINEFLAG_WALKMODE : ((Creature*)this)->GetSplineFlags();
-    SendMonsterMove(x, y, z, SPLINETYPE_NORMAL, flags, transitTime);
-
-    if (GetTypeId() != TYPEID_PLAYER)
-    {
-        Creature* c = (Creature*)this;
-        // Creature relocation acts like instant movement generator, so current generator expects interrupt/reset calls to react properly
-        if (!c->GetMotionMaster()->empty())
-            if (MovementGenerator *movgen = c->GetMotionMaster()->top())
-                movgen->Interrupt(*c);
-
-        GetMap()->CreatureRelocation((Creature*)this, x, y, z, 0.0f);
-
-        // finished relocation, movegen can different from top before creature relocation,
-        // but apply Reset expected to be safe in any case
-        if (!c->GetMotionMaster()->empty())
-            if (MovementGenerator *movgen = c->GetMotionMaster()->top())
-                movgen->Reset(*c);
-    }
-}
-
-void Unit::MonsterMoveWithSpeed(float x, float y, float z, uint32 transitTime)
-{
-    SendMonsterMoveWithSpeed(x, y, z, transitTime );
-
-    if (GetTypeId() != TYPEID_PLAYER)
-    {
-        Creature* c = (Creature*)this;
-        // Creature relocation acts like instant movement generator, so current generator expects interrupt/reset calls to react properly
-        if (!c->GetMotionMaster()->empty())
-            if (MovementGenerator *movgen = c->GetMotionMaster()->top())
-                movgen->Interrupt(*c);
-
-        GetMap()->CreatureRelocation((Creature*)this, x, y, z, 0.0f);
-
-        // finished relocation, movegen can different from top before creature relocation,
-        // but apply Reset expected to be safe in any case
-        if (!c->GetMotionMaster()->empty())
-            if (MovementGenerator *movgen = c->GetMotionMaster()->top())
-                movgen->Reset(*c);
-    }
+    Movement::MoveSplineInit init(*this);
+    init.MoveTo(x,y,z);
+    init.SetVelocity(speed);
+    init.Launch();
 }
 
 void Unit::MonsterJump(float x, float y, float z, float o, uint32 transitTime, uint32 verticalSpeed)
 {
-    SendMonsterMove(x, y, z, SPLINETYPE_NORMAL, SplineFlags(SPLINEFLAG_TRAJECTORY | SPLINEFLAG_WALKMODE), transitTime, NULL, double(verticalSpeed));
-
+//    SendMonsterMove(x, y, z, SPLINETYPE_NORMAL, SplineFlags(SPLINEFLAG_TRAJECTORY | SPLINEFLAG_WALKMODE), transitTime, NULL, double(verticalSpeed));
+    MonsterMoveWithSpeed(x, y, z, 28);
+/*
     if (GetTypeId() != TYPEID_PLAYER)
     {
         // Interrupt spells cause of movement
@@ -11984,6 +11851,7 @@ void Unit::MonsterJump(float x, float y, float z, float o, uint32 transitTime, u
             if (MovementGenerator *movgen = c->GetMotionMaster()->top())
                 movgen->Reset(*c);
     }
+*/
 }
 
 struct SetPvPHelper
@@ -12099,7 +11967,7 @@ void Unit::ExitVehicle()
     float z = GetPositionZ() + 2.0f;
     GetClosePoint(x, y, z, 2.0f);
     UpdateAllowedPositionZ(x, y, z);
-    SendMonsterMove(x, y, z + 0.5f, SPLINETYPE_NORMAL, SPLINEFLAG_WALKMODE, 0);
+    MonsterMoveWithSpeed(x, y, z + 0.5f, 28);
 }
 
 void Unit::SetPvP( bool state )
@@ -12151,7 +12019,7 @@ void Unit::KnockBackFrom(Unit* target, float horizontalSpeed, float verticalSpee
     {
         float dh = verticalSpeed*verticalSpeed / (2*19.23f); // maximum parabola height
         float time = (verticalSpeed) ? sqrtf(dh/(0.124976 * verticalSpeed)) : 0.0f;  //full move time in seconds
- 
+
         float dis = time * horizontalSpeed;
 
         float ox, oy, oz;
@@ -12161,8 +12029,8 @@ void Unit::KnockBackFrom(Unit* target, float horizontalSpeed, float verticalSpee
         float fy = oy + dis * vsin;
         float fz = oz;
 
-        MaNGOS::NormalizeMapCoord(fx); 
-        MaNGOS::NormalizeMapCoord(fy); 
+        MaNGOS::NormalizeMapCoord(fx);
+        MaNGOS::NormalizeMapCoord(fy);
 
         if (GetTerrain()->CheckPathAccurate(ox,oy,oz,fx,fy,fz, NULL))
             DEBUG_LOG("Unit::KnockBack unit %u knockbacked back on %f",GetObjectGuid().GetCounter(), GetDistance(fx,fy,fz));
@@ -12372,6 +12240,11 @@ SpellAuraHolder* Unit::GetSpellAuraHolder (uint32 spellid, ObjectGuid casterGuid
     return NULL;
 }
 
+void Unit::RemoveUnitFromHostileRefManager(Unit* pUnit)
+{
+    getHostileRefManager().deleteReference(pUnit);
+}
+
 void Unit::_AddAura(uint32 spellID, uint32 duration)
 {
     SpellEntry const *spellInfo = sSpellStore.LookupEntry( spellID );
@@ -12448,7 +12321,7 @@ public:
         {
             MaNGOS::PlayerRelocationNotifier notify((Player&)m_owner);
             Cell::VisitAllObjects(&m_owner,notify,radius);
-        } 
+        }
         else //if(m_owner.GetTypeId() == TYPEID_UNIT)
         {
             MaNGOS::CreatureRelocationNotifier notify((Creature&)m_owner);
@@ -12509,16 +12382,16 @@ ObjectGuid const& Unit::GetCreatorGuid() const
                 return ((TemporarySummon*)this)->GetSummonerGuid();
             }
             else
-                return ObjectGuid();
+                return ObjectGuid::Null;
 
         case HIGHGUID_PET:
             return GetGuidValue(UNIT_FIELD_CREATEDBY);
 
         case HIGHGUID_PLAYER:
-            return ObjectGuid();
+            return ObjectGuid::Null;
 
         default:
-            return ObjectGuid();
+            return ObjectGuid::Null;
     }
 }
 
@@ -12575,7 +12448,7 @@ uint32 Unit::CalculateAuraPeriodicTimeWithHaste(SpellEntry const* spellProto, ui
     if (!applyHaste)
         return oldPeriodicTime;
 
-    uint32 _periodicTime = ceil(float(oldPeriodicTime) * GetFloatValue(UNIT_MOD_CAST_SPEED)); 
+    uint32 _periodicTime = ceil(float(oldPeriodicTime) * GetFloatValue(UNIT_MOD_CAST_SPEED));
 
     return _periodicTime;
 }
@@ -12652,4 +12525,64 @@ uint32 Unit::GetModelForForm() const
 bool Unit::IsCombatStationary()
 {
     return GetMotionMaster()->GetCurrentMovementGeneratorType() != CHASE_MOTION_TYPE || isInRoots();
+}
+
+bool Unit::HasMorePoweredBuff(uint32 spellId)
+{
+    SpellEntry const* spellInfo = sSpellStore.LookupEntry( spellId );
+
+    if (!spellInfo || !(spellInfo->AttributesEx7 & SPELL_ATTR_EX7_REPLACEABLE_AURA))
+        return false;
+
+    for (uint8 i = 0; i < MAX_EFFECT_INDEX; ++i)
+    {
+        if ( spellInfo->Effect[i] != SPELL_EFFECT_APPLY_AURA  &&
+            spellInfo->Effect[i] != SPELL_EFFECT_PERSISTENT_AREA_AURA )
+            continue;
+
+        Unit::AuraList const& auras = GetAurasByType(AuraType(spellInfo->EffectApplyAuraName[SpellEffectIndex(i)]));
+        if (auras.empty())
+            continue;
+
+        for (Unit::AuraList::const_iterator itr = auras.begin(); itr != auras.end(); ++itr)
+            if ((*itr)->GetSpellProto()->AttributesEx7 & SPELL_ATTR_EX7_REPLACEABLE_AURA)
+                if (spellInfo->CalculateSimpleValue(SpellEffectIndex(i)) < (*itr)->GetModifier()->m_amount)
+                    return true;
+    }
+
+    return false;
+}
+
+void Unit::UpdateSplineMovement(uint32 t_diff)
+{
+    enum{
+        POSITION_UPDATE_DELAY = 400,
+    };
+
+    if (movespline->Finalized())
+        return;
+
+    movespline->updateState(t_diff);
+    bool arrived = movespline->Finalized();
+
+    if (arrived)
+        DisableSpline();
+
+    m_movesplineTimer.Update(t_diff);
+    if (m_movesplineTimer.Passed() || arrived)
+    {
+        m_movesplineTimer.Reset(POSITION_UPDATE_DELAY);
+        Movement::Location loc = movespline->ComputePosition();
+
+        if (GetTypeId() == TYPEID_PLAYER)
+            ((Player*)this)->SetPosition(loc.x,loc.y,loc.z,loc.orientation);
+        else
+            GetMap()->CreatureRelocation((Creature*)this,loc.x,loc.y,loc.z,loc.orientation);
+    }
+}
+
+void Unit::DisableSpline()
+{
+    m_movementInfo.RemoveMovementFlag(MovementFlags(MOVEFLAG_SPLINE_ENABLED|MOVEFLAG_FORWARD));
+    movespline->_Interrupt();
 }

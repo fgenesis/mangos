@@ -770,6 +770,11 @@ void Player::UpdateArmorPenetration()
     }
 }
 
+void Player::ApplyHealthRegenBonus(int32 amount, bool apply)  
+{  
+    m_baseHealthRegen+= apply ? amount : -amount;  
+}
+
 void Player::ApplyManaRegenBonus(int32 amount, bool apply)
 {
     m_baseManaRegen+= apply ? amount : -amount;
@@ -956,7 +961,7 @@ bool Pet::UpdateStats(Stats stat)
     float value  = GetTotalStatValue(stat);
 
     // FG: TODO: not sure if this block here is still required
-    if (Unit *owner = GetOwner();)
+    if (Unit *owner = GetOwner())
     {
         switch(stat)
         {

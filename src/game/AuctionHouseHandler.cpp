@@ -29,7 +29,6 @@
 #include "Mail.h"
 #include "Util.h"
 #include "Chat.h"
-#include "AuctionHouseBot.h"
 
 // please DO NOT use iterator++, because it is slower than ++iterator!!!
 // post-incrementation is always slower than pre-incrementation !
@@ -156,7 +155,7 @@ void WorldSession::SendAuctionOutbiddedMail(AuctionEntry *auction)
     Player *oldBidder = sObjectMgr.GetPlayer(oldBidder_guid);
 
     uint32 oldBidder_accId = 0;
-    if(!oldBidder && oldBidder_guid)
+    if(!oldBidder)
         oldBidder_accId = sObjectMgr.GetPlayerAccountIdByGUID(oldBidder_guid);
 
     // old bidder exist
@@ -182,7 +181,7 @@ void WorldSession::SendAuctionCancelledToBidderMail(AuctionEntry* auction)
     Player *bidder = sObjectMgr.GetPlayer(bidder_guid);
 
     uint32 bidder_accId = 0;
-    if (!bidder && bidder_guid)
+    if (!bidder)
         bidder_accId = sObjectMgr.GetPlayerAccountIdByGUID(bidder_guid);
 
     // bidder exist
@@ -411,7 +410,7 @@ void WorldSession::HandleAuctionPlaceBid(WorldPacket & recv_data)
 
     // impossible have online own another character (use this for speedup check in case online owner)
     Player* auction_owner = sObjectMgr.GetPlayer(ownerGuid);
-    if (!auction_owner && ownerGuid && sObjectMgr.GetPlayerAccountIdByGUID(ownerGuid) == pl->GetSession()->GetAccountId())
+    if (!auction_owner && sObjectMgr.GetPlayerAccountIdByGUID(ownerGuid) == pl->GetSession()->GetAccountId())
     {
         // you cannot bid your another character auction:
         SendAuctionCommandResult(NULL, AUCTION_BID_PLACED, AUCTION_ERR_BID_OWN);
@@ -660,12 +659,15 @@ void WorldSession::HandleAuctionListItems(WorldPacket & recv_data)
     AuctionHouseObject* auctionHouse = sAuctionMgr.GetAuctionsMap(auctionHouseEntry);
 
     // Sort
-    AuctionHouseObject::AuctionEntryMap *aucs = auctionHouse->GetAuctions();
-    std::list<AuctionEntry*> auctions;
-    for (AuctionHouseObject::AuctionEntryMap::const_iterator itr = aucs->begin(); itr != aucs->end(); ++itr)
+    AuctionHouseObject::AuctionEntryMap const& aucs = auctionHouse->GetAuctions();
+    std::vector<AuctionEntry*> auctions;
+    auctions.reserve(aucs.size());
+
+    for (AuctionHouseObject::AuctionEntryMap::const_iterator itr = aucs.begin(); itr != aucs.end(); ++itr)
         auctions.push_back(itr->second);
+
     AuctionSorter sorter(Sort, GetPlayer());
-    auctions.sort(sorter);
+    std::sort(auctions.begin(), auctions.end(), sorter);
 
     // remove fake death
     if (GetPlayer()->hasUnitState(UNIT_STAT_DIED))

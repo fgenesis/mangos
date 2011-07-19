@@ -558,31 +558,8 @@ class MANGOS_DLL_SPEC Creature : public Unit
 
         CreatureAI* AI() { return i_AI; }
 
-        void AddSplineFlag(SplineFlags f)
-        {
-            bool need_walk_sync = (f & SPLINEFLAG_WALKMODE) != (m_splineFlags & SPLINEFLAG_WALKMODE);
-            m_splineFlags = SplineFlags(m_splineFlags | f);
-            if (need_walk_sync)
-                UpdateWalkMode(this, false);
-        }
-        void RemoveSplineFlag(SplineFlags f)
-        {
-            bool need_walk_sync = (f & SPLINEFLAG_WALKMODE) != (m_splineFlags & SPLINEFLAG_WALKMODE);
-            m_splineFlags = SplineFlags(m_splineFlags & ~f);
-            if (need_walk_sync)
-                UpdateWalkMode(this, false);
-        }
-        bool HasSplineFlag(SplineFlags f) const { return m_splineFlags & f; }
-        SplineFlags GetSplineFlags() const { return m_splineFlags; }
-        void SetSplineFlags(SplineFlags f)
-        {
-            bool need_walk_sync = (f & SPLINEFLAG_WALKMODE) != (m_splineFlags & SPLINEFLAG_WALKMODE);
-            m_splineFlags = f;                              // need set before
-            if (need_walk_sync)
-                UpdateWalkMode(this, false);
-        }
-
-        void SendMonsterMoveWithSpeedToCurrentDestination(Player* player = NULL);
+        void SetWalk(bool enable);
+        void SetLevitate(bool enable);
 
         uint32 GetShieldBlockValue() const                  // dunno mob block value
         {
@@ -632,6 +609,9 @@ class MANGOS_DLL_SPEC Creature : public Unit
         std::string GetScriptName() const;
         uint32 GetScriptId() const;
 
+        bool SD2AIName() const { return !GetScriptName().empty(); }
+        bool HasAIName() const { return !GetAIName().empty(); }
+
         // overwrite WorldObject function for proper name localization
         const char* GetNameForLocaleIdx(int32 locale_idx) const;
 
@@ -658,7 +638,7 @@ class MANGOS_DLL_SPEC Creature : public Unit
         SpellEntry const *ReachWithSpellCure(Unit *pVictim);
 
         uint32 GetSpell(uint8 index, uint8 activeState = 0);
-        static uint8  GetSpellMaxIndex(uint8 activeState = 0); // FG: made static
+        uint8  GetSpellMaxIndex(uint8 activeState = 0);
 
         CreatureSpellCooldowns m_CreatureSpellCooldowns;
         CreatureSpellCooldowns m_CreatureCategoryCooldowns;
@@ -683,7 +663,6 @@ class MANGOS_DLL_SPEC Creature : public Unit
 
         MovementGeneratorType GetDefaultMovementType() const { return m_defaultMovementType; }
         void SetDefaultMovementType(MovementGeneratorType mgt) { m_defaultMovementType = mgt; }
-        float GetBaseSpeed() const;
 
         // for use only in LoadHelper, Map::Add Map::CreatureCellRelocation
         Cell const& GetCurrentCell() const { return m_currentCell; }
@@ -786,7 +765,6 @@ class MANGOS_DLL_SPEC Creature : public Unit
 
         uint32 m_groupLootTimer;                            // (msecs)timer used for group loot
         uint32 m_groupLootId;                               // used to find group which is looting corpse
-        void StopGroupLoot();
 
         // vendor items
         VendorItemCounts m_vendorItemCounts;
@@ -834,7 +812,6 @@ class MANGOS_DLL_SPEC Creature : public Unit
     private:
         GridReference<Creature> m_gridRef;
         CreatureInfo const* m_creatureInfo;                 // in difficulty mode > 0 can different from ObjMgr::GetCreatureTemplate(GetEntry())
-        SplineFlags m_splineFlags;
 };
 
 class AssistDelayEvent : public BasicEvent

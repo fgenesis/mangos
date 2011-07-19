@@ -45,6 +45,8 @@
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
 #include "CellImpl.h"
+#include "movement/MoveSplineInit.h"
+#include "movement/MoveSpline.h"
 #include "Vehicle.h"
 
 // apply implementation of the singletons
@@ -163,15 +165,13 @@ m_subtype(subtype), m_defaultMovementType(IDLE_MOTION_TYPE), m_equipmentId(0),
 m_AlreadyCallAssistance(false), m_AlreadySearchedAssistance(false),
 m_regenHealth(true), m_AI_locked(false), m_isDeadByDefault(false),
 m_meleeDamageSchoolMask(SPELL_SCHOOL_MASK_NORMAL), m_originalEntry(0), m_temporaryFactionFlags(TEMPFACTION_NONE),
-m_creatureInfo(NULL), m_splineFlags(SPLINEFLAG_WALKMODE)
+m_creatureInfo(NULL)
 {
     m_regenTimer = 200;
     m_valuesCount = UNIT_END;
 
     m_CreatureSpellCooldowns.clear();
     m_CreatureCategoryCooldowns.clear();
-
-    m_splineFlags = SPLINEFLAG_WALKMODE;
 
     ResetObtainedDamage();
 }
@@ -324,6 +324,8 @@ bool Creature::InitEntry(uint32 Entry, CreatureData const* data /*=NULL*/, GameE
     // update speed for the new CreatureInfo base speed mods
     UpdateSpeed(MOVE_WALK, false);
     UpdateSpeed(MOVE_RUN,  false);
+
+    SetLevitate(CanFly());
 
     // checked at loading
     m_defaultMovementType = MovementGeneratorType(cinfo->MovementType);
@@ -1503,8 +1505,6 @@ void Creature::SetDeathState(DeathState s)
         SetLootRecipient(NULL);
         ResetObtainedDamage();
 
-        AddSplineFlag(SPLINEFLAG_WALKMODE);
-
         if (GetTemporaryFactionFlags() & TEMPFACTION_RESTORE_RESPAWN)
             ClearTemporaryFaction();
 
@@ -1554,25 +1554,19 @@ bool Creature::FallGround()
 
     Unit::SetDeathState(CORPSE_FALLING);
 
-    float dz = tz - GetPositionZ();
-    float distance = sqrt(dz*dz);
-
-    // default run speed * 2 explicit, not verified though but result looks proper
-    double speed = baseMoveSpeed[MOVE_RUN] * 2;
-
-    speed *= 0.001;                                         // to milliseconds
-
-    uint32 travelTime = uint32(distance/speed);
-
-    DEBUG_LOG("FallGround: traveltime: %u, distance: %f, speed: %f, from %f to %f", travelTime, distance, speed, GetPositionZ(), tz);
-
     // For creatures that are moving towards target and dies, the visual effect is not nice.
     // It is possibly caused by a xyz mismatch in DestinationHolder's GetLocationNow and the location
     // of the mob in client. For mob that are already reached target or dies while not moving
     // the visual appear to be fairly close to the expected.
 
+    Movement::MoveSplineInit init(*this);
+    init.MoveTo(GetPositionX(),GetPositionY(),tz);
+    init.SetFall();
+    init.Launch();
+
+    // hacky solution: by some reason died creatures not updated, that's why need finalize movement state
     GetMap()->CreatureRelocation(this, GetPositionX(), GetPositionY(), tz, GetOrientation());
-    SendMonsterMove(GetPositionX(), GetPositionY(), tz, SPLINETYPE_NORMAL, SPLINEFLAG_FALLING, travelTime);
+    DisableSpline();
     return true;
 }
 
@@ -1989,8 +1983,8 @@ bool Creature::LoadCreatureAddon(bool reload)
     if (cainfo->emote != 0)
         SetUInt32Value(UNIT_NPC_EMOTESTATE, cainfo->emote);
 
-    if (cainfo->splineFlags != 0)
-        SetSplineFlags(SplineFlags(cainfo->splineFlags));
+    if (cainfo->splineFlags & SPLINEFLAG_FLYING)
+        SetLevitate(true);
 
     if(cainfo->auras)
     {
@@ -2192,7 +2186,7 @@ bool Creature::IsInEvadeMode() const
     return !i_motionMaster.empty() && i_motionMaster.GetCurrentMovementGeneratorType() == HOME_MOTION_TYPE;
 }
 
-bool Creature::HasSpell(uint32 spellID) const
+bool Creature::HasSpell(uint32 spellID)
 {
     for(uint8 i = 0; i <= GetSpellMaxIndex(); ++i)
         if (spellID == GetSpell(i))
@@ -2464,13 +2458,6 @@ void Creature::SetActiveObjectState( bool on )
         map->Add(this);
 }
 
-void Creature::SendMonsterMoveWithSpeedToCurrentDestination(Player* player)
-{
-    float x, y, z;
-    if(GetMotionMaster()->GetDestination(x, y, z))
-        SendMonsterMoveWithSpeed(x, y, z, 0, player);
-}
-
 void Creature::SendAreaSpiritHealerQueryOpcode(Player *pl)
 {
     uint32 next_resurrect = 0;
@@ -2602,5 +2589,26 @@ uint8 Creature::GetSpellMaxIndex(uint8 activeState)
         return 0;
 
     return (spellList ? spellList->rbegin()->first : 0);
+}
 
+void Creature::SetWalk(bool enable)
+{
+    if (enable)
+        m_movementInfo.AddMovementFlag(MOVEFLAG_WALK_MODE);
+    else
+        m_movementInfo.RemoveMovementFlag(MOVEFLAG_WALK_MODE);
+    WorldPacket data(enable ? SMSG_SPLINE_MOVE_SET_WALK_MODE : SMSG_SPLINE_MOVE_SET_RUN_MODE, 9);
+    data << GetPackGUID();
+    SendMessageToSet(&data, true);
+}
+
+void Creature::SetLevitate(bool enable)
+{
+    if (enable)
+        m_movementInfo.AddMovementFlag(MOVEFLAG_LEVITATING);
+    else
+        m_movementInfo.RemoveMovementFlag(MOVEFLAG_LEVITATING);
+    WorldPacket data(enable ? SMSG_SPLINE_MOVE_GRAVITY_DISABLE : SMSG_SPLINE_MOVE_GRAVITY_ENABLE, 9);
+    data << GetPackGUID();
+    SendMessageToSet(&data, true);
 }

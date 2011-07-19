@@ -108,13 +108,12 @@ class AuctionHouseObject
         }
 
         typedef std::map<uint32, AuctionEntry*> AuctionEntryMap;
+        typedef std::pair<AuctionEntryMap::const_iterator, AuctionEntryMap::const_iterator> AuctionEntryMapBounds;
 
         uint32 GetCount() { return AuctionsMap.size(); }
 
-        AuctionEntryMap *GetAuctions() { return &AuctionsMap; }
-
-        AuctionEntryMap::iterator GetAuctionsBegin() {return AuctionsMap.begin();}
-        AuctionEntryMap::iterator GetAuctionsEnd() {return AuctionsMap.end();}
+        AuctionEntryMap const& GetAuctions() const { return AuctionsMap; }
+        AuctionEntryMapBounds GetAuctionsBounds() const {return AuctionEntryMapBounds(AuctionsMap.begin(), AuctionsMap.end()); }
 
         void AddAuction(AuctionEntry *ah)
         {
@@ -130,7 +129,7 @@ class AuctionHouseObject
 
         bool RemoveAuction(uint32 id)
         {
-            return AuctionsMap.erase(id) ? true : false;
+            return AuctionsMap.erase(id);
         }
 
         void Update();
@@ -156,6 +155,15 @@ class AuctionSorter
         Player* m_viewPlayer;
 };
 
+enum AuctionHouseType
+{
+    AUCTION_HOUSE_ALLIANCE  = 0,
+    AUCTION_HOUSE_HORDE     = 1,
+    AUCTION_HOUSE_NEUTRAL   = 2
+};
+
+#define MAX_AUCTION_HOUSE_TYPE 3
+
 class AuctionHouseMgr
 {
     public:
@@ -167,6 +175,7 @@ class AuctionHouseMgr
         typedef ACE_Read_Guard<LockType>     ReadGuard;
         typedef ACE_Write_Guard<LockType>    WriteGuard;
 
+        AuctionHouseObject* GetAuctionsMap(AuctionHouseType houseType) { return &mAuctions[houseType]; }
         AuctionHouseObject* GetAuctionsMap(AuctionHouseEntry const* house);
 
         Item* GetAItem(uint32 id)
@@ -202,9 +211,7 @@ class AuctionHouseMgr
         void Update();
 
     private:
-        AuctionHouseObject  mHordeAuctions;
-        AuctionHouseObject  mAllianceAuctions;
-        AuctionHouseObject  mNeutralAuctions;
+        AuctionHouseObject  mAuctions[MAX_AUCTION_HOUSE_TYPE];
 
         ItemMap             mAitems;
 

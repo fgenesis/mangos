@@ -47,6 +47,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tbbmalloc", "VC90\tbbmalloc
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ScriptDev2", "..\src\bindings\r2_sd2\VC90\90ScriptDev2.vcproj", "{4295C8A9-79B7-4354-8064-F05FB9CA0C96}"
+	ProjectSection(ProjectDependencies) = postProject
+		{1DC6C4DA-A028-41F3-877D-D5400C594F88} = {1DC6C4DA-A028-41F3-877D-D5400C594F88}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

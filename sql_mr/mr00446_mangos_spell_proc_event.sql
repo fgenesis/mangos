@@ -5,6 +5,7 @@ INSERT INTO spell_proc_event VALUES (49004, 0x00, 0x0F, 0x00000000, 0x00000000, 
 
 -- (49200) Acclimation
 DELETE FROM spell_proc_event WHERE entry = 49200;
+INSERT INTO spell_proc_event VALUES (49200, 127, 0x00, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0, 0, 0);
 
 -- (48988) Bloody Vengeance
 DELETE FROM spell_proc_event WHERE entry = 48988;
@@ -318,6 +319,9 @@ UPDATE spell_proc_event SET procFlags = 0x00100000 WHERE entry = 53601;
 DELETE FROM spell_proc_event WHERE entry IN (34753, 34859, 34860);
 INSERT INTO spell_proc_event VALUES (34753, 0x00, 0x06, 0x00001800, 0x00001800, 0x00001800, 0x00000004, 0x00000004, 0x00000004, 0x000001000, 0x00001000, 0x00001000, 0x00000000, 0x00000002, 0, 0, 0);
 
+-- (53527) Divine Guardian
+DELETE FROM spell_proc_event where entry = 53527;
+
 -- Mage
 -- (12654) Ignite
 DELETE FROM spell_proc_event WHERE entry = 12654;
@@ -334,12 +338,6 @@ INSERT INTO spell_proc_event VALUES (36032, 0x00, 0x03, 0x20000000, 0x20000000, 
 -- (44404) Missile Barrage
 DELETE FROM spell_proc_event WHERE entry IN (44404, 54486, 54488, 54489, 54490);
 INSERT INTO spell_proc_event VALUES (44404, 0x00, 0x03, 0x20000021, 0x20000021, 0x20000021, 0x00009000, 0x00009000, 0x00009000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0, 0, 0);
-
--- Fingers of Frost
-DELETE FROM spell_proc_event WHERE entry IN (44543, 44545, 74396);
-INSERT INTO spell_proc_event VALUES 
-(44543, 0x00, 0x03, 33555104, 33555104, 33555104, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0),
-(74396, 0x00, 0x03, 685904631, 685904631, 685904631, 1151048, 1151048, 1151048, 0, 0, 0, 65536, 0, 0, 0, 0);
 
 -- (44557) Improved Water Elemental
 DELETE FROM spell_proc_event WHERE entry = 44557;
@@ -443,6 +441,10 @@ INSERT INTO spell_proc_event VALUES (53234, 0x00, 0x09, 0x00020000, 0x00020000, 
 -- (19184) Entrapment
 DELETE FROM spell_proc_event WHERE entry = 19184;
 INSERT INTO spell_proc_event VALUES (19184, 0x00, 0x09, 0x00000000, 0x00000000, 0x00000000, 0x00002000, 0x00002000, 0x00002000, 0x00040000, 0x00040000, 0x00040000, 0x00000000, 0x00000000, 0, 0, 0);
+
+-- (53257) Cobra Strikes
+DELETE FROM spell_proc_event WHERE entry = 53257;
+INSERT INTO spell_proc_event VALUES (53257, 0x00, 0x09, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00011010, 0x00000002, 0, 100, 0);
 
 -- Trinkets, rings, weapon procs, enchants etc.
 -- Information about procchance and procflag undertakes with DBC.
@@ -600,7 +602,6 @@ INSERT INTO spell_proc_event VALUES (71562, 0x00, 0x00, 0x00000000, 0x00000000, 
 
 -- (71397) Item - Icecrown 25 Emblem Melee Trinket
 DELETE FROM spell_proc_event WHERE entry = 71397;
-INSERT INTO spell_proc_event VALUES (71397, 0x00, 0x00, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0, 0, 0);
 
 -- (71404) Item - Icecrown Dungeon Melee Trinket
 DELETE FROM spell_proc_event WHERE entry = 71404;

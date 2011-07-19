@@ -39,10 +39,9 @@
 #include "CellImpl.h"
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
-
 #include "ObjectPosSelector.h"
-
 #include "TemporarySummon.h"
+#include "movement/packet_builder.h"
 
 Object::Object( )
 {
@@ -261,60 +260,13 @@ void Object::BuildMovementUpdate(ByteBuffer * data, uint16 updateFlags) const
     {
         Unit *unit = ((Unit*)this);
 
-        switch(GetTypeId())
+        if (GetTypeId() == TYPEID_PLAYER)
         {
-            case TYPEID_UNIT:
-            {
-                unit->m_movementInfo.SetMovementFlags(MOVEFLAG_NONE);
-
-                // disabled, makes them run-in-same-place before movement generator updated once.
-                /*if (((Creature*)unit)->hasUnitState(UNIT_STAT_MOVING))
-                    unit->m_movementInfo.SetMovementFlags(MOVEFLAG_FORWARD);*/
-
-                if (((Creature*)unit)->CanFly())
-                {
-                    // (ok) most seem to have this
-                    unit->m_movementInfo.AddMovementFlag(MOVEFLAG_LEVITATING);
-
-                    /*if (!((Creature*)unit)->hasUnitState(UNIT_STAT_MOVING))
-                    {
-                        // (ok) possibly some "hover" mode
-                        unit->m_movementInfo.AddMovementFlag(MOVEFLAG_ROOT);
-                    }
-                    else*/
-                    {
-                        if (((Creature*)unit)->IsMounted())
-                        {
-                            // seems to be often when mounted
-                            unit->m_movementInfo.AddMovementFlag(MOVEFLAG_FLYING);
-                        }
-                    }
-                }
-
-                if (unit->GetVehicle())
-                   unit->m_movementInfo.AddMovementFlag(MOVEFLAG_ONTRANSPORT);
-            }
-            break;
-            case TYPEID_PLAYER:
-            {
-                Player *player = ((Player*)unit);
-
-                if (player->GetTransport() || player->GetVehicle())
-                    player->m_movementInfo.AddMovementFlag(MOVEFLAG_ONTRANSPORT);
-                else
-                    player->m_movementInfo.RemoveMovementFlag(MOVEFLAG_ONTRANSPORT);
-
-                // remove unknown, unused etc flags for now
-                player->m_movementInfo.RemoveMovementFlag(MOVEFLAG_SPLINE_ENABLED);
-
-                if(player->IsTaxiFlying())
-                {
-                    MANGOS_ASSERT(player->GetMotionMaster()->GetCurrentMovementGeneratorType() == FLIGHT_MOTION_TYPE);
-                    player->m_movementInfo.AddMovementFlag(MOVEFLAG_FORWARD);
-                    player->m_movementInfo.AddMovementFlag(MOVEFLAG_SPLINE_ENABLED);
-                }
-            }
-            break;
+            Player *player = ((Player*)unit);
+            if(player->GetTransport())
+                player->m_movementInfo.AddMovementFlag(MOVEFLAG_ONTRANSPORT);
+            else
+                player->m_movementInfo.RemoveMovementFlag(MOVEFLAG_ONTRANSPORT);
         }
 
         if (unit->GetTransport() || unit->GetVehicle())
@@ -339,86 +291,8 @@ void Object::BuildMovementUpdate(ByteBuffer * data, uint16 updateFlags) const
         *data << float(unit->GetSpeed(MOVE_PITCH_RATE));
 
         // 0x08000000
-        if(unit->m_movementInfo.GetMovementFlags() & MOVEFLAG_SPLINE_ENABLED)
-        {
-            if(GetTypeId() != TYPEID_PLAYER)
-            {
-                DEBUG_LOG("_BuildMovementUpdate: MOVEFLAG_SPLINE_ENABLED for non-player");
-                return;
-            }
-
-            Player *player = ((Player*)unit);
-
-            if(!player->IsTaxiFlying())
-            {
-                DEBUG_LOG("_BuildMovementUpdate: MOVEFLAG_SPLINE_ENABLED but not in flight");
-                return;
-            }
-
-            MANGOS_ASSERT(player->GetMotionMaster()->GetCurrentMovementGeneratorType() == FLIGHT_MOTION_TYPE);
-
-            FlightPathMovementGenerator *fmg = (FlightPathMovementGenerator*)(player->GetMotionMaster()->top());
-
-            uint32 flags3 = SPLINEFLAG_WALKMODE | SPLINEFLAG_FLYING;
-
-            *data << uint32(flags3);                        // splines flag?
-
-            if(flags3 & SPLINEFLAG_FINALFACING)             // may be orientation
-            {
-                *data << float(0);
-            }
-            else
-            {
-                if(flags3 & SPLINEFLAG_FINALTARGET)         // probably guid there
-                {
-                    *data << uint64(0);
-                }
-                else
-                {
-                    if(flags3 & SPLINEFLAG_FINALPOINT)      // probably x,y,z coords there
-                    {
-                        *data << float(0);
-                        *data << float(0);
-                        *data << float(0);
-                    }
-                }
-            }
-
-            TaxiPathNodeList const& path = fmg->GetPath();
-
-            float x, y, z;
-            player->GetPosition(x, y, z);
-
-            uint32 inflighttime = uint32(path.GetPassedLength(fmg->GetCurrentNode(), x, y, z) * 32);
-            uint32 traveltime = uint32(path.GetTotalLength() * 32);
-
-            *data << uint32(inflighttime);                  // passed move time?
-            *data << uint32(traveltime);                    // full move time?
-            *data << uint32(0);                             // sequenceId
-
-            *data << float(0);                              // added in 3.1
-            *data << float(0);                              // added in 3.1
-
-            // data as in SMSG_MONSTER_MOVE with flag SPLINEFLAG_TRAJECTORY
-            *data << float(0);                              // parabolic speed, added in 3.1
-            *data << uint32(0);                             // parabolic time, added in 3.1
-
-            uint32 poscount = uint32(path.size());
-            *data << uint32(poscount);                      // points count
-
-            for(uint32 i = 0; i < poscount; ++i)
-            {
-                *data << float(path[i].x);
-                *data << float(path[i].y);
-                *data << float(path[i].z);
-            }
-
-            *data << uint8(0);                              // splineMode
-
-            *data << float(path[poscount-1].x);
-            *data << float(path[poscount-1].y);
-            *data << float(path[poscount-1].z);
-        }
+        if (unit->m_movementInfo.GetMovementFlags() & MOVEFLAG_SPLINE_ENABLED)
+            Movement::PacketBuilder::WriteCreate(*unit->movespline, *data);
     }
     else
     {
@@ -1631,29 +1505,6 @@ void WorldObject::MonsterWhisper(const char* text, Unit* target, bool IsBossWhis
     ((Player*)target)->GetSession()->SendPacket(&data);
 }
 
-GameObject* WorldObject::SummonGameobject(uint32 id, float x, float y, float z, float angle, uint32 despwtime)
-{
-    GameObject* pGameObj = new GameObject;
-
-    Map *map = GetMap();
-
-    if (!map)
-        return NULL;
-
-    if(!pGameObj->Create(map->GenerateLocalLowGuid(HIGHGUID_GAMEOBJECT), id, map,
-        GetPhaseMask(), x, y, z, angle, 0.0f, 0.0f, 0.0f, 0.0f, 100, GO_STATE_READY))
-    {
-        delete pGameObj;
-        return NULL;
-    }
-
-    pGameObj->SetRespawnTime(despwtime/IN_MILLISECONDS);
-
-    map->Add(pGameObj);
-
-    return pGameObj;
-}
-
 namespace MaNGOS
 {
     class MonsterChatBuilder
@@ -1906,19 +1757,6 @@ Creature* WorldObject::SummonCreatureCustom(uint32 id, float x, float y, float z
 
     // return the creature therewith the summoner has access to it
     return pCreature;
-}
-
-void Object::ForceValuesUpdateAtIndex(uint32 i)
-{
-    m_uint32Values_mirror[i] = GetUInt32Value(i) + 1; // makes server think the field changed
-    if(m_inWorld)
-    {
-        if(!m_objectUpdated)
-        {
-            AddToClientUpdateList();
-            m_objectUpdated = true;
-        }
-    }
 }
 
 GameObject* WorldObject::SummonGameobject(uint32 id, float x, float y, float z, float angle, uint32 despwtime)
@@ -2356,15 +2194,13 @@ void WorldObject::SetLootRecipient(Unit *unit)
 
 }
 
-// Frozen Mod
-void Object::ForceValuesUpdateAtIndex(uint16 index)
+void Object::ForceValuesUpdateAtIndex(uint32 index)
 {
     MANGOS_ASSERT( index < m_valuesCount || PrintIndexError( index, true ) );
 
     m_uint32Values_mirror[index] = m_uint32Values[index] + 1; // makes server think the field changed
     MarkForClientUpdate();
 }
-// Frozen Mod
 
 bool WorldObject::PrintCoordinatesError(float x, float y, float z, char const* descr) const
 {

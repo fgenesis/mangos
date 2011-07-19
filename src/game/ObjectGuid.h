@@ -206,6 +206,10 @@ class MANGOS_DLL_SPEC ObjectGuid
 
     private:                                                // fields
         uint64 m_guid;
+
+    // FG: extra stuff in case a NULL-guid needs to be returned as a reference
+    public:
+        static const ObjectGuid Null;
 };
 
 typedef std::set<ObjectGuid> ObjectGuidSet;

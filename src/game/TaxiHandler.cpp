@@ -27,7 +27,6 @@
 #include "UpdateMask.h"
 #include "Path.h"
 #include "WaypointMovementGenerator.h"
-#include "DestinationHolderImp.h"
 
 void WorldSession::HandleTaxiNodeStatusQueryOpcode( WorldPacket & recv_data )
 {
@@ -208,7 +207,7 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)
         //GetPlayer()->SetUnitMovementFlags(movementInfo.moveFlags);
 
         //calc time deltas
-        int32 cClientTimeDelta = 0;
+        /*int32 cClientTimeDelta = 0;
         if (GetPlayer()->m_anti_LastClientTime !=0)
         {
             cClientTimeDelta = movementInfo.GetTime() - GetPlayer()->m_anti_LastClientTime;
@@ -235,17 +234,19 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)
 
         GetPlayer()->m_anti_JustTeleported = true;
         //end movement anticheat
+        */
 
         return;
     }
 
     //movment anticheat
-    uint32 curloc = sObjectMgr.GetNearestTaxiNode(movementInfo.GetPos()->x,movementInfo.GetPos()->y,movementInfo.GetPos()->z,
-        GetPlayer()->GetMapId(),GetPlayer( )->GetTeam());
+    //uint32 curloc = sObjectMgr.GetNearestTaxiNode(movementInfo.GetPos()->x,movementInfo.GetPos()->y,movementInfo.GetPos()->z,
+    //    GetPlayer()->GetMapId(),GetPlayer( )->GetTeam());
     //end movement anticheat
 
     TaxiNodesEntry const* curDestNode = sTaxiNodesStore.LookupEntry(curDest);
 
+    /*
     //movement anticheat code
     GetPlayer()->SetPosition(movementInfo.GetPos()->x, movementInfo.GetPos()->y, movementInfo.GetPos()->z, movementInfo.GetPos()->o);
     GetPlayer()->m_movementInfo = movementInfo;
@@ -276,6 +277,7 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)
         GetPlayer()->m_anti_LastServerTime = cServerTime;
     }
     //<< end movement anticheat
+    */
 
     // far teleport case
     if(curDestNode && curDestNode->map_id != GetPlayer()->GetMapId())

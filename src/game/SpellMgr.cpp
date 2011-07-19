@@ -70,8 +70,8 @@ int32 CalculateSpellDuration(SpellEntry const *spellInfo, Unit const* caster)
     {
         int32 maxduration = GetSpellMaxDuration(spellInfo);
 
-        if (duration != maxduration && caster->GetTypeId() == TYPEID_PLAYER)
-            duration += int32((maxduration - duration) * ((Player*)caster)->GetComboPoints() / 5);
+        if (duration != maxduration)
+            duration += int32((maxduration - duration) * caster->GetComboPoints() / 5);
 
         if (Player* modOwner = caster->GetSpellModOwner())
         {
@@ -447,7 +447,7 @@ SpellSpecific GetSpellSpecific(uint32 spellId)
         }
         case SPELLFAMILY_WARRIOR:
         {
-            if (spellInfo->SpellFamilyFlags.test<CF_WARRIOR_BATTLE_SHOUT, CF_WARRIOR_COMMANDING_SHOUT>()) 
+            if (spellInfo->SpellFamilyFlags.test<CF_WARRIOR_BATTLE_SHOUT, CF_WARRIOR_COMMANDING_SHOUT>())
                 return SPELL_POSITIVE_SHOUT;
 
             break;
@@ -682,25 +682,40 @@ bool IsPositiveEffect(SpellEntry const *spellproto, SpellEffectIndex effIndex)
 
     switch(spellproto->Id)
     {
+        case 37675:                                         // Chaos Blast
+        case 42786:                                         // Echo Of Ymiron
+        case 56266:                                         // Vortex
+        case 62470:                                         // Deafening Thunder
+        case 63138:                                         // Sara's Fervor (Ulduar - Yogg Saron encounter)
+        case 63134:                                         // Sara's Blessing (Ulduar - Yogg Saron encounter)
+        case 63355:                                         // Crunch Armor
         case 71010:                                         // Web Wrap (Icecrown Citadel, trash mob Nerub'ar Broodkeeper)
         case 72219:                                         // Gastric Bloat 10 N
         case 72551:                                         // Gastric Bloat 10 H
         case 72552:                                         // Gastric Bloat 25 N
         case 72553:                                         // Gastric Bloat 25 H
             return false;
+        case 552:                                           // Abolish Disease
+        case 12042:                                         // Arcane Power
+        case 36032:                                         // Arcane Blast
+        case 59286:                                         // Opening
         case 47540:                                         // Penance start dummy aura - Rank 1
         case 53005:                                         // Penance start dummy aura - Rank 2
         case 53006:                                         // Penance start dummy aura - Rank 3
         case 53007:                                         // Penance start dummy aura - Rank 4
+        case 47747:                                         // Charge Rift (Nexus: Anomalus)
         case 47757:                                         // Penance heal effect trigger - Rank 1
         case 52986:                                         // Penance heal effect trigger - Rank 2
         case 52987:                                         // Penance heal effect trigger - Rank 3
         case 52988:                                         // Penance heal effect trigger - Rank 4
+        case 64343:                                         // Impact
         case 64844:                                         // Divine Hymn
         case 64904:                                         // Hymn of Hope
+        case 67369:                                         // Grunty Focus
+        case 67398:                                         // Zergling Periodic Effect
             return true;
-            // FG: these below are mine
-        case 37675:                                         // Chaos Blast
+
+        // FG: these below are mine
         case 36810: // rotting puterescence
         case 36809: // overpowering sickness
         case 48323: // indisposed
@@ -717,6 +732,8 @@ bool IsPositiveEffect(SpellEntry const *spellproto, SpellEffectIndex effIndex)
             {
                 case 28441:                                 // AB Effect 000
                     return false;
+                case 48021:                                 // support for quest 12173
+                    return true;
                 case 49634:                                 // Sergeant's Flare
                 case 54530:                                 // Opening
                 case 62105:                                 // To'kini's Blowgun
@@ -2474,7 +2491,7 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                     (spellInfo_2->Category == 44 && spellInfo_1->Category == 0)))
                     return false;
             }
-            else if ( spellInfo_2->SpellFamilyName == SPELLFAMILY_GENERIC ) 
+            else if ( spellInfo_2->SpellFamilyName == SPELLFAMILY_GENERIC )
             {
                 if (spellInfo_1->SpellIconID == 2903 && spellInfo_2->SpellIconID == 2903)
                     return false;
@@ -2588,7 +2605,6 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                  if ((spellInfo_1->SpellIconID == 3025 && spellInfo_2->SpellIconID == 2292) ||
                      (spellInfo_1->SpellIconID == 2292 && spellInfo_2->SpellIconID == 3025))
                      return false;
-            }
 
                 // Blessing of Sanctuary (multi-family check, some from 16 spell icon spells)
                 if (spellInfo_2->Id == 67480 && spellInfo_1->Id == 20911)
@@ -2627,7 +2643,6 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
             // Blessing of Kings and Drums of Forgotten Kings
             if( spellInfo_1->SpellFamilyFlags & UI64LIT(0x10000000) && spellInfo_2->Id == 72586)
                 return true;
-            break;
 
             // FG: Seal of Command and Frostforged Champion (multi-family check)
             if( spellInfo_1->SpellIconID==561 && spellInfo_1->SpellVisual[0]==7992 && spellId_2 == 72412)
@@ -2709,7 +2724,9 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
 
     // more generic checks
     if (spellInfo_1->SpellIconID == spellInfo_2->SpellIconID &&
-        spellInfo_1->SpellIconID != 0 && spellInfo_2->SpellIconID != 0)
+        spellInfo_1->SpellIconID != 0 && spellInfo_2->SpellIconID != 0
+        // exclude a few icons from this generic check
+        && spellInfo_1->SpellIconID != 1885 && spellInfo_1->SpellIconID != 1886)        // Thaddius Encounter, pos/neg Charge
     {
         bool isModifier = false;
         for (int i = 0; i < MAX_EFFECT_INDEX; ++i)
@@ -4774,6 +4791,9 @@ int32 GetDiminishingReturnsLimitDuration(DiminishingGroup group, SpellEntry cons
             // Curse of the Elements - limit to 2 minutes in PvP
             if (spellproto->SpellFamilyFlags.test<CF_WARLOCK_CURSE_OF_THE_ELEMENTS>())
                 return 120000;
+            // Banish - limit to 6 seconds in PvP (3.1)
+            else if (spellproto->SpellFamilyFlags.test<CF_WARLOCK_BANISH>())
+                return 6000;
             break;
         }
         case SPELLFAMILY_HUNTER:
@@ -4913,7 +4933,7 @@ SpellEntry const* GetSpellEntryByDifficulty(uint32 id, Difficulty difficulty, bo
     if (!spellDiff)
         return NULL;
 
-    DEBUG_LOG("Searching spell %u in SpellDifficulty.dbc: Result is: %u/%u/%u/%u ",id, 
+    DEBUG_LOG("Searching spell %u in SpellDifficulty.dbc: Result is: %u/%u/%u/%u ",id,
     spellDiff->spellId[RAID_DIFFICULTY_10MAN_NORMAL],
     spellDiff->spellId[RAID_DIFFICULTY_25MAN_NORMAL],
     spellDiff->spellId[RAID_DIFFICULTY_10MAN_HEROIC],

@@ -283,7 +283,7 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
     if(plMover)
     {
         beeingTele = plMover->IsBeingTeleported();
-        plMover->m_anti_JustTeleported = beeingTele; // ACH related
+        //plMover->m_anti_JustTeleported = beeingTele; // ACH related
     }
 
     // ignore, waiting processing in WorldSession::HandleMoveWorldportAckOpcode and WorldSession::HandleMoveTeleportAck
@@ -308,13 +308,14 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
     if (opcode == MSG_MOVE_FALL_LAND && plMover && !plMover->IsTaxiFlying())
     {
         //movement anticheat
-        plMover->m_anti_JustJumped = 0;
-        plMover->m_anti_JumpBaseZ = 0;
+        //plMover->m_anti_JustJumped = 0;
+        //plMover->m_anti_JumpBaseZ = 0;
         //end movement anticheat
         plMover->HandleFall(movementInfo);
     }
 
     // ACH start
+#if 0 // FG: CLEAN THIS UP!!
     uint32 alarm_level = 0;
     if(plMover && plMover == GetPlayer())
     {
@@ -371,6 +372,7 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
         }
     }
     // ACH end
+#endif
 
     /* process anticheat check */
     GetPlayer()->GetAntiCheat()->DoAntiCheatCheck(CHECK_MOVEMENT,movementInfo, opcode);
@@ -380,10 +382,6 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
 
     if (plMover)
         plMover->UpdateFallInformationIfNeed(movementInfo, opcode);
-
-    // after move info set
-    if (opcode == MSG_MOVE_SET_WALK_MODE || opcode == MSG_MOVE_SET_RUN_MODE)
-        mover->UpdateWalkMode(mover, false);
 
     WorldPacket data(opcode, recv_data.size());
     data << mover->GetPackGUID();             // write guid
@@ -713,7 +711,8 @@ void WorldSession::HandleMoverRelocation(MovementInfo& movementInfo)
 
 
 
-/* // FG: seems this is not required anymore; keeping for reference
+// FG: seems this is not required anymore; keeping for reference
+#if 0
 uint32 WorldSession::ACH_CheckMoveInfo(uint32 opcode, const MovementInfo* movementInfoPtr, Player *plMover)
 {
     if(!plMover) // player to check
@@ -956,4 +955,4 @@ uint32 WorldSession::ACH_CheckMoveInfo(uint32 opcode, const MovementInfo* moveme
     }
     return alarm_level;
 }
-*/
+#endif

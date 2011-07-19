@@ -305,7 +305,6 @@ bool Pet::LoadPetFromDB( Player* owner, uint32 petentry, uint32 petnumber, bool 
         SetPower(getPowerType(), GetMaxPower(getPowerType()));
     }
 
-    UpdateWalkMode(owner);
     AIM_Initialize();
 
     GetMap()->Add((Creature*)this);
@@ -588,7 +587,7 @@ void Pet::Update(uint32 update_diff, uint32 diff)
                     return;
                 }
             }
-            else 
+            else
                 if (!IsWithinDistInMap(owner, GetMap()->GetVisibilityDistance()))
                 {
                     sLog.outError("Not controlled pet %d lost view from owner, removed. Owner = %d, distance = %d, pet GUID = ", GetObjectGuid().GetCounter(), owner->GetObjectGuid().GetCounter(), GetDistance2d(owner), owner->GetPetGuid().GetCounter());
@@ -2950,7 +2949,7 @@ bool Pet::Summon()
 
     SetHealth(GetMaxHealth());
     SetPower(getPowerType(), GetMaxPower(getPowerType()));
-    UpdateWalkMode(owner);
+
     AIM_Initialize();
 
     map->Add((Creature*)this);
@@ -3226,7 +3225,7 @@ void Pet::Regenerate(Powers power, uint32 diff)
 
     if (curValue < 0)
         curValue = 0;
-    else if (curValue > maxValue)
+    else if (curValue > int32(maxValue))
         curValue = maxValue;
 
     SetPower(power, curValue);

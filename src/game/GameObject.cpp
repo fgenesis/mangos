@@ -2174,18 +2174,6 @@ void GameObject::AddToSkillupList(Player* player)
     m_SkillupSet.insert(player->GetObjectGuid());
 }
 
-void GameObject::DealSiegeDamage(uint32 damage)
-{
-    m_actualHealth -= damage;
-
-    // TODO : there are a lot of thinghts to do here
-    if(m_actualHealth < 0)
-    {
-        m_actualHealth = GetGOInfo()->destructibleBuilding.intactNumHits;
-        SetLootState(GO_JUST_DEACTIVATED);
-    }
-}
-
 struct AddGameObjectToRemoveListInMapsWorker
 {
     AddGameObjectToRemoveListInMapsWorker(ObjectGuid guid) : i_guid(guid) {}
