@@ -83,4 +83,4 @@ CREATE TABLE `character_stats` (
   `activeSpec` tinyint(3) unsigned NOT NULL default '0',
   `data` longtext NOT NULL,
   PRIMARY KEY  (`guid`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
