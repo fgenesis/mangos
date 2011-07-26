@@ -7336,15 +7336,24 @@ bool Unit::IsSpellCrit(Unit *pVictim, SpellEntry const *spellProto, SpellSchoolM
         return false;
 
     // not critting spell
-    if((spellProto->AttributesEx2 & SPELL_ATTR_EX2_CANT_CRIT))
+    if ((spellProto->AttributesEx2 & SPELL_ATTR_EX2_CANT_CRIT))
         return false;
 
     float crit_chance = 0.0f;
-    switch(spellProto->DmgClass)
+    switch (spellProto->DmgClass)
     {
         case SPELL_DAMAGE_CLASS_NONE:
-            if (spellProto->Id != 379 && spellProto->Id != 33778) // Earth Shield and Lifebloom heal should be able to crit
-                return false;
+            // Some heal should be able to crit
+            // We need more spells to find a general way (if there is any)
+            switch (spellProto->Id)
+            {
+                case 379:   // Earth Shield
+                case 33778: // Lifebloom Final Bloom
+                case 64844: // Divine Hymn
+                    break;
+                default:
+                    return false;
+            }
         case SPELL_DAMAGE_CLASS_MAGIC:
         {
             if (schoolMask & SPELL_SCHOOL_MASK_NORMAL)
@@ -11849,19 +11858,24 @@ void Unit::MonsterMoveWithSpeed(float x, float y, float z, float speed)
 
 void Unit::MonsterMoveJump(float x, float y, float z, float o, float speed, float height, bool isKnockBack)
 {
+    float ox, oy, oz;
+    GetPosition(ox, oy, oz);
 
-    if (GetTypeId() != TYPEID_PLAYER)
+    MaNGOS::NormalizeMapCoord(x);
+    MaNGOS::NormalizeMapCoord(y);
+
+    if (GetTerrain()->CheckPathAccurate(ox,oy,oz,x,y,z, NULL))
+        DEBUG_LOG("Unit::MonsterMoveJump unit %u jumped  on %f",GetObjectGuid().GetCounter(), GetDistance(x,y,z));
+    else
+        DEBUG_LOG("Unit::MonsterMoveJump unit %u NOT jumped on full distance, real distance is %f",GetObjectGuid().GetCounter(), GetDistance(x,y,z));
+
+    if (isKnockBack && GetTypeId() != TYPEID_PLAYER)
     {
         // Interrupt spells cause of movement
         InterruptNonMeleeSpells(false);
     }
-
-    Movement::MoveSplineInit init(*this);
-    init.MoveTo(x,y,z);
-    init.SetParabolic(height,0,isKnockBack);
-    init.SetVelocity(speed);
-    init.Launch();
-
+    UpdateAllowedPositionZ(x, y, z);
+    GetMotionMaster()->MoveJump(x,y,z,speed, height);
 }
 
 struct SetPvPHelper
@@ -12013,36 +12027,23 @@ void Unit::KnockBackFrom(Unit* target, float horizontalSpeed, float verticalSpee
     float vsin = sin(angle);
     float vcos = cos(angle);
 
-    // Effect properly implemented only for players
-    if(GetTypeId()==TYPEID_PLAYER)
+    if (GetTypeId() == TYPEID_PLAYER)
     {
         KnockBackPlayerWithAngle(angle, horizontalSpeed, verticalSpeed);
     }
     else
     {
-        float dh = verticalSpeed*verticalSpeed / (2*19.23f); // maximum parabola height
-        float time = (verticalSpeed) ? sqrtf(dh/(0.124976 * verticalSpeed)) : 0.0f;  //full move time in seconds
+        float moveTimeHalf = verticalSpeed / Movement::gravity;
+        float max_height = -Movement::computeFallElevation(moveTimeHalf,false,-verticalSpeed);
 
-        float dis = time * horizontalSpeed;
-
+        float dis = 2 * moveTimeHalf * horizontalSpeed;
         float ox, oy, oz;
         GetPosition(ox, oy, oz);
-
         float fx = ox + dis * vcos;
         float fy = oy + dis * vsin;
         float fz = oz;
 
-        MaNGOS::NormalizeMapCoord(fx);
-        MaNGOS::NormalizeMapCoord(fy);
-
-        if (GetTerrain()->CheckPathAccurate(ox,oy,oz,fx,fy,fz, NULL))
-            DEBUG_LOG("Unit::KnockBack unit %u knockbacked back on %f",GetObjectGuid().GetCounter(), GetDistance(fx,fy,fz));
-        else
-            DEBUG_LOG("Unit::KnockBack unit %u NOT knockbacked on full distance, real distance is %f",GetObjectGuid().GetCounter(), GetDistance(fx,fy,fz));
-
-        UpdateAllowedPositionZ(fx, fy, fz);
-
-        MonsterMoveJump(fx, fy, fz, GetOrientation(), verticalSpeed, dh, true);
+        MonsterMoveJump(fx,fy,fz,horizontalSpeed,max_height, true);
     }
 }
 
@@ -12054,7 +12055,7 @@ void Unit::KnockBackPlayerWithAngle(float angle, float horizontalSpeed, float ve
     // Effect propertly implemented only for players
     if(GetTypeId()==TYPEID_PLAYER)
     {
-        WorldPacket data(SMSG_MOVE_KNOCK_BACK, 8+4+4+4+4+4);
+        WorldPacket data(SMSG_MOVE_KNOCK_BACK, 9+4+4+4+4+4);
         data << GetPackGUID();
         data << uint32(0);                                  // Sequence
         data << float(vcos);                                // x direction
@@ -12062,6 +12063,7 @@ void Unit::KnockBackPlayerWithAngle(float angle, float horizontalSpeed, float ve
         data << float(horizontalSpeed);                     // Horizontal speed
         data << float(-verticalSpeed);                      // Z Movement speed (vertical)
         ((Player*)this)->GetSession()->SendPacket(&data);
+
     }
     else
         sLog.outError("KnockBackPlayer: Target of KnockBackPlayer must be player!");
