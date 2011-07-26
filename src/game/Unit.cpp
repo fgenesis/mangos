@@ -4348,6 +4348,7 @@ bool Unit::AddSpellAuraHolder(SpellAuraHolder *holder)
                 {
                     // can be created with >1 stack by some spell mods
                     foundHolder->ModStackAmount(holder->GetStackAmount());
+                    foundHolder->HandleSpellSpecificBoostsForward(true);
                     delete holder;
                     return false;
                 }
@@ -7931,14 +7932,6 @@ bool Unit::IsImmuneToSpell(SpellEntry const* spellInfo)
         AuraList const& immuneAuraApply = GetAurasByType(SPELL_AURA_MECHANIC_IMMUNITY_MASK);
         for(AuraList::const_iterator iter = immuneAuraApply.begin(); iter != immuneAuraApply.end(); ++iter)
         {
-            if ((*iter)->GetId() == 46924)
-            {
-                if (mechanic == MECHANIC_DISARM)
-                    continue;
-                else if (mechanic & IMMUNE_TO_MOVEMENT_IMPAIRMENT_AND_LOSS_CONTROL_MASK)
-                    return true;
-            }
-
             if ((*iter)->GetModifier()->m_miscvalue & (1 << (mechanic-1)))
                 return true;
         }
@@ -7967,15 +7960,6 @@ bool Unit::IsImmuneToSpellEffect(SpellEntry const* spellInfo, SpellEffectIndex i
         AuraList const& immuneAuraApply = GetAurasByType(SPELL_AURA_MECHANIC_IMMUNITY_MASK);
         for(AuraList::const_iterator iter = immuneAuraApply.begin(); iter != immuneAuraApply.end(); ++iter)
         {
-            if ((*iter)->GetId() == 46924)
-            {
-                if (mechanic == MECHANIC_DISARM)
-                    continue;
-                else if (mechanic & IMMUNE_TO_MOVEMENT_IMPAIRMENT_AND_LOSS_CONTROL_MASK ||
-                    spellInfo->Mechanic & IMMUNE_TO_MOVEMENT_IMPAIRMENT_AND_LOSS_CONTROL_MASK)
-                    return true;
-            }
-
             if ((*iter)->GetModifier()->m_miscvalue & (1 << (mechanic-1)))
                 return true;
         }

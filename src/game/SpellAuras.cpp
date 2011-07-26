@@ -900,19 +900,6 @@ void Aura::ApplyModifier(bool apply, bool Real)
 
 bool Aura::isAffectedOnSpell(SpellEntry const *spell) const
 {
-    // hacks for bad DBC data
-    switch (GetId())
-    {
-        case 46924:
-            if (spell->Id == 1680 || spell->Id == 44949)
-                return false;
-            else if (spell->Id == 50622)
-                return true;
-            break;
-        default:
-            break;
-    }
-
     return spell->IsFitToFamily(SpellFamily(GetSpellProto()->SpellFamilyName), GetAuraSpellClassMask());
 }
 
@@ -4913,7 +4900,6 @@ void Aura::HandleAuraModDisarm(bool apply, bool Real)
 
     if (apply)
     {
-        target->RemoveAurasDueToSpell(46924); // Disarm should stop bladestorm
         target->SetAttackTime(BASE_ATTACK,BASE_ATTACK_TIME);
     }
     else
@@ -10786,31 +10772,6 @@ void SpellAuraHolder::HandleSpellSpecificBoosts(bool apply)
                 else
                     return;
             }
-            // Shadow embrace (healing reduction part)
-            else if (m_spellProto->SpellFamilyFlags.test<CF_WARLOCK_MISC_DEBUFFS>() && m_spellProto->SpellIconID == 2209)
-            {
-                switch(GetId())
-                {
-                    case 32386:
-                        spellId1 = 60448;
-                        break;
-                    case 32388:
-                        spellId1 = 60465;
-                        break;
-                    case 32389:
-                        spellId1 = 60466;
-                        break;
-                    case 32390:
-                        spellId1 = 60467;
-                        break;
-                    case 32394:
-                        spellId1 = 60468;
-                        break;
-                    default:
-                        break;
-                }
-                break;
-            }
             else
                 return;
             break;
@@ -11380,6 +11341,11 @@ void SpellAuraHolder::HandleSpellSpecificBoosts(bool apply)
 
 void SpellAuraHolder::HandleSpellSpecificBoostsForward(bool apply)
 {
+    uint32 spellId1 = 0;
+    uint32 spellId2 = 0;
+    uint32 spellId3 = 0;
+    uint32 spellId4 = 0;
+
     switch(GetSpellProto()->SpellFamilyName)
     {
         case SPELLFAMILY_PRIEST:
@@ -11411,10 +11377,68 @@ void SpellAuraHolder::HandleSpellSpecificBoostsForward(bool apply)
             }
             break;
         }
+        case SPELLFAMILY_WARLOCK:
+        {
+            // Shadow embrace (healing reduction part)
+            if (m_spellProto->SpellFamilyFlags.test<CF_WARLOCK_MISC_DEBUFFS>() && m_spellProto->SpellIconID == 2209)
+            {
+                switch(GetId())
+                {
+                    case 32386:
+                        spellId1 = 60448;
+                        break;
+                    case 32388:
+                        spellId1 = 60465;
+                        break;
+                    case 32389:
+                        spellId1 = 60466;
+                        break;
+                    case 32390:
+                        spellId1 = 60467;
+                        break;
+                    case 32391:
+                        spellId1 = 60468;
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            }
+            else
+                return;
+            break;
+        }
         default:
             return;
     }
 
+    // prevent aura deletion, specially in multi-boost case
+    SetInUse(true);
+
+    if (apply)
+    {
+        if (spellId1)
+            m_target->CastSpell(m_target, spellId1, true, NULL, NULL, GetCasterGuid());
+        if (spellId2 && !IsDeleted())
+            m_target->CastSpell(m_target, spellId2, true, NULL, NULL, GetCasterGuid());
+        if (spellId3 && !IsDeleted())
+            m_target->CastSpell(m_target, spellId3, true, NULL, NULL, GetCasterGuid());
+        if (spellId4 && !IsDeleted())
+            m_target->CastSpell(m_target, spellId4, true, NULL, NULL, GetCasterGuid());
+    }
+    else
+    {
+        if (spellId1)
+            m_target->RemoveAurasByCasterSpell(spellId1, GetCasterGuid());
+        if (spellId2)
+            m_target->RemoveAurasByCasterSpell(spellId2, GetCasterGuid());
+        if (spellId3)
+            m_target->RemoveAurasByCasterSpell(spellId3, GetCasterGuid());
+        if (spellId4)
+            m_target->RemoveAurasByCasterSpell(spellId4, GetCasterGuid());
+    }
+
+    SetInUse(false);
 }
 
 SpellAuraHolder::~SpellAuraHolder()
