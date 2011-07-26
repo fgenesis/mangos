@@ -981,6 +981,22 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
                     // Remove only single aura from stack
                     if (triggeredByAura->GetStackAmount() > 1 && !triggeredByAura->GetHolder()->ModStackAmount(-1))
                         return SPELL_AURA_PROC_CANT_TRIGGER;
+                    break;
+                }
+                // Swift Hand of Justice
+                case 59906:
+                {
+                    triggered_spell_id = 59913;
+                    basepoints[0] = GetMaxHealth()/50;
+                    break;
+                }
+                // Discerning Eye of the Beast
+                case 59915:
+                {
+                    if (getPowerType() != POWER_MANA)
+                        return SPELL_AURA_PROC_FAILED;
+                    triggered_spell_id = 59914;
+                    break;
                 }
                 // Petrified Bark
                 case 62337:
@@ -2388,8 +2404,9 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
                 case 31876:
                 case 31877:
                 case 31878:
+                {
                     // triggered only at casted Judgement spells, not at additional Judgement effects
-                    if(!procSpell || procSpell->Category != 1210)
+                    if(!procSpell || !procSpell->SpellFamilyFlags.test<CF_PALADIN_JUDGEMENT_ACTIVATE>())
                         return SPELL_AURA_PROC_FAILED;
 
                     target = this;
@@ -2398,6 +2415,7 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
                     // Replenishment
                     CastSpell(this, 57669, true, NULL, triggeredByAura);
                     break;
+                }
                 // Paladin Tier 6 Trinket (Ashtongue Talisman of Zeal)
                 case 40470:
                 {
@@ -3904,6 +3922,19 @@ SpellAuraProcResult Unit::HandleProcTriggerSpellAuraProc(Unit *pVictim, uint32 d
                 if (HasAura(67544))
                     return SPELL_AURA_PROC_FAILED;
             }
+            // Cobra strike
+            else if (auraSpellInfo->SpellIconID == 2936)
+            {
+                if (Pet* pet = GetPet())
+                {
+                    if (pet->isAlive())
+                    {
+                        pet->CastSpell(pet,trigger_spell_id,true);
+                        return SPELL_AURA_PROC_OK;
+                    }
+                }
+                return SPELL_AURA_PROC_FAILED;
+            }
             // Item - Hunter T9 4P Bonus
             else if (auraSpellInfo->Id == 67151)
             {
@@ -4598,9 +4629,6 @@ SpellAuraProcResult Unit::HandleMendingAuraProc( Unit* /*pVictim*/, uint32 /*dam
     // jumps
     int32 jumps = triggeredByAura->GetHolder()->GetAuraCharges()-1;
 
-    // current aura expire
-    triggeredByAura->GetHolder()->SetAuraCharges(1);             // will removed at next charges decrease
-
     // next target selection
     if (jumps > 0 && GetTypeId()==TYPEID_PLAYER && caster_guid.IsPlayer())
     {
@@ -4612,27 +4640,36 @@ SpellAuraProcResult Unit::HandleMendingAuraProc( Unit* /*pVictim*/, uint32 /*dam
 
         if(Player* caster = ((Player*)triggeredByAura->GetCaster()))
         {
-            caster->ApplySpellMod(spellProto->Id, SPELLMOD_RADIUS, radius,NULL);
+            caster->ApplySpellMod(spellProto->Id, SPELLMOD_RADIUS, radius, NULL);
 
             if(Player* target = ((Player*)this)->GetNextRandomRaidMember(radius))
             {
-                // aura will applied from caster, but spell casted from current aura holder
-                SpellModifier *mod = new SpellModifier(SPELLMOD_CHARGES,SPELLMOD_FLAT,jumps-5,spellProto->Id,spellProto->SpellFamilyFlags);
+                SpellAuraHolder *holder = GetSpellAuraHolder(spellProto->Id, caster->GetObjectGuid());
+                SpellAuraHolder *new_holder = CreateSpellAuraHolder(spellProto, target, caster);
 
-                // remove before apply next (locked against deleted)
+                for (int32 i = 0; i < MAX_EFFECT_INDEX; ++i)
+                {
+                    Aura *aur = holder->GetAuraByEffectIndex(SpellEffectIndex(i));
+                    if (!aur)
+                        continue;
+
+                    int32 basePoints = aur->GetBasePoints();
+                    Aura * new_aur = CreateAura(spellProto, aur->GetEffIndex(), &basePoints, new_holder, target, caster);
+                    new_holder->AddAura(new_aur, new_aur->GetEffIndex());
+                }
+                new_holder->SetAuraCharges(jumps, false);
+
+                // lock aura holder (currently SPELL_AURA_PRAYER_OF_MENDING is single target spell, so will attempt removing from old target
+                // when applied to new one)
                 triggeredByAura->SetInUse(true);
-                RemoveAurasByCasterSpell(spellProto->Id,caster->GetObjectGuid());
-
-                caster->AddSpellMod(mod, true);
-                CastCustomSpell(target, spellProto->Id, &heal, NULL, NULL, true, NULL, triggeredByAura, caster->GetObjectGuid());
-                caster->AddSpellMod(mod, false);
+                target->AddSpellAuraHolder(new_holder);
                 triggeredByAura->SetInUse(false);
             }
         }
     }
 
     // heal
-    CastCustomSpell(this,33110,&heal,NULL,NULL,true,NULL,NULL,caster_guid);
+    CastCustomSpell(this,33110,&heal,NULL,NULL,true,NULL,NULL,caster_guid, spellProto);
     return SPELL_AURA_PROC_OK;
 }
 
@@ -4676,6 +4713,16 @@ SpellAuraProcResult Unit::HandleAddFlatModifierAuraProc(Unit* pVictim, uint32 /*
     switch (spellInfo->Id)
     {
         case 53257:                             // Cobra strike
+            // Remove only single aura from stack
+            if (triggeredByAura->GetStackAmount() < 1)
+                return SPELL_AURA_PROC_CANT_TRIGGER;
+            if (triggeredByAura->GetHolder()->ModStackAmount(-1))
+            {
+                triggeredByAura->SetInUse(true);
+                RemoveAurasByCasterSpell(triggeredByAura->GetSpellProto()->Id, triggeredByAura->GetCasterGuid());
+                triggeredByAura->SetInUse(false);
+            }
+            break;
         case 55166:                             // Tidal Force
             // Remove only single aura from stack
             if (triggeredByAura->GetStackAmount() > 1 && !triggeredByAura->GetHolder()->ModStackAmount(-1))

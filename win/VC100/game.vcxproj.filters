@@ -505,6 +505,7 @@
     </ClCompile>
     <ClCompile Include="..\..\src\game\VehicleHandler.cpp" >
       <Filter>Object</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\game\AuctionHouseBot\AuctionHouseBot.cpp">
       <Filter>AhBot</Filter>
     </ClCompile>
@@ -1016,6 +1017,7 @@
     </ClInclude>
     <ClInclude Include="..\..\src\game\ChatLog.h" >
       <Filter>Object</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\game\AuctionHouseBot\AuctionHouseBot.h">
       <Filter>AhBot</Filter>
     </ClInclude>

@@ -754,12 +754,40 @@ bool IsPositiveEffect(SpellEntry const *spellproto, SpellEffectIndex effIndex)
         case SPELL_EFFECT_THREAT:
             return false;
 
-            // non-positive aura use
+        case SPELL_EFFECT_PERSISTENT_AREA_AURA:
+            switch(spellproto->Id)
+            {
+                case 62821:                                 // Toasty Fire (Ulduar Hodir); unclear why this spell has SPELL_ATTR_EX_NEGATIVE
+                    return true;
+                case 63540:                                 // Paralytic Field (Ulduar Thorim)
+                case 62241:
+                    return false;
+                default:
+                    break;
+            }
+            break;
+
+        // non-positive aura use
         case SPELL_EFFECT_APPLY_AURA:
         case SPELL_EFFECT_APPLY_AREA_AURA_FRIEND:
         {
             switch(spellproto->EffectApplyAuraName[effIndex])
             {
+                case SPELL_AURA_PHASE:
+                {
+                    switch(spellproto->Id)
+                    {
+                        case 57508:                         // Insanity (Volazj ecounter)
+                        case 57509:
+                        case 57510:
+                        case 57511:
+                        case 57512:
+                            return false;
+                        default:
+                            break;
+                    }
+                    break;
+                }
                 case SPELL_AURA_DUMMY:
                 {
                     // dummy aura can be positive or negative dependent from casted spell
@@ -4794,6 +4822,9 @@ int32 GetDiminishingReturnsLimitDuration(DiminishingGroup group, SpellEntry cons
             // Banish - limit to 6 seconds in PvP (3.1)
             else if (spellproto->SpellFamilyFlags.test<CF_WARLOCK_BANISH>())
                 return 6000;
+            // Curse of agony - limit to 24 seconds in PvP (?)
+            else if (spellproto->SpellFamilyFlags.test<CF_WARLOCK_CURSE_OF_AGONY>())
+                return 24000;
             break;
         }
         case SPELLFAMILY_HUNTER:

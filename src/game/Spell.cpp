@@ -407,21 +407,22 @@ Spell::Spell( Unit* caster, SpellEntry const *info, bool triggered, ObjectGuid o
     // determine reflection
     m_canReflect = false;
 
-    if(m_spellInfo->DmgClass == SPELL_DAMAGE_CLASS_MAGIC && !(m_spellInfo->AttributesEx & SPELL_ATTR_EX_CANT_REFLECTED))
-    {
+    // AoE spells, spells with non-magic DmgClass or SchoolMask or with SPELL_ATTR_EX2_CANT_REFLECTED cannot be reflected
+    if (m_spellInfo->DmgClass == SPELL_DAMAGE_CLASS_MAGIC &&
+        m_spellInfo->SchoolMask != SPELL_SCHOOL_MASK_NORMAL &&
+        !(m_spellInfo->AttributesEx2 & SPELL_ATTR_EX2_IGNORE_LOS) &&
+        !IsAreaOfEffectSpell(m_spellInfo)){
         for(int j = 0; j < MAX_EFFECT_INDEX; ++j)
         {
             if (m_spellInfo->Effect[j] == 0)
                 continue;
 
-            if(!IsPositiveTarget(m_spellInfo->EffectImplicitTargetA[j], m_spellInfo->EffectImplicitTargetB[j]))
-                m_canReflect = true;
-            else
-                m_canReflect = (m_spellInfo->AttributesEx & SPELL_ATTR_EX_NEGATIVE) ? true : false;
-
-            if(m_canReflect)
+            if(IsPositiveTarget(m_spellInfo->EffectImplicitTargetA[j], m_spellInfo->EffectImplicitTargetB[j]) && !(m_spellInfo->AttributesEx & SPELL_ATTR_EX_NEGATIVE))
                 continue;
             else
+                m_canReflect = true;
+
+            if(m_canReflect)
                 break;
         }
     }
@@ -1700,6 +1701,7 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
                 case 63387:                                 // Rapid Burst
                 case 63545:                                 // Icicle Hodir(trigger spell from 62227)
                 case 63795:                                 // Psychosis (Yogg-Saron)
+                case 62042:                                 // Stormhammer (Thorim)
                 case 64218:                                 // Overcharge
                 case 64234:                                 // Gravity Bomb (h) (XT-002)
                 case 64531:                                 // Rapid Burst (h)
@@ -1737,6 +1739,7 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
                 case 69278:                                 // Gas spore - 10
                 case 71336:                                 // Pact of the Darkfallen
                 case 71390:                                 // Pact of the Darkfallen
+                case 63476:                                 // Icicle (Hodir - 10)
                     unMaxTargets = 2;
                     break;
                 case 28796:                                 // Poison Bolt Volley
@@ -1890,6 +1893,9 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
                         if (Aura* pAura = m_caster->GetAura(66882, EFFECT_INDEX_0))
                             radius = 0.5*(60-(pAura->GetAuraDuration()/IN_MILLISECONDS));
                     }
+                    break;
+                case 67732:                                 // Destroy all Frost Patches (Trial of the Crusader, Anub'arak)
+                    radius = 9.0f;
                     break;
                 default:
                     break;
@@ -3770,9 +3776,17 @@ void Spell::cast(bool skipCheck)
         m_immediateHandled = false;
         m_spellState = SPELL_STATE_DELAYED;
         SetDelayStart(0);
+
+        // on spell cast end proc, 
+        // critical hit related part is currently done on hit so proc there, 
+        // 0 damage since any damage based procs should be on hit
+        // 0 victim proc since there is no victim proc dependent on successfull cast for caster
+        m_caster->ProcDamageAndSpell(m_targets.getUnitTarget(), m_procAttacker, 0, PROC_EX_NORMAL_HIT, 0, m_attackType, m_spellInfo);
     }
     else
     {
+        m_caster->ProcDamageAndSpell(m_targets.getUnitTarget(), m_procAttacker, 0, PROC_EX_NORMAL_HIT, 0, m_attackType, m_spellInfo);
+
         // Immediate spell, no big deal
         handle_immediate();
     }
@@ -4106,17 +4120,7 @@ void Spell::finish(bool ok)
     if (m_spellState == SPELL_STATE_FINISHED)
         return;
 
-    // remove/restore spell mods before m_spellState update
-    if (Player* modOwner = m_caster->GetSpellModOwner())
-    {
-        if (ok || m_spellState != SPELL_STATE_PREPARING)    // fail after start channeling or throw to target not affect spell mods
-            modOwner->RemoveSpellMods(this);
-        else
-            modOwner->ResetSpellModsDueToCanceledSpell(this);
-    }
-
     m_spellState = SPELL_STATE_FINISHED;
-
 
     // other code related only to successfully finished spells
     if (!ok)

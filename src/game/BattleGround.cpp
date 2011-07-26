@@ -82,6 +82,51 @@ namespace MaNGOS
             va_list* i_args;
     };
 
+    class BattleGroundWarningBuilder
+    {
+        public:
+            BattleGroundWarningBuilder(int32 textId, va_list* args = NULL)
+                : i_textId(textId), i_args(args) {}
+            void operator()(WorldPacket& data, int32 loc_idx)
+            {
+                char const* text = sObjectMgr.GetMangosString(i_textId,loc_idx);
+
+                if (i_args)
+                {
+                    // we need copy va_list before use or original va_list will corrupted
+                    va_list ap;
+                    va_copy(ap,*i_args);
+
+                    char str [2048];
+                    vsnprintf(str,2048,text, ap );
+                    va_end(ap);
+
+                    WorldPacket data(SMSG_MESSAGECHAT, 200);
+
+                    do_helper(data,&str[0]);
+                }
+                else
+                    do_helper(data,text);
+            }
+        private:
+            void do_helper(WorldPacket& data, char const* text)
+            {
+                data << uint8(CHAT_MSG_RAID_BOSS_EMOTE);
+                data << uint32(LANG_UNIVERSAL);
+                data << uint64(0);             // there 0 for BG messages
+                data << uint32(0);             // can be chat msg group or something
+                data << uint32(1);
+                data << uint8(0);
+                data << uint64(0);
+                data << uint32(strlen(text)+1);
+                data << text;
+                data << uint8(0);
+            }
+
+            int32 i_textId;
+            va_list* i_args;
+    };
+
     class BattleGroundYellBuilder
     {
         public:
@@ -696,6 +741,36 @@ void BattleGround::RewardReputationToTeam(uint32 faction_id, uint32 Reputation, 
     }
 }
 
+void BattleGround::RewardXpToTeam(uint32 Xp, float percentOfLevel, Team team)
+{
+    for(BattleGroundPlayerMap::const_iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)
+    {
+        if (itr->second.OfflineRemoveTime)
+            continue;
+        Player *plr = sObjectMgr.GetPlayer(itr->first);
+
+        if (!plr)
+        {
+            sLog.outError("BattleGround:RewardXpToTeam: Player (GUID: %s) not found!", itr->first.GetString().c_str());
+            continue;
+        }
+
+        uint32 bgTeam = itr->second.PlayerTeam;
+        if(!team) bgTeam = plr->GetTeam();
+
+        if (bgTeam == team)
+        {
+            uint32 gain = Xp;
+            if(gain == 0 && percentOfLevel != 0)
+            {
+                percentOfLevel = percentOfLevel / 100;
+                gain = uint32(float(plr->GetUInt32Value(PLAYER_NEXT_LEVEL_XP))*percentOfLevel);
+            }
+            plr->GiveXP(gain, NULL);
+        }
+    }
+}
+
 void BattleGround::UpdateWorldState(uint32 Field, uint32 Value)
 {
     WorldPacket data;
@@ -739,7 +814,8 @@ void BattleGround::EndBattleGround(Team winner)
     }
     else
     {
-        SetWinner(3);
+        SetWinner(WINNER_NONE);
+        winmsg_id = LANG_BG_WIN_NONE;
     }
 
     SetStatus(STATUS_WAIT_LEAVE);
@@ -868,7 +944,10 @@ void BattleGround::EndBattleGround(Team winner)
                 // update achievement BEFORE personal rating update
                 ArenaTeamMember* member = winner_arena_team->GetMember(plr->GetObjectGuid());
                 if (member)
+                {
                     plr->GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_WIN_RATED_ARENA, member->personal_rating);
+                    plr->GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_WIN_ARENA, 1);
+                }
 
                 winner_arena_team->MemberWon(plr,loser_rating);
 
@@ -1049,13 +1128,11 @@ void BattleGround::SendRewardMarkByMail(Player *plr,uint32 mark, uint32 count)
         // save new item before send
         markItem->SaveToDB();                               // save for prevent lost at next mail load, if send fail then item will deleted
 
+        int loc_idx = plr->GetSession()->GetSessionDbLocaleIndex();
+
         // subject: item name
         std::string subject = markProto->Name1;
-        int loc_idx = plr->GetSession()->GetSessionDbLocaleIndex();
-        if (loc_idx >= 0 )
-            if (ItemLocale const *il = sObjectMgr.GetItemLocale(markProto->ItemId))
-                if (il->Name.size() > size_t(loc_idx) && !il->Name[loc_idx].empty())
-                    subject = il->Name[loc_idx];
+        sObjectMgr.GetItemLocaleStrings(markProto->ItemId, loc_idx, &subject);
 
         // text
         std::string textFormat = plr->GetSession()->GetMangosString(LANG_BG_MARK_BY_MAIL);
@@ -1824,6 +1901,13 @@ void BattleGround::SendYell2ToAll(int32 entry, uint32 language, ObjectGuid guid,
     BroadcastWorker(bg_do);
 }
 
+void BattleGround::SendWarningToAll(int32 entry, ...)
+{
+    MaNGOS::BattleGroundWarningBuilder bg_builder(entry);
+    MaNGOS::LocalizedPacketDo<MaNGOS::BattleGroundWarningBuilder> bg_do(bg_builder);
+    BroadcastWorker(bg_do);
+}
+
 void BattleGround::EndNow()
 {
     RemoveFromBGFreeSlotQueue();
@@ -2001,4 +2085,12 @@ void BattleGround::SetBracket( PvPDifficultyEntry const* bracketEntry )
 {
     m_BracketId  = bracketEntry->GetBracketId();
     SetLevelRange(bracketEntry->minLevel,bracketEntry->maxLevel);
+}
+
+GameObject* BattleGround::GetBGObject(uint32 type)
+{
+    GameObject *obj = GetBgMap()->GetGameObject(m_BgObjects[type]);
+    if (!obj)
+        sLog.outError("couldn't get gameobject %i",type);
+    return obj;
 }

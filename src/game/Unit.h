@@ -986,7 +986,9 @@ class GlobalCooldownMgr                                     // Shared by Player 
 enum ActiveStates
 {
     ACT_PASSIVE  = 0x01,                                    // 0x01 - passive
+    ACT_CASTABLE = 0x80,                                    // 0x80 - castable
     ACT_DISABLED = 0x81,                                    // 0x80 - castable
+    ACT_ACTIVE   = 0xC0,                                    // 0x40 | 0x80 - auto cast + castable
     ACT_ENABLED  = 0xC1,                                    // 0x40 | 0x80 - auto cast + castable
     ACT_COMMAND  = 0x07,                                    // 0x01 | 0x02 | 0x04
     ACT_REACTION = 0x06,                                    // 0x02 | 0x04
@@ -1153,7 +1155,7 @@ class  VehicleKit;
 class MANGOS_DLL_SPEC Unit : public WorldObject
 {
     public:
-        typedef std::set<Unit*> AttackerSet;
+        typedef std::set<ObjectGuid> AttackerSet;
         typedef std::multimap< uint32, SpellAuraHolder*> SpellAuraHolderMap;
         typedef std::pair<SpellAuraHolderMap::iterator, SpellAuraHolderMap::iterator> SpellAuraHolderBounds;
         typedef std::pair<SpellAuraHolderMap::const_iterator, SpellAuraHolderMap::const_iterator> SpellAuraHolderConstBounds;
@@ -1209,26 +1211,23 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         bool CanReachWithMeleeAttack(Unit* pVictim, float flat_mod = 0.0f) const;
         uint32 m_extraAttacks;
 
-        void _addAttacker(Unit *pAttacker)                  // must be called only from Unit::Attack(Unit*)
+        void _addAttacker(Unit* pAttacker)                  // must be called only from Unit::Attack(Unit*)
         {
-            AttackerSet::const_iterator itr = m_attackers.find(pAttacker);
+            if (!pAttacker)
+                return;
+
+            AttackerSet::const_iterator itr = m_attackers.find(pAttacker->GetObjectGuid());
             if(itr == m_attackers.end())
-                m_attackers.insert(pAttacker);
+                m_attackers.insert(pAttacker->GetObjectGuid());
         }
-        void _removeAttacker(Unit *pAttacker)               // must be called only from Unit::AttackStop()
+        void _removeAttacker(Unit* pAttacker)               // must be called only from Unit::AttackStop()
         {
-            m_attackers.erase(pAttacker);
-        }
-        Unit * getAttackerForHelper()                       // If someone wants to help, who to give them
-        {
-            if (getVictim() != NULL)
-                return getVictim();
+            if (!pAttacker)
+                return;
 
-            if (!m_attackers.empty())
-                return *(m_attackers.begin());
-
-            return NULL;
+            m_attackers.erase(pAttacker->GetObjectGuid());
         }
+        Unit* getAttackerForHelper();                       // If someone wants to help, who to give them
         bool Attack(Unit *victim, bool meleeAttack);
         void AttackedBy(Unit *attacker);
         void CastStop(uint32 except_spellid = 0);
@@ -1497,10 +1496,9 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         void SendSpellMiss(Unit *target, uint32 spellID, SpellMissInfo missInfo);
 
         void NearTeleportTo(float x, float y, float z, float orientation, bool casting = false);
-        void MonsterJump(float x, float y, float z, float o, uint32 transitTime, uint32 verticalSpeed);
+        void MonsterMoveJump(float x, float y, float z, float o, float speed, float height, bool isKnockBack = false);
         // recommend use MonsterMove/MonsterMoveWithSpeed for most case that correctly work with movegens
         // if used additional args in ... part then floats must explicitly casted to double
-        void SendMonsterMoveJump(float NewPosX, float NewPosY, float NewPosZ, float vert_speed, uint32 flags, uint32 Time, Player* player = NULL);
         void SendMonsterMoveTransport(WorldObject *transport, SplineType type, SplineFlags flags, uint32 moveTime, ...);
         virtual bool SetPosition(float x, float y, float z, float orientation, bool teleport = false);
 
@@ -2028,8 +2026,9 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         void SendPetTalk (uint32 pettalk);
         void SendPetAIReaction();
         ///----------End of Pet responses methods----------
-        void DoPetAction (Player* owner, uint8 flag, uint32 spellid, ObjectGuid petGuid, ObjectGuid targetGuid);
-        void DoPetCastSpell (Player *owner, uint8 cast_count, SpellCastTargets* targets, SpellEntry const* spellInfo);
+        void DoPetAction(Player* owner, uint8 flag, uint32 spellid, ObjectGuid petGuid, ObjectGuid targetGuid);
+        void DoPetCastSpell(Player *owner, uint8 cast_count, SpellCastTargets* targets, SpellEntry const* spellInfo);
+        void DoPetCastSpell(Unit* target, uint32 spellId);
 
         void propagateSpeedChange() { GetMotionMaster()->propagateSpeedChange(); }
 

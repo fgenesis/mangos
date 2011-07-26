@@ -282,7 +282,8 @@ void GameObject::Update(uint32 update_diff, uint32 diff)
                 {
                     // Arming Time for GAMEOBJECT_TYPE_TRAP (6)
                     Unit* owner = GetOwner();
-                    if (owner && ((Player*)owner)->isInCombat())
+                    if (owner && ((Player*)owner)->isInCombat()
+                        || GetEntry() == 190752) // SoTA Seaforium Charges
                         m_cooldownTime = time(NULL) + GetGOInfo()->trap.startDelay;
                     m_lootState = GO_READY;
                     break;
@@ -392,9 +393,14 @@ void GameObject::Update(uint32 update_diff, uint32 diff)
                         }
                     }
 
+                    // SoTA Seaforium Charge
+                    if (GetEntry() == 190752)
+                    {
+                        ok = owner;
+                    }
                     // Note: this hack with search required until GO casting not implemented
                     // search unfriendly creature
-                    if (owner && goInfo->trap.charges > 0)  // hunter trap
+                    else if (owner && goInfo->trap.charges > 0)  // hunter trap
                     {
                         MaNGOS::AnyUnfriendlyUnitInObjectRangeCheck u_check(this, owner, radius);
                         MaNGOS::UnitSearcher<MaNGOS::AnyUnfriendlyUnitInObjectRangeCheck> checker(ok, u_check);
@@ -1261,6 +1267,15 @@ void GameObject::Use(Unit* user)
 
                     if (!sScriptMgr.OnProcessEvent(info->goober.eventId, player, this, true))
                         GetMap()->ScriptsStart(sEventScripts, info->goober.eventId, player, this);
+
+                    if (player->CanUseBattleGroundObject())
+                    {
+                        if (BattleGround *bg = player->GetBattleGround())
+                        {
+                            if (bg->GetTypeID(true) == BATTLEGROUND_SA)
+                                bg->EventPlayerDamageGO(player, this, info->goober.eventId);
+                        }
+                    }
                 }
 
                 // possible quest objective for active quests
@@ -1928,10 +1943,24 @@ void GameObject::DamageTaken(Unit* pDoneBy, uint32 damage)
     if (GetGoType() != GAMEOBJECT_TYPE_DESTRUCTIBLE_BUILDING || !m_health)
         return;
 
+    Player* pWho = NULL;
+    if (pDoneBy && pDoneBy->GetTypeId() == TYPEID_PLAYER)
+        pWho = (Player*)pDoneBy;
+
+    if (pDoneBy && ((Creature*)pDoneBy)->GetVehicleKit())
+        pWho = (Player*)pDoneBy->GetCharmerOrOwner();
+
+
     DEBUG_FILTER_LOG(LOG_FILTER_DAMAGE, "GO damage taken: %u to health %u", damage, m_health);
 
     if (m_health > damage)
-        m_health -= damage;
+    {
+         m_health -= damage;
+         if (pWho)
+             if (BattleGround *bg = pWho->GetBattleGround())
+                 bg->EventPlayerDamageGO(pWho, this, m_goInfo->destructibleBuilding.damageEvent);
+    }
+
     else
         m_health = 0;
 
@@ -1943,6 +1972,11 @@ void GameObject::DamageTaken(Unit* pDoneBy, uint32 damage)
             SetFlag(GAMEOBJECT_FLAGS, GO_FLAG_DESTROYED);
             SetDisplayId(m_goInfo->destructibleBuilding.destroyedDisplayId);
             GetMap()->ScriptsStart(sEventScripts, m_goInfo->destructibleBuilding.destroyedEvent, pDoneBy, this);
+            if (pWho)
+            {
+                if (BattleGround *bg = pWho->GetBattleGround())
+                    bg->EventPlayerDamageGO(pWho, this, m_goInfo->destructibleBuilding.destroyedEvent);
+            }
         }
     }
     else                                            // from intact to damaged
@@ -1962,6 +1996,12 @@ void GameObject::DamageTaken(Unit* pDoneBy, uint32 damage)
             // otherwise we just handle it as "destroyed"
             else
                 m_health = 0;
+
+            if (pWho)
+                if (BattleGround *bg = pWho->GetBattleGround())
+                {
+                    bg->EventPlayerDamageGO(pWho, this, m_goInfo->destructibleBuilding.damagedEvent);
+                }
          }
     }
     SetGoAnimProgress(m_health * 255 / GetMaxHealth());
