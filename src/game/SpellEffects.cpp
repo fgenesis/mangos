@@ -430,6 +430,11 @@ void Spell::EffectSchoolDMG(SpellEffectIndex effect_idx)
                         damage = unitTarget->GetHealth() / 2;
                         break;
                     }
+                    case 51132: // Urom Clocking Bomb Damage
+                    {
+                        damage = m_caster->GetMaxHealth() - m_caster->GetHealth();
+                        break;
+                    }
                     // Explode
                     case 47496:
                     {
@@ -2271,7 +2276,7 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
 
                     return;
                 }
-                case 51336:                                 // Magic Pull
+                case 51336:                                 // Drakos Magic Pull
                 {
                     if (!unitTarget)
                         return;
@@ -7605,47 +7610,47 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
                     m_caster->SummonCreature(16474, unitTarget->GetPositionX(), unitTarget->GetPositionY(), unitTarget->GetPositionZ(), 0.0f, TEMPSUMMON_TIMED_DESPAWN, 30000);
                     return;
                 }
-                case 29126:                                 // Cleansing Flames Darnassus 
-                { 
-                    if (!unitTarget) 
-                        return; 
-                    unitTarget->CastSpell(unitTarget, 29099, true); // Create Flame of Darnassus 
-                    break; 
-                } 
-                case 29135:                                 // Cleansing Flames Ironforge 
-                { 
-                    if (!unitTarget) 
-                        return; 
-                    unitTarget->CastSpell(unitTarget, 29102, true); // Create Flame of Ironforge 
-                    break; 
-                } 
-                case 29136:                                 // Cleansing Flames Orgrimmar 
-                { 
-                    if (!unitTarget) 
-                        return; 
-                    unitTarget->CastSpell(unitTarget, 29130, true); // Create Flame of Orgrimmar 
-                    break; 
-                } 
-                case 29137:                                 // Cleansing Flames Stormwind 
-                { 
-                    if (!unitTarget) 
-                        return; 
-                    unitTarget->CastSpell(unitTarget, 29101, true); // Create Flame of Stormwind 
-                    break; 
-                } 
-                case 29138:                                 // Cleansing Flames Thunder Bluff 
-                { 
-                    if (!unitTarget) 
-                        return; 
-                    unitTarget->CastSpell(unitTarget, 29132, true); // Create Flame of Thunder Bluff 
-                    break; 
-                } 
-                case 29139:                                 // Cleansing Flames Undercity 
-                { 
-                    if (!unitTarget) 
-                        return; 
-                    unitTarget->CastSpell(unitTarget, 29133, true); // Create Flame of The Undercity 
-                    break; 
+                case 29126:                                 // Cleansing Flames Darnassus
+                {
+                    if (!unitTarget)
+                        return;
+                    unitTarget->CastSpell(unitTarget, 29099, true); // Create Flame of Darnassus
+                    break;
+                }
+                case 29135:                                 // Cleansing Flames Ironforge
+                {
+                    if (!unitTarget)
+                        return;
+                    unitTarget->CastSpell(unitTarget, 29102, true); // Create Flame of Ironforge
+                    break;
+                }
+                case 29136:                                 // Cleansing Flames Orgrimmar
+                {
+                    if (!unitTarget)
+                        return;
+                    unitTarget->CastSpell(unitTarget, 29130, true); // Create Flame of Orgrimmar
+                    break;
+                }
+                case 29137:                                 // Cleansing Flames Stormwind
+                {
+                    if (!unitTarget)
+                        return;
+                    unitTarget->CastSpell(unitTarget, 29101, true); // Create Flame of Stormwind
+                    break;
+                }
+                case 29138:                                 // Cleansing Flames Thunder Bluff
+                {
+                    if (!unitTarget)
+                        return;
+                    unitTarget->CastSpell(unitTarget, 29132, true); // Create Flame of Thunder Bluff
+                    break;
+                }
+                case 29139:                                 // Cleansing Flames Undercity
+                {
+                    if (!unitTarget)
+                        return;
+                    unitTarget->CastSpell(unitTarget, 29133, true); // Create Flame of The Undercity
+                    break;
                 }
                 case 29830:                                 // Mirren's Drinking Hat
                 {
@@ -8022,21 +8027,21 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
                     unitTarget->CastSpell(m_caster, 45626, true);
                     break;
                 }
-                case 46671:                                 // Cleansing Flames Exodar 
-                { 
-                    if (!unitTarget) 
-                        return; 
+                case 46671:                                 // Cleansing Flames Exodar
+                {
+                    if (!unitTarget)
+                        return;
 
-                    unitTarget->CastSpell(unitTarget, 46690, true); // Create Flame of the Exodar 
-                    break; 
-                } 
-                case 46672:                                 // Cleansing Flames Silvermoon 
-                { 
-                    if (!unitTarget) 
-                        return; 
+                    unitTarget->CastSpell(unitTarget, 46690, true); // Create Flame of the Exodar
+                    break;
+                }
+                case 46672:                                 // Cleansing Flames Silvermoon
+                {
+                    if (!unitTarget)
+                        return;
 
-                    unitTarget->CastSpell(unitTarget, 46689, true); // Create Flame of The Silvermoon 
-                    break; 
+                    unitTarget->CastSpell(unitTarget, 46689, true); // Create Flame of The Silvermoon
+                    break;
                 }
                 case 47097:                                 // Surge Needle Teleporter
                 {
@@ -8095,12 +8100,13 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
                     unitTarget->RemoveAurasDueToSpell(47636);
                     return;
                 }
-                case 48679:                                 // Banshee's Magic Mirror 
-                { 
-                    if (!unitTarget || m_caster->GetTypeId() != TYPEID_PLAYER) 
-                        return; 
-                    unitTarget->CastSpell(m_caster, 48648, true); 
-                    return; 
+                case 48679:                                 // Banshee's Magic Mirror
+                {
+                    if (!unitTarget || m_caster->GetTypeId() != TYPEID_PLAYER)
+                        return;
+
+                    unitTarget->CastSpell(m_caster, 48648, true);
+                    return;
                 }
                 case 47958:                                 // Crystal Spikes
                 {
@@ -8220,15 +8226,16 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
                     unitTarget->CastSpell(m_caster, 49406, true);
                     return;
                 }
-                case 48590:                                 // Avenging Spirits (summon Avenging Spirit Summoners) 
-                { 
-                    if (!unitTarget) 
-                        return; 
-                    unitTarget->CastSpell(unitTarget, 48586, true); 
-                    unitTarget->CastSpell(unitTarget, 48587, true); 
-                    unitTarget->CastSpell(unitTarget, 48588, true); 
-                    unitTarget->CastSpell(unitTarget, 48589, true); 
-                    return; 
+                case 48590:                                 // Avenging Spirits (summon Avenging Spirit Summoners)
+                {
+                    if (!unitTarget)
+                        return;
+
+                    unitTarget->CastSpell(unitTarget, 48586, true);
+                    unitTarget->CastSpell(unitTarget, 48587, true);
+                    unitTarget->CastSpell(unitTarget, 48588, true);
+                    unitTarget->CastSpell(unitTarget, 48589, true);
+                    return;
                 }
                 case 50217:                                 // The Cleansing: Script Effect Player Cast Mirror Image
                 {
@@ -8316,7 +8323,7 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
                     if (!unitTarget)
                         return;
 
-                    unitTarget->CastSpell(unitTarget, m_spellInfo->Id + 1, true);
+                    unitTarget->CastSpell(unitTarget, m_spellInfo->Id + 1, true, NULL, NULL, m_caster->GetObjectGuid());
                     return;
                 }
                 case 50894:                                 // Zul'Drak Rat
@@ -9090,7 +9097,7 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
                 {
                     if (!unitTarget)
                         return;
-                                                            
+
                     Unit* pZerg = unitTarget->GetMiniPet(); // Only usable on Grunty companion
                     if (pZerg && pZerg->isAlive() && pZerg->GetEntry() == 11327)
                     {

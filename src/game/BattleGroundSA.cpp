@@ -403,8 +403,10 @@ void BattleGroundSA::ResetBattle(uint32 winner, Team teamDefending)
     {
         Player *plr = sObjectMgr.GetPlayer(itr->first);
 
-        if (plr)
-            TeleportPlayerToCorrectLoc(plr, true);
+        if (!plr)
+            continue;
+
+        TeleportPlayerToCorrectLoc(plr, true);
 
         if (plr->GetBGTeam() == defender && plr->GetItemByEntry(39213) != NULL)
             plr->DestroyItemCount(39213, 1, true);
@@ -513,7 +515,7 @@ bool BattleGroundSA::SetupShips()
                     sLog.outError("SA_ERROR: Can't spawn ships!");
                     return false;
                 }
-                
+
                 if (GameObject* boat = GetBGObject(i))
                     boat->SetTransportPathRotation(0.0f, 0.0f, 1.0f, 0.0002f);
                 break;
@@ -524,7 +526,7 @@ bool BattleGroundSA::SetupShips()
                     sLog.outError("SA_ERROR: Can't spawn ships!");
                     return false;
                 }
-                
+
                 if (GameObject* boat = GetBGObject(i))
                     boat->SetTransportPathRotation(0, 0, 1.0f, 0.00001f);
                 break;
