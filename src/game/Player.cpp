@@ -19318,6 +19318,8 @@ void Player::PetSpellInitialize()
     DEBUG_LOG("Pet Spells Groups");
 
     CharmInfo *charmInfo = pet->GetCharmInfo();
+    if (!charmInfo)
+        return;
 
     WorldPacket data(SMSG_PET_SPELLS, 8+2+4+4+4*MAX_UNIT_ACTION_BAR_INDEX+1+1);
     data << pet->GetObjectGuid();
@@ -19379,13 +19381,14 @@ void Player::PetSpellInitialize()
 
 void Player::SendPetGUIDs()
 {
-    if (!GetPetGuid())
+    GroupPetList m_groupPets = GetPets();
+    if (m_groupPets.empty())
         return;
 
-    // Later this function might get modified for multiple guids
-    WorldPacket data(SMSG_PET_GUIDS, 12);
-    data << uint32(1);                      // count
-    data << ObjectGuid(GetPetGuid());
+    WorldPacket data(SMSG_PET_GUIDS, 4+8*m_groupPets.size());
+    data << uint32(m_groupPets.size());                      // count
+    for (GroupPetList::const_iterator itr = m_groupPets.begin(); itr != m_groupPets.end(); ++itr)
+        data << (*itr);
     GetSession()->SendPacket(&data);
 }
 
@@ -23359,6 +23362,8 @@ void Player::UpdateFallInformationIfNeed( MovementInfo const& minfo,uint16 opcod
 
 void Player::UnsummonPetTemporaryIfAny()
 {
+    if (!GetMap())
+        return;
 
     Pet* minipet = GetMiniPet();
 
@@ -23373,7 +23378,7 @@ void Player::UnsummonPetTemporaryIfAny()
     GroupPetList m_groupPetsTmp = GetPets();  // Original list may be modified in this function
     for (GroupPetList::const_iterator itr = m_groupPetsTmp.begin(); itr != m_groupPetsTmp.end(); ++itr)
     {
-        if (Pet* _pet = ObjectAccessor::FindPet(*itr))
+        if (Pet* _pet = GetMap()->GetPet(*itr))
         {
             if (!_pet->isTemporarySummoned())
                 _pet->Unsummon(PET_SAVE_AS_CURRENT, this);

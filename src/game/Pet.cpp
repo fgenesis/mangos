@@ -69,11 +69,7 @@ void Pet::AddToWorld()
 {
     ///- Register the pet for guid lookup
     if (!((Creature*)this)->IsInWorld())
-    {
         GetMap()->GetObjectsStore().insert<Pet>(GetObjectGuid(), (Pet*)this);
-        if (!sObjectAccessor.FindPet(GetObjectGuid()))
-            sObjectAccessor.AddObject(this);
-    }
 
     Unit::AddToWorld();
 }
@@ -82,11 +78,8 @@ void Pet::RemoveFromWorld()
 {
     ///- Remove the pet from the accessor
     if (((Creature*)this)->IsInWorld())
-    {
         GetMap()->GetObjectsStore().erase<Pet>(GetObjectGuid(), (Pet*)NULL);
-        if (sObjectAccessor.FindPet(GetObjectGuid()))
-            sObjectAccessor.RemoveObject(this);
-    }
+
     ///- Don't call the function for Creature, normal mobs + totems go in a different storage
     Unit::RemoveFromWorld();
 }
@@ -571,6 +564,13 @@ void Pet::Update(uint32 update_diff, uint32 diff)
                 return;
             }
 
+            if (GetCreator() != GetOwner())
+            {
+                // special way for remove elementals, if totem is dead
+                if (!GetCreator() || !GetCreator()->isAlive())
+                    Unsummon(PET_SAVE_NOT_IN_SLOT);
+            }
+
             if ((!IsWithinDistInMap(owner, GetMap()->GetVisibilityDistance()) && !owner->GetCharmGuid().IsEmpty()) || (isControlled() && owner->GetPetGuid().IsEmpty()))
             {
                 DEBUG_LOG("Pet %d lost control, removed. Owner = %d, distance = %d, pet GUID = ", GetObjectGuid().GetCounter(), owner->GetObjectGuid().GetCounter(), GetDistance2d(owner), owner->GetPetGuid().GetCounter());
@@ -770,6 +770,7 @@ void Pet::Unsummon(PetSaveMode mode, Unit* owner /*= NULL*/)
                 owner->RemoveGuardian(this);
                 break;
             default:
+                owner->RemovePetFromList(this);
                 if (owner->GetPetGuid() == GetObjectGuid())
                     owner->SetPet(NULL);
                 break;
@@ -779,11 +780,8 @@ void Pet::Unsummon(PetSaveMode mode, Unit* owner /*= NULL*/)
             SavePetToDB(mode);
     }
 
-    // Removing pet from ObjectAccessor immediately (his also binded to map)
-    if (sObjectAccessor.FindPet(GetObjectGuid()))
-        sObjectAccessor.RemoveObject(this);
-
     AddObjectToRemoveList();
+
 }
 
 void Pet::GivePetXP(uint32 xp)

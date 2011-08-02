@@ -189,15 +189,10 @@ Creature::~Creature()
 void Creature::AddToWorld()
 {
     ///- Register the creature for guid lookup
-    if (IsInWorld() && GetObjectGuid().IsPet())
-        ((Pet*)this)->AddToWorld();
-    else if (!IsInWorld() && GetObjectGuid().IsCreatureOrVehicle())
-    {
+    if (!IsInWorld() && GetObjectGuid().IsCreatureOrVehicle())
         GetMap()->GetObjectsStore().insert<Creature>(GetObjectGuid(), (Creature*)this);
-        Unit::AddToWorld();
-    }
-    else
-        Unit::AddToWorld();
+
+    Unit::AddToWorld();
 
     if (GetVehicleKit())
         GetVehicleKit()->Reset();
@@ -206,15 +201,10 @@ void Creature::AddToWorld()
 void Creature::RemoveFromWorld()
 {
     ///- Remove the creature from the accessor
-    if (IsInWorld() && GetObjectGuid().IsPet())
-        ((Pet*)this)->RemoveFromWorld();
-    else if (IsInWorld() && GetObjectGuid().IsCreatureOrVehicle())
-    {
+    if (IsInWorld() && GetObjectGuid().IsCreatureOrVehicle())
         GetMap()->GetObjectsStore().erase<Creature>(GetObjectGuid(), (Creature*)NULL);
-        Unit::RemoveFromWorld();
-    }
-    else
-        Unit::RemoveFromWorld();
+
+    Unit::RemoveFromWorld();
 }
 
 void Creature::RemoveCorpse()

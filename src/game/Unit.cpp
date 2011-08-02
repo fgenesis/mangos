@@ -6428,7 +6428,7 @@ Pet* Unit::GetPet() const
 
 Pet* Unit::_GetPet(ObjectGuid guid) const
 {
-    return ObjectAccessor::FindPet(guid);
+    return GetMap() ? GetMap()->GetPet(guid) : NULL;
 }
 
 void Unit::RemoveMiniPet()
@@ -6502,7 +6502,7 @@ void Unit::SetPet(Pet* pet)
 
         AddPetToList(pet);
 
-        if (GetTypeId() == TYPEID_PLAYER)
+        if (!pet->GetPetCounter() && GetTypeId() == TYPEID_PLAYER)
             ((Player*)this)->SendPetGUIDs();
     }
     else
@@ -6568,12 +6568,12 @@ void Unit::RemoveGuardians()
     {
         ObjectGuid guid = *m_guardianPets.begin();
 
-        if (Pet* pet = _GetPet(guid))
-            pet->Unsummon(PET_SAVE_AS_DELETED, this);
-        else
-            m_guardianPets.erase(guid);
+        if (Pet* pet = GetMap()->GetPet(guid))
+            pet->Unsummon(PET_SAVE_AS_DELETED, this); // can remove pet guid from m_guardianPets
+
+        m_guardianPets.erase(guid);
     }
-    m_guardianPets.clear();
+
 }
 
 Pet* Unit::FindGuardianWithEntry(uint32 entry)
@@ -12539,7 +12539,7 @@ bool Unit::IsCombatStationary()
 
 bool Unit::HasMorePoweredBuff(uint32 spellId)
 {
-    SpellEntry const* spellInfo = sSpellStore.LookupEntry( spellId );
+    SpellEntry const* spellInfo = sSpellStore.LookupEntry(spellId);
 
     if (!spellInfo || !(spellInfo->AttributesEx7 & SPELL_ATTR_EX7_REPLACEABLE_AURA))
         return false;
@@ -12555,7 +12555,7 @@ bool Unit::HasMorePoweredBuff(uint32 spellId)
             continue;
 
         for (Unit::AuraList::const_iterator itr = auras.begin(); itr != auras.end(); ++itr)
-            if ((*itr)->GetSpellProto()->AttributesEx7 & SPELL_ATTR_EX7_REPLACEABLE_AURA)
+            if ((*itr) && (*itr)->GetHolder() && !(*itr)->GetHolder()->IsDeleted() && (*itr)->GetSpellProto()->AttributesEx7 & SPELL_ATTR_EX7_REPLACEABLE_AURA)
                 if (spellInfo->CalculateSimpleValue(SpellEffectIndex(i)) < (*itr)->GetModifier()->m_amount)
                     return true;
     }
