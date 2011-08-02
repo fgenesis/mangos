@@ -161,7 +161,7 @@ Player* World::FindPlayerInZone(uint32 zone)
         Player *player = itr->second->GetPlayer();
         if(!player)
             continue;
-        if( player->IsInWorld() && player->GetZoneId() == zone )
+        if ( player->IsInWorld() && player->GetZoneId() == zone )
         {
             // Used by the weather system. We return the player to broadcast the change weather message to him and all players in the zone.
             return player;
@@ -175,7 +175,7 @@ WorldSession* World::FindSession(uint32 id) const
 {
     SessionMap::const_iterator itr = m_sessions.find(id);
 
-    if(itr != m_sessions.end())
+    if (itr != m_sessions.end())
         return itr->second;                                 // also can return NULL for kicked session
     else
         return NULL;
@@ -187,7 +187,7 @@ bool World::RemoveSession(uint32 id)
     ///- Find the session, kick the user, but we can't delete session at this moment to prevent iterator invalidation
     SessionMap::const_iterator itr = m_sessions.find(id);
 
-    if(itr != m_sessions.end() && itr->second)
+    if (itr != m_sessions.end() && itr->second)
     {
         if (itr->second->PlayerLoading())
             return false;
@@ -226,10 +226,10 @@ World::AddSession_ (WorldSession* s)
     {
         SessionMap::const_iterator old = m_sessions.find(s->GetAccountId ());
 
-        if(old != m_sessions.end())
+        if (old != m_sessions.end())
         {
             // prevent decrease sessions count if session queued
-            if(RemoveQueuedSession(old->second))
+            if (RemoveQueuedSession(old->second))
                 decrease_session = false;
             // not remove replaced session form queue if listed
             delete old->second;
@@ -244,7 +244,7 @@ World::AddSession_ (WorldSession* s)
 
     //so we don't count the user trying to
     //login as a session and queue the socket that we are using
-    if(decrease_session)
+    if (decrease_session)
         --Sessions;
 
     if (pLimit > 0 && Sessions >= pLimit && s->GetSecurity () == SEC_PLAYER )
@@ -347,7 +347,7 @@ bool World::RemoveQueuedSession(WorldSession* sess)
         --sessions;
 
     // accept first in queue
-    if( (!m_playerLimit || (int32)sessions < m_playerLimit) && !m_QueuedSessions.empty() )
+    if ( (!m_playerLimit || (int32)sessions < m_playerLimit) && !m_QueuedSessions.empty() )
     {
         WorldSession* pop_sess = m_QueuedSessions.front();
         pop_sess->SetInQueue(false);
@@ -381,7 +381,7 @@ Weather* World::FindWeather(uint32 id) const
 {
     WeatherMap::const_iterator itr = m_weathers.find(id);
 
-    if(itr != m_weathers.end())
+    if (itr != m_weathers.end())
         return itr->second;
     else
         return 0;
@@ -393,7 +393,7 @@ void World::RemoveWeather(uint32 id)
     // not called at the moment. Kept for completeness
     WeatherMap::iterator itr = m_weathers.find(id);
 
-    if(itr != m_weathers.end())
+    if (itr != m_weathers.end())
     {
         delete itr->second;
         m_weathers.erase(itr);
@@ -803,10 +803,10 @@ void World::LoadConfigSettings(bool reload)
 
     setConfig(CONFIG_BOOL_KICK_PLAYER_ON_BAD_PACKET, "Network.KickOnBadPacket", false);
 
-    if(int clientCacheId = sConfig.GetIntDefault("ClientCacheVersion", 0))
+    if (int clientCacheId = sConfig.GetIntDefault("ClientCacheVersion", 0))
     {
         // overwrite DB/old value
-        if(clientCacheId > 0)
+        if (clientCacheId > 0)
         {
             setConfig(CONFIG_UINT32_CLIENTCACHE_VERSION, clientCacheId);
             sLog.outString("Client cache version set to: %u", clientCacheId);
@@ -840,13 +840,13 @@ void World::LoadConfigSettings(bool reload)
     m_relocation_lower_limit_sq  = pow(sConfig.GetFloatDefault("Visibility.RelocationLowerLimit",10), 2);
 
     m_VisibleUnitGreyDistance = sConfig.GetFloatDefault("Visibility.Distance.Grey.Unit", 1);
-    if(m_VisibleUnitGreyDistance >  MAX_VISIBILITY_DISTANCE)
+    if (m_VisibleUnitGreyDistance >  MAX_VISIBILITY_DISTANCE)
     {
         sLog.outError("Visibility.Distance.Grey.Unit can't be greater %f",MAX_VISIBILITY_DISTANCE);
         m_VisibleUnitGreyDistance = MAX_VISIBILITY_DISTANCE;
     }
     m_VisibleObjectGreyDistance = sConfig.GetFloatDefault("Visibility.Distance.Grey.Object", 10);
-    if(m_VisibleObjectGreyDistance >  MAX_VISIBILITY_DISTANCE)
+    if (m_VisibleObjectGreyDistance >  MAX_VISIBILITY_DISTANCE)
     {
         sLog.outError("Visibility.Distance.Grey.Object can't be greater %f",MAX_VISIBILITY_DISTANCE);
         m_VisibleObjectGreyDistance = MAX_VISIBILITY_DISTANCE;
@@ -854,12 +854,12 @@ void World::LoadConfigSettings(bool reload)
 
     //visibility on continents
     m_MaxVisibleDistanceOnContinents      = sConfig.GetFloatDefault("Visibility.Distance.Continents",     DEFAULT_VISIBILITY_DISTANCE);
-    if(m_MaxVisibleDistanceOnContinents < 45*getConfig(CONFIG_FLOAT_RATE_CREATURE_AGGRO))
+    if (m_MaxVisibleDistanceOnContinents < 45*getConfig(CONFIG_FLOAT_RATE_CREATURE_AGGRO))
     {
         sLog.outError("Visibility.Distance.Continents can't be less max aggro radius %f", 45*getConfig(CONFIG_FLOAT_RATE_CREATURE_AGGRO));
         m_MaxVisibleDistanceOnContinents = 45*getConfig(CONFIG_FLOAT_RATE_CREATURE_AGGRO);
     }
-    else if(m_MaxVisibleDistanceOnContinents + m_VisibleUnitGreyDistance >  MAX_VISIBILITY_DISTANCE)
+    else if (m_MaxVisibleDistanceOnContinents + m_VisibleUnitGreyDistance >  MAX_VISIBILITY_DISTANCE)
     {
         sLog.outError("Visibility.Distance.Continents can't be greater %f",MAX_VISIBILITY_DISTANCE - m_VisibleUnitGreyDistance);
         m_MaxVisibleDistanceOnContinents = MAX_VISIBILITY_DISTANCE - m_VisibleUnitGreyDistance;
@@ -867,12 +867,12 @@ void World::LoadConfigSettings(bool reload)
 
     //visibility in instances
     m_MaxVisibleDistanceInInstances        = sConfig.GetFloatDefault("Visibility.Distance.Instances",       DEFAULT_VISIBILITY_INSTANCE);
-    if(m_MaxVisibleDistanceInInstances < 45*getConfig(CONFIG_FLOAT_RATE_CREATURE_AGGRO))
+    if (m_MaxVisibleDistanceInInstances < 45*getConfig(CONFIG_FLOAT_RATE_CREATURE_AGGRO))
     {
         sLog.outError("Visibility.Distance.Instances can't be less max aggro radius %f",45*getConfig(CONFIG_FLOAT_RATE_CREATURE_AGGRO));
         m_MaxVisibleDistanceInInstances = 45*getConfig(CONFIG_FLOAT_RATE_CREATURE_AGGRO);
     }
-    else if(m_MaxVisibleDistanceInInstances + m_VisibleUnitGreyDistance >  MAX_VISIBILITY_DISTANCE)
+    else if (m_MaxVisibleDistanceInInstances + m_VisibleUnitGreyDistance >  MAX_VISIBILITY_DISTANCE)
     {
         sLog.outError("Visibility.Distance.Instances can't be greater %f",MAX_VISIBILITY_DISTANCE - m_VisibleUnitGreyDistance);
         m_MaxVisibleDistanceInInstances = MAX_VISIBILITY_DISTANCE - m_VisibleUnitGreyDistance;
@@ -880,19 +880,19 @@ void World::LoadConfigSettings(bool reload)
 
     //visibility in BG/Arenas
     m_MaxVisibleDistanceInBGArenas        = sConfig.GetFloatDefault("Visibility.Distance.BGArenas",       DEFAULT_VISIBILITY_BGARENAS);
-    if(m_MaxVisibleDistanceInBGArenas < 45*getConfig(CONFIG_FLOAT_RATE_CREATURE_AGGRO))
+    if (m_MaxVisibleDistanceInBGArenas < 45*getConfig(CONFIG_FLOAT_RATE_CREATURE_AGGRO))
     {
         sLog.outError("Visibility.Distance.BGArenas can't be less max aggro radius %f",45*getConfig(CONFIG_FLOAT_RATE_CREATURE_AGGRO));
         m_MaxVisibleDistanceInBGArenas = 45*getConfig(CONFIG_FLOAT_RATE_CREATURE_AGGRO);
     }
-    else if(m_MaxVisibleDistanceInBGArenas + m_VisibleUnitGreyDistance >  MAX_VISIBILITY_DISTANCE)
+    else if (m_MaxVisibleDistanceInBGArenas + m_VisibleUnitGreyDistance >  MAX_VISIBILITY_DISTANCE)
     {
         sLog.outError("Visibility.Distance.BGArenas can't be greater %f",MAX_VISIBILITY_DISTANCE - m_VisibleUnitGreyDistance);
         m_MaxVisibleDistanceInBGArenas = MAX_VISIBILITY_DISTANCE - m_VisibleUnitGreyDistance;
     }
 
     m_MaxVisibleDistanceInFlight    = sConfig.GetFloatDefault("Visibility.Distance.InFlight",      DEFAULT_VISIBILITY_DISTANCE);
-    if(m_MaxVisibleDistanceInFlight + m_VisibleObjectGreyDistance > MAX_VISIBILITY_DISTANCE)
+    if (m_MaxVisibleDistanceInFlight + m_VisibleObjectGreyDistance > MAX_VISIBILITY_DISTANCE)
     {
         sLog.outError("Visibility.Distance.InFlight can't be greater %f",MAX_VISIBILITY_DISTANCE-m_VisibleObjectGreyDistance);
         m_MaxVisibleDistanceInFlight = MAX_VISIBILITY_DISTANCE - m_VisibleObjectGreyDistance;
@@ -1757,7 +1757,7 @@ void World::Update(uint32 diff)
     }
     static uint32 autobroadcaston = 0;
     autobroadcaston = sConfig.GetIntDefault("AutoBroadcast.On", 0);
-    if(autobroadcaston == 1)
+    if (autobroadcaston == 1)
     {
         if (m_timers[WUPDATE_AUTOBROADCAST].Passed())
         {
@@ -1854,7 +1854,7 @@ namespace MaNGOS
             {
                 char const* text = sObjectMgr.GetMangosString(i_textId,loc_idx);
 
-                if(i_args)
+                if (i_args)
                 {
                     // we need copy va_list before use or original va_list will corrupted
                     va_list ap;
@@ -1997,7 +1997,7 @@ void World::KickAllLess(AccountTypes sec)
 {
     // session not removed at kick and will removed in next update tick
     for (SessionMap::const_iterator itr = m_sessions.begin(); itr != m_sessions.end(); ++itr)
-        if(itr->second->GetSecurity() < sec)
+        if (itr->second->GetSecurity() < sec)
             itr->second->KickPlayer();
 }
 
@@ -2033,7 +2033,7 @@ BanReturn World::BanAccount(BanMode mode, std::string nameOrIP, uint32 duration_
 
     if(!resultAccounts)
     {
-        if(mode==BAN_IP)
+        if (mode==BAN_IP)
             return BAN_SUCCESS;                             // ip correctly banned but nobody affected (yet)
         else
             return BAN_NOTFOUND;                                // Nobody to ban
@@ -2045,7 +2045,7 @@ BanReturn World::BanAccount(BanMode mode, std::string nameOrIP, uint32 duration_
         Field* fieldsAccount = resultAccounts->Fetch();
         uint32 account = fieldsAccount->GetUInt32();
 
-        if(mode!=BAN_IP)
+        if (mode!=BAN_IP)
         {
             //No SQL injection as strings are escaped
             LoginDatabase.PExecute("INSERT INTO account_banned VALUES ('%u', UNIX_TIMESTAMP(), UNIX_TIMESTAMP()+%u, '%s', '%s', '1')",
@@ -2053,7 +2053,7 @@ BanReturn World::BanAccount(BanMode mode, std::string nameOrIP, uint32 duration_
         }
 
         if (WorldSession* sess = FindSession(account))
-            if(std::string(sess->GetPlayerName()) != author)
+            if (std::string(sess->GetPlayerName()) != author)
                 sess->KickPlayer();
     }
     while( resultAccounts->NextRow() );
@@ -2099,7 +2099,7 @@ void World::_UpdateGameTime()
     if(!m_stopEvent && m_ShutdownTimer > 0 && elapsed > 0)
     {
         ///- ... and it is overdue, stop the world (set m_stopEvent)
-        if( m_ShutdownTimer <= elapsed )
+        if ( m_ShutdownTimer <= elapsed )
         {
             if(!(m_ShutdownMask & SHUTDOWN_MASK_IDLE) || GetActiveAndQueuedSessionCount()==0)
                 m_stopEvent = true;                         // exist code already set
@@ -2120,14 +2120,14 @@ void World::_UpdateGameTime()
 void World::ShutdownServ(uint32 time, uint32 options, uint8 exitcode)
 {
     // ignore if server shutdown at next tick
-    if(m_stopEvent)
+    if (m_stopEvent)
         return;
 
     m_ShutdownMask = options;
     m_ExitCode = exitcode;
 
     ///- If the shutdown time is 0, set m_stopEvent (except if shutdown is 'idle' with remaining sessions)
-    if(time==0)
+    if (time==0)
     {
         if(!(options & SHUTDOWN_MASK_IDLE) || GetActiveAndQueuedSessionCount()==0)
             m_stopEvent = true;                             // exist code already set
@@ -2146,7 +2146,7 @@ void World::ShutdownServ(uint32 time, uint32 options, uint8 exitcode)
 void World::ShutdownMsg(bool show, Player* player)
 {
     // not show messages for idle shutdown mode
-    if(m_ShutdownMask & SHUTDOWN_MASK_IDLE)
+    if (m_ShutdownMask & SHUTDOWN_MASK_IDLE)
         return;
 
     ///- Display a message every 12 hours, hours, 5 minutes, minute, 5 seconds and finally seconds
@@ -2196,7 +2196,7 @@ void World::SendServerMessage(ServerMessageType type, const char *text, Player* 
     data << uint32(type);
     data << text;
 
-    if(player)
+    if (player)
         player->GetSession()->SendPacket(&data);
     else
         SendGlobalMessage( &data );
@@ -2241,7 +2241,7 @@ void World::ProcessCliCommands()
         CliHandler handler(command->m_cliAccountId, command->m_cliAccessLevel, callbackArg, zprint);
         handler.ParseCommands(command->m_command);
 
-        if(command->m_commandFinished)
+        if (command->m_commandFinished)
             command->m_commandFinished(callbackArg, !handler.HasSentErrorMessage());
 
         delete command;
@@ -2254,7 +2254,7 @@ void World::SendBroadcast()
     static int nextid;
 
     QueryResult *result;
-    if(nextid != 0)
+    if (nextid != 0)
     {
         result = CharacterDatabase.PQuery("SELECT `text`, `next` FROM `autobroadcast` WHERE `id` = %u", nextid);
     }
@@ -2273,13 +2273,13 @@ void World::SendBroadcast()
 
     static uint32 abcenter = 0;
     abcenter = sConfig.GetIntDefault("AutoBroadcast.Center", 0);
-    if(abcenter == 0)
+    if (abcenter == 0)
     {
         sWorld.SendWorldText(LANG_AUTO_BROADCAST, msg.c_str());
 
         sLog.outString("AutoBroadcast: '%s'",msg.c_str());
     }
-    if(abcenter == 1)
+    if (abcenter == 1)
     {
         WorldPacket data(SMSG_NOTIFICATION, (msg.size()+1));
         data << msg;
@@ -2287,7 +2287,7 @@ void World::SendBroadcast()
 
         sLog.outString("AutoBroadcast: '%s'",msg.c_str());
     }
-    if(abcenter == 2)
+    if (abcenter == 2)
     {
         sWorld.SendWorldText(LANG_AUTO_BROADCAST, msg.c_str());
 
@@ -2546,7 +2546,7 @@ void World::UpdateMaxSessionCounters()
 void World::LoadDBVersion()
 {
     QueryResult* result = WorldDatabase.Query("SELECT version, creature_ai_version, cache_id FROM db_version LIMIT 1");
-    if(result)
+    if (result)
     {
         Field* fields = result->Fetch();
 
@@ -2558,10 +2558,10 @@ void World::LoadDBVersion()
         delete result;
     }
 
-    if(m_DBVersion.empty())
+    if (m_DBVersion.empty())
         m_DBVersion = "Unknown world database.";
 
-    if(m_CreatureEventAIVersion.empty())
+    if (m_CreatureEventAIVersion.empty())
         m_CreatureEventAIVersion = "Unknown creature EventAI.";
 }
 
