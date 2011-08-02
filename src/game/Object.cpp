@@ -1683,9 +1683,9 @@ void WorldObject::SendGameObjectCustomAnim(ObjectGuid guid, uint32 animprogress)
     SendMessageToSet(&data, true);
 }
 
-Map *WorldObject::GetMap(void) const
+Map *WorldObject::GetMap(bool require /* = true */) const // FG: added require bool
 {
-    if(!m_currMap)
+    if(!m_currMap && require)
     {
         sLog.outError("Object::GetMap(), m_currMap is NULL! Object guid: %u, entry: %u, typeid: %u, typemask: %u, in world: %u",
             GetGUIDLow(), GetEntry(), GetTypeId(), m_objectType, IsInWorld());

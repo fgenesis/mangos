@@ -6275,8 +6275,8 @@ bool Unit::isAttackingPlayer() const
 
 void Unit::RemoveAllAttackers()
 {
-    if (!GetMap())
-        return;
+    if (!GetMap(false)) // FG: this will assert fail if m_currMap is NULL... (see commit e68ff16c502d302 - related to playerbot)
+        return;    // added bool to func arg
 
     while (!m_attackers.empty())
     {
