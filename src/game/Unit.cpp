@@ -1055,8 +1055,8 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
         }
 
         // FG: HACK: Hex CAN break on damage (40% chance for now)
-        //if(pVictim->HasAura(51514) && urand(0,100) < 40)
-        //    pVictim->RemoveAurasDueToSpell(51514);
+        if(pVictim->HasAura(51514) && urand(0,100) < 40)
+            pVictim->RemoveAurasDueToSpell(51514);
 
         if (damagetype == DIRECT_DAMAGE || damagetype == SPELL_DIRECT_DAMAGE)
         {
