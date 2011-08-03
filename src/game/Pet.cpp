@@ -84,7 +84,7 @@ void Pet::RemoveFromWorld()
     Unit::RemoveFromWorld();
 }
 
-bool Pet::LoadPetFromDB( Player* owner, uint32 petentry, uint32 petnumber, bool current)
+bool Pet::LoadPetFromDB( Player* owner, uint32 petentry, uint32 petnumber, bool current, CreatureCreatePos* pos)
 {
     m_loading = true;
 
@@ -178,11 +178,12 @@ bool Pet::LoadPetFromDB( Player* owner, uint32 petentry, uint32 petnumber, bool 
 
     Map *map = owner->GetMap();
 
-    CreatureCreatePos pos(owner, owner->GetOrientation(), PET_FOLLOW_DIST, GetPetFollowAngle());
+    if (!pos)
+        pos = &CreatureCreatePos(owner, owner->GetOrientation(), PET_FOLLOW_DIST, GetPetFollowAngle());
 
-    uint32 guid = pos.GetMap()->GenerateLocalLowGuid(HIGHGUID_PET);
+    uint32 guid = pos->GetMap()->GenerateLocalLowGuid(HIGHGUID_PET);
 
-    if (!Create(guid, pos, creatureInfo, pet_number, owner))
+    if (!Create(guid, *pos, creatureInfo, pet_number, owner))
     {
         delete result;
         return false;
@@ -203,7 +204,7 @@ bool Pet::LoadPetFromDB( Player* owner, uint32 petentry, uint32 petnumber, bool 
     if (cinfo->type == CREATURE_TYPE_CRITTER)
     {
         AIM_Initialize();
-        pos.GetMap()->Add((Creature*)this);
+        pos->GetMap()->Add((Creature*)this);
         delete result;
         return true;
     }
@@ -508,8 +509,8 @@ void Pet::SetDeathState(DeathState s)                       // overwrite virtual
             if(!mapEntry || (mapEntry->map_type != MAP_ARENA && mapEntry->map_type != MAP_BATTLEGROUND))
                 ModifyPower(POWER_HAPPINESS, -HAPPINESS_LEVEL_SIZE);
 
-            if( HasSpell(55709) && GetOwner() && GetOwner()->GetTypeId() == TYPEID_PLAYER)
-                GetOwner()->CastSpell(GetOwner(), 54114, false);
+            if (HasSpell(55709))
+                CastSpell(this, 55709, true);
 
             SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_STUNNED);
         }

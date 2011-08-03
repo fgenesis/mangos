@@ -5642,7 +5642,7 @@ void Spell::DoSummonGroupPets(SpellEffectIndex eff_idx)
                     pet->SetPetCounter(amount-1);
                     bool _summoned = false;
 
-                    if (pet->LoadPetFromDB((Player*)m_caster,pet_entry, petnumber[i]))
+                    if (pet->LoadPetFromDB((Player*)m_caster,pet_entry, petnumber[i], false, &pos))
                     {
                          --amount;
                         DEBUG_LOG("Pet (guidlow %d, entry %d) summoned (from database). Counter is %d ",
@@ -6647,9 +6647,15 @@ void Spell::EffectSummonPet(SpellEffectIndex eff_idx)
 
     uint32 originalSpellID = (m_IsTriggeredSpell && m_triggeredBySpellInfo) ? m_triggeredBySpellInfo->Id : m_spellInfo->Id;
     NewSummon->SetCreateSpellID(originalSpellID);
+    NewSummon->SetPetCounter(0);
+
+    CreatureCreatePos pos(m_caster, m_caster->GetOrientation());
+
+    if (m_targets.m_targetMask & TARGET_FLAG_DEST_LOCATION)
+        pos = CreatureCreatePos(m_caster->GetMap(), m_targets.m_destX, m_targets.m_destY, m_targets.m_destZ, -m_caster->GetOrientation(), m_caster->GetPhaseMask());
 
     // petentry==0 for hunter "call pet" (current pet summoned if any)
-    if (m_caster->GetTypeId() == TYPEID_PLAYER && NewSummon->LoadPetFromDB((Player*)m_caster, petentry))
+    if (m_caster->GetTypeId() == TYPEID_PLAYER && NewSummon->LoadPetFromDB((Player*)m_caster, petentry, petentry == 0 ? true : false, &pos))
         return;
 
     // not error in case fail hunter call pet
@@ -6660,9 +6666,6 @@ void Spell::EffectSummonPet(SpellEffectIndex eff_idx)
     }
 
     NewSummon->setPetType(SUMMON_PET);
-    NewSummon->SetPetCounter(0);
-    CreatureCreatePos pos(m_caster, m_caster->GetOrientation());
-    NewSummon->SetSummonPoint(pos);
 
     if (!NewSummon->Create(0, pos, cInfo, 0, m_caster))
     {
@@ -9614,6 +9617,20 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
                     unitTarget->CastSpell(unitTarget, 62305, true);
                     return;
                 }
+                case 55709:                                 // Heart of the phoenix
+                {
+                    if (!unitTarget || !unitTarget->GetObjectGuid().IsPet())
+                        return;
+
+                    if (!unitTarget->HasAura(55711))
+                    {
+                        ((Pet*)unitTarget)->GetOwner()->CastSpell(unitTarget, 54114, true);
+                        unitTarget->CastSpell(unitTarget, 55711, true);
+                    }
+                    else
+                        SendCastResult(SPELL_FAILED_CASTER_AURASTATE);
+                    return;
+                }
                 default:
                     break;
             }
@@ -9808,7 +9825,7 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
                     }
                     else  if (((Player*)m_caster)->HasItemCount(37201,1))
                     {
-                        ((Player*)m_caster)->DestroyItemCount(37201,1,true);
+                        m_caster->CastSpell(m_caster,48289,true);
                         m_caster->CastSpell(x,y,z,triggered_spell_id, true, NULL, NULL, m_caster->GetObjectGuid(), m_spellInfo);
                     }
                     else
