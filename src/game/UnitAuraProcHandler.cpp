@@ -1104,6 +1104,7 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
                     }
                     break;
                 }
+                /* // FG: R2 variant, reported to work not as good as my old version
                 // Deathbringer's Will (Item - Icecrown 25 Normal Melee Trinket)
                 //=====================================================
                 // 71492 Speed of the Vrykul: +600 haste rating (Death Knight, Druid, Paladin, Rogue, Warrior, Shaman)
@@ -1265,7 +1266,68 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
                     }
 
                     break;
+                }*/
+                // FG: Deathbriger's will, old version:
+                //Deathbringer's Will Proc
+                case 71519:
+                case 71562:
+                {
+                    // FG: check CD for this spell, and apply
+                    if(cooldown && GetTypeId() == TYPEID_PLAYER)
+                    {
+                        if(((Player*)this)->HasSpellCooldown(dummySpell->Id))
+                            return SPELL_AURA_PROC_FAILED;
+                        ((Player*)this)->AddSpellCooldown(dummySpell->Id,0,time(NULL) + cooldown);
+                    }
+
+                    switch(this->getClass())
+                    {
+                    case CLASS_WARRIOR:
+                    case CLASS_DEATH_KNIGHT:
+                    case CLASS_PALADIN:
+                        switch(irand(1,3))
+                        {
+                        case 1: triggered_spell_id = (dummySpell->Id == 71519) ? 71491:71559; break;   //Crit
+                        case 2: triggered_spell_id = (dummySpell->Id == 71519) ? 71484:71561; break;  //Str
+                        case 3: triggered_spell_id = (dummySpell->Id == 71519) ? 71492:71560; break;  //Haste
+                        }
+                        break;
+                    case CLASS_ROGUE:
+                    case CLASS_SHAMAN:
+                        switch(irand(1,3))
+                        {
+                        case 1: triggered_spell_id = (dummySpell->Id == 71519) ? 71485:71556; break;  //Agi
+                        case 2: triggered_spell_id = (dummySpell->Id == 71519) ? 71486:71558; break;  //AP
+                        case 3: triggered_spell_id = (dummySpell->Id == 71519) ? 71492:71560; break;  //Haste
+                        }
+                        break;
+                    case CLASS_HUNTER:
+                        switch(irand(1,3))
+                        {
+                        case 1: triggered_spell_id = (dummySpell->Id == 71519) ? 71485:71556; break;  //Agi
+                        case 2: triggered_spell_id = (dummySpell->Id == 71519) ? 71491:71559; break;  //Crit
+                        case 3: triggered_spell_id = (dummySpell->Id == 71519) ? 71486:71558; break;  //AP
+                        }
+                        break;
+                    case CLASS_DRUID:
+                        switch(irand(1,3))
+                        {
+                        case 1:triggered_spell_id = (dummySpell->Id == 71519) ? 71485:71556; break;   //Agi
+                        case 2:triggered_spell_id = (dummySpell->Id == 71519) ? 71484:71561; break;  //Str
+                        case 3:triggered_spell_id = (dummySpell->Id == 71519) ? 71492:71560; break;  //Haste
+                        }
+                        break;
+                    case CLASS_PRIEST:
+                    case CLASS_MAGE:
+                    case CLASS_WARLOCK:
+                        break;                      //Unknown result for casters?
+                    default:
+                        break;
+                    }
+                    target = this;
+                    break;
                 }
+
                 // Necrotic Touch item 50692
                 case 71875:
                 case 71877:
