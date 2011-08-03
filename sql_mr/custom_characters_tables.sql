@@ -5,7 +5,7 @@ DROP TABLE IF EXISTS `character_battleground_random`;
 CREATE TABLE `character_battleground_random` (
     `guid` int(11) unsigned NOT NULL default 0,
     PRIMARY KEY  (`guid`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- Anticheat tables from /dev/rsa
 
@@ -104,7 +104,7 @@ CREATE TABLE IF NOT EXISTS `item_soulbound_trade_data` (
     `itemGuid` int(16) unsigned NOT NULL DEFAULT '0',
     `allowedPlayers` varchar(255) NOT NULL DEFAULT '',
     PRIMARY KEY (`itemGuid`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=FIXED COMMENT='BOP item trade cache';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=FIXED COMMENT='BOP item trade cache';
 
 -- Wow Armory
 
@@ -201,7 +201,7 @@ CREATE TABLE IF NOT EXISTS hidden_rating (
     rating3 INT(10) UNSIGNED NOT NULL,
     rating5 INT(10) UNSIGNED NOT NULL,
     PRIMARY KEY  (guid)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
 -- ADVANCE CHARACTERS TABLE
 
@@ -288,5 +288,5 @@ CREATE TABLE `character_stats` (
   `activeSpec` tinyint(3) unsigned NOT NULL default '0',
   `data` longtext NOT NULL,
   PRIMARY KEY  (`guid`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
