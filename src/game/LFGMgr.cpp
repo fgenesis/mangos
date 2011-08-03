@@ -2178,7 +2178,7 @@ void LFGMgr::SetRoles(LFGRolesMap* rolesMap)
                 itr2->second = oldRoles;
         }
     }
-    rolesMap[tankGuid] = newRole;
+    (*rolesMap)[tankGuid] = newRole;
     tmpMap.clear();
 
     for (LFGRolesMap::iterator itr = rolesMap->begin(); itr != rolesMap->end(); ++itr)
@@ -2209,7 +2209,7 @@ void LFGMgr::SetRoles(LFGRolesMap* rolesMap)
                 itr2->second = oldRoles;
         }
     }
-    rolesMap[healGuid] = newRole;
+    (*rolesMap)[healGuid] = newRole;
     tmpMap.clear();
 
     for (LFGRolesMap::iterator itr = rolesMap->begin(); itr != rolesMap->end(); ++itr)
