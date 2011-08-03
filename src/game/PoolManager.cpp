@@ -486,7 +486,7 @@ void PoolGroup<Creature>::ReSpawn1Object(MapPersistentState& mapState, PoolObjec
         if (MapPersistentState* dataMapState = mapState.GetMapId() == data->mapid ? &mapState : sMapPersistentStateMgr.GetPersistentState(data->mapid, 0))
             if (Map* dataMap = dataMapState->GetMap())
                 if (Creature* pCreature = dataMap->GetCreature(data->GetObjectGuid(obj->guid)))
-                    pCreature->GetMap()->Add(pCreature);
+                    pCreature->GetMap(true)->Add(pCreature);
     }
 }
 
@@ -500,7 +500,7 @@ void PoolGroup<GameObject>::ReSpawn1Object(MapPersistentState& mapState, PoolObj
         if (MapPersistentState* dataMapState = mapState.GetMapId() == data->mapid ? &mapState : sMapPersistentStateMgr.GetPersistentState(data->mapid, 0))
             if (Map* dataMap = dataMapState->GetMap())
                 if (GameObject* pGameobject = dataMap->GetGameObject(ObjectGuid(HIGHGUID_GAMEOBJECT, data->id, obj->guid)))
-                    pGameobject->GetMap()->Add(pGameobject);
+                    pGameobject->GetMap(true)->Add(pGameobject);
     }
 }
 

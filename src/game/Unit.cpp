@@ -429,9 +429,9 @@ bool Unit::SetPosition(float x, float y, float z, float orientation, bool telepo
     {
         RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_MOVE);
         if (GetTypeId() == TYPEID_PLAYER)
-            GetMap()->PlayerRelocation((Player*)this, x, y, z, orientation);
+            GetMap(true)->PlayerRelocation((Player*)this, x, y, z, orientation);
         else
-            GetMap()->CreatureRelocation((Creature*)this, x, y, z, orientation);
+            GetMap(true)->CreatureRelocation((Creature*)this, x, y, z, orientation);
     }
     else if (turn)
         SetOrientation(orientation);
@@ -945,7 +945,7 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
             {
                 TemporarySummon* pSummon = (TemporarySummon*)cVictim;
                 if (pSummon->GetSummonerGuid().IsCreatureOrVehicle())
-                    if(Creature* pSummoner = cVictim->GetMap()->GetCreature(pSummon->GetSummonerGuid()))
+                    if(Creature* pSummoner = cVictim->GetMap(true)->GetCreature(pSummon->GetSummonerGuid()))
                         if (pSummoner->AI())
                             pSummoner->AI()->SummonedCreatureJustDied(cVictim);
             }
@@ -4480,7 +4480,7 @@ bool Unit::AddSpellAuraHolder(SpellAuraHolder *holder)
                     scTargets.erase(itr);                   // remove for caster in any case
 
                     // remove from target if target found
-                    if (Unit* itr_target = GetMap()->GetUnit(itr_targetGuid))
+                    if (Unit* itr_target = GetMap(true)->GetUnit(itr_targetGuid))
                         itr_target->RemoveAurasDueToSpell(itr_spellEntry->Id);
 
                     itr = scTargets.begin();                // list can be chnaged at remove aura
@@ -5102,7 +5102,7 @@ void Unit::RemoveNotOwnSingleTargetAuras(uint32 newPhase)
                 scTargets.erase(itr);                       // remove for caster in any case
 
                 // remove from target if target found
-                if (Unit* itr_target = GetMap()->GetUnit(itr_targetGuid))
+                if (Unit* itr_target = GetMap(true)->GetUnit(itr_targetGuid))
                     itr_target->RemoveAurasByCasterSpell(itr_spellEntry->Id, GetObjectGuid());
 
                 itr = scTargets.begin();                    // list can be changed at remove aura
@@ -5110,7 +5110,7 @@ void Unit::RemoveNotOwnSingleTargetAuras(uint32 newPhase)
             }
             else
             {
-                Unit* itr_target = GetMap()->GetUnit(itr_targetGuid);
+                Unit* itr_target = GetMap(true)->GetUnit(itr_targetGuid);
                 if(!itr_target || !itr_target->InSamePhase(newPhase))
                 {
                     scTargets.erase(itr);                   // remove for caster in any case
@@ -5391,7 +5391,7 @@ void Unit::RemoveDynObject(uint32 spellid)
         return;
     for (DynObjectGUIDs::iterator i = m_dynObjGUIDs.begin(); i != m_dynObjGUIDs.end();)
     {
-        DynamicObject* dynObj = GetMap()->GetDynamicObject(*i);
+        DynamicObject* dynObj = GetMap(true)->GetDynamicObject(*i);
         if(!dynObj)
         {
             i = m_dynObjGUIDs.erase(i);
@@ -5410,7 +5410,7 @@ void Unit::RemoveAllDynObjects()
 {
     while(!m_dynObjGUIDs.empty())
     {
-        if (DynamicObject* dynObj = GetMap()->GetDynamicObject(*m_dynObjGUIDs.begin()))
+        if (DynamicObject* dynObj = GetMap(true)->GetDynamicObject(*m_dynObjGUIDs.begin()))
             dynObj->Delete();
         m_dynObjGUIDs.erase(m_dynObjGUIDs.begin());
     }
@@ -5420,7 +5420,7 @@ DynamicObject * Unit::GetDynObject(uint32 spellId, SpellEffectIndex effIndex)
 {
     for (DynObjectGUIDs::iterator i = m_dynObjGUIDs.begin(); i != m_dynObjGUIDs.end();)
     {
-        DynamicObject* dynObj = GetMap()->GetDynamicObject(*i);
+        DynamicObject* dynObj = GetMap(true)->GetDynamicObject(*i);
         if(!dynObj)
         {
             i = m_dynObjGUIDs.erase(i);
@@ -5438,7 +5438,7 @@ DynamicObject * Unit::GetDynObject(uint32 spellId)
 {
     for (DynObjectGUIDs::iterator i = m_dynObjGUIDs.begin(); i != m_dynObjGUIDs.end();)
     {
-        DynamicObject* dynObj = GetMap()->GetDynamicObject(*i);
+        DynamicObject* dynObj = GetMap(true)->GetDynamicObject(*i);
         if(!dynObj)
         {
             i = m_dynObjGUIDs.erase(i);
@@ -5460,7 +5460,7 @@ GameObject* Unit::GetGameObject(uint32 spellId) const
 
     WildGameObjectMap::const_iterator find = m_wildGameObjs.find(spellId);
     if (find != m_wildGameObjs.end())
-        return GetMap()->GetGameObject(find->second);       // Can be NULL
+        return GetMap(true)->GetGameObject(find->second);       // Can be NULL
 
     return NULL;
 }
@@ -5491,7 +5491,7 @@ void Unit::AddWildGameObject(GameObject* gameObj)
     // Remove outdated wild summoned GOs
     for (WildGameObjectMap::iterator itr = m_wildGameObjs.begin(); itr != m_wildGameObjs.end();)
     {
-        GameObject* pGo = GetMap()->GetGameObject(itr->second);
+        GameObject* pGo = GetMap(true)->GetGameObject(itr->second);
         if (pGo)
             ++itr;
         else
@@ -6082,7 +6082,7 @@ Unit* Unit::getAttackerForHelper()
         for(AttackerSet::iterator i = m_attackers.begin(); i != m_attackers.end();)
         {
             ObjectGuid guid = *i;
-            Unit* attacker = GetMap()->GetUnit(guid);
+            Unit* attacker = GetMap(true)->GetUnit(guid);
             if (!attacker || !attacker->isAlive())
                 m_attackers.erase(i);
             else
@@ -6187,7 +6187,7 @@ void Unit::AttackedBy(Unit *attacker)
         if (!m_groupPets.empty())
         {
             for (GroupPetList::const_iterator itr = m_groupPets.begin(); itr != m_groupPets.end(); ++itr)
-                if (Pet* _pet = GetMap()->GetPet(*itr))
+                if (Pet* _pet = GetMap(true)->GetPet(*itr))
                     _pet->AttackedBy(attacker);
         }
     }
@@ -6281,7 +6281,7 @@ void Unit::RemoveAllAttackers()
     while (!m_attackers.empty())
     {
         AttackerSet::iterator iter = m_attackers.begin();
-        Unit* attacker = GetMap()->GetUnit(*iter);
+        Unit* attacker = GetMap(true)->GetUnit(*iter);
         if(!attacker || !attacker->AttackStop())
         {
             sLog.outError("WORLD: Unit has an attacker that isn't attacking it!");
@@ -6415,7 +6415,7 @@ Pet* Unit::GetPet() const
     {
         if (IsInWorld())
         {
-            if (Pet* pet = GetMap()->GetPet(pet_guid))
+            if (Pet* pet = GetMap(true)->GetPet(pet_guid))
                 return pet;
         }
 
@@ -6428,7 +6428,7 @@ Pet* Unit::GetPet() const
 
 Pet* Unit::_GetPet(ObjectGuid guid) const
 {
-    return GetMap() ? GetMap()->GetPet(guid) : NULL;
+    return GetMap() ? GetMap(true)->GetPet(guid) : NULL;
 }
 
 void Unit::RemoveMiniPet()
@@ -6444,7 +6444,7 @@ Pet* Unit::GetMiniPet() const
     if (!GetCritterGuid())
         return NULL;
 
-    return GetMap()->GetPet(GetCritterGuid());
+    return GetMap(true)->GetPet(GetCritterGuid());
 }
 
 Unit* Unit::GetCharm() const
@@ -6527,7 +6527,7 @@ void Unit::RemovePetFromList(Pet* pet)
     GroupPetList m_groupPetsTmp = GetPets();
     for(GroupPetList::const_iterator itr = m_groupPetsTmp.begin(); itr != m_groupPetsTmp.end(); ++itr)
     {
-        Pet* _pet = GetMap()->GetPet(*itr);
+        Pet* _pet = GetMap(true)->GetPet(*itr);
         if (!_pet)
             m_groupPets.erase(*itr);
     }
@@ -6568,7 +6568,7 @@ void Unit::RemoveGuardians()
     {
         ObjectGuid guid = *m_guardianPets.begin();
 
-        if (Pet* pet = GetMap()->GetPet(guid))
+        if (Pet* pet = GetMap(true)->GetPet(guid))
             pet->Unsummon(PET_SAVE_AS_DELETED, this); // can remove pet guid from m_guardianPets
 
         m_guardianPets.erase(guid);
@@ -6579,7 +6579,7 @@ void Unit::RemoveGuardians()
 Pet* Unit::FindGuardianWithEntry(uint32 entry)
 {
     for (GuardianPetList::const_iterator itr = m_guardianPets.begin(); itr != m_guardianPets.end(); ++itr)
-        if (Pet* pet = GetMap()->GetPet(*itr))
+        if (Pet* pet = GetMap(true)->GetPet(*itr))
             if (pet->GetEntry() == entry)
                 return pet;
 
@@ -6589,7 +6589,7 @@ Pet* Unit::FindGuardianWithEntry(uint32 entry)
 Pet* Unit::GetProtectorPet()
 {
     for (GuardianPetList::const_iterator itr = m_guardianPets.begin(); itr != m_guardianPets.end(); ++itr)
-        if (Pet* pet = GetMap()->GetPet(*itr))
+        if (Pet* pet = GetMap(true)->GetPet(*itr))
             if (pet->getPetType() == PROTECTOR_PET)
                 return pet;
 
@@ -6606,7 +6606,7 @@ Totem* Unit::GetTotem(TotemSlot slot ) const
     if (slot >= MAX_TOTEM_SLOT || !IsInWorld() || !m_TotemSlot[slot])
         return NULL;
 
-    Creature *totem = GetMap()->GetCreature(m_TotemSlot[slot]);
+    Creature *totem = GetMap(true)->GetCreature(m_TotemSlot[slot]);
     return totem && totem->IsTotem() ? (Totem*)totem : NULL;
 }
 
@@ -8613,7 +8613,7 @@ void Unit::SetInCombatState(bool PvP, Unit* enemy)
             pCreature->AI()->EnterCombat(enemy);
 
         // Some bosses are set into combat with zone
-        if (GetMap()->IsDungeon() && (pCreature->GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_AGGRO_ZONE) && enemy && enemy->IsControlledByPlayer())
+        if (GetMap(true)->IsDungeon() && (pCreature->GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_AGGRO_ZONE) && enemy && enemy->IsControlledByPlayer())
             pCreature->SetInCombatWithZone();
 
         if (InstanceData* mapInstance = GetInstanceData())
@@ -9508,7 +9508,7 @@ bool Unit::SelectHostileTarget()
     {
         for(AttackerSet::const_iterator itr = m_attackers.begin(); itr != m_attackers.end(); ++itr)
         {
-            Unit* attacker = GetMap()->GetUnit(*itr);
+            Unit* attacker = GetMap(true)->GetUnit(*itr);
             if (attacker && attacker->IsInMap(this) && attacker->isTargetableForAttack() && attacker->isInAccessablePlaceFor((Creature*)this))
                 return false;
         }
@@ -10579,7 +10579,7 @@ void Unit::DoPetAction( Player* owner, uint8 flag, uint32 spellid, ObjectGuid pe
                     break;
                 case COMMAND_ATTACK:                        //spellid=1792  //ATTACK
                 {
-                    Unit *TargetUnit = owner->GetMap()->GetUnit(targetGuid);
+                    Unit *TargetUnit = owner->GetMap(true)->GetUnit(targetGuid);
                     if(!TargetUnit)
                         return;
 
@@ -10657,7 +10657,7 @@ void Unit::DoPetAction( Player* owner, uint8 flag, uint32 spellid, ObjectGuid pe
             Unit* unit_target = NULL;
 
             if (!targetGuid.IsEmpty())
-                unit_target = owner->GetMap()->GetUnit(targetGuid);
+                unit_target = owner->GetMap(true)->GetUnit(targetGuid);
 
             DoPetCastSpell(unit_target, spellid);
 
@@ -11164,7 +11164,7 @@ void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 t
         GetMotionMaster()->MovementExpired(false);
         CastStop(GetObjectGuid() == casterGuid ? spellID : 0);
 
-        Unit* caster = IsInWorld() ?  GetMap()->GetUnit(casterGuid) : NULL;
+        Unit* caster = IsInWorld() ?  GetMap(true)->GetUnit(casterGuid) : NULL;
 
         GetMotionMaster()->MoveFleeing(caster, time);       // caster==NULL processed in MoveFleeing
     }
@@ -11184,7 +11184,7 @@ void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 t
                 GetMotionMaster()->Initialize();
 
             // attack caster if can
-            if (Unit* caster = IsInWorld() ? GetMap()->GetUnit(casterGuid) : NULL)
+            if (Unit* caster = IsInWorld() ? GetMap(true)->GetUnit(casterGuid) : NULL)
                 c->AttackedBy(caster);
         }
     }
@@ -11699,7 +11699,7 @@ void Unit::AddPetAura(PetAura const* petSpell)
         if (!m_groupPets.empty())
         {
             for (GroupPetList::const_iterator itr = m_groupPets.begin(); itr != m_groupPets.end(); ++itr)
-                if (Pet* _pet = GetMap()->GetPet(*itr))
+                if (Pet* _pet = GetMap(true)->GetPet(*itr))
                     _pet->CastPetAura(petSpell);
         }
     }
@@ -11715,7 +11715,7 @@ void Unit::RemovePetAura(PetAura const* petSpell)
         if (!m_groupPets.empty())
         {
             for (GroupPetList::const_iterator itr = m_groupPets.begin(); itr != m_groupPets.end(); ++itr)
-                if (Pet* _pet = GetMap()->GetPet(*itr))
+                if (Pet* _pet = GetMap(true)->GetPet(*itr))
                     _pet->RemoveAurasDueToSpell(petSpell->GetAura(_pet->GetEntry()));
         }
     }
@@ -12177,7 +12177,7 @@ void Unit::StopAttackFaction(uint32 faction_id)
     AttackerSet const& attackers = getAttackers();
     for(AttackerSet::const_iterator itr = attackers.begin(); itr != attackers.end();)
     {
-        Unit* attacker = GetMap()->GetUnit(*itr);
+        Unit* attacker = GetMap(true)->GetUnit(*itr);
         if (attacker && attacker->getFactionTemplateEntry()->faction==faction_id)
         {
             attacker->AttackStop();

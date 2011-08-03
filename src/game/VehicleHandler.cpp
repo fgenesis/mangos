@@ -41,7 +41,7 @@ void WorldSession::HandleDismissControlledVehicle(WorldPacket &recv_data)
 
     bool dismiss = true;
 
-    Creature* vehicle = GetPlayer()->GetMap()->GetAnyTypeCreature(guid);
+    Creature* vehicle = GetPlayer()->GetMap(true)->GetAnyTypeCreature(guid);
 
     if (!vehicle || !vehicle->GetVehicleInfo())
         return;
@@ -142,7 +142,7 @@ void WorldSession::HandleRequestVehicleSwitchSeat(WorldPacket &recv_data)
     if (pVehicle->GetBase()->GetObjectGuid() == guid)
         GetPlayer()->ChangeSeat(seatId);
 
-    else if (Unit *Vehicle2 = GetPlayer()->GetMap()->GetUnit(guid))
+    else if (Unit *Vehicle2 = GetPlayer()->GetMap(true)->GetUnit(guid))
     {
         if (VehicleKit *pVehicle2 = Vehicle2->GetVehicleKit())
             if (pVehicle2->HasEmptySeat(seatId))
@@ -232,7 +232,7 @@ void WorldSession::HandleChangeSeatsOnControlledVehicle(WorldPacket &recv_data)
 
     else if (guid2.IsVehicle())
     {
-        if (Creature* vehicle = GetPlayer()->GetMap()->GetAnyTypeCreature(guid2))
+        if (Creature* vehicle = GetPlayer()->GetMap(true)->GetAnyTypeCreature(guid2))
         {
             if (VehicleKit* pVehicle2 = vehicle->GetVehicleKit())
                 if(pVehicle2->HasEmptySeat(seatId))

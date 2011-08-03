@@ -1513,7 +1513,7 @@ void Player::Update( uint32 update_diff, uint32 p_time )
     }
 
     // not auto-free ghost from body in instances
-    if (m_deathTimer > 0  && !GetMap()->Instanceable() && getDeathState() != GHOULED)
+    if (m_deathTimer > 0  && !GetMap(true)->Instanceable() && getDeathState() != GHOULED)
     {
         if (p_time >= m_deathTimer)
         {
@@ -1532,7 +1532,7 @@ void Player::Update( uint32 update_diff, uint32 p_time )
     SendUpdateToOutOfRangeGroupMembers();
 
     Pet* pet = GetPet();
-    if (pet && !pet->IsWithinDistInMap(this, GetMap()->GetVisibilityDistance()) && (GetCharmGuid() && (pet->GetObjectGuid() != GetCharmGuid())))
+    if (pet && !pet->IsWithinDistInMap(this, GetMap(true)->GetVisibilityDistance()) && (GetCharmGuid() && (pet->GetObjectGuid() != GetCharmGuid())))
         pet->Unsummon(PET_SAVE_REAGENTS, this);
 
     if (IsHasDelayedTeleport())
@@ -1848,7 +1848,7 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
     // We have to perform this check before the teleport, otherwise the
     // ObjectAccessor won't find the flag.
     if (duel && GetMapId() != mapid)
-        if (GameObject* obj = GetMap()->GetGameObject(GetGuidValue(PLAYER_DUEL_ARBITER)))
+        if (GameObject* obj = GetMap(true)->GetGameObject(GetGuidValue(PLAYER_DUEL_ARBITER)))
             DuelComplete(DUEL_FLED);
 
     // reset movement flags at teleport, because player will continue move with these flags after teleport
@@ -1878,7 +1878,7 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
         if (!(options & TELE_TO_NOT_UNSUMMON_PET))
         {
             //same map, only remove pet if out of range for new position
-            if (pet && !pet->IsWithinDist3d(x, y, z, GetMap()->GetVisibilityDistance()))
+            if (pet && !pet->IsWithinDist3d(x, y, z, GetMap(true)->GetVisibilityDistance()))
                 UnsummonPetTemporaryIfAny();
         }
 
@@ -2352,7 +2352,7 @@ Creature* Player::GetNPCIfCanInteractWith(ObjectGuid guid, uint32 npcflagmask)
         return NULL;
 
     // exist (we need look pets also for some interaction (quest/etc)
-    Creature *unit = GetMap()->GetAnyTypeCreature(guid);
+    Creature *unit = GetMap(true)->GetAnyTypeCreature(guid);
     if (!unit)
         return NULL;
 
@@ -2405,7 +2405,7 @@ GameObject* Player::GetGameObjectIfCanInteractWith(ObjectGuid guid, uint32 gameo
     if (hasUnitState(UNIT_STAT_CAN_NOT_REACT_OR_LOST_CONTROL) && !hasUnitState(UNIT_STAT_ON_VEHICLE))
         return NULL;
 
-    if (GameObject *go = GetMap()->GetGameObject(guid))
+    if (GameObject *go = GetMap(true)->GetGameObject(guid))
     {
         if (uint32(go->GetGoType()) == gameobject_type || gameobject_type == MAX_GAMEOBJECT_TYPE)
         {
@@ -4658,7 +4658,7 @@ void Player::BuildPlayerRepop()
         sLog.outError("Error creating corpse for Player %s [%u]", GetName(), GetGUIDLow());
         return;
     }
-    GetMap()->Add(corpse);
+    GetMap(true)->Add(corpse);
 
     // convert player body to ghost
     if (getDeathState() != GHOULED)
@@ -4840,7 +4840,7 @@ Corpse* Player::CreateCorpse()
     }
 
     // we not need saved corpses for BG/arenas
-    if (!GetMap()->IsBattleGroundOrArena())
+    if (!GetMap(true)->IsBattleGroundOrArena())
         corpse->SaveToDB();
 
     // register for player, but not show
@@ -6440,7 +6440,7 @@ void Player::SaveRecallPosition()
 void Player::SendMessageToSet(WorldPacket *data, bool self)
 {
     if (IsInWorld())
-        GetMap()->MessageBroadcast(this, data, false);
+        GetMap(true)->MessageBroadcast(this, data, false);
 
     //if player is not in world and map in not created/already destroyed
     //no need to create one, just send packet for itself!
@@ -6451,7 +6451,7 @@ void Player::SendMessageToSet(WorldPacket *data, bool self)
 void Player::SendMessageToSetInRange(WorldPacket *data, float dist, bool self)
 {
     if (IsInWorld())
-        GetMap()->MessageDistBroadcast(this, data, dist, false);
+        GetMap(true)->MessageDistBroadcast(this, data, dist, false);
 
     if (self)
         GetSession()->SendPacket(data);
@@ -6460,7 +6460,7 @@ void Player::SendMessageToSetInRange(WorldPacket *data, float dist, bool self)
 void Player::SendMessageToSetInRange(WorldPacket *data, float dist, bool self, bool own_team_only)
 {
     if (IsInWorld())
-        GetMap()->MessageDistBroadcast(this, data, dist, false, own_team_only);
+        GetMap(true)->MessageDistBroadcast(this, data, dist, false, own_team_only);
 
     if (self)
         GetSession()->SendPacket(data);
@@ -7309,7 +7309,7 @@ void Player::CheckDuelDistance(time_t currTime)
     if (!duel)
         return;
 
-    GameObject* obj = GetMap()->GetGameObject(GetGuidValue(PLAYER_DUEL_ARBITER));
+    GameObject* obj = GetMap(true)->GetGameObject(GetGuidValue(PLAYER_DUEL_ARBITER));
     if (!obj)
     {
         // player not at duel start map
@@ -7373,7 +7373,7 @@ void Player::DuelComplete(DuelCompleteType type)
     }
 
     //Remove Duel Flag object
-    if (GameObject* obj = GetMap()->GetGameObject(GetGuidValue(PLAYER_DUEL_ARBITER)))
+    if (GameObject* obj = GetMap(true)->GetGameObject(GetGuidValue(PLAYER_DUEL_ARBITER)))
         duel->initiator->RemoveGameObject(obj, true);
 
     /* remove auras */
@@ -8496,7 +8496,7 @@ void Player::SendLoot(ObjectGuid guid, LootType loot_type)
         case HIGHGUID_GAMEOBJECT:
         {
             DEBUG_LOG("       IS_GAMEOBJECT_GUID(guid)");
-            GameObject *go = GetMap()->GetGameObject(guid);
+            GameObject *go = GetMap(true)->GetGameObject(guid);
 
             // not check distance for GO in case owned GO (fishing bobber case, for example)
             // And permit out of range GO with no owner in case fishing hole
@@ -8648,7 +8648,7 @@ void Player::SendLoot(ObjectGuid guid, LootType loot_type)
         }
         case HIGHGUID_CORPSE:                               // remove insignia
         {
-            Corpse *bones = GetMap()->GetCorpse(guid);
+            Corpse *bones = GetMap(true)->GetCorpse(guid);
 
             if (!bones || !((loot_type == LOOT_CORPSE) || (loot_type == LOOT_INSIGNIA)) || (bones->GetType() != CORPSE_BONES) )
             {
@@ -8679,7 +8679,7 @@ void Player::SendLoot(ObjectGuid guid, LootType loot_type)
         case HIGHGUID_UNIT:
         case HIGHGUID_VEHICLE:
         {
-            Creature *creature = GetMap()->GetCreature(guid);
+            Creature *creature = GetMap(true)->GetCreature(guid);
 
             // must be in range and creature must be alive for pickpocket and must be dead for another loot
             if (!creature || creature->isAlive()!=(loot_type == LOOT_PICKPOCKETING) || !creature->IsWithinDistInMap(this,INTERACTION_DISTANCE))
@@ -13957,9 +13957,9 @@ void Player::OnGossipSelect(WorldObject* pSource, uint32 gossipListId, uint32 me
             if (pMenuData.m_gAction_script)
             {
                 if (pSource->GetTypeId() == TYPEID_GAMEOBJECT)
-                    GetMap()->ScriptsStart(sGossipScripts, pMenuData.m_gAction_script, this, pSource);
+                    GetMap(true)->ScriptsStart(sGossipScripts, pMenuData.m_gAction_script, this, pSource);
                 else if (pSource->GetTypeId() == TYPEID_UNIT)
-                    GetMap()->ScriptsStart(sGossipScripts, pMenuData.m_gAction_script, pSource, this);
+                    GetMap(true)->ScriptsStart(sGossipScripts, pMenuData.m_gAction_script, pSource, this);
             }
 
             break;
@@ -14107,7 +14107,7 @@ void Player::PrepareQuestMenu(ObjectGuid guid)
     QuestRelationsMapBounds irbounds;
 
     // pets also can have quests
-    Creature *pCreature = GetMap()->GetAnyTypeCreature(guid);
+    Creature *pCreature = GetMap(true)->GetAnyTypeCreature(guid);
     if( pCreature )
     {
         rbounds = sObjectMgr.GetCreatureQuestRelationsMapBounds(pCreature->GetEntry());
@@ -14210,7 +14210,7 @@ void Player::SendPreparedQuest(ObjectGuid guid)
         std::string title = "";
 
         // need pet case for some quests
-        Creature *pCreature = GetMap()->GetAnyTypeCreature(guid);
+        Creature *pCreature = GetMap(true)->GetAnyTypeCreature(guid);
         if (pCreature)
         {
             uint32 textid = GetGossipTextId(pCreature);
@@ -14259,7 +14259,7 @@ Quest const* Player::GetNextQuest(ObjectGuid guid, Quest const *pQuest)
 {
     QuestRelationsMapBounds rbounds;
 
-    Creature *pCreature = GetMap()->GetAnyTypeCreature(guid);
+    Creature *pCreature = GetMap(true)->GetAnyTypeCreature(guid);
     if( pCreature )
     {
         rbounds = sObjectMgr.GetCreatureQuestRelationsMapBounds(pCreature->GetEntry());
@@ -14578,7 +14578,7 @@ void Player::AddQuest( Quest const *pQuest, Object *questGiver )
 
         // starting initial DB quest script
         if (pQuest->GetQuestStartScript() != 0)
-            GetMap()->ScriptsStart(sQuestStartScripts, pQuest->GetQuestStartScript(), questGiver, this);
+            GetMap(true)->ScriptsStart(sQuestStartScripts, pQuest->GetQuestStartScript(), questGiver, this);
 
     }
 
@@ -14807,7 +14807,7 @@ void Player::RewardQuest(Quest const *pQuest, uint32 reward, Object* questGiver,
     }
 
     if (!handled && questGiver && pQuest->GetQuestCompleteScript() != 0)
-        GetMap()->ScriptsStart(sQuestEndScripts, pQuest->GetQuestCompleteScript(), questGiver, this);
+        GetMap(true)->ScriptsStart(sQuestEndScripts, pQuest->GetQuestCompleteScript(), questGiver, this);
 
     // cast spells after mark quest complete (some spells have quest completed state reqyurements in spell_area data)
     if (pQuest->GetRewSpellCast() > 0)
@@ -19223,7 +19223,7 @@ void Player::RemovePet(PetSaveMode mode)
     if (!groupPets.empty())
     {
         for (GroupPetList::const_iterator itr = groupPets.begin(); itr != groupPets.end(); ++itr)
-             if (Pet* _pet = GetMap()->GetPet(*itr))
+             if (Pet* _pet = GetMap(true)->GetPet(*itr))
                  _pet->Unsummon(mode, this);
     }
     else
@@ -20736,7 +20736,7 @@ void Player::SetBattleGroundEntryPoint(bool forLFG)
             m_bgData.mountSpell = 0;
 
         // If map is dungeon find linked graveyard
-        if (GetMap()->IsDungeon())
+        if (GetMap(true)->IsDungeon())
         {
             if (const WorldSafeLocsEntry* entry = sObjectMgr.GetClosestGraveYard(GetPositionX(), GetPositionY(), GetPositionZ(), GetMapId(), GetTeam()))
             {
@@ -20748,7 +20748,7 @@ void Player::SetBattleGroundEntryPoint(bool forLFG)
                 sLog.outError("SetBattleGroundEntryPoint: Dungeon map %u has no linked graveyard, setting home location as entry point.", GetMapId());
         }
         // If new entry point is not BG or arena set it
-        else if (!GetMap()->IsBattleGroundOrArena())
+        else if (!GetMap(true)->IsBattleGroundOrArena())
         {
             m_bgData.joinPos = WorldLocation(GetMapId(), GetPositionX(), GetPositionY(), GetPositionZ(), GetOrientation());
             m_bgData.m_needSave = true;
@@ -21008,7 +21008,7 @@ void Player::InitPrimaryProfessions()
 
 void Player::SendComboPoints(ObjectGuid targetGuid, uint8 combopoints)
 {
-    Unit* combotarget = GetMap()->GetUnit(targetGuid);
+    Unit* combotarget = GetMap(true)->GetUnit(targetGuid);
     if (combotarget)
     {
         WorldPacket data(SMSG_UPDATE_COMBO_POINTS, combotarget->GetPackGUID().size()+1);
@@ -21027,7 +21027,7 @@ void Player::SendComboPoints(ObjectGuid targetGuid, uint8 combopoints)
 
 void Player::SendPetComboPoints(Unit* pet, ObjectGuid targetGuid, uint8 combopoints)
 {
-    Unit* combotarget = pet ? pet->GetMap()->GetUnit(targetGuid) : NULL;
+    Unit* combotarget = pet ? pet->GetMap(true)->GetUnit(targetGuid) : NULL;
     if (pet && combotarget)
     {
         WorldPacket data(SMSG_PET_UPDATE_COMBO_POINTS, combotarget->GetPackGUID().size()+pet->GetPackGUID().size()+1);
@@ -21069,7 +21069,7 @@ void Player::SendInitialPacketsBeforeAddToMap()
     SendTalentsInfoData(false);
 
     data.Initialize(SMSG_INSTANCE_DIFFICULTY, 4+4);
-    data << uint32(GetMap()->GetDifficulty());
+    data << uint32(GetMap(true)->GetDifficulty());
     data << uint32(0);
     GetSession()->SendPacket(&data);
 
@@ -21643,12 +21643,12 @@ void Player::UpdateForQuestWorldObjects()
     {
         if (itr->IsGameObject())
         {
-            if (GameObject *obj = GetMap()->GetGameObject(*itr))
+            if (GameObject *obj = GetMap(true)->GetGameObject(*itr))
                 obj->BuildValuesUpdateBlockForPlayer(&udata,this);
         }
         else if (itr->IsCreatureOrVehicle())
         {
-            Creature *obj = GetMap()->GetAnyTypeCreature(*itr);
+            Creature *obj = GetMap(true)->GetAnyTypeCreature(*itr);
             if(!obj)
                 continue;
 
@@ -23378,7 +23378,7 @@ void Player::UnsummonPetTemporaryIfAny()
     GroupPetList m_groupPetsTmp = GetPets();  // Original list may be modified in this function
     for (GroupPetList::const_iterator itr = m_groupPetsTmp.begin(); itr != m_groupPetsTmp.end(); ++itr)
     {
-        if (Pet* _pet = GetMap()->GetPet(*itr))
+        if (Pet* _pet = GetMap(true)->GetPet(*itr))
         {
             if (!_pet->isTemporarySummoned())
                 _pet->Unsummon(PET_SAVE_AS_CURRENT, this);
@@ -24066,20 +24066,20 @@ Object* Player::GetObjectByTypeMask(ObjectGuid guid, TypeMask typemask)
             break;
         case HIGHGUID_GAMEOBJECT:
             if ((typemask & TYPEMASK_GAMEOBJECT) && IsInWorld())
-                return GetMap()->GetGameObject(guid);
+                return GetMap(true)->GetGameObject(guid);
             break;
         case HIGHGUID_UNIT:
         case HIGHGUID_VEHICLE:
             if ((typemask & TYPEMASK_UNIT) && IsInWorld())
-                return GetMap()->GetCreature(guid);
+                return GetMap(true)->GetCreature(guid);
             break;
         case HIGHGUID_PET:
             if ((typemask & TYPEMASK_UNIT) && IsInWorld())
-                return GetMap()->GetPet(guid);
+                return GetMap(true)->GetPet(guid);
             break;
         case HIGHGUID_DYNAMICOBJECT:
             if ((typemask & TYPEMASK_DYNAMICOBJECT) && IsInWorld())
-                return GetMap()->GetDynamicObject(guid);
+                return GetMap(true)->GetDynamicObject(guid);
             break;
         case HIGHGUID_TRANSPORT:
         case HIGHGUID_CORPSE:
@@ -24362,7 +24362,7 @@ void Player::WriteWowArmoryDatabaseLog(uint32 type, uint32 data)
     }
     if (type == 3)    // Do not write same bosses many times - just update counter.
     {
-        uint8 Difficulty = GetMap()->GetDifficulty();
+        uint8 Difficulty = GetMap(true)->GetDifficulty();
         QueryResult *result = CharacterDatabase.PQuery("SELECT counter FROM armory_character_feed_log WHERE guid='%u' AND type=3 AND data='%u' AND difficulty='%u' LIMIT 1", pGuid, data, Difficulty);
         if (result)
         {

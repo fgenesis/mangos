@@ -1815,7 +1815,7 @@ void LFGMgr::Teleport(Player* player, bool out, bool fromOpcode /*= false*/)
     if (error == LFG_TELEPORTERROR_OK)
     {
 
-        if (player->GetMap() && !player->GetMap()->IsDungeon() && !player->GetMap()->IsRaid() && !player->InBattleGround())
+        if (player->GetMap() && !player->GetMap(true)->IsDungeon() && !player->GetMap(true)->IsRaid() && !player->InBattleGround())
             player->SetBattleGroundEntryPoint(true);
 
         // stop taxi flight at port

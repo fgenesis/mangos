@@ -6019,7 +6019,7 @@ bool ChatHandler::HandleRespawnCommand(char* /*args*/)
 
     MaNGOS::RespawnDo u_do;
     MaNGOS::WorldObjectWorker<MaNGOS::RespawnDo> worker(pl,u_do);
-    Cell::VisitGridObjects(pl, worker, pl->GetMap()->GetVisibilityDistance());
+    Cell::VisitGridObjects(pl, worker, pl->GetMap(true)->GetVisibilityDistance());
     return true;
 }
 

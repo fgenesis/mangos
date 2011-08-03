@@ -1419,7 +1419,7 @@ void WorldSession::HandleFarSightOpcode( WorldPacket & recv_data )
     uint8 op;
     recv_data >> op;
 
-    WorldObject* obj = _player->GetMap()->GetWorldObject(_player->GetFarSightGuid());
+    WorldObject* obj = _player->GetMap(true)->GetWorldObject(_player->GetFarSightGuid());
     if (!obj)
         return;
 
@@ -1530,7 +1530,7 @@ void WorldSession::HandleSetDungeonDifficultyOpcode( WorldPacket & recv_data )
             for (Group::member_citerator itr = g_members.begin(); itr != g_members.end(); itr++)
             {
                 Player *gm_member = sObjectMgr.GetPlayer(itr->guid);
-                if (gm_member && gm_member->GetMap() && gm_member->GetMap()->IsDungeon())
+                if (gm_member && gm_member->GetMap() && gm_member->GetMap(true)->IsDungeon())
                    return;
             }
             // the difficulty is set even if the instances can't be reset
@@ -1582,7 +1582,7 @@ void WorldSession::HandleSetRaidDifficultyOpcode( WorldPacket & recv_data )
             for (Group::member_citerator itr = g_members.begin(); itr != g_members.end(); itr++)
             {
                 Player *gm_member = sObjectMgr.GetPlayer(itr->guid);
-                if (gm_member && gm_member->GetMap() && gm_member->GetMap()->IsDungeon())
+                if (gm_member && gm_member->GetMap() && gm_member->GetMap(true)->IsDungeon())
                     return;
             }
             // the difficulty is set even if the instances can't be reset

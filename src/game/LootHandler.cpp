@@ -46,7 +46,7 @@ void WorldSession::HandleAutostoreLootItemOpcode( WorldPacket & recv_data )
     {
         case HIGHGUID_GAMEOBJECT:
         {
-            GameObject *go = player->GetMap()->GetGameObject(lguid);
+            GameObject *go = player->GetMap(true)->GetGameObject(lguid);
 
             // not check distance for GO in case owned GO (fishing bobber case, for example) or Fishing hole GO
             if (!go || ((go->GetOwnerGuid() != _player->GetObjectGuid() && go->GetGoType() != GAMEOBJECT_TYPE_FISHINGHOLE) && !go->IsWithinDistInMap(_player,INTERACTION_DISTANCE)))
@@ -73,7 +73,7 @@ void WorldSession::HandleAutostoreLootItemOpcode( WorldPacket & recv_data )
         }
         case HIGHGUID_CORPSE:
         {
-            Corpse *bones = player->GetMap()->GetCorpse(lguid);
+            Corpse *bones = player->GetMap(true)->GetCorpse(lguid);
             if (!bones)
             {
                 player->SendLootRelease(lguid);
@@ -85,7 +85,7 @@ void WorldSession::HandleAutostoreLootItemOpcode( WorldPacket & recv_data )
         case HIGHGUID_UNIT:
         case HIGHGUID_VEHICLE:
         {
-            Creature* pCreature = GetPlayer()->GetMap()->GetCreature(lguid);
+            Creature* pCreature = GetPlayer()->GetMap(true)->GetCreature(lguid);
 
             bool ok_loot = pCreature && pCreature->isAlive() == (player->getClass()==CLASS_ROGUE && pCreature->lootForPickPocketed);
 
@@ -191,7 +191,7 @@ void WorldSession::HandleLootMoneyOpcode( WorldPacket & /*recv_data*/ )
     {
         case HIGHGUID_GAMEOBJECT:
         {
-            GameObject *pGameObject = GetPlayer()->GetMap()->GetGameObject(guid);
+            GameObject *pGameObject = GetPlayer()->GetMap(true)->GetGameObject(guid);
 
             // not check distance for GO in case owned GO (fishing bobber case, for example)
             if( pGameObject && (pGameObject->GetOwnerGuid() == _player->GetObjectGuid() || pGameObject->IsWithinDistInMap(_player,INTERACTION_DISTANCE)) )
@@ -201,7 +201,7 @@ void WorldSession::HandleLootMoneyOpcode( WorldPacket & /*recv_data*/ )
         }
         case HIGHGUID_CORPSE:                               // remove insignia ONLY in BG
         {
-            Corpse *bones = _player->GetMap()->GetCorpse(guid);
+            Corpse *bones = _player->GetMap(true)->GetCorpse(guid);
 
             if (bones && bones->IsWithinDistInMap(_player,INTERACTION_DISTANCE) )
                 pLoot = &bones->loot;
@@ -220,7 +220,7 @@ void WorldSession::HandleLootMoneyOpcode( WorldPacket & /*recv_data*/ )
         case HIGHGUID_UNIT:
         case HIGHGUID_VEHICLE:
         {
-            Creature* pCreature = GetPlayer()->GetMap()->GetCreature(guid);
+            Creature* pCreature = GetPlayer()->GetMap(true)->GetCreature(guid);
 
             bool ok_loot = pCreature && pCreature->isAlive() == (player->getClass()==CLASS_ROGUE && pCreature->lootForPickPocketed);
 
@@ -326,7 +326,7 @@ void WorldSession::DoLootRelease(ObjectGuid lguid)
     {
         case HIGHGUID_GAMEOBJECT:
         {
-            GameObject *go = GetPlayer()->GetMap()->GetGameObject(lguid);
+            GameObject *go = GetPlayer()->GetMap(true)->GetGameObject(lguid);
 
             // not check distance for GO in case owned GO (fishing bobber case, for example) or Fishing hole GO
             if (!go || ((go->GetOwnerGuid() != _player->GetObjectGuid() && go->GetGoType() != GAMEOBJECT_TYPE_FISHINGHOLE) && !go->IsWithinDistInMap(_player,INTERACTION_DISTANCE)))
@@ -407,7 +407,7 @@ void WorldSession::DoLootRelease(ObjectGuid lguid)
         }
         case HIGHGUID_CORPSE:                               // ONLY remove insignia at BG
         {
-            Corpse *corpse = _player->GetMap()->GetCorpse(lguid);
+            Corpse *corpse = _player->GetMap(true)->GetCorpse(lguid);
             if (!corpse || !corpse->IsWithinDistInMap(_player,INTERACTION_DISTANCE) )
                 return;
 
@@ -472,7 +472,7 @@ void WorldSession::DoLootRelease(ObjectGuid lguid)
         case HIGHGUID_UNIT:
         case HIGHGUID_VEHICLE:
         {
-            Creature* pCreature = GetPlayer()->GetMap()->GetCreature(lguid);
+            Creature* pCreature = GetPlayer()->GetMap(true)->GetCreature(lguid);
 
             bool ok_loot = pCreature && pCreature->isAlive() == (player->getClass()==CLASS_ROGUE && pCreature->lootForPickPocketed);
             if ( !ok_loot || !pCreature->IsWithinDistInMap(_player,INTERACTION_DISTANCE) )
@@ -533,7 +533,7 @@ void WorldSession::HandleLootMasterGiveOpcode( WorldPacket & recv_data )
 
     if (lootguid.IsCreatureOrVehicle())
     {
-        Creature *pCreature = GetPlayer()->GetMap()->GetCreature(lootguid);
+        Creature *pCreature = GetPlayer()->GetMap(true)->GetCreature(lootguid);
         if(!pCreature)
             return;
 
@@ -541,7 +541,7 @@ void WorldSession::HandleLootMasterGiveOpcode( WorldPacket & recv_data )
     }
     else if(lootguid.IsGameObject())
     {
-        GameObject *pGO = GetPlayer()->GetMap()->GetGameObject(lootguid);
+        GameObject *pGO = GetPlayer()->GetMap(true)->GetGameObject(lootguid);
         if(!pGO)
             return;
 

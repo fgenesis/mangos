@@ -2265,7 +2265,7 @@ Creature* ChatHandler::getSelectedCreature()
     if(!m_session)
         return NULL;
 
-    return m_session->GetPlayer()->GetMap()->GetAnyTypeCreature(m_session->GetPlayer()->GetSelectionGuid());
+    return m_session->GetPlayer()->GetMap(true)->GetAnyTypeCreature(m_session->GetPlayer()->GetSelectionGuid());
 }
 
 /**
@@ -2931,7 +2931,7 @@ GameObject* ChatHandler::GetGameObjectWithGuid(uint32 lowguid,uint32 entry)
 
     Player* pl = m_session->GetPlayer();
 
-    return pl->GetMap()->GetGameObject(ObjectGuid(HIGHGUID_GAMEOBJECT, entry, lowguid));
+    return pl->GetMap(true)->GetGameObject(ObjectGuid(HIGHGUID_GAMEOBJECT, entry, lowguid));
 }
 
 enum SpellLinkType

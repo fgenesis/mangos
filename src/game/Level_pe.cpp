@@ -162,7 +162,7 @@ bool ChatHandler::HandleTargetAndDeleteObjectCommand(char *args)
 
     ObjectGuid guid(HIGHGUID_GAMEOBJECT, id, guid32);
 
-    GameObject* obj = m_session->GetPlayer()->GetMap()->GetGameObject(guid);
+    GameObject* obj = m_session->GetPlayer()->GetMap(true)->GetGameObject(guid);
 
     if(!obj)
     {

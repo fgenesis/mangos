@@ -37,7 +37,7 @@ void WorldSession::HandleAttackSwingOpcode( WorldPacket & recv_data )
         return;
     }
 
-    Unit *pEnemy = _player->GetMap()->GetUnit(guid);
+    Unit *pEnemy = _player->GetMap(true)->GetUnit(guid);
 
     if(!pEnemy)
     {

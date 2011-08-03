@@ -198,7 +198,7 @@ void PlayerbotMgr::HandleMasterIncomingPacket(const WorldPacket& packet)
             ObjectGuid objGUID;
             p >> objGUID;
 
-            GameObject *obj = m_master->GetMap()->GetGameObject(objGUID);
+            GameObject *obj = m_master->GetMap(true)->GetGameObject(objGUID);
             if (!obj)
                 return;
 
@@ -223,7 +223,7 @@ void PlayerbotMgr::HandleMasterIncomingPacket(const WorldPacket& packet)
             ObjectGuid npcGUID;
             p >> npcGUID;
 
-            WorldObject* pNpc = m_master->GetMap()->GetWorldObject(npcGUID);
+            WorldObject* pNpc = m_master->GetMap(true)->GetWorldObject(npcGUID);
             if (!pNpc)
                 return;
 

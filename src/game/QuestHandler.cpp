@@ -122,7 +122,7 @@ void WorldSession::HandleQuestgiverAcceptQuestOpcode( WorldPacket & recv_data )
 
     if (!GetPlayer()->isAlive())
     {
-        if (Unit * pQuestNPC = GetPlayer()->GetMap()->GetUnit(guid))
+        if (Unit * pQuestNPC = GetPlayer()->GetMap(true)->GetUnit(guid))
             if (!pQuestNPC->isInvisibleForAlive())
                 return;
     }
@@ -252,7 +252,7 @@ void WorldSession::HandleQuestgiverChooseRewardOpcode( WorldPacket & recv_data )
 
     if (!GetPlayer()->isAlive())
     {
-        if (Unit * pQuestNPC = GetPlayer()->GetMap()->GetUnit(guid))
+        if (Unit * pQuestNPC = GetPlayer()->GetMap(true)->GetUnit(guid))
             if (!pQuestNPC->isInvisibleForAlive())
                 return;
     }
@@ -290,7 +290,7 @@ void WorldSession::HandleQuestgiverRequestRewardOpcode( WorldPacket & recv_data 
 
     if (!GetPlayer()->isAlive())
     {
-        if (Unit * pQuestNPC = GetPlayer()->GetMap()->GetUnit(guid))
+        if (Unit * pQuestNPC = GetPlayer()->GetMap(true)->GetUnit(guid))
             if (!pQuestNPC->isInvisibleForAlive())
                 return;
     }
@@ -403,7 +403,7 @@ void WorldSession::HandleQuestgiverCompleteQuest(WorldPacket& recv_data)
 
     if (!GetPlayer()->isAlive())
     {
-        if (Unit * pQuestNPC = GetPlayer()->GetMap()->GetUnit(guid))
+        if (Unit * pQuestNPC = GetPlayer()->GetMap(true)->GetUnit(guid))
             if (!pQuestNPC->isInvisibleForAlive())
                 return;
     }
@@ -625,7 +625,7 @@ void WorldSession::HandleQuestgiverStatusMultipleQuery(WorldPacket& /*recvPacket
         if (itr->IsAnyTypeCreature())
         {
             // need also pet quests case support
-            Creature *questgiver = GetPlayer()->GetMap()->GetAnyTypeCreature(*itr);
+            Creature *questgiver = GetPlayer()->GetMap(true)->GetAnyTypeCreature(*itr);
 
             if (!questgiver || questgiver->IsHostileTo(_player))
                 continue;
@@ -644,7 +644,7 @@ void WorldSession::HandleQuestgiverStatusMultipleQuery(WorldPacket& /*recvPacket
         }
         else if (itr->IsGameObject())
         {
-            GameObject *questgiver = GetPlayer()->GetMap()->GetGameObject(*itr);
+            GameObject *questgiver = GetPlayer()->GetMap(true)->GetGameObject(*itr);
 
             if (!questgiver)
                 continue;

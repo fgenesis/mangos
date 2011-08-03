@@ -473,7 +473,7 @@ void WorldSession::HandleBinderActivateOpcode( WorldPacket & recv_data )
 void WorldSession::SendBindPoint(Creature *npc)
 {
     // prevent set homebind to instances in any case
-    if(GetPlayer()->GetMap()->Instanceable())
+    if(GetPlayer()->GetMap(true)->Instanceable())
         return;
 
     // send spell for bind 3286 bind magic

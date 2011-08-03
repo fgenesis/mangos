@@ -2052,7 +2052,7 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
             m_ThreatRedirectionPercent = pct;
         }
         uint32 GetThreatRedirectionPercent() { return m_ThreatRedirectionPercent; }
-        Unit* GetMisdirectionTarget() { return m_misdirectionTargetGUID.IsEmpty() ?  NULL : GetMap()->GetUnit(m_misdirectionTargetGUID); }
+        Unit* GetMisdirectionTarget() { return m_misdirectionTargetGUID.IsEmpty() ?  NULL : GetMap(true)->GetUnit(m_misdirectionTargetGUID); }
 
         // Movement info
         MovementInfo m_movementInfo;

@@ -1886,7 +1886,7 @@ void Group::_homebindIfInstance(Player *player)
 {
     if (player && !player->isGameMaster())
     {
-        Map* map = player->GetMap();
+        Map* map = player->GetMap(false);
         if (map && map->IsDungeon())
         {
             // leaving the group in an instance, the homebind timer is started

@@ -263,7 +263,7 @@ void PetAI::UpdateAI(const uint32 diff)
             {
                 for (AllySet::const_iterator tar = m_AllySet.begin(); tar != m_AllySet.end(); ++tar)
                 {
-                    Unit* Target = m_creature->GetMap()->GetUnit(*tar);
+                    Unit* Target = m_creature->GetMap(true)->GetUnit(*tar);
 
                     //only buff targets that are in combat, unless the spell can only be cast while out of combat
                     if (!Target)
@@ -285,7 +285,7 @@ void PetAI::UpdateAI(const uint32 diff)
 
             uint32 spellId         = targetSpellStore[index].second;
             ObjectGuid  targetGuid = targetSpellStore[index].first;
-            if (Unit* target = m_creature->GetMap()->GetUnit(targetGuid))
+            if (Unit* target = m_creature->GetMap(true)->GetUnit(targetGuid))
             {
                 m_creature->DoPetCastSpell(target, spellId);
             }

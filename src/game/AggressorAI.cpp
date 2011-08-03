@@ -78,7 +78,7 @@ void AggressorAI::EnterEvadeMode()
         return;
     }
 
-    Unit* victim = m_creature->GetMap()->GetUnit(i_victimGuid);
+    Unit* victim = m_creature->GetMap(true)->GetUnit(i_victimGuid);
 
     if (!victim)
     {

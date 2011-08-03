@@ -69,7 +69,7 @@ void Pet::AddToWorld()
 {
     ///- Register the pet for guid lookup
     if (!((Creature*)this)->IsInWorld())
-        GetMap()->GetObjectsStore().insert<Pet>(GetObjectGuid(), (Pet*)this);
+        GetMap(true)->GetObjectsStore().insert<Pet>(GetObjectGuid(), (Pet*)this);
 
     Unit::AddToWorld();
 }
@@ -78,7 +78,7 @@ void Pet::RemoveFromWorld()
 {
     ///- Remove the pet from the accessor
     if (((Creature*)this)->IsInWorld())
-        GetMap()->GetObjectsStore().erase<Pet>(GetObjectGuid(), (Pet*)NULL);
+        GetMap(true)->GetObjectsStore().erase<Pet>(GetObjectGuid(), (Pet*)NULL);
 
     ///- Don't call the function for Creature, normal mobs + totems go in a different storage
     Unit::RemoveFromWorld();
@@ -301,7 +301,7 @@ bool Pet::LoadPetFromDB( Player* owner, uint32 petentry, uint32 petnumber, bool 
 
     AIM_Initialize();
 
-    GetMap()->Add((Creature*)this);
+    GetMap(true)->Add((Creature*)this);
 
     owner->SetPet(this);                                    // in DB stored only full controlled creature
 
@@ -571,7 +571,7 @@ void Pet::Update(uint32 update_diff, uint32 diff)
                     Unsummon(PET_SAVE_NOT_IN_SLOT);
             }
 
-            if ((!IsWithinDistInMap(owner, GetMap()->GetVisibilityDistance()) && !owner->GetCharmGuid().IsEmpty()) || (isControlled() && owner->GetPetGuid().IsEmpty()))
+            if ((!IsWithinDistInMap(owner, GetMap(true)->GetVisibilityDistance()) && !owner->GetCharmGuid().IsEmpty()) || (isControlled() && owner->GetPetGuid().IsEmpty()))
             {
                 DEBUG_LOG("Pet %d lost control, removed. Owner = %d, distance = %d, pet GUID = ", GetObjectGuid().GetCounter(), owner->GetObjectGuid().GetCounter(), GetDistance2d(owner), owner->GetPetGuid().GetCounter());
                 Unsummon(PET_SAVE_REAGENTS);
@@ -589,7 +589,7 @@ void Pet::Update(uint32 update_diff, uint32 diff)
                 }
             }
             else
-                if (!IsWithinDistInMap(owner, GetMap()->GetVisibilityDistance()))
+                if (!IsWithinDistInMap(owner, GetMap(true)->GetVisibilityDistance()))
                 {
                     sLog.outError("Not controlled pet %d lost view from owner, removed. Owner = %d, distance = %d, pet GUID = ", GetObjectGuid().GetCounter(), owner->GetObjectGuid().GetCounter(), GetDistance2d(owner), owner->GetPetGuid().GetCounter());
                     Unsummon(PET_SAVE_AS_DELETED);

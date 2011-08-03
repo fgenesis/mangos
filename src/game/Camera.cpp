@@ -74,12 +74,12 @@ void Camera::SetView(WorldObject *obj, bool update_far_sight_field /*= true*/)
     // detach and deregister from active objects if there are no more reasons to be active
     m_source->GetViewPoint().Detach(this);
     if (!m_source->isActiveObject())
-        m_source->GetMap()->RemoveFromActive(m_source);
+        m_source->GetMap(true)->RemoveFromActive(m_source);
 
     m_source = obj;
 
     if (!m_source->isActiveObject())
-        m_source->GetMap()->AddToActive(m_source);
+        m_source->GetMap(true)->AddToActive(m_source);
 
     m_source->GetViewPoint().Attach(this);
 
@@ -146,7 +146,7 @@ template void Camera::UpdateVisibilityOf(DynamicObject* , UpdateData& , std::set
 void Camera::UpdateVisibilityForOwner()
 {
     MaNGOS::VisibleNotifier notifier(*this);
-    Cell::VisitAllObjects(m_source, notifier, m_source->GetMap()->GetVisibilityDistance(), false);
+    Cell::VisitAllObjects(m_source, notifier, m_source->GetMap(true)->GetVisibilityDistance(), false);
     notifier.Notify();
 }
 

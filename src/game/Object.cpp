@@ -1093,7 +1093,7 @@ void WorldObject::GetZoneAndAreaId(uint32& zoneid, uint32& areaid) const
 
 InstanceData* WorldObject::GetInstanceData() const
 {
-    return GetMap()->GetInstanceData();
+    return GetMap(true)->GetInstanceData();
 }
 
                                                             //slow
@@ -1594,7 +1594,7 @@ void WorldObject::MonsterYellToZone(int32 textId, uint32 language, Unit* target)
 
     uint32 zoneid = GetZoneId();
 
-    Map::PlayerList const& pList = GetMap()->GetPlayers();
+    Map::PlayerList const& pList = GetMap(true)->GetPlayers();
     for(Map::PlayerList::const_iterator itr = pList.begin(); itr != pList.end(); ++itr)
         if (itr->getSource()->GetZoneId()==zoneid)
             say_do(itr->getSource());
@@ -1648,14 +1648,14 @@ void WorldObject::SendMessageToSet(WorldPacket *data, bool /*bToSelf*/)
 {
     //if object is in world, map for it already created!
     if (IsInWorld())
-        GetMap()->MessageBroadcast(this, data);
+        GetMap(true)->MessageBroadcast(this, data);
 }
 
 void WorldObject::SendMessageToSetInRange(WorldPacket *data, float dist, bool /*bToSelf*/)
 {
     //if object is in world, map for it already created!
     if (IsInWorld())
-        GetMap()->MessageDistBroadcast(this, data, dist);
+        GetMap(true)->MessageDistBroadcast(this, data, dist);
 }
 
 void WorldObject::SendMessageToSetExcept(WorldPacket *data, Player const* skipped_receiver)
@@ -1664,7 +1664,7 @@ void WorldObject::SendMessageToSetExcept(WorldPacket *data, Player const* skippe
     if (IsInWorld())
     {
         MaNGOS::MessageDelivererExcept notifier(this, data, skipped_receiver);
-        Cell::VisitWorldObjects(this, notifier, GetMap()->GetVisibilityDistance());
+        Cell::VisitWorldObjects(this, notifier, GetMap(true)->GetVisibilityDistance());
     }
 }
 
@@ -1683,7 +1683,7 @@ void WorldObject::SendGameObjectCustomAnim(ObjectGuid guid, uint32 animprogress)
     SendMessageToSet(&data, true);
 }
 
-Map *WorldObject::GetMap(bool require /* = true */) const // FG: added require bool
+Map *WorldObject::GetMap(bool require /* = false */) const // FG: added require bool
 {
     if(!m_currMap && require)
     {
@@ -1712,7 +1712,7 @@ TerrainInfo const* WorldObject::GetTerrain() const
 
 void WorldObject::AddObjectToRemoveList()
 {
-    GetMap()->AddObjectToRemoveList(this);
+    GetMap(true)->AddObjectToRemoveList(this);
 }
 
 Creature* WorldObject::SummonCreature(uint32 id, float x, float y, float z, float ang,TempSummonType spwtype,uint32 despwtime, bool asActiveObject)
@@ -1735,7 +1735,7 @@ Creature* WorldObject::SummonCreature(uint32 id, float x, float y, float z, floa
     if (x == 0.0f && y == 0.0f && z == 0.0f)
         pos = CreatureCreatePos(this, GetOrientation(), CONTACT_DISTANCE, ang);
 
-    if (!pCreature->Create(GetMap()->GenerateLocalLowGuid(cinfo->GetHighGuid()), pos, cinfo, team))
+    if (!pCreature->Create(GetMap(true)->GenerateLocalLowGuid(cinfo->GetHighGuid()), pos, cinfo, team))
     {
         delete pCreature;
         return NULL;
@@ -1772,7 +1772,7 @@ Creature* WorldObject::SummonCreatureCustom(uint32 id, float x, float y, float z
     // uh oh evil hack! this should avoid GUID conflicts by not really letting the core know we generated objects with
     // this guid. the problem is: by using massive emitters, creature guids could reach the overflow limit and crash server!
     CreatureCreatePos pos(GetMap(), x, y, z, ang, GetPhaseMask());
-    if (!pCreature->Create(GetMap()->GetMassSpawnGUIDLow(), pos, cinfo, team))
+    if (!pCreature->Create(GetMap(true)->GetMassSpawnGUIDLow(), pos, cinfo, team))
     {
         sLog.outError("-- FG: SummonCreatureCustom() failed!");
         delete pCreature;
@@ -2091,7 +2091,7 @@ void WorldObject::GetGameObjectListWithEntryInGrid(std::list<GameObject*>& lList
     MaNGOS::GameObjectListSearcher<MaNGOS::AllGameObjectsWithEntryInRange> searcher(lList, check);
     TypeContainerVisitor<MaNGOS::GameObjectListSearcher<MaNGOS::AllGameObjectsWithEntryInRange>, GridTypeMapContainer> visitor(searcher);
 
-    GetMap()->Visit(cell, visitor);
+    GetMap(true)->Visit(cell, visitor);
 }
 
 void WorldObject::UpdateVisibilityAndView()
@@ -2120,17 +2120,17 @@ void WorldObject::UpdateObjectVisibility()
     CellPair p = MaNGOS::ComputeCellPair(GetPositionX(), GetPositionY());
     Cell cell(p);
 
-    GetMap()->UpdateObjectVisibility(this, cell, p);
+    GetMap(true)->UpdateObjectVisibility(this, cell, p);
 }
 
 void WorldObject::AddToClientUpdateList()
 {
-    GetMap()->AddUpdateObject(this);
+    GetMap(true)->AddUpdateObject(this);
 }
 
 void WorldObject::RemoveFromClientUpdateList()
 {
-    GetMap()->RemoveUpdateObject(this);
+    GetMap(true)->RemoveUpdateObject(this);
 }
 
 struct WorldObjectChangeAccumulator
@@ -2161,7 +2161,7 @@ struct WorldObjectChangeAccumulator
 void WorldObject::BuildUpdateData( UpdateDataMapType & update_players)
 {
     WorldObjectChangeAccumulator notifier(*this, update_players);
-    Cell::VisitWorldObjects(this, notifier, GetMap()->GetVisibilityDistance());
+    Cell::VisitWorldObjects(this, notifier, GetMap(true)->GetVisibilityDistance());
 
     ClearUpdateMask(false);
 }

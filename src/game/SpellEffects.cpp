@@ -2736,7 +2736,7 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                     if (!unitTarget || roll_chance_i(90))   // only 10% of spikes `proc` dmg (about 1 spike per sec)
                         return;
 
-                    m_caster->CastSpell(unitTarget, m_caster->GetMap()->IsRegularDifficulty() ? 58695 : 60883, true);
+                    m_caster->CastSpell(unitTarget, m_caster->GetMap(true)->IsRegularDifficulty() ? 58695 : 60883, true);
                     return;
                 }
                 case 58692:                                 // Rock Shards
@@ -2744,7 +2744,7 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                     if (!unitTarget || roll_chance_i(90))   // only 10% of spikes `proc` dmg (about 1 spike per sec)
                         return;
 
-                    m_caster->CastSpell(unitTarget, m_caster->GetMap()->IsRegularDifficulty() ? 58696 : 60884, true);
+                    m_caster->CastSpell(unitTarget, m_caster->GetMap(true)->IsRegularDifficulty() ? 58696 : 60884, true);
                     return;
                 }
                 case 59640:                                 // Underbelly Elixir
@@ -3092,7 +3092,7 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                 {
                     if (unitTarget && unitTarget->GetTypeId() == TYPEID_PLAYER)
                     {
-                        if (m_caster->GetMap()->IsDungeon())
+                        if (m_caster->GetMap(true)->IsDungeon())
                         {
                             Player* creditedPlayer = unitTarget->GetCharmerOrOwnerPlayerOrPlayerItself();
                             DungeonMap* dungeon = (DungeonMap*)m_caster->GetMap();;
@@ -3985,7 +3985,7 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
 
                     if(unitTarget->GetTypeId() != TYPEID_PLAYER)
                     {
-                        unitTarget->GetMap()->CreatureRelocation((Creature*)unitTarget,x,y,z,orientation);
+                        unitTarget->GetMap(true)->CreatureRelocation((Creature*)unitTarget,x,y,z,orientation);
                         ((Creature*)unitTarget)->SendMonsterMove(x, y, z, SPLINETYPE_FACINGSPOT, SPLINEFLAG_UNKNOWN11, 1);
                     }
                     else
@@ -4315,7 +4315,7 @@ void Spell::EffectJump(SpellEffectIndex eff_idx)
             else if (unitTarget->getVictim())
                 pTarget = m_caster->getVictim();
             else if (m_caster->GetTypeId() == TYPEID_PLAYER)
-                pTarget = m_caster->GetMap()->GetUnit(((Player*)m_caster)->GetSelectionGuid());
+                pTarget = m_caster->GetMap(true)->GetUnit(((Player*)m_caster)->GetSelectionGuid());
 
             o = pTarget ? pTarget->GetOrientation() : m_caster->GetOrientation();
         }
@@ -4404,7 +4404,7 @@ void Spell::EffectTeleportUnits(SpellEffectIndex eff_idx)
             else if (unitTarget->getVictim())
                 pTarget = unitTarget->getVictim();
             else if (unitTarget->GetTypeId() == TYPEID_PLAYER)
-                pTarget = unitTarget->GetMap()->GetUnit(((Player*)unitTarget)->GetSelectionGuid());
+                pTarget = unitTarget->GetMap(true)->GetUnit(((Player*)unitTarget)->GetSelectionGuid());
 
             // Init dest coordinates
             float x = m_targets.m_destX;
@@ -4656,7 +4656,7 @@ void Spell::EffectSendEvent(SpellEffectIndex effectIndex)
     DEBUG_FILTER_LOG(LOG_FILTER_SPELL_CAST, "Spell ScriptStart %u for spellid %u in EffectSendEvent ", m_spellInfo->EffectMiscValue[effectIndex], m_spellInfo->Id);
 
     if (!sScriptMgr.OnProcessEvent(m_spellInfo->EffectMiscValue[effectIndex], m_caster, focusObject, true))
-        m_caster->GetMap()->ScriptsStart(sEventScripts, m_spellInfo->EffectMiscValue[effectIndex], m_caster, focusObject);
+        m_caster->GetMap(true)->ScriptsStart(sEventScripts, m_spellInfo->EffectMiscValue[effectIndex], m_caster, focusObject);
 }
 
 void Spell::EffectPowerBurn(SpellEffectIndex eff_idx)
@@ -5090,7 +5090,7 @@ void Spell::EffectPersistentAA(SpellEffectIndex eff_idx)
         modOwner->ApplySpellMod(m_spellInfo->Id, SPELLMOD_RADIUS, radius);
 
     DynamicObject* dynObj = new DynamicObject;
-    if (!dynObj->Create(pCaster->GetMap()->GenerateLocalLowGuid(HIGHGUID_DYNAMICOBJECT), pCaster, m_spellInfo->Id,
+    if (!dynObj->Create(pCaster->GetMap(true)->GenerateLocalLowGuid(HIGHGUID_DYNAMICOBJECT), pCaster, m_spellInfo->Id,
         eff_idx, m_targets.m_destX, m_targets.m_destY, m_targets.m_destZ, m_duration, radius, DYNAMIC_OBJECT_AREA_SPELL))
     {
         delete dynObj;
@@ -5098,7 +5098,7 @@ void Spell::EffectPersistentAA(SpellEffectIndex eff_idx)
     }
 
     pCaster->AddDynObject(dynObj);
-    pCaster->GetMap()->Add(dynObj);
+    pCaster->GetMap(true)->Add(dynObj);
 }
 
 void Spell::EffectEnergize(SpellEffectIndex eff_idx)
@@ -5969,7 +5969,7 @@ void Spell::EffectAddFarsight(SpellEffectIndex eff_idx)
     DynamicObject* dynObj = new DynamicObject;
 
     // set radius to 0: spell not expected to work as persistent aura
-    if (!dynObj->Create(m_caster->GetMap()->GenerateLocalLowGuid(HIGHGUID_DYNAMICOBJECT), m_caster,
+    if (!dynObj->Create(m_caster->GetMap(true)->GenerateLocalLowGuid(HIGHGUID_DYNAMICOBJECT), m_caster,
         m_spellInfo->Id, eff_idx, m_targets.m_destX, m_targets.m_destY, m_targets.m_destZ, duration, 0, DYNAMIC_OBJECT_FARSIGHT_FOCUS))
     {
         delete dynObj;
@@ -5977,7 +5977,7 @@ void Spell::EffectAddFarsight(SpellEffectIndex eff_idx)
     }
 
     m_caster->AddDynObject(dynObj);
-    m_caster->GetMap()->Add(dynObj);
+    m_caster->GetMap(true)->Add(dynObj);
 
     ((Player*)m_caster)->GetCamera().SetView(dynObj);
 }
@@ -6615,11 +6615,11 @@ void Spell::EffectSummonPet(SpellEffectIndex eff_idx)
             if( OldSummon->isDead() )
                 return;
 
-            OldSummon->GetMap()->Remove((Creature*)OldSummon,false);
+            OldSummon->GetMap(true)->Remove((Creature*)OldSummon,false);
 
             OldSummon->SetMap(m_caster->GetMap());
 
-            m_caster->GetMap()->Add((Creature*)OldSummon);
+            m_caster->GetMap(true)->Add((Creature*)OldSummon);
 
             if (m_caster->GetTypeId() == TYPEID_PLAYER && OldSummon->isControlled() )
             {
@@ -8196,7 +8196,7 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
                         return;
 
                     Unit* pCaster = images.front()->GetCaster();
-                    Unit* pSummoner = unitTarget->GetMap()->GetUnit(pSummon->GetSummonerGuid());
+                    Unit* pSummoner = unitTarget->GetMap(true)->GetUnit(pSummon->GetSummonerGuid());
 
                     if (pSummoner && pSummoner == pCaster)
                         pSummon->UnSummon();
@@ -8960,7 +8960,7 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
                         return;
 
                     uint32 spellid = 0;
-                    unitTarget->GetMap()->IsRegularDifficulty() ? spellid = 64125 : spellid = 64126;
+                    unitTarget->GetMap(true)->IsRegularDifficulty() ? spellid = 64125 : spellid = 64126;
                     unitTarget->CastSpell(unitTarget, spellid, true);
                     break;
                 }
@@ -8979,7 +8979,7 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
                         return;
 
                     uint32 spellid = 0;
-                    unitTarget->GetMap()->IsRegularDifficulty() ? spellid = 64468 : spellid = 64469;
+                    unitTarget->GetMap(true)->IsRegularDifficulty() ? spellid = 64468 : spellid = 64469;
                     unitTarget->CastSpell(unitTarget, spellid, true);
                     break;
                 }
@@ -9882,7 +9882,7 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
 
     DEBUG_FILTER_LOG(LOG_FILTER_SPELL_CAST, "Spell ScriptStart spellid %u in EffectScriptEffect ", m_spellInfo->Id);
     if (m_caster->IsInWorld())
-        m_caster->GetMap()->ScriptsStart(sSpellScripts, m_spellInfo->Id, m_caster, unitTarget);
+        m_caster->GetMap(true)->ScriptsStart(sSpellScripts, m_spellInfo->Id, m_caster, unitTarget);
 }
 
 void Spell::EffectSanctuary(SpellEffectIndex /*eff_idx*/)
@@ -10066,7 +10066,7 @@ void Spell::EffectActivateObject(SpellEffectIndex eff_idx)
 
     int32 delay_secs = m_spellInfo->CalculateSimpleValue(eff_idx);
 
-    gameObjTarget->GetMap()->ScriptCommandStart(activateCommand, delay_secs, m_caster, gameObjTarget);
+    gameObjTarget->GetMap(true)->ScriptCommandStart(activateCommand, delay_secs, m_caster, gameObjTarget);
 }
 
 void Spell::EffectApplyGlyph(SpellEffectIndex eff_idx)
@@ -10124,7 +10124,7 @@ void Spell::DoSummonTotem(SpellEffectIndex eff_idx, uint8 slot_dbc)
 
     Totem* pTotem = new Totem;
 
-    if (!pTotem->Create(m_caster->GetMap()->GenerateLocalLowGuid(HIGHGUID_UNIT), pos, cinfo, m_caster))
+    if (!pTotem->Create(m_caster->GetMap(true)->GenerateLocalLowGuid(HIGHGUID_UNIT), pos, cinfo, m_caster))
     {
         delete pTotem;
         return;
@@ -10308,7 +10308,7 @@ void Spell::EffectSummonObject(SpellEffectIndex eff_idx)
 
     if (ObjectGuid guid = m_caster->m_ObjectSlotGuid[slot])
     {
-        if (GameObject* obj = m_caster ? m_caster->GetMap()->GetGameObject(guid) : NULL)
+        if (GameObject* obj = m_caster ? m_caster->GetMap(true)->GetGameObject(guid) : NULL)
             obj->SetLootState(GO_JUST_DEACTIVATED);
         m_caster->m_ObjectSlotGuid[slot].Clear();
     }

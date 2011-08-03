@@ -867,7 +867,7 @@ bool ChatHandler::HandleGameObjectTargetCommand(char* args)
         o =       fields[5].GetFloat();
         mapid =   fields[6].GetUInt16();
         pool_id = sPoolMgr.IsPartOfAPool<GameObject>(lowguid);
-        if (!pool_id || pl->GetMap()->GetPersistentState()->IsSpawnedPoolObject<GameObject>(lowguid))
+        if (!pool_id || pl->GetMap(true)->GetPersistentState()->IsSpawnedPoolObject<GameObject>(lowguid))
             found = true;
     } while (result->NextRow() && (!found));
 
@@ -887,7 +887,7 @@ bool ChatHandler::HandleGameObjectTargetCommand(char* args)
         return false;
     }
 
-    GameObject* target = m_session->GetPlayer()->GetMap()->GetGameObject(ObjectGuid(HIGHGUID_GAMEOBJECT, id, lowguid));
+    GameObject* target = m_session->GetPlayer()->GetMap(true)->GetGameObject(ObjectGuid(HIGHGUID_GAMEOBJECT, id, lowguid));
 
     PSendSysMessage(LANG_GAMEOBJECT_DETAIL, lowguid, goI->name, lowguid, id, x, y, z, mapid, o);
 
@@ -1773,7 +1773,7 @@ bool ChatHandler::HandleNpcAddMoveCommand(char* args)
         return false;
     }
 
-    Creature* pCreature = player->GetMap()->GetCreature(data->GetObjectGuid(lowguid));
+    Creature* pCreature = player->GetMap(true)->GetCreature(data->GetObjectGuid(lowguid));
 
     sWaypointMgr.AddLastNode(lowguid, player->GetPositionX(), player->GetPositionY(), player->GetPositionZ(), player->GetOrientation(), wait, 0);
 
@@ -1874,7 +1874,7 @@ bool ChatHandler::HandleNpcDeleteCommand(char* args)
             return false;
 
         if (CreatureData const* data = sObjectMgr.GetCreatureData(lowguid))
-            unit = m_session->GetPlayer()->GetMap()->GetCreature(data->GetObjectGuid(lowguid));
+            unit = m_session->GetPlayer()->GetMap(true)->GetCreature(data->GetObjectGuid(lowguid));
     }
     else
         unit = getSelectedCreature();
@@ -1949,7 +1949,7 @@ bool ChatHandler::HandleNpcMoveCommand(char* args)
             return false;
         }
 
-        pCreature = player->GetMap()->GetCreature(data->GetObjectGuid(lowguid));
+        pCreature = player->GetMap(true)->GetCreature(data->GetObjectGuid(lowguid));
     }
     else
         lowguid = pCreature->GetGUIDLow();
@@ -1968,7 +1968,7 @@ bool ChatHandler::HandleNpcMoveCommand(char* args)
             const_cast<CreatureData*>(data)->posZ = z;
             const_cast<CreatureData*>(data)->orientation = o;
         }
-        pCreature->GetMap()->CreatureRelocation(pCreature,x, y, z,o);
+        pCreature->GetMap(true)->CreatureRelocation(pCreature,x, y, z,o);
         pCreature->GetMotionMaster()->Initialize();
         if (pCreature->isAlive())                            // dead creature will reset movement generator at respawn
         {
@@ -2032,7 +2032,7 @@ bool ChatHandler::HandleNpcSetMoveTypeCommand(char* args)
             return false;
         }
 
-        pCreature = player->GetMap()->GetCreature(data->GetObjectGuid(lowguid));
+        pCreature = player->GetMap(true)->GetCreature(data->GetObjectGuid(lowguid));
     }
 
     MovementGeneratorType move_type;
@@ -3033,7 +3033,7 @@ bool ChatHandler::HandleWpAddCommand(char* args)
                 return false;
             }
 
-            target = m_session->GetPlayer()->GetMap()->GetCreature(data->GetObjectGuid(lowguid));
+            target = m_session->GetPlayer()->GetMap(true)->GetCreature(data->GetObjectGuid(lowguid));
             if (!target)
             {
                 PSendSysMessage(LANG_WAYPOINT_NOTFOUNDDBPROBLEM, lowguid);
@@ -3067,7 +3067,7 @@ bool ChatHandler::HandleWpAddCommand(char* args)
             return false;
         }
 
-        target = m_session->GetPlayer()->GetMap()->GetCreature(data->GetObjectGuid(lowguid));
+        target = m_session->GetPlayer()->GetMap(true)->GetCreature(data->GetObjectGuid(lowguid));
         if (!target || target->IsPet())
         {
             PSendSysMessage(LANG_WAYPOINT_CREATNOTFOUND, lowguid);
@@ -3286,7 +3286,7 @@ bool ChatHandler::HandleWpModifyCommand(char* args)
             return false;
         }
 
-        Creature* npcCreature = m_session->GetPlayer()->GetMap()->GetCreature(data->GetObjectGuid(lowguid));
+        Creature* npcCreature = m_session->GetPlayer()->GetMap(true)->GetCreature(data->GetObjectGuid(lowguid));
 
         if (!npcCreature)
         {
@@ -3357,13 +3357,13 @@ bool ChatHandler::HandleWpModifyCommand(char* args)
             return false;
         }
 
-        Creature* npcCreature = m_session->GetPlayer()->GetMap()->GetCreature(data->GetObjectGuid(lowguid));
+        Creature* npcCreature = m_session->GetPlayer()->GetMap(true)->GetCreature(data->GetObjectGuid(lowguid));
 
         // wpCreature
         Creature* wpCreature = NULL;
         if (wpGuid != 0)
         {
-            wpCreature = m_session->GetPlayer()->GetMap()->GetCreature(ObjectGuid(HIGHGUID_UNIT, VISUAL_WAYPOINT, wpGuid));
+            wpCreature = m_session->GetPlayer()->GetMap(true)->GetCreature(ObjectGuid(HIGHGUID_UNIT, VISUAL_WAYPOINT, wpGuid));
             wpCreature->DeleteFromDB();
             wpCreature->AddObjectToRemoveList();
         }
@@ -3417,7 +3417,7 @@ bool ChatHandler::HandleWpModifyCommand(char* args)
                 return false;
             }
 
-            Creature* npcCreature = m_session->GetPlayer()->GetMap()->GetCreature(data->GetObjectGuid(lowguid));
+            Creature* npcCreature = m_session->GetPlayer()->GetMap(true)->GetCreature(data->GetObjectGuid(lowguid));
 
             // wpCreature
             Creature* wpCreature = NULL;
@@ -3426,7 +3426,7 @@ bool ChatHandler::HandleWpModifyCommand(char* args)
             // Respawn the owner of the waypoints
             if (wpGuid != 0)
             {
-                wpCreature = m_session->GetPlayer()->GetMap()->GetCreature(ObjectGuid(HIGHGUID_UNIT, VISUAL_WAYPOINT, wpGuid));
+                wpCreature = m_session->GetPlayer()->GetMap(true)->GetCreature(ObjectGuid(HIGHGUID_UNIT, VISUAL_WAYPOINT, wpGuid));
                 wpCreature->DeleteFromDB();
                 wpCreature->AddObjectToRemoveList();
                 // re-create
@@ -3445,7 +3445,7 @@ bool ChatHandler::HandleWpModifyCommand(char* args)
                 // To call _LoadGoods(); _LoadQuests(); CreateTrainerSpells();
                 wpCreature2->LoadFromDB(wpCreature2->GetGUIDLow(), map);
                 map->Add(wpCreature2);
-                //npcCreature->GetMap()->Add(wpCreature2);
+                //npcCreature->GetMap(true)->Add(wpCreature2);
             }
 
             sWaypointMgr.SetNodePosition(lowguid, point, chr->GetPositionX(), chr->GetPositionY(), chr->GetPositionZ());
@@ -3482,7 +3482,7 @@ bool ChatHandler::HandleWpModifyCommand(char* args)
 
     sWaypointMgr.SetNodeText(lowguid, point, show_str, arg_str);
 
-    Creature* npcCreature = m_session->GetPlayer()->GetMap()->GetCreature(data->GetObjectGuid(lowguid));
+    Creature* npcCreature = m_session->GetPlayer()->GetMap(true)->GetCreature(data->GetObjectGuid(lowguid));
     if (npcCreature)
     {
         npcCreature->SetDefaultMovementType(WAYPOINT_MOTION_TYPE);
@@ -3586,7 +3586,7 @@ bool ChatHandler::HandleWpShowCommand(char* args)
             return false;
         }
 
-        target = m_session->GetPlayer()->GetMap()->GetCreature(data->GetObjectGuid(lowguid));
+        target = m_session->GetPlayer()->GetMap(true)->GetCreature(data->GetObjectGuid(lowguid));
 
         if (!target)
         {
@@ -3657,7 +3657,7 @@ bool ChatHandler::HandleWpShowCommand(char* args)
             uint32 model2           = fields[11].GetUInt32();
 
             // Get the creature for which we read the waypoint
-            Creature* wpCreature = m_session->GetPlayer()->GetMap()->GetCreature(ObjectGuid(HIGHGUID_UNIT, VISUAL_WAYPOINT, wpGuid));
+            Creature* wpCreature = m_session->GetPlayer()->GetMap(true)->GetCreature(ObjectGuid(HIGHGUID_UNIT, VISUAL_WAYPOINT, wpGuid));
 
             PSendSysMessage(LANG_WAYPOINT_INFO_TITLE, point, (wpCreature ? wpCreature->GetName() : "<not found>"), wpGuid);
             PSendSysMessage(LANG_WAYPOINT_INFO_WAITTIME, waittime);
@@ -3694,7 +3694,7 @@ bool ChatHandler::HandleWpShowCommand(char* args)
             {
                 Field *fields = result2->Fetch();
                 uint32 wpGuid = fields[0].GetUInt32();
-                Creature* pCreature = m_session->GetPlayer()->GetMap()->GetCreature(ObjectGuid(HIGHGUID_UNIT, VISUAL_WAYPOINT, wpGuid));
+                Creature* pCreature = m_session->GetPlayer()->GetMap(true)->GetCreature(ObjectGuid(HIGHGUID_UNIT, VISUAL_WAYPOINT, wpGuid));
 
                 if (!pCreature)
                 {
@@ -3746,7 +3746,7 @@ bool ChatHandler::HandleWpShowCommand(char* args)
             // To call _LoadGoods(); _LoadQuests(); CreateTrainerSpells();
             wpCreature->LoadFromDB(wpCreature->GetGUIDLow(),map);
             map->Add(wpCreature);
-            //wpCreature->GetMap()->Add(wpCreature);
+            //wpCreature->GetMap(true)->Add(wpCreature);
         } while (result->NextRow());
 
         // Cleanup memory
@@ -3853,7 +3853,7 @@ bool ChatHandler::HandleWpShowCommand(char* args)
         {
             Field *fields = result->Fetch();
             uint32 wpGuid = fields[0].GetUInt32();
-            Creature* pCreature = m_session->GetPlayer()->GetMap()->GetCreature(ObjectGuid(HIGHGUID_UNIT, VISUAL_WAYPOINT, wpGuid));
+            Creature* pCreature = m_session->GetPlayer()->GetMap(true)->GetCreature(ObjectGuid(HIGHGUID_UNIT, VISUAL_WAYPOINT, wpGuid));
             if (!pCreature)
             {
                 PSendSysMessage(LANG_WAYPOINT_NOTREMOVED, wpGuid);
@@ -4777,7 +4777,7 @@ bool ChatHandler::HandleLookupPoolCommand(char * args)
     std::string namepart = args;
 
     Player* player = m_session ? m_session->GetPlayer() : NULL;
-    MapPersistentState* mapState = player ? player->GetMap()->GetPersistentState() : NULL;
+    MapPersistentState* mapState = player ? player->GetMap(true)->GetPersistentState() : NULL;
 
     strToLower(namepart);
 
@@ -4808,7 +4808,7 @@ bool ChatHandler::HandlePoolListCommand(char* args)
 {
     Player* player = m_session->GetPlayer();
 
-    MapPersistentState* mapState = player->GetMap()->GetPersistentState();
+    MapPersistentState* mapState = player->GetMap(true)->GetPersistentState();
 
     if (!mapState->GetMapEntry()->Instanceable())
     {
@@ -4840,7 +4840,7 @@ bool ChatHandler::HandlePoolSpawnsCommand(char* args)
 {
     Player* player = m_session->GetPlayer();
 
-    MapPersistentState* mapState = player->GetMap()->GetPersistentState();
+    MapPersistentState* mapState = player->GetMap(true)->GetPersistentState();
 
     // shared continent pools data expected too big for show
     uint32 pool_id = 0;
@@ -4881,7 +4881,7 @@ bool ChatHandler::HandlePoolInfoCommand(char* args)
 
     Player* player = m_session ? m_session->GetPlayer() : NULL;
 
-    MapPersistentState* mapState = player ? player->GetMap()->GetPersistentState() : NULL;
+    MapPersistentState* mapState = player ? player->GetMap(true)->GetPersistentState() : NULL;
     SpawnedPoolData const* spawns = mapState ? &mapState->GetSpawnedPoolData() : NULL;
 
     std::string active_str = GetMangosString(LANG_ACTIVE);

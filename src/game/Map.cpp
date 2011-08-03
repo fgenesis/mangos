@@ -2145,7 +2145,7 @@ void Map::ScriptsProcess()
                 if (!goData)
                     break;                                  // checked at load
 
-                GameObject *go = summoner->GetMap()->GetGameObject(ObjectGuid(HIGHGUID_GAMEOBJECT, goData->id, guidlow));
+                GameObject *go = summoner->GetMap(true)->GetGameObject(ObjectGuid(HIGHGUID_GAMEOBJECT, goData->id, guidlow));
                 if (!go)
                 {
                     sLog.outError("SCRIPT_COMMAND_RESPAWN_GAMEOBJECT (script id %u) failed for gameobject(guid: %u).", step.script->id, guidlow);
@@ -2167,7 +2167,7 @@ void Map::ScriptsProcess()
                 go->SetLootState(GO_READY);
                 go->SetRespawnTime(time_to_despawn);        //despawn object in ? seconds
 
-                go->GetMap()->Add(go);
+                go->GetMap(true)->Add(go);
                 break;
             }
             case SCRIPT_COMMAND_TEMP_SUMMON_CREATURE:
@@ -2237,7 +2237,7 @@ void Map::ScriptsProcess()
                 if (!goData)                                // checked at load
                     break;
 
-                GameObject *door = caster->GetMap()->GetGameObject(ObjectGuid(HIGHGUID_GAMEOBJECT, goData->id, guidlow));
+                GameObject *door = caster->GetMap(true)->GetGameObject(ObjectGuid(HIGHGUID_GAMEOBJECT, goData->id, guidlow));
                 if (!door)
                 {
                     sLog.outError("SCRIPT_COMMAND_OPEN_DOOR (script id %u) failed for gameobject(guid: %u).", step.script->id, step.script->openDoor.goGuid);
@@ -2291,7 +2291,7 @@ void Map::ScriptsProcess()
                 if (!goData)                                // checked at load
                     break;
 
-                GameObject *door = caster->GetMap()->GetGameObject(ObjectGuid(HIGHGUID_GAMEOBJECT, goData->id, guidlow));
+                GameObject *door = caster->GetMap(true)->GetGameObject(ObjectGuid(HIGHGUID_GAMEOBJECT, goData->id, guidlow));
                 if (!door)
                 {
                     sLog.outError("SCRIPT_COMMAND_CLOSE_DOOR (script id %u) failed for gameobject(guid: %u).", step.script->id, guidlow);

@@ -1186,7 +1186,7 @@ void PlayerbotAI::HandleBotOutgoingPacket(const WorldPacket& packet)
 
             if (guid == m_lootCurrent)
             {
-                Creature *c = m_bot->GetMap()->GetCreature(m_lootCurrent);
+                Creature *c = m_bot->GetMap(true)->GetCreature(m_lootCurrent);
 
                 if (c && c->GetCreatureInfo()->SkinLootId && !c->lootForSkin)
                 {
@@ -1896,8 +1896,8 @@ void PlayerbotAI::DoLoot()
         m_lootCurrent = m_lootTargets.front();
         m_lootTargets.pop_front();
 
-        GameObject *go = m_bot->GetMap()->GetGameObject(m_lootCurrent);
-        Creature *c = m_bot->GetMap()->GetCreature(m_lootCurrent);
+        GameObject *go = m_bot->GetMap(true)->GetGameObject(m_lootCurrent);
+        Creature *c = m_bot->GetMap(true)->GetCreature(m_lootCurrent);
 
         // check if we got a creature and if it is still a corpse, otherwise bot runs to spawn point
         if (!c || c->getDeathState() != CORPSE || GetMaster()->GetDistance(c) > BOTLOOT_DISTANCE)
@@ -1935,8 +1935,8 @@ void PlayerbotAI::DoLoot()
         bool skillFailed = false;
         bool forceFailed = false;
 
-        Creature *c = m_bot->GetMap()->GetCreature(m_lootCurrent);
-        GameObject *go = m_bot->GetMap()->GetGameObject(m_lootCurrent);
+        Creature *c = m_bot->GetMap(true)->GetCreature(m_lootCurrent);
+        GameObject *go = m_bot->GetMap(true)->GetGameObject(m_lootCurrent);
         if (!c || c->getDeathState() != CORPSE || GetMaster()->GetDistance(c) > BOTLOOT_DISTANCE)
             if (!go)
             {
@@ -2579,7 +2579,7 @@ void PlayerbotAI::MovementReset()
 
         if (m_bot->isAlive() && 
             !m_bot->isInCombat() && 
-            (m_bot->GetMap() == m_followTarget->GetMap() && m_bot->IsWithinDistInMap(GetMaster(), m_bot->GetMap()->GetVisibilityDistance(), true)) && 
+            (m_bot->GetMap() == m_followTarget->GetMap() && m_bot->IsWithinDistInMap(GetMaster(), m_bot->GetMap(true)->GetVisibilityDistance(), true)) && 
             !m_bot->IsBeingTeleported() )
         {
             float angle = rand_float(0, M_PI_F);
@@ -3156,7 +3156,7 @@ bool PlayerbotAI::PickPocket(Unit* pTarget)
     bool looted = false;
 
     ObjectGuid markGuid = pTarget->GetObjectGuid();
-    Creature *c = m_bot->GetMap()->GetCreature(markGuid);
+    Creature *c = m_bot->GetMap(true)->GetCreature(markGuid);
     m_bot->SendLoot(markGuid, LOOT_PICKPOCKETING);
     Loot *loot = &c->loot;
     uint32 lootNum = loot->GetMaxSlotInLootFor(m_bot);
@@ -3736,7 +3736,7 @@ bool PlayerbotAI::FollowCheckTeleport(WorldObject &obj)
 {
     // if bot has strayed too far from the master, teleport bot
 
-    if (!m_bot->IsWithinDistInMap(&obj, m_bot->GetMap()->GetVisibilityDistance(), true) && GetMaster()->isAlive() && !GetMaster()->IsTaxiFlying())
+    if (!m_bot->IsWithinDistInMap(&obj, m_bot->GetMap(true)->GetVisibilityDistance(), true) && GetMaster()->isAlive() && !GetMaster()->IsTaxiFlying())
     {
         m_bot->GetMotionMaster()->Clear();
         m_ignoreAIUpdatesUntilTime = time(0) + 6;
@@ -3960,7 +3960,7 @@ void PlayerbotAI::HandleCommand(const std::string& text, Player& fromPlayer)
         m_lootCurrent = m_lootTargets.front();
         m_lootTargets.pop_front();
 
-        GameObject *go = m_bot->GetMap()->GetGameObject(m_lootCurrent);
+        GameObject *go = m_bot->GetMap(true)->GetGameObject(m_lootCurrent);
         if (!go)
         {
             m_lootTargets.clear();
@@ -3985,7 +3985,7 @@ void PlayerbotAI::HandleCommand(const std::string& text, Player& fromPlayer)
         ObjectGuid getOnGuid = fromPlayer.GetSelectionGuid();
         if (!getOnGuid.IsEmpty())
         {
-            Creature *c = m_bot->GetMap()->GetCreature(getOnGuid);
+            Creature *c = m_bot->GetMap(true)->GetCreature(getOnGuid);
             if (!c)
                 return;
 
@@ -4423,7 +4423,7 @@ void PlayerbotAI::HandleCommand(const std::string& text, Player& fromPlayer)
                 uint32 guid = fields[0].GetUInt32();
                 uint32 entry = fields[1].GetUInt32();
 
-                GameObject *go = m_bot->GetMap()->GetGameObject(ObjectGuid(HIGHGUID_GAMEOBJECT, entry, guid));
+                GameObject *go = m_bot->GetMap(true)->GetGameObject(ObjectGuid(HIGHGUID_GAMEOBJECT, entry, guid));
                 if (!go)
                     continue;
 
@@ -4482,7 +4482,7 @@ void PlayerbotAI::HandleCommand(const std::string& text, Player& fromPlayer)
                 return;
             }
 
-            Creature *creature =  m_bot->GetMap()->GetCreature(fromPlayer.GetSelectionGuid());
+            Creature *creature =  m_bot->GetMap(true)->GetCreature(fromPlayer.GetSelectionGuid());
             if (!creature)
                 return;
 

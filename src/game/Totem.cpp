@@ -61,7 +61,7 @@ bool Totem::Create(uint32 guidlow, CreatureCreatePos& cPos, CreatureInfo const* 
     //Notify the map's instance data.
     //Only works if you create the object in it, not if it is moves to that map.
     //Normally non-players do not teleport to other maps.
-    if (InstanceData* iData = GetMap()->GetInstanceData())
+    if (InstanceData* iData = GetMap(true)->GetInstanceData())
         iData->OnCreatureCreate(this);
 
     LoadCreatureAddon();
@@ -92,7 +92,7 @@ void Totem::Update(uint32 update_diff, uint32 time )
 void Totem::Summon(Unit* owner)
 {
     AIM_Initialize();
-    owner->GetMap()->Add((Creature*)this);
+    owner->GetMap(true)->Add((Creature*)this);
 
     if (owner->GetTypeId() == TYPEID_UNIT && ((Creature*)owner)->AI())
         ((Creature*)owner)->AI()->JustSummoned((Creature*)this);

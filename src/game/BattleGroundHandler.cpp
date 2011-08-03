@@ -41,7 +41,7 @@ void WorldSession::HandleBattlemasterHelloOpcode(WorldPacket & recv_data)
 
     DEBUG_LOG("WORLD: Recvd CMSG_BATTLEMASTER_HELLO Message from %s", guid.GetString().c_str());
 
-    Creature *pCreature = GetPlayer()->GetMap()->GetCreature(guid);
+    Creature *pCreature = GetPlayer()->GetMap(true)->GetCreature(guid);
 
     if (!pCreature)
         return;
@@ -602,7 +602,7 @@ void WorldSession::HandleAreaSpiritHealerQueryOpcode( WorldPacket & recv_data )
     ObjectGuid guid;
     recv_data >> guid;
 
-    Creature *unit = GetPlayer()->GetMap()->GetCreature(guid);
+    Creature *unit = GetPlayer()->GetMap(true)->GetCreature(guid);
     if (!unit)
         return;
 
@@ -623,7 +623,7 @@ void WorldSession::HandleAreaSpiritHealerQueueOpcode( WorldPacket & recv_data )
     ObjectGuid guid;
     recv_data >> guid;
 
-    Creature *unit = GetPlayer()->GetMap()->GetCreature(guid);
+    Creature *unit = GetPlayer()->GetMap(true)->GetCreature(guid);
     if (!unit)
         return;
 
@@ -649,7 +649,7 @@ void WorldSession::HandleBattlemasterJoinArena( WorldPacket & recv_data )
     if (_player->InBattleGround())
         return;
 
-    Creature *unit = GetPlayer()->GetMap()->GetCreature(guid);
+    Creature *unit = GetPlayer()->GetMap(true)->GetCreature(guid);
     if (!unit)
         return;
 

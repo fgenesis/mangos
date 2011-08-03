@@ -221,7 +221,7 @@ FleeingMovementGenerator<T>::_setMoveData(T &owner)
     float cur_dist;
     float angle_to_caster;
 
-    if (Unit* fright = owner.GetMap()->GetUnit(i_frightGuid))
+    if (Unit* fright = owner.GetMap(true)->GetUnit(i_frightGuid))
     {
         cur_dist = fright->GetDistance(&owner);
         if (cur_dist < cur_dist_xyz)
@@ -288,7 +288,7 @@ FleeingMovementGenerator<T>::Initialize(T &owner)
 
     _Init(owner);
 
-    if (Unit * fright = owner.GetMap()->GetUnit(i_frightGuid))
+    if (Unit * fright = owner.GetMap(true)->GetUnit(i_frightGuid))
     {
         i_caster_x = fright->GetPositionX();
         i_caster_y = fright->GetPositionY();

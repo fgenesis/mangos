@@ -146,7 +146,7 @@ void TemporarySummon::Summon(TempSummonType type, uint32 lifetime)
     m_lifetime = lifetime;
 
     AIM_Initialize();
-    GetMap()->Add((Creature*)this);
+    GetMap(true)->Add((Creature*)this);
 }
 
 void TemporarySummon::UnSummon()
@@ -154,7 +154,7 @@ void TemporarySummon::UnSummon()
     CombatStop();
 
     if (GetSummonerGuid().IsCreatureOrVehicle())
-        if(Creature* sum = GetMap()->GetCreature(GetSummonerGuid()))
+        if(Creature* sum = GetMap(true)->GetCreature(GetSummonerGuid()))
             if (sum->AI())
                 sum->AI()->SummonedCreatureDespawn(this);
 

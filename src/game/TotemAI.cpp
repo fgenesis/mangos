@@ -70,7 +70,7 @@ TotemAI::UpdateAI(const uint32 /*diff*/)
     // SPELLMOD_RANGE not applied in this place just because nonexistent range mods for attacking totems
 
     // pointer to appropriate target if found any
-    Unit* victim = m_creature->GetMap()->GetUnit(i_victimGuid);
+    Unit* victim = m_creature->GetMap(true)->GetUnit(i_victimGuid);
 
     // Search victim if no, not attackable, or out of range, or friendly (possible in case duel end)
     if( !victim ||

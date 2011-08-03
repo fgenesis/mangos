@@ -327,9 +327,9 @@ bool AchievementCriteriaRequirement::Meets(uint32 criteria_id, Player const* sou
         case ACHIEVEMENT_CRITERIA_REQUIRE_DISABLED:
             return false;                                   // always fail
         case ACHIEVEMENT_CRITERIA_REQUIRE_MAP_DIFFICULTY:
-            return source->GetMap()->GetSpawnMode()==difficulty.difficulty;
+            return source->GetMap(true)->GetSpawnMode()==difficulty.difficulty;
         case ACHIEVEMENT_CRITERIA_REQUIRE_MAP_PLAYER_COUNT:
-            return source->GetMap()->GetPlayersCountExceptGMs() <= map_players.maxcount;
+            return source->GetMap(true)->GetPlayersCountExceptGMs() <= map_players.maxcount;
         case ACHIEVEMENT_CRITERIA_REQUIRE_T_TEAM:
             if (!target || target->GetTypeId() != TYPEID_PLAYER)
                 return false;

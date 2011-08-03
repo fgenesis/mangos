@@ -617,7 +617,7 @@ void AreaAura::Update(uint32 diff)
                                     if (!m_groupPets.empty())
                                     {
                                         for (GroupPetList::const_iterator itr = m_groupPets.begin(); itr != m_groupPets.end(); ++itr)
-                                            if (Pet* _pet = Target->GetMap()->GetPet(*itr))
+                                            if (Pet* _pet = Target->GetMap(true)->GetPet(*itr))
                                                 if (_pet && _pet->isAlive() && caster->IsWithinDistInMap(_pet, m_radius))
                                                     targets.push_back(_pet);
                                     }
@@ -637,7 +637,7 @@ void AreaAura::Update(uint32 diff)
                             if (!m_groupPets.empty())
                             {
                                 for (GroupPetList::const_iterator itr = m_groupPets.begin(); itr != m_groupPets.end(); ++itr)
-                                    if (Pet* _pet = caster->GetMap()->GetPet(*itr))
+                                    if (Pet* _pet = caster->GetMap(true)->GetPet(*itr))
                                         if (_pet && caster->IsWithinDistInMap(_pet, m_radius))
                                             targets.push_back(_pet);
                             }
@@ -667,7 +667,7 @@ void AreaAura::Update(uint32 diff)
                                     if (!m_groupPets.empty())
                                     {
                                         for (GroupPetList::const_iterator itr = m_groupPets.begin(); itr != m_groupPets.end(); ++itr)
-                                            if (Pet* _pet = caster->GetMap()->GetPet(*itr))
+                                            if (Pet* _pet = caster->GetMap(true)->GetPet(*itr))
                                                 if (_pet && caster->IsWithinDistInMap(_pet, m_radius))
                                                     targets.push_back(_pet);
                                     }
@@ -687,7 +687,7 @@ void AreaAura::Update(uint32 diff)
                             if (!m_groupPets.empty())
                             {
                                 for (GroupPetList::const_iterator itr = m_groupPets.begin(); itr != m_groupPets.end(); ++itr)
-                                    if (Pet* _pet = caster->GetMap()->GetPet(*itr))
+                                    if (Pet* _pet = caster->GetMap(true)->GetPet(*itr))
                                         if (_pet && caster->IsWithinDistInMap(_pet, m_radius))
                                             targets.push_back(_pet);
                             }
@@ -1230,7 +1230,7 @@ void Aura::TriggerSpell()
                         ThreatList const& tList = target->getThreatManager().getThreatList();
                         for (ThreatList::const_iterator itr = tList.begin();itr != tList.end(); ++itr)
                         {
-                            Unit* pUnit = target->GetMap()->GetUnit((*itr)->getUnitGuid());
+                            Unit* pUnit = target->GetMap(true)->GetUnit((*itr)->getUnitGuid());
 
                             if (pUnit && target->getThreatManager().getThreat(pUnit))
                                 target->getThreatManager().modifyThreatPercent(pUnit, -100);
@@ -2058,7 +2058,7 @@ void Aura::TriggerSpell()
         {
             triggerCaster = target;
 
-            if (WorldObject* channelTarget = target->GetMap()->GetWorldObject(target->GetChannelObjectGuid()))
+            if (WorldObject* channelTarget = target->GetMap(true)->GetWorldObject(target->GetChannelObjectGuid()))
             {
                 if (channelTarget->isType(TYPEMASK_UNIT))
                     triggerTarget = (Unit*)channelTarget;
@@ -2802,7 +2802,7 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                 if (!target || target->GetTypeId() != TYPEID_PLAYER || m_removeMode != AURA_REMOVE_BY_EXPIRE)
                     return;
 
-                if (target->GetMap()->IsBattleGround())
+                if (target->GetMap(true)->IsBattleGround())
                     ((Player*)target)->LeaveBattleground();
                 return;
             }
@@ -2815,9 +2815,9 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
             }
             case 44191:                                     // Flame Strike
             {
-                if (target->GetMap()->IsDungeon())
+                if (target->GetMap(true)->IsDungeon())
                 {
-                    uint32 spellId = target->GetMap()->IsRegularDifficulty() ? 44190 : 46163;
+                    uint32 spellId = target->GetMap(true)->IsRegularDifficulty() ? 44190 : 46163;
 
                     target->CastSpell(target, spellId, true, NULL, this);
                 }
@@ -4723,7 +4723,7 @@ void Aura::HandleModPossessPet(bool apply, bool Real)
         pet->AttackStop();
 
         // out of range pet dismissed
-        if (!pet->IsWithinDistInMap(p_caster, pet->GetMap()->GetVisibilityDistance()))
+        if (!pet->IsWithinDistInMap(p_caster, pet->GetMap(true)->GetVisibilityDistance()))
         {
             p_caster->RemovePet(PET_SAVE_REAGENTS);
         }
@@ -4993,13 +4993,13 @@ void Aura::HandleAuraModStun(bool apply, bool Real)
             case 39837: // Impaling Spine
             {
                 GameObject* pObj = new GameObject;
-                if (pObj->Create(target->GetMap()->GenerateLocalLowGuid(HIGHGUID_GAMEOBJECT), 185584, target->GetMap(), target->GetPhaseMask(),
+                if (pObj->Create(target->GetMap(true)->GenerateLocalLowGuid(HIGHGUID_GAMEOBJECT), 185584, target->GetMap(), target->GetPhaseMask(),
                 target->GetPositionX(), target->GetPositionY(), target->GetPositionZ(), target->GetOrientation(), 0.0f, 0.0f, 0.0f, 0.0f, GO_ANIMPROGRESS_DEFAULT, GO_STATE_READY))
                 {
                     pObj->SetRespawnTime(GetAuraDuration()/IN_MILLISECONDS);
                     pObj->SetSpellId(GetId());
                     target->AddGameObject(pObj);
-                    target->GetMap()->Add(pObj);
+                    target->GetMap(true)->Add(pObj);
                 }
                 else
                     delete pObj;
@@ -8646,7 +8646,7 @@ void Aura::PeriodicTick()
                         if (!m_groupPets.empty())
                         {
                             for (GroupPetList::const_iterator itr = m_groupPets.begin(); itr != m_groupPets.end(); ++itr)
-                                if (Pet* _pet = pCaster->GetMap()->GetPet(*itr))
+                                if (Pet* _pet = pCaster->GetMap(true)->GetPet(*itr))
                                     if (_pet && _pet->isAlive())
                                         pCaster->CastCustomSpell(_pet, 32554, &gain_amount, NULL, NULL, true, NULL, NULL, pCaster->GetObjectGuid());
                         }
@@ -9219,12 +9219,12 @@ void Aura::PeriodicDummyTick()
                 }
                 case 67574:                                // Trial Of Crusader (Spike Aggro Aura - Anub'arak)
                 {
-                    if (!target->GetMap()->Instanceable())
+                    if (!target->GetMap(true)->Instanceable())
                         return;
 
                     if (InstanceData* data = target->GetInstanceData())
                     {
-                        if (Creature* pSpike = target->GetMap()->GetCreature(data->GetData64(34660)))
+                        if (Creature* pSpike = target->GetMap(true)->GetCreature(data->GetData64(34660)))
                             pSpike->AddThreat(target, 1000000.0f);
                     }
                     return;

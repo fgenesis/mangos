@@ -41,7 +41,7 @@ void WorldSession::HandleTaxiNodeStatusQueryOpcode( WorldPacket & recv_data )
 void WorldSession::SendTaxiStatus(ObjectGuid guid)
 {
     // cheating checks
-    Creature *unit = GetPlayer()->GetMap()->GetCreature(guid);
+    Creature *unit = GetPlayer()->GetMap(true)->GetCreature(guid);
     if (!unit)
     {
         DEBUG_LOG("WorldSession::SendTaxiStatus - %s not found or you can't interact with it.", guid.GetString().c_str());

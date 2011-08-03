@@ -864,7 +864,7 @@ void ArenaTeam::MemberWon(Player * plr, uint32 againstRating)
         if (itr->guid == plr->GetObjectGuid())
         {
             // FG: attempt to prevent "win trading" - dont give reward to winner if player with same IP is in opposite team
-            Map::PlayerList const& plist = plr->GetMap()->GetPlayers();
+            Map::PlayerList const& plist = plr->GetMap(true)->GetPlayers();
             for(Map::PlayerList::const_iterator pit = plist.begin(); pit != plist.end(); ++pit)
             {
                 Player *pp = pit->getSource();
@@ -965,7 +965,7 @@ bool ArenaTeam::IsFighting() const
     {
         if (Player *p = sObjectMgr.GetPlayer(itr->guid))
         {
-            if (p->GetMap()->IsBattleArena())
+            if (p->GetMap(true)->IsBattleArena())
                 return true;
         }
     }

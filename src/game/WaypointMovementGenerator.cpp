@@ -117,7 +117,7 @@ void WaypointMovementGenerator<Creature>::OnArrived(Creature& creature)
     if (i_path->at(i_currentNode).script_id)
     {
         DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "Creature movement start script %u at point %u for %s.", i_path->at(i_currentNode).script_id, i_currentNode, creature.GetGuidStr().c_str());
-        creature.GetMap()->ScriptsStart(sCreatureMovementScripts, i_path->at(i_currentNode).script_id, &creature, &creature);
+        creature.GetMap(true)->ScriptsStart(sCreatureMovementScripts, i_path->at(i_currentNode).script_id, &creature, &creature);
     }
 
     // We have reached the destination and can process behavior
@@ -348,7 +348,7 @@ void FlightPathMovementGenerator::DoEventIfAny(Player& player, TaxiPathNodeEntry
         DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "Taxi %s event %u of node %u of path %u for player %s", departure ? "departure" : "arrival", eventid, node.index, node.path, player.GetName());
 
         if (!sScriptMgr.OnProcessEvent(eventid, &player, &player, departure))
-            player.GetMap()->ScriptsStart(sEventScripts, eventid, &player, &player);
+            player.GetMap(true)->ScriptsStart(sEventScripts, eventid, &player, &player);
     }
 }
 

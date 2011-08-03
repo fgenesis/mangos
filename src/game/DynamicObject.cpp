@@ -41,7 +41,7 @@ void DynamicObject::AddToWorld()
 {
     ///- Register the dynamicObject for guid lookup
     if(!IsInWorld())
-        GetMap()->GetObjectsStore().insert<DynamicObject>(GetObjectGuid(), (DynamicObject*)this);
+        GetMap(true)->GetObjectsStore().insert<DynamicObject>(GetObjectGuid(), (DynamicObject*)this);
 
     Object::AddToWorld();
 }
@@ -51,7 +51,7 @@ void DynamicObject::RemoveFromWorld()
     ///- Remove the dynamicObject from the accessor
     if(IsInWorld())
     {
-        GetMap()->GetObjectsStore().erase<DynamicObject>(GetObjectGuid(), (DynamicObject*)NULL);
+        GetMap(true)->GetObjectsStore().erase<DynamicObject>(GetObjectGuid(), (DynamicObject*)NULL);
         GetViewPoint().Event_RemovedFromWorld();
     }
 
@@ -157,7 +157,7 @@ void DynamicObject::Delay(int32 delaytime)
     m_aliveDuration -= delaytime;
     for(AffectedSet::iterator iter = m_affected.begin(); iter != m_affected.end(); )
     {
-        Unit *target = GetMap()->GetUnit((*iter));
+        Unit *target = GetMap(true)->GetUnit((*iter));
         if (target)
         {
             SpellAuraHolder *holder = target->GetSpellAuraHolder(m_spellId, GetCasterGuid());
@@ -201,7 +201,7 @@ bool DynamicObject::isVisibleForInState(Player const* u, WorldObject const* view
         return true;
 
     // normal case
-    return IsWithinDistInMap(viewPoint, GetMap()->GetVisibilityDistance() + (inVisibleList ? World::GetVisibleObjectGreyDistance() : 0.0f), false);
+    return IsWithinDistInMap(viewPoint, GetMap(true)->GetVisibilityDistance() + (inVisibleList ? World::GetVisibleObjectGreyDistance() : 0.0f), false);
 }
 
 bool DynamicObject::IsHostileTo( Unit const* unit ) const

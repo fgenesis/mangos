@@ -76,7 +76,7 @@ void GameObject::AddToWorld()
 {
     ///- Register the gameobject for guid lookup
     if(!IsInWorld())
-        GetMap()->GetObjectsStore().insert<GameObject>(GetObjectGuid(), (GameObject*)this);
+        GetMap(true)->GetObjectsStore().insert<GameObject>(GetObjectGuid(), (GameObject*)this);
 
     Object::AddToWorld();
 }
@@ -98,7 +98,7 @@ void GameObject::RemoveFromWorld()
             }
         }
 
-        GetMap()->GetObjectsStore().erase<GameObject>(GetObjectGuid(), (GameObject*)NULL);
+        GetMap(true)->GetObjectsStore().erase<GameObject>(GetObjectGuid(), (GameObject*)NULL);
     }
 
     Object::RemoveFromWorld();
@@ -228,7 +228,7 @@ void GameObject::Update(uint32 update_diff, uint32 diff)
 
             for (std::set<ObjectGuid>::iterator itr = m_CapturePlayersSet.begin(); itr != m_CapturePlayersSet.end(); ++itr)
             {
-                if (Player* p_captor = GetMap()->GetPlayer(*itr))
+                if (Player* p_captor = GetMap(true)->GetPlayer(*itr))
                 {
                     // check the radius for the players already in the set; remove those which are not valid
                     if (!p_captor->IsWithinDistInMap(this, radius))
@@ -355,7 +355,7 @@ void GameObject::Update(uint32 update_diff, uint32 diff)
                             }
 
                             // respawn timer
-                            GetMap()->Add(this);
+                            GetMap(true)->Add(this);
                             break;
                     }
                 }
@@ -496,7 +496,7 @@ void GameObject::Update(uint32 update_diff, uint32 diff)
                 {
                     for (GuidsSet::const_iterator itr = m_UniqueUsers.begin(); itr != m_UniqueUsers.end(); ++itr)
                     {
-                        if (Player* owner = GetMap()->GetPlayer(*itr))
+                        if (Player* owner = GetMap(true)->GetPlayer(*itr))
                             owner->CastSpell(owner, spellId, false, NULL, NULL, GetObjectGuid());
                     }
 
@@ -536,7 +536,7 @@ void GameObject::Update(uint32 update_diff, uint32 diff)
             {
                 SendObjectDeSpawnAnim(GetObjectGuid());
                 // reset flags
-                if (GetMap()->Instanceable())
+                if (GetMap(true)->Instanceable())
                 {
                     // In Instances GO_FLAG_LOCKED or GO_FLAG_NO_INTERACT are not changed
                     uint32 currentLockOrInteractFlags = GetUInt32Value(GAMEOBJECT_FLAGS) & (GO_FLAG_LOCKED | GO_FLAG_NO_INTERACT);
@@ -561,7 +561,7 @@ void GameObject::Update(uint32 update_diff, uint32 diff)
 
             // if part of pool, let pool system schedule new spawn instead of just scheduling respawn
             if (uint16 poolid = sPoolMgr.IsPartOfAPool<GameObject>(GetGUIDLow()))
-                sPoolMgr.UpdatePool<GameObject>(*GetMap()->GetPersistentState(), poolid, GetGUIDLow());
+                sPoolMgr.UpdatePool<GameObject>(*GetMap(true)->GetPersistentState(), poolid, GetGUIDLow());
 
             // can be not in world at pool despawn
             if (IsInWorld())
@@ -579,7 +579,7 @@ void GameObject::Refresh()
         return;
 
     if (isSpawned())
-        GetMap()->Add(this);
+        GetMap(true)->Add(this);
 }
 
 void GameObject::AddUniqueUse(Player* player)
@@ -601,7 +601,7 @@ void GameObject::Delete()
     SetUInt32Value(GAMEOBJECT_FLAGS, GetGOInfo()->flags);
 
     if (uint16 poolid = sPoolMgr.IsPartOfAPool<GameObject>(GetGUIDLow()))
-        sPoolMgr.UpdatePool<GameObject>(*GetMap()->GetPersistentState(), poolid, GetGUIDLow());
+        sPoolMgr.UpdatePool<GameObject>(*GetMap(true)->GetPersistentState(), poolid, GetGUIDLow());
     else
         AddObjectToRemoveList();
 }
@@ -834,7 +834,7 @@ Unit* GameObject::GetOwner() const
 void GameObject::SaveRespawnTime()
 {
     if (m_respawnTime > time(NULL) && m_spawnedByDefault)
-        GetMap()->GetPersistentState()->SaveGORespawnTime(GetGUIDLow(), m_respawnTime);
+        GetMap(true)->GetPersistentState()->SaveGORespawnTime(GetGUIDLow(), m_respawnTime);
 }
 
 bool GameObject::isVisibleForInState(Player const* u, WorldObject const* viewPoint, bool inVisibleList) const
@@ -873,7 +873,7 @@ bool GameObject::isVisibleForInState(Player const* u, WorldObject const* viewPoi
     }
 
     // check distance
-    return IsWithinDistInMap(viewPoint, GetMap()->GetVisibilityDistance() +
+    return IsWithinDistInMap(viewPoint, GetMap(true)->GetVisibilityDistance() +
         (inVisibleList ? World::GetVisibleObjectGreyDistance() : 0.0f), false);
 }
 
@@ -882,7 +882,7 @@ void GameObject::Respawn()
     if (m_spawnedByDefault && m_respawnTime > 0)
     {
         m_respawnTime = time(NULL);
-        GetMap()->GetPersistentState()->SaveGORespawnTime(GetGUIDLow(), 0);
+        GetMap(true)->GetPersistentState()->SaveGORespawnTime(GetGUIDLow(), 0);
     }
 }
 
@@ -974,7 +974,7 @@ void GameObject::SummonLinkedTrapIfAny()
         return;
 
     GameObject* linkedGO = new GameObject;
-    if (!linkedGO->Create(GetMap()->GenerateLocalLowGuid(HIGHGUID_GAMEOBJECT), linkedEntry, GetMap(),
+    if (!linkedGO->Create(GetMap(true)->GenerateLocalLowGuid(HIGHGUID_GAMEOBJECT), linkedEntry, GetMap(),
          GetPhaseMask(), GetPositionX(), GetPositionY(), GetPositionZ(), GetOrientation(), 0.0f, 0.0f, 0.0f, 0.0f, GO_ANIMPROGRESS_DEFAULT, GO_STATE_READY))
     {
         delete linkedGO;
@@ -990,7 +990,7 @@ void GameObject::SummonLinkedTrapIfAny()
         linkedGO->SetUInt32Value(GAMEOBJECT_LEVEL, GetUInt32Value(GAMEOBJECT_LEVEL));
     }
 
-    GetMap()->Add(linkedGO);
+    GetMap(true)->Add(linkedGO);
 }
 
 void GameObject::TriggerLinkedGameObject(Unit* target)
@@ -1105,7 +1105,7 @@ void GameObject::Use(Unit* user)
             UseDoorOrButton();
 
             // activate script
-            GetMap()->ScriptsStart(sGameObjectScripts, GetGUIDLow(), spellCaster, this);
+            GetMap(true)->ScriptsStart(sGameObjectScripts, GetGUIDLow(), spellCaster, this);
             return;
         }
         case GAMEOBJECT_TYPE_BUTTON:                        // 1
@@ -1114,7 +1114,7 @@ void GameObject::Use(Unit* user)
             UseDoorOrButton();
 
             // activate script
-            GetMap()->ScriptsStart(sGameObjectScripts, GetGUIDLow(), spellCaster, this);
+            GetMap(true)->ScriptsStart(sGameObjectScripts, GetGUIDLow(), spellCaster, this);
 
             TriggerLinkedGameObject(user);
             return;
@@ -1145,7 +1145,7 @@ void GameObject::Use(Unit* user)
                 DEBUG_LOG("Chest ScriptStart id %u for GO %u", GetGOInfo()->chest.eventId, GetGUIDLow());
 
                 if (!sScriptMgr.OnProcessEvent(GetGOInfo()->chest.eventId, user, this, true))
-                    GetMap()->ScriptsStart(sEventScripts, GetGOInfo()->chest.eventId, user, this);
+                    GetMap(true)->ScriptsStart(sEventScripts, GetGOInfo()->chest.eventId, user, this);
             }
 
             TriggerLinkedGameObject(user);
@@ -1266,7 +1266,7 @@ void GameObject::Use(Unit* user)
                     DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "Goober ScriptStart id %u for GO entry %u (GUID %u).", info->goober.eventId, GetEntry(), GetGUIDLow());
 
                     if (!sScriptMgr.OnProcessEvent(info->goober.eventId, player, this, true))
-                        GetMap()->ScriptsStart(sEventScripts, info->goober.eventId, player, this);
+                        GetMap(true)->ScriptsStart(sEventScripts, info->goober.eventId, player, this);
 
                     if (player->CanUseBattleGroundObject())
                     {
@@ -1337,7 +1337,7 @@ void GameObject::Use(Unit* user)
             if (info->camera.eventID)
             {
                 if (!sScriptMgr.OnProcessEvent(info->camera.eventID, player, this, true))
-                    GetMap()->ScriptsStart(sEventScripts, info->camera.eventID, player, this);
+                    GetMap(true)->ScriptsStart(sEventScripts, info->camera.eventID, player, this);
             }
 
             return;
@@ -1499,7 +1499,7 @@ void GameObject::Use(Unit* user)
 
             // owner is first user for non-wild GO objects, if it offline value already set to current user
             if (!GetOwnerGuid())
-                if (Player* firstUser = GetMap()->GetPlayer(m_firstUser))
+                if (Player* firstUser = GetMap(true)->GetPlayer(m_firstUser))
                     spellCaster = firstUser;
 
             spellId = info->summoningRitual.spellId;
@@ -1759,7 +1759,7 @@ void GameObject::Use(Unit* user)
                 if (info->capturePoint.winEventID1)
                 {
                     if (!sScriptMgr.OnProcessEvent(info->capturePoint.winEventID1, user, this, true))
-                        GetMap()->ScriptsStart(sEventScripts, info->capturePoint.winEventID1, user, this);
+                        GetMap(true)->ScriptsStart(sEventScripts, info->capturePoint.winEventID1, user, this);
 
                     m_captureState = CAPTURE_STATE_WIN;
                 }
@@ -1771,7 +1771,7 @@ void GameObject::Use(Unit* user)
                 if (info->capturePoint.winEventID2)
                 {
                     if (!sScriptMgr.OnProcessEvent(info->capturePoint.winEventID2, user, this, true))
-                        GetMap()->ScriptsStart(sEventScripts, info->capturePoint.winEventID2, user, this);
+                        GetMap(true)->ScriptsStart(sEventScripts, info->capturePoint.winEventID2, user, this);
 
                     m_captureState = CAPTURE_STATE_WIN;
                 }
@@ -1786,7 +1786,7 @@ void GameObject::Use(Unit* user)
                 if (info->capturePoint.contestedEventID1)
                 {
                     if (!sScriptMgr.OnProcessEvent(info->capturePoint.contestedEventID1, user, this, true))
-                        GetMap()->ScriptsStart(sEventScripts, info->capturePoint.contestedEventID1, user, this);
+                        GetMap(true)->ScriptsStart(sEventScripts, info->capturePoint.contestedEventID1, user, this);
 
                     m_captureState = CAPTURE_STATE_CONTEST;
                 }
@@ -1798,7 +1798,7 @@ void GameObject::Use(Unit* user)
                 if (info->capturePoint.contestedEventID2)
                 {
                     if (!sScriptMgr.OnProcessEvent(info->capturePoint.contestedEventID2, user, this, true))
-                        GetMap()->ScriptsStart(sEventScripts, info->capturePoint.contestedEventID2, user, this);
+                        GetMap(true)->ScriptsStart(sEventScripts, info->capturePoint.contestedEventID2, user, this);
 
                     m_captureState = CAPTURE_STATE_CONTEST;
                 }
@@ -1813,7 +1813,7 @@ void GameObject::Use(Unit* user)
                 if (info->capturePoint.progressEventID1)
                 {
                     if (!sScriptMgr.OnProcessEvent(info->capturePoint.progressEventID1, user, this, true))
-                        GetMap()->ScriptsStart(sEventScripts, info->capturePoint.progressEventID1, user, this);
+                        GetMap(true)->ScriptsStart(sEventScripts, info->capturePoint.progressEventID1, user, this);
 
                     // set capture state to aly
                     m_captureState = CAPTURE_STATE_PROGRESS;
@@ -1827,7 +1827,7 @@ void GameObject::Use(Unit* user)
                 if (info->capturePoint.progressEventID2)
                 {
                     if (!sScriptMgr.OnProcessEvent(info->capturePoint.progressEventID2, user, this, true))
-                        GetMap()->ScriptsStart(sEventScripts, info->capturePoint.progressEventID2, user, this);
+                        GetMap(true)->ScriptsStart(sEventScripts, info->capturePoint.progressEventID2, user, this);
 
                     // set capture state to horde
                     m_captureState = CAPTURE_STATE_PROGRESS;
@@ -1844,7 +1844,7 @@ void GameObject::Use(Unit* user)
                 if (info->capturePoint.neutralEventID1)
                 {
                     if (!sScriptMgr.OnProcessEvent(info->capturePoint.neutralEventID1, user, this, true))
-                        GetMap()->ScriptsStart(sEventScripts, info->capturePoint.neutralEventID1, user, this);
+                        GetMap(true)->ScriptsStart(sEventScripts, info->capturePoint.neutralEventID1, user, this);
 
                     m_captureState = CAPTURE_STATE_NEUTRAL;
                     m_ownerFaction = TEAM_NONE;
@@ -1857,7 +1857,7 @@ void GameObject::Use(Unit* user)
                 if (info->capturePoint.neutralEventID2)
                 {
                     if (!sScriptMgr.OnProcessEvent(info->capturePoint.neutralEventID2, user, this, true))
-                        GetMap()->ScriptsStart(sEventScripts, info->capturePoint.neutralEventID2, user, this);
+                        GetMap(true)->ScriptsStart(sEventScripts, info->capturePoint.neutralEventID2, user, this);
 
                     m_captureState = CAPTURE_STATE_NEUTRAL;
                     m_ownerFaction = TEAM_NONE;
@@ -1971,7 +1971,7 @@ void GameObject::DamageTaken(Unit* pDoneBy, uint32 damage)
             RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_DAMAGED);
             SetFlag(GAMEOBJECT_FLAGS, GO_FLAG_DESTROYED);
             SetDisplayId(m_goInfo->destructibleBuilding.destroyedDisplayId);
-            GetMap()->ScriptsStart(sEventScripts, m_goInfo->destructibleBuilding.destroyedEvent, pDoneBy, this);
+            GetMap(true)->ScriptsStart(sEventScripts, m_goInfo->destructibleBuilding.destroyedEvent, pDoneBy, this);
             if (pWho)
             {
                 if (BattleGround *bg = pWho->GetBattleGround())
@@ -1985,7 +1985,7 @@ void GameObject::DamageTaken(Unit* pDoneBy, uint32 damage)
         {
             SetFlag(GAMEOBJECT_FLAGS, GO_FLAG_DAMAGED);
             SetDisplayId(m_goInfo->destructibleBuilding.damagedDisplayId);
-            GetMap()->ScriptsStart(sEventScripts, m_goInfo->destructibleBuilding.damageEvent, pDoneBy, this);
+            GetMap(true)->ScriptsStart(sEventScripts, m_goInfo->destructibleBuilding.damageEvent, pDoneBy, this);
             // if we have a "dead" display we can "kill" the building after its damaged
             if (m_goInfo->destructibleBuilding.destroyedDisplayId)
             {
@@ -2015,7 +2015,7 @@ void GameObject::Rebuild(Unit* pWho)
     RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_DAMAGED | GO_FLAG_DESTROYED);
     SetDisplayId(m_goInfo->displayId);
     m_health = GetMaxHealth();
-    GetMap()->ScriptsStart(sEventScripts, m_goInfo->destructibleBuilding.rebuildingEvent, pWho, this);
+    GetMap(true)->ScriptsStart(sEventScripts, m_goInfo->destructibleBuilding.rebuildingEvent, pWho, this);
 
     SetGoAnimProgress(255);
 }

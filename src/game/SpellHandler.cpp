@@ -289,7 +289,7 @@ void WorldSession::HandleGameObjectUseOpcode( WorldPacket & recv_data )
     if (!_player->IsSelfMover())
         return;
 
-    GameObject *obj = GetPlayer()->GetMap()->GetGameObject(guid);
+    GameObject *obj = GetPlayer()->GetMap(true)->GetGameObject(guid);
 
     if(!obj)
         return;
@@ -329,7 +329,7 @@ void WorldSession::HandleGameobjectReportUse(WorldPacket& recvPacket)
     if (!_player->IsSelfMover())
         return;
 
-    GameObject* go = GetPlayer()->GetMap()->GetGameObject(guid);
+    GameObject* go = GetPlayer()->GetMap(true)->GetGameObject(guid);
     if (!go)
         return;
 
@@ -549,7 +549,7 @@ void WorldSession::HandlePetCancelAuraOpcode( WorldPacket& recvPacket)
         return;
     }
 
-    Creature* pet = _player->GetMap()->GetAnyTypeCreature(guid);
+    Creature* pet = _player->GetMap(true)->GetAnyTypeCreature(guid);
 
     if (!pet)
     {
@@ -634,7 +634,7 @@ void WorldSession::HandleSpellClick( WorldPacket & recv_data )
     ObjectGuid guid;
     recv_data >> guid;
 
-    Creature *unit = _player->GetMap()->GetAnyTypeCreature(guid);
+    Creature *unit = _player->GetMap(true)->GetAnyTypeCreature(guid);
     if (!unit)
         return;
 
@@ -669,7 +669,7 @@ void WorldSession::HandleUpdateProjectilePosition(WorldPacket& recvPacket)
     recvPacket >> m_targetX >> m_targetY >> m_targetZ;
 
     // Do we need unit as we use 3d position anyway ?
-    Unit* pCaster = GetPlayer()->GetMap()->GetUnit(casterGuid);
+    Unit* pCaster = GetPlayer()->GetMap(true)->GetUnit(casterGuid);
     if (!pCaster)
         return;
 
@@ -705,7 +705,7 @@ void WorldSession::HandleGetMirrorimageData(WorldPacket& recv_data)
     ObjectGuid guid;
     recv_data >> guid;
 
-    Creature* pCreature = _player->GetMap()->GetAnyTypeCreature(guid);
+    Creature* pCreature = _player->GetMap(true)->GetAnyTypeCreature(guid);
 
     if (!pCreature)
         return;

@@ -75,9 +75,9 @@ CreatureEventAI::CreatureEventAI(Creature *c ) : CreatureAI(c)
             if ((*i).event_flags & EFLAG_DEBUG_ONLY)
                 continue;
             #endif
-            if (m_creature->GetMap()->IsDungeon())
+            if (m_creature->GetMap(true)->IsDungeon())
             {
-                if ((1 << (m_creature->GetMap()->GetSpawnMode()+1)) & (*i).event_flags)
+                if ((1 << (m_creature->GetMap(true)->GetSpawnMode()+1)) & (*i).event_flags)
                 {
                     ++events_count;
                 }
@@ -99,9 +99,9 @@ CreatureEventAI::CreatureEventAI(Creature *c ) : CreatureAI(c)
                 if ((*i).event_flags & EFLAG_DEBUG_ONLY)
                     continue;
                 #endif
-                if (m_creature->GetMap()->IsDungeon())
+                if (m_creature->GetMap(true)->IsDungeon())
                 {
-                    if ((1 << (m_creature->GetMap()->GetSpawnMode()+1)) & (*i).event_flags)
+                    if ((1 << (m_creature->GetMap(true)->GetSpawnMode()+1)) & (*i).event_flags)
                     {
                         //event flagged for instance mode
                         m_CreatureEventAIList.push_back(CreatureEventAIHolder(*i));
@@ -580,7 +580,7 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
         {
             ThreatList const& threatList = m_creature->getThreatManager().getThreatList();
             for (ThreatList::const_iterator i = threatList.begin(); i != threatList.end(); ++i)
-                if(Unit* Temp = m_creature->GetMap()->GetUnit((*i)->getUnitGuid()))
+                if(Unit* Temp = m_creature->GetMap(true)->GetUnit((*i)->getUnitGuid()))
                     m_creature->getThreatManager().modifyThreatPercent(Temp, action.threat_all_pct.percent);
             break;
         }
@@ -687,7 +687,7 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
         {
             ThreatList const& threatList = m_creature->getThreatManager().getThreatList();
             for (ThreatList::const_iterator i = threatList.begin(); i != threatList.end(); ++i)
-                if (Player* temp = m_creature->GetMap()->GetPlayer((*i)->getUnitGuid()))
+                if (Player* temp = m_creature->GetMap(true)->GetPlayer((*i)->getUnitGuid()))
                         temp->CastedCreatureOrGO(action.cast_event_all.creatureId, m_creature->GetObjectGuid(), action.cast_event_all.spellId);
             break;
         }
@@ -1110,7 +1110,7 @@ void CreatureEventAI::MoveInLineOfSight(Unit *who)
                 AttackStart(who);
                 who->RemoveSpellsCausingAura(SPELL_AURA_MOD_STEALTH);
             }
-            else if (m_creature->GetMap()->IsDungeon())
+            else if (m_creature->GetMap(true)->IsDungeon())
             {
                 m_creature->AddThreat(who);
                 who->SetInCombatWith(m_creature);

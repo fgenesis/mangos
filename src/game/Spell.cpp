@@ -190,7 +190,7 @@ void SpellCastTargets::setCorpseTarget(Corpse* corpse)
 
 void SpellCastTargets::Update(Unit* caster)
 {
-    m_GOTarget   = m_GOTargetGUID ? caster->GetMap()->GetGameObject(m_GOTargetGUID) : NULL;
+    m_GOTarget   = m_GOTargetGUID ? caster->GetMap(true)->GetGameObject(m_GOTargetGUID) : NULL;
     m_unitTarget = m_unitTargetGUID ?
         ( m_unitTargetGUID == caster->GetObjectGuid() ? caster : ObjectAccessor::GetUnit(*caster, m_unitTargetGUID) ) :
         NULL;
@@ -332,9 +332,9 @@ Spell::Spell( Unit* caster, SpellEntry const *info, bool triggered, ObjectGuid o
     MANGOS_ASSERT( caster != NULL && info != NULL );
     MANGOS_ASSERT( info == sSpellStore.LookupEntry( info->Id ) && "`info` must be pointer to sSpellStore element");
 
-    if (info->SpellDifficultyId && caster->GetTypeId() != TYPEID_PLAYER && caster->IsInWorld() && caster->GetMap()->IsDungeon())
+    if (info->SpellDifficultyId && caster->GetTypeId() != TYPEID_PLAYER && caster->IsInWorld() && caster->GetMap(true)->IsDungeon())
     {
-        if (SpellEntry const* spellEntry = GetSpellEntryByDifficulty(info->SpellDifficultyId, caster->GetMap()->GetDifficulty(), caster->GetMap()->IsRaid()))
+        if (SpellEntry const* spellEntry = GetSpellEntryByDifficulty(info->SpellDifficultyId, caster->GetMap(true)->GetDifficulty(), caster->GetMap(true)->IsRaid()))
             m_spellInfo = spellEntry;
         else
             m_spellInfo = info;
@@ -976,7 +976,7 @@ void Spell::AddGOTarget(GameObject* pVictim, SpellEffectIndex effIndex)
 
 void Spell::AddGOTarget(ObjectGuid goGuid, SpellEffectIndex effIndex)
 {
-    if (GameObject* go = m_caster->GetMap()->GetGameObject(goGuid))
+    if (GameObject* go = m_caster->GetMap(true)->GetGameObject(goGuid))
         AddGOTarget(go, effIndex);
 }
 
@@ -1447,7 +1447,7 @@ void Spell::DoAllEffectOnTarget(GOTargetInfo *target)
     if(!effectMask)
         return;
 
-    GameObject* go = m_caster->GetMap()->GetGameObject(target->targetGUID);
+    GameObject* go = m_caster->GetMap(true)->GetGameObject(target->targetGUID);
     if(!go)
         return;
 
@@ -2124,7 +2124,7 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
             if (!m_groupPets.empty())
             {
                 for (GroupPetList::const_iterator itr = m_groupPets.begin(); itr != m_groupPets.end(); ++itr)
-                    if (Pet* _pet = m_caster->GetMap()->GetPet(*itr))
+                    if (Pet* _pet = m_caster->GetMap(true)->GetPet(*itr))
                         targetUnitMap.push_back(_pet);
             }
             break;
@@ -2449,7 +2449,7 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
             if (m_spellInfo->Id == 57669)                    // Replenishment (special target selection)
             {
                 // in arena, target should be only caster
-                if (m_caster->GetMap()->IsBattleArena())
+                if (m_caster->GetMap(true)->IsBattleArena())
                     targetUnitMap.push_back(m_caster);
                 else
                     FillRaidOrPartyManaPriorityTargets(targetUnitMap, m_caster, m_caster, radius, 10, true, false, true);
@@ -2599,7 +2599,7 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
             {
                 // checked in Spell::CheckCast
                 if (m_caster->GetTypeId()==TYPEID_PLAYER)
-                    if (Unit* target = m_caster->GetMap()->GetPet(((Player*)m_caster)->GetSelectionGuid()))
+                    if (Unit* target = m_caster->GetMap(true)->GetPet(((Player*)m_caster)->GetSelectionGuid()))
                         targetUnitMap.push_back(target);
             }
             // Circle of Healing
@@ -2827,7 +2827,7 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
                             if (!m_groupPets.empty())
                             {
                                 for (GroupPetList::const_iterator itr = m_groupPets.begin(); itr != m_groupPets.end(); ++itr)
-                                    if (Pet* _pet = Target->GetMap()->GetPet(*itr))
+                                    if (Pet* _pet = Target->GetMap(true)->GetPet(*itr))
                                         if ( pTarget->IsWithinDistInMap(_pet, radius) )
                                             targetUnitMap.push_back(_pet);
                             }
@@ -3187,7 +3187,7 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
                         targetUnitMap.push_back(m_targets.getUnitTarget());
                     if (m_targets.getCorpseTargetGuid())
                     {
-                        if (Corpse *corpse = m_caster->GetMap()->GetCorpse(m_targets.getCorpseTargetGuid()))
+                        if (Corpse *corpse = m_caster->GetMap(true)->GetCorpse(m_targets.getCorpseTargetGuid()))
                             if (Player* owner = ObjectAccessor::FindPlayer(corpse->GetOwnerGuid()))
                                 targetUnitMap.push_back(owner);
                     }
@@ -3250,7 +3250,7 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
                         targetUnitMap.push_back(m_targets.getUnitTarget());
                     else if (m_targets.getCorpseTargetGuid())
                     {
-                        if (Corpse *corpse = m_caster->GetMap()->GetCorpse(m_targets.getCorpseTargetGuid()))
+                        if (Corpse *corpse = m_caster->GetMap(true)->GetCorpse(m_targets.getCorpseTargetGuid()))
                             if (Player* owner = ObjectAccessor::FindPlayer(corpse->GetOwnerGuid()))
                                 targetUnitMap.push_back(owner);
                     }
@@ -4102,7 +4102,7 @@ void Spell::update(uint32 difftime)
                         {
                             GOTargetInfo const& target = *ihit;
 
-                            GameObject* go = m_caster->GetMap()->GetGameObject(target.targetGUID);
+                            GameObject* go = m_caster->GetMap(true)->GetGameObject(target.targetGUID);
                             if(!go)
                                 continue;
 
@@ -4784,7 +4784,7 @@ void Spell::SendChannelStart(uint32 duration)
         {
             if (itr->effectMask & (1 << EFFECT_INDEX_0))
             {
-                target = m_caster->GetMap()->GetGameObject(itr->targetGUID);
+                target = m_caster->GetMap(true)->GetGameObject(itr->targetGUID);
                 break;
             }
         }
@@ -5404,7 +5404,7 @@ SpellCastResult Spell::CheckCast(bool strict)
                 if (m_targets.m_targetMask == TARGET_FLAG_SELF &&
                     m_spellInfo->EffectImplicitTargetA[EFFECT_INDEX_1] == TARGET_CHAIN_DAMAGE)
                 {
-                    target = m_caster->GetMap()->GetUnit(((Player *)m_caster)->GetSelectionGuid());
+                    target = m_caster->GetMap(true)->GetUnit(((Player *)m_caster)->GetSelectionGuid());
                     if (!target)
                         return SPELL_FAILED_BAD_TARGETS;
 
@@ -6415,7 +6415,7 @@ SpellCastResult Spell::CheckCast(bool strict)
 
                 // In case of TARGET_SCRIPT, we have already added a target. Use it here (and find a better solution)
                 if (m_UniqueTargetInfo.size() == 1)
-                    pTarget = m_caster->GetMap()->GetAnyTypeCreature(m_UniqueTargetInfo.front().targetGUID);
+                    pTarget = m_caster->GetMap(true)->GetAnyTypeCreature(m_UniqueTargetInfo.front().targetGUID);
 
                 if (!pTarget)
                     return SPELL_FAILED_BAD_TARGETS;
@@ -7124,7 +7124,7 @@ SpellCastResult Spell::CheckItems()
         GameObject* ok = NULL;
         MaNGOS::GameObjectFocusCheck go_check(m_caster,m_spellInfo->RequiresSpellFocus);
         MaNGOS::GameObjectSearcher<MaNGOS::GameObjectFocusCheck> checker(ok, go_check);
-        Cell::VisitGridObjects(m_caster, checker, m_caster->GetMap()->GetVisibilityDistance());
+        Cell::VisitGridObjects(m_caster, checker, m_caster->GetMap(true)->GetVisibilityDistance());
 
         if(!ok)
             return SPELL_FAILED_REQUIRES_SPELL_FOCUS;
@@ -7563,7 +7563,7 @@ void Spell::UpdateOriginalCasterPointer()
         m_originalCaster = m_caster;
     else if (m_originalCasterGUID.IsGameObject())
     {
-        GameObject* go = m_caster->IsInWorld() ? m_caster->GetMap()->GetGameObject(m_originalCasterGUID) : NULL;
+        GameObject* go = m_caster->IsInWorld() ? m_caster->GetMap(true)->GetGameObject(m_originalCasterGUID) : NULL;
         m_originalCaster = go ? go->GetOwner() : NULL;
     }
     else
@@ -7717,7 +7717,7 @@ bool Spell::CheckTarget( Unit* target, SpellEffectIndex eff )
                 if (m_targets.getCorpseTargetGuid())
                     return false;
 
-                Corpse *corpse = m_caster->GetMap()->GetCorpse(m_targets.getCorpseTargetGuid());
+                Corpse *corpse = m_caster->GetMap(true)->GetCorpse(m_targets.getCorpseTargetGuid());
                 if(!corpse)
                     return false;
 
@@ -8006,7 +8006,7 @@ void Spell::FillRaidOrPartyTargets(UnitList &targetUnitMap, Unit* member, Unit* 
                         if (!m_groupPets.empty())
                         {
                             for (GroupPetList::const_iterator itr = m_groupPets.begin(); itr != m_groupPets.end(); ++itr)
-                                if (Pet* _pet = Target->GetMap()->GetPet(*itr))
+                                if (Pet* _pet = Target->GetMap(true)->GetPet(*itr))
                                     if ((_pet == center || center->IsWithinDistInMap(_pet, radius)) &&
                                     (withcaster || _pet != m_caster))
                                          targetUnitMap.push_back(_pet);
@@ -8070,14 +8070,14 @@ WorldObject* Spell::GetAffectiveCasterObject() const
         return m_caster;
 
     if (m_originalCasterGUID.IsGameObject() && m_caster->IsInWorld())
-        return m_caster->GetMap()->GetGameObject(m_originalCasterGUID);
+        return m_caster->GetMap(true)->GetGameObject(m_originalCasterGUID);
     return m_originalCaster;
 }
 
 WorldObject* Spell::GetCastingObject() const
 {
     if (m_originalCasterGUID.IsGameObject())
-        return m_caster->IsInWorld() ? m_caster->GetMap()->GetGameObject(m_originalCasterGUID) : NULL;
+        return m_caster->IsInWorld() ? m_caster->GetMap(true)->GetGameObject(m_originalCasterGUID) : NULL;
     else
         return m_caster;
 }
@@ -8169,7 +8169,7 @@ void Spell::DoSummonSnakes(SpellEffectIndex eff_idx)
         return;
 
     // Find trap GO and get it coordinates to spawn snakes
-    GameObject* pTrap = m_caster->GetMap()->GetGameObject(m_originalCasterGUID);
+    GameObject* pTrap = m_caster->GetMap(true)->GetGameObject(m_originalCasterGUID);
     if (!pTrap)
     {
         sLog.outError("EffectSummonSnakes faild to find trap for caster %s (GUID: %u)", m_caster->GetName(), m_caster->GetObjectGuid().GetCounter());
@@ -8361,7 +8361,7 @@ bool Spell::FillCustomTargetMap(SpellEffectIndex i, UnitList &targetUnitMap)
                 {
 
                     for (GuardianPetList::const_iterator itr = petList->begin(); itr != petList->end(); ++itr)
-                        if (Unit* ghoul = m_caster->GetMap()->GetUnit(*itr))
+                        if (Unit* ghoul = m_caster->GetMap(true)->GetUnit(*itr))
                             if (ghoul->GetEntry() == 24207)
                                 targetUnitMap.push_back(ghoul);
 

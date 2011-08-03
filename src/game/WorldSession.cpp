@@ -418,7 +418,7 @@ void WorldSession::LogoutPlayer(bool Save)
             std::set<Player*> aset;
             for(Unit::AttackerSet::const_iterator itr = _player->getAttackers().begin(); itr != _player->getAttackers().end(); ++itr)
             {
-                Unit* attacker = _player->GetMap()->GetUnit(*itr);
+                Unit* attacker = _player->GetMap(true)->GetUnit(*itr);
                    if (!attacker)
                        continue;
 

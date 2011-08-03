@@ -96,11 +96,11 @@ VendorItem const* VendorItemData::FindItemCostPair(uint32 item_id, uint32 extend
 
 bool AssistDelayEvent::Execute(uint64 /*e_time*/, uint32 /*p_time*/)
 {
-    if (Unit* victim = m_owner.GetMap()->GetUnit(m_victimGuid))
+    if (Unit* victim = m_owner.GetMap(true)->GetUnit(m_victimGuid))
     {
         while (!m_assistantGuids.empty())
         {
-            Creature* assistant = m_owner.GetMap()->GetAnyTypeCreature(*m_assistantGuids.rbegin());
+            Creature* assistant = m_owner.GetMap(true)->GetAnyTypeCreature(*m_assistantGuids.rbegin());
             m_assistantGuids.pop_back();
 
             if (assistant && assistant->CanAssistTo(&m_owner, victim))
@@ -190,7 +190,7 @@ void Creature::AddToWorld()
 {
     ///- Register the creature for guid lookup
     if (!IsInWorld() && GetObjectGuid().IsCreatureOrVehicle())
-        GetMap()->GetObjectsStore().insert<Creature>(GetObjectGuid(), (Creature*)this);
+        GetMap(true)->GetObjectsStore().insert<Creature>(GetObjectGuid(), (Creature*)this);
 
     Unit::AddToWorld();
 
@@ -202,7 +202,7 @@ void Creature::RemoveFromWorld()
 {
     ///- Remove the creature from the accessor
     if (IsInWorld() && GetObjectGuid().IsCreatureOrVehicle())
-        GetMap()->GetObjectsStore().erase<Creature>(GetObjectGuid(), (Creature*)NULL);
+        GetMap(true)->GetObjectsStore().erase<Creature>(GetObjectGuid(), (Creature*)NULL);
 
     Unit::RemoveFromWorld();
 }
@@ -231,7 +231,7 @@ void Creature::RemoveCorpse()
 
     float x, y, z, o;
     GetRespawnCoord(x, y, z, &o);
-    GetMap()->CreatureRelocation(this, x, y, z, o);
+    GetMap(true)->CreatureRelocation(this, x, y, z, o);
 }
 
 /**
@@ -251,7 +251,7 @@ bool Creature::InitEntry(uint32 Entry, CreatureData const* data /*=NULL*/, GameE
     }
 
     CreatureInfo const *cinfo = normalInfo;
-    for (Difficulty diff = GetMap()->GetDifficulty(); diff > REGULAR_DIFFICULTY; diff = GetPrevDifficulty(diff, GetMap()->IsRaid()))
+    for (Difficulty diff = GetMap(true)->GetDifficulty(); diff > REGULAR_DIFFICULTY; diff = GetPrevDifficulty(diff, GetMap(true)->IsRaid()))
     {
         // we already have valid Map pointer for current creature!
         if (normalInfo->DifficultyEntry[diff - 1])
@@ -516,7 +516,7 @@ void Creature::Update(uint32 update_diff, uint32 diff)
                 if (AI())
                     AI()->JustRespawned();
 
-                GetMap()->Add(this);
+                GetMap(true)->Add(this);
             }
             break;
         }
@@ -529,7 +529,7 @@ void Creature::Update(uint32 update_diff, uint32 diff)
             {
                 // since pool system can fail to roll unspawned object, this one can remain spawned, so must set respawn nevertheless
                 if (uint16 poolid = sPoolMgr.IsPartOfAPool<Creature>(GetGUIDLow()))
-                    sPoolMgr.UpdatePool<Creature>(*GetMap()->GetPersistentState(), poolid, GetGUIDLow());
+                    sPoolMgr.UpdatePool<Creature>(*GetMap(true)->GetPersistentState(), poolid, GetGUIDLow());
 
                 if (IsInWorld())                            // can be despawned by update pool
                 {
@@ -560,7 +560,7 @@ void Creature::Update(uint32 update_diff, uint32 diff)
                 {
                     // since pool system can fail to roll unspawned object, this one can remain spawned, so must set respawn nevertheless
                     if (uint16 poolid = sPoolMgr.IsPartOfAPool<Creature>(GetGUIDLow()))
-                        sPoolMgr.UpdatePool<Creature>(*GetMap()->GetPersistentState(), poolid, GetGUIDLow());
+                        sPoolMgr.UpdatePool<Creature>(*GetMap(true)->GetPersistentState(), poolid, GetGUIDLow());
 
                     if (IsInWorld())                        // can be despawned by update pool
                     {
@@ -796,7 +796,7 @@ bool Creature::Create(uint32 guidlow, CreatureCreatePos& cPos, CreatureInfo cons
     //Notify the map's instance data.
     //Only works if you create the object in it, not if it is moves to that map.
     //Normally non-players do not teleport to other maps.
-    if (InstanceData* iData = GetMap()->GetInstanceData())
+    if (InstanceData* iData = GetMap(true)->GetInstanceData())
         iData->OnCreatureCreate(this);
 
     switch (GetCreatureInfo()->rank)
@@ -1319,7 +1319,7 @@ bool Creature::LoadFromDB(uint32 guidlow, Map *map)
     {
         m_respawnTime = 0;
 
-        GetMap()->GetPersistentState()->SaveCreatureRespawnTime(GetGUIDLow(), 0);
+        GetMap(true)->GetPersistentState()->SaveCreatureRespawnTime(GetGUIDLow(), 0);
     }
 
     uint32 curhealth = data->curhealth;
@@ -1549,7 +1549,7 @@ bool Creature::FallGround()
     if (tz <= INVALID_HEIGHT)
     {
         DEBUG_LOG("FallGround: creature %u at map %u (x: %f, y: %f, z: %f), not able to retrive a proper GetHeight (z: %f).",
-            GetEntry(), GetMap()->GetId(), GetPositionX(), GetPositionX(), GetPositionZ(), tz);
+            GetEntry(), GetMap(true)->GetId(), GetPositionX(), GetPositionX(), GetPositionZ(), tz);
         return false;
     }
 
@@ -1570,7 +1570,7 @@ bool Creature::FallGround()
     init.Launch();
 
     // hacky solution: by some reason died creatures not updated, that's why need finalize movement state
-    GetMap()->CreatureRelocation(this, GetPositionX(), GetPositionY(), tz, GetOrientation());
+    GetMap(true)->CreatureRelocation(this, GetPositionX(), GetPositionY(), tz, GetOrientation());
     DisableSpline();
     return true;
 }
@@ -1589,7 +1589,7 @@ void Creature::Respawn()
     if (IsDespawned())
     {
         if (HasStaticDBSpawnData())
-            GetMap()->GetPersistentState()->SaveCreatureRespawnTime(GetGUIDLow(), 0);
+            GetMap(true)->GetPersistentState()->SaveCreatureRespawnTime(GetGUIDLow(), 0);
         m_respawnTime = time(NULL);                         // respawn at next tick
     }
 }
@@ -1893,9 +1893,9 @@ void Creature::SaveRespawnTime()
         return;
 
     if (m_respawnTime > time(NULL))                          // dead (no corpse)
-        GetMap()->GetPersistentState()->SaveCreatureRespawnTime(GetGUIDLow(), m_respawnTime);
+        GetMap(true)->GetPersistentState()->SaveCreatureRespawnTime(GetGUIDLow(), m_respawnTime);
     else if (m_corpseDecayTimer > 0)                        // dead (corpse)
-        GetMap()->GetPersistentState()->SaveCreatureRespawnTime(GetGUIDLow(), time(NULL) + m_respawnDelay + m_corpseDecayTimer / IN_MILLISECONDS);
+        GetMap(true)->GetPersistentState()->SaveCreatureRespawnTime(GetGUIDLow(), time(NULL) + m_respawnDelay + m_corpseDecayTimer / IN_MILLISECONDS);
 }
 
 bool Creature::IsOutOfThreatArea(Unit* pVictim) const
@@ -2081,17 +2081,17 @@ Unit* Creature::SelectAttackingTarget(AttackingTarget target, uint32 position) c
         case ATTACKING_TARGET_RANDOM:
         {
             advance(i, position + (rand() % (threatlist.size() - position)));
-            return GetMap()->GetUnit((*i)->getUnitGuid());
+            return GetMap(true)->GetUnit((*i)->getUnitGuid());
         }
         case ATTACKING_TARGET_TOPAGGRO:
         {
             advance(i, position);
-            return GetMap()->GetUnit((*i)->getUnitGuid());
+            return GetMap(true)->GetUnit((*i)->getUnitGuid());
         }
         case ATTACKING_TARGET_BOTTOMAGGRO:
         {
             advance(r, position);
-            return GetMap()->GetUnit((*r)->getUnitGuid());
+            return GetMap(true)->GetUnit((*r)->getUnitGuid());
         }
         case ATTACKING_TARGET_RANDOM_PLAYER:
         {
@@ -2099,7 +2099,7 @@ Unit* Creature::SelectAttackingTarget(AttackingTarget target, uint32 position) c
             threatPlayers.reserve(threatlist.size());
             for (; i != threatlist.end(); ++i)
             {
-                Unit *target = GetMap()->GetUnit((*i)->getUnitGuid());
+                Unit *target = GetMap(true)->GetUnit((*i)->getUnitGuid());
                 if (target && target->GetTypeId() == TYPEID_PLAYER)
                     threatPlayers.push_back(target);
             }
@@ -2111,7 +2111,7 @@ Unit* Creature::SelectAttackingTarget(AttackingTarget target, uint32 position) c
         {
             for (; i != threatlist.end(); ++i)
             {
-                Unit *target = GetMap()->GetUnit((*i)->getUnitGuid());
+                Unit *target = GetMap(true)->GetUnit((*i)->getUnitGuid());
                 if (target && target->GetTypeId() == TYPEID_PLAYER)
                 {
                     if (!position)
@@ -2126,7 +2126,7 @@ Unit* Creature::SelectAttackingTarget(AttackingTarget target, uint32 position) c
         {
             for (; r != threatlist.rend(); ++r)
             {
-                Unit *target = GetMap()->GetUnit((*r)->getUnitGuid());
+                Unit *target = GetMap(true)->GetUnit((*r)->getUnitGuid());
                 if (target && target->GetTypeId() == TYPEID_PLAYER)
                 {
                     if (!position)
