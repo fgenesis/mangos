@@ -2178,14 +2178,7 @@ void LFGMgr::SetRoles(LFGRolesMap* rolesMap)
                 itr2->second = oldRoles;
         }
     }
-    // FG: made original code safer
-    {
-        LFGRolesMap::iterator it = rolesMap->find(tankGuid);
-        if(it != rolesMap->end())
-            it->second = newRole;
-        else
-            rolesMap->insert(std::make_pair(tankGuid, newRole));
-    }
+    rolesMap[tankGuid] = newRole;
     tmpMap.clear();
 
     for (LFGRolesMap::iterator itr = rolesMap->begin(); itr != rolesMap->end(); ++itr)
@@ -2216,14 +2209,7 @@ void LFGMgr::SetRoles(LFGRolesMap* rolesMap)
                 itr2->second = oldRoles;
         }
     }
-    // FG: made original code safer
-    {
-        LFGRolesMap::iterator it = rolesMap->find(healGuid);
-        if(it != rolesMap->end())
-            it->second = newRole;
-        else
-            rolesMap->insert(std::make_pair(healGuid, newRole));
-    }
+    rolesMap[healGuid] = newRole;
     tmpMap.clear();
 
     for (LFGRolesMap::iterator itr = rolesMap->begin(); itr != rolesMap->end(); ++itr)
