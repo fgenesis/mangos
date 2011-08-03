@@ -1391,7 +1391,8 @@ void LFGMgr::UpdateProposal(uint32 ID, ObjectGuid guid, bool accept)
     group->SendUpdate();
 
     // move players from proposal to group
-    for (LFGQueueSet::const_iterator itr = pProposal->playerGuids.begin(); itr != pProposal->playerGuids.end(); ++itr )
+    const LFGQueueSet playerGuidsCopy = pProposal->playerGuids; // FG: use this instead to prevent modification while iterating
+    for (LFGQueueSet::const_iterator itr = playerGuidsCopy.begin(); itr != playerGuidsCopy.end(); ++itr)
     {
         Player* player = sObjectMgr.GetPlayer(*itr);
         if (player && player->IsInWorld())
@@ -2177,7 +2178,14 @@ void LFGMgr::SetRoles(LFGRolesMap* rolesMap)
                 itr2->second = oldRoles;
         }
     }
-    rolesMap->find(tankGuid)->second = newRole;
+    // FG: made original code safer
+    {
+        LFGRolesMap::iterator it = rolesMap->find(tankGuid);
+        if(it != rolesMap->end())
+            it->second = newRole;
+        else
+            rolesMap->insert(std::make_pair(tankGuid, newRole));
+    }
     tmpMap.clear();
 
     for (LFGRolesMap::iterator itr = rolesMap->begin(); itr != rolesMap->end(); ++itr)
@@ -2208,7 +2216,14 @@ void LFGMgr::SetRoles(LFGRolesMap* rolesMap)
                 itr2->second = oldRoles;
         }
     }
-    rolesMap->find(healGuid)->second = newRole;
+    // FG: made original code safer
+    {
+        LFGRolesMap::iterator it = rolesMap->find(healGuid);
+        if(it != rolesMap->end())
+            it->second = newRole;
+        else
+            rolesMap->insert(std::make_pair(healGuid, newRole));
+    }
     tmpMap.clear();
 
     for (LFGRolesMap::iterator itr = rolesMap->begin(); itr != rolesMap->end(); ++itr)
