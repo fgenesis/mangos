@@ -123,7 +123,4 @@ private:
     template<class T, class CONTAINER> void VisitCircle(TypeContainerVisitor<T, CONTAINER> &, Map &, const CellPair& , const CellPair& ) const;
 };
 
-// FG: to fix linker error, weird
-#include "CellImpl.h"
-
 #endif
