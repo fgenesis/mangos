@@ -12539,6 +12539,10 @@ bool Unit::IsCombatStationary()
 
 bool Unit::HasMorePoweredBuff(uint32 spellId)
 {
+    // FG: HACK OMG! This should at least tempfix problems with aura apply
+    return false; // TODO: correct this ASAP
+
+
     SpellEntry const* spellInfo = sSpellStore.LookupEntry(spellId);
 
     if (!spellInfo || !(spellInfo->AttributesEx7 & SPELL_ATTR_EX7_REPLACEABLE_AURA))
