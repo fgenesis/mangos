@@ -2057,7 +2057,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         void CastItemUseSpell(Item *item,SpellCastTargets const& targets,uint8 cast_count, uint32 glyphIndex);
 
         void ApplyItemOnStoreSpell(Item *item, bool apply);
-        void DestroyItemWithOnStoreSpell(Item* item);
+        void DestroyItemWithOnStoreSpell(Item* item, uint32 spellId);
 
         void SendEquipmentSetList();
         void SetEquipmentSet(uint32 index, EquipmentSet eqset);
@@ -2307,9 +2307,11 @@ class MANGOS_DLL_SPEC Player : public Unit
         void RemoveAtLoginFlag(AtLoginFlags f, bool in_db_also = false);
 
         // Temporarily removed pet cache
-        uint32 GetTemporaryUnsummonedPetNumber() const { return m_temporaryUnsummonedPetNumber; }
-        void SetTemporaryUnsummonedPetNumber(uint32 petnumber) { m_temporaryUnsummonedPetNumber = petnumber; }
-        void UnsummonPetTemporaryIfAny();
+        uint8 GetTemporaryUnsummonedPetCount() const { return m_temporaryUnsummonedPetNumber.size(); }
+        void SetTemporaryUnsummonedPetNumber(uint32 petnumber, uint8 count = 0) { m_temporaryUnsummonedPetNumber.insert(std::make_pair<uint8, uint32>(count,petnumber)); }
+        uint32 GetTemporaryUnsummonedPetNumber(uint8 count = 0);
+        void ClearTemporaryUnsummonedPetStorage() { m_temporaryUnsummonedPetNumber.clear(); }
+        void UnsummonPetTemporaryIfAny(bool full = true);
         void ResummonPetTemporaryUnSummonedIfAny();
         bool IsPetNeedBeTemporaryUnsummoned() const { return !IsInWorld() || !isAlive() || IsMounted() /*+in flight*/; }
 
@@ -2787,7 +2789,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         uint32 m_DetectInvTimer;
 
         // Temporary removed pet cache
-        uint32 m_temporaryUnsummonedPetNumber;
+        PetNumberList m_temporaryUnsummonedPetNumber;
 
         AchievementMgr m_achievementMgr;
         ReputationMgr  m_reputationMgr;

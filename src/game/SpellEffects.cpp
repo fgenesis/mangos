@@ -1646,7 +1646,7 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                         case 3: spell_id = 40960; break;    // Blade's Edge Terrace Demon Boss Summon 3
                         case 4: spell_id = 40961; break;    // Blade's Edge Terrace Demon Boss Summon 4
                     }
-                    unitTarget->CastSpell(unitTarget, spell_id, true, NULL, NULL, unitTarget->GetObjectGuid(), m_spellInfo);
+                    unitTarget->CastSpell(unitTarget, spell_id, true);
                     return;
                 }
                 case 42287:                                 // Salvage Wreckage
@@ -4289,7 +4289,17 @@ void Spell::EffectTriggerMissileSpell(SpellEffectIndex effect_idx)
     if (m_caster->GetTypeId() == TYPEID_PLAYER)
         ((Player*)m_caster)->RemoveSpellCooldown(triggered_spell_id);
 
-    m_caster->CastSpell(m_targets.m_destX, m_targets.m_destY, m_targets.m_destZ, spellInfo, true, m_CastItem, 0, m_originalCasterGUID);
+    // Init dest coordinates
+    float x,y,z;
+    x = m_targets.m_destX;
+    y = m_targets.m_destY;
+    z = m_targets.m_destZ;
+
+    MaNGOS::NormalizeMapCoord(x);
+    MaNGOS::NormalizeMapCoord(y);
+    m_caster->UpdateGroundPositionZ(x,y,z);
+
+    m_caster->CastSpell(x, y, z, spellInfo, true, m_CastItem, 0, m_originalCasterGUID);
 }
 
 void Spell::EffectJump(SpellEffectIndex eff_idx)
@@ -6600,7 +6610,7 @@ void Spell::EffectSummonPet(SpellEffectIndex eff_idx)
 {
     uint32 petentry = m_spellInfo->EffectMiscValue[eff_idx];
 
-    Pet *OldSummon = m_caster->GetPet();
+    Pet* OldSummon = m_caster->GetPet();
 
     // if pet requested type already exist
     if (OldSummon)
@@ -6609,22 +6619,16 @@ void Spell::EffectSummonPet(SpellEffectIndex eff_idx)
         if (!OldSummon->IsInWorld())
             return;
 
-        if (petentry == 0 || OldSummon->GetEntry() == petentry)
+        if (m_caster->GetTypeId() == TYPEID_PLAYER && petentry == 0 || OldSummon->GetEntry() == petentry)
         {
             // pet in corpse state can't be summoned
-            if( OldSummon->isDead() )
+            if (OldSummon->isDead())
                 return;
 
-            OldSummon->GetMap(true)->Remove((Creature*)OldSummon,false);
+            ((Player*)m_caster)->UnsummonPetTemporaryIfAny(false);
 
-            OldSummon->SetMap(m_caster->GetMap());
+            ((Player*)m_caster)->ResummonPetTemporaryUnSummonedIfAny();
 
-            m_caster->GetMap(true)->Add((Creature*)OldSummon);
-
-            if (m_caster->GetTypeId() == TYPEID_PLAYER && OldSummon->isControlled() )
-            {
-                ((Player*)m_caster)->PetSpellInitialize();
-            }
             return;
         }
 
@@ -6655,7 +6659,7 @@ void Spell::EffectSummonPet(SpellEffectIndex eff_idx)
         pos = CreatureCreatePos(m_caster->GetMap(), m_targets.m_destX, m_targets.m_destY, m_targets.m_destZ, -m_caster->GetOrientation(), m_caster->GetPhaseMask());
 
     // petentry==0 for hunter "call pet" (current pet summoned if any)
-    if (m_caster->GetTypeId() == TYPEID_PLAYER && NewSummon->LoadPetFromDB((Player*)m_caster, petentry, petentry == 0 ? true : false, &pos))
+    if (m_caster->GetTypeId() == TYPEID_PLAYER && NewSummon->LoadPetFromDB((Player*)m_caster, petentry, 0, false, &pos))
         return;
 
     // not error in case fail hunter call pet
@@ -7192,7 +7196,7 @@ void Spell::EffectInterruptCast(SpellEffectIndex eff_idx)
             // check if we can interrupt spell
             if ((curSpellInfo->InterruptFlags & SPELL_INTERRUPT_FLAG_INTERRUPT) && curSpellInfo->PreventionType == SPELL_PREVENTION_TYPE_SILENCE )
             {
-                unitTarget->ProhibitSpellSchool(GetSpellSchoolMask(curSpellInfo), CalculateSpellDuration(m_spellInfo, m_caster));
+                unitTarget->ProhibitSpellSchool(GetSpellSchoolMask(curSpellInfo), unitTarget->CalculateAuraDuration(m_spellInfo, (1 << eff_idx), GetSpellDuration(m_spellInfo), m_caster));
                 unitTarget->InterruptSpell(CurrentSpellTypes(i),false);
             }
         }
@@ -7288,7 +7292,7 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
                     if (m_caster->GetTypeId() != TYPEID_PLAYER)
                         return;
 
-                    if (((Player*)m_caster)->GetTemporaryUnsummonedPetNumber() != 0 )
+                    if (((Player*)m_caster)->GetTemporaryUnsummonedPetCount())
                         ((Player*)m_caster)->ResummonPetTemporaryUnSummonedIfAny();
                     else
                         ((Player*)m_caster)->LoadPet();

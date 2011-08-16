@@ -492,7 +492,7 @@ Player::Player (WorldSession *session): Unit(), m_mover(this), m_camera(this), m
     m_canTitanGrip = false;
     m_ammoDPS = 0.0f;
 
-    m_temporaryUnsummonedPetNumber = 0;
+    m_temporaryUnsummonedPetNumber.clear();
 
     ////////////////////Rest System/////////////////////
     time_inn_enter=0;
@@ -1303,7 +1303,7 @@ void Player::Update( uint32 update_diff, uint32 p_time )
 
     if (hasUnitState(UNIT_STAT_MELEE_ATTACKING))
     {
-        Unit *pVictim = getVictim();
+        Unit *pVictim = (getVictim() && getVictim()->IsInWorld()) ? getVictim() : NULL;
         if (pVictim && !IsNonMeleeSpellCasted(false))
         {
             // default combat reach 10
@@ -2594,6 +2594,27 @@ void Player::RemoveFromGroup(Group* group, ObjectGuid guid)
 {
     if (group)
     {
+        // remove all auras affecting only group members
+        if (Player *pLeaver = sObjectMgr.GetPlayer(guid))
+        {
+            for(GroupReference *itr = group->GetFirstMember(); itr != NULL; itr = itr->next())
+            {
+                if (Player *pGroupGuy = itr->getSource())
+                {
+                    // dont remove my auras from myself
+                    if (pGroupGuy->GetObjectGuid() == guid)
+                        continue;
+
+                    // remove all buffs cast by me from group members before leaving
+                    pGroupGuy->RemoveAllGroupBuffsFromCaster(guid);
+
+                    // remove from me all buffs cast by group members
+                    pLeaver->RemoveAllGroupBuffsFromCaster(pGroupGuy->GetObjectGuid());
+                }
+            }
+        }
+
+        // remove member from group
         if (group->RemoveMember(guid, 0) <= 1)
         {
             // group->Disband(); already disbanded in RemoveMember
@@ -8012,7 +8033,7 @@ void Player::ApplyItemOnStoreSpell(Item *item, bool apply)
     }
 }
 
-void Player::DestroyItemWithOnStoreSpell(Item* item)
+void Player::DestroyItemWithOnStoreSpell(Item* item, uint32 spellId)
 {
     if (!item)
         return;
@@ -8025,15 +8046,14 @@ void Player::DestroyItemWithOnStoreSpell(Item* item)
     {
         _Spell const& spellData = proto->Spells[i];
 
-        // no spell
-        if (!spellData.SpellId)
+        if (spellData.SpellId != spellId)
             continue;
 
         // apply/unapply only at-store spells
         if (spellData.SpellTrigger != ITEM_SPELLTRIGGER_ON_STORE)
             continue;
 
-//        DestroyItem(item->GetBagSlot(), item->GetSlot(), true);
+        DestroyItem(item->GetBagSlot(), item->GetSlot(), true);
         break;
     }
 }
@@ -17299,9 +17319,51 @@ void Player::LoadPet()
     // just not added to the map
     if (IsInWorld())
     {
-        Pet *pet = new Pet;
+        Pet* pet = new Pet;
+        pet->SetPetCounter(0);
         if(!pet->LoadPetFromDB(this, 0, 0, true))
+        {
             delete pet;
+            return;
+        }
+
+        if (sWorld.getConfig(CONFIG_BOOL_PET_SAVE_ALL))
+        {
+            uint32 pet_entry = pet->GetEntry();
+            uint32 pet_num = pet->GetCharmInfo()->GetPetNumber();
+            QueryResult* result = CharacterDatabase.PQuery("SELECT id FROM character_pet WHERE owner = '%u' AND entry = '%u' AND id != '%u'",
+                GetGUIDLow(), pet_entry, pet_num);
+
+            std::vector<uint32> petnumber;
+            if (result)
+            {
+                do
+                {
+                    Field* fields = result->Fetch();
+                    uint32 petnum = fields[0].GetUInt32();
+                    if (petnum && petnum != pet_num)
+                        petnumber.push_back(petnum);
+                }
+                while (result->NextRow());
+                delete result;
+            }
+            else
+                return;
+
+            if (!petnumber.empty())
+            {
+                for(uint8 i = 0; i < petnumber.size(); ++i)
+                {
+                    if (petnumber[i] == 0)
+                        continue;
+
+                    Pet* _pet = new Pet;
+                    _pet->SetPetCounter(i+1);
+                    if (!_pet->LoadPetFromDB(this, pet_entry, petnumber[i], true))
+                        delete _pet;
+                }
+            }
+        }
     }
 }
 
@@ -19382,13 +19444,13 @@ void Player::PetSpellInitialize()
 void Player::SendPetGUIDs()
 {
     GroupPetList m_groupPets = GetPets();
-    if (m_groupPets.empty())
-        return;
-
     WorldPacket data(SMSG_PET_GUIDS, 4+8*m_groupPets.size());
     data << uint32(m_groupPets.size());                      // count
-    for (GroupPetList::const_iterator itr = m_groupPets.begin(); itr != m_groupPets.end(); ++itr)
-        data << (*itr);
+    if (!m_groupPets.empty())
+    {
+        for (GroupPetList::const_iterator itr = m_groupPets.begin(); itr != m_groupPets.end(); ++itr)
+            data << (*itr);
+    }
     GetSession()->SendPacket(&data);
 }
 
@@ -19552,7 +19614,7 @@ void Player::AddSpellMod(Aura* aura, bool apply)
             int32 val = 0;
             for (AuraList::const_iterator itr = m_spellMods[mod->m_miscvalue].begin(); itr != m_spellMods[mod->m_miscvalue].end(); ++itr)
             {
-                if ((*itr)->GetModifier()->m_auraname == mod->m_auraname && (*itr)->GetSpellProto()->SpellFamilyFlags.test(eff))
+                if ((*itr)->GetModifier()->m_auraname == mod->m_auraname && ((*itr)->GetAuraSpellClassMask().test(eff)))
                     val += (*itr)->GetModifier()->m_amount;
             }
             val += apply ? mod->m_amount : -(mod->m_amount);
@@ -23360,30 +23422,48 @@ void Player::UpdateFallInformationIfNeed( MovementInfo const& minfo,uint16 opcod
         SetFallInformation(minfo.GetFallTime(), minfo.GetPos()->z);
 }
 
-void Player::UnsummonPetTemporaryIfAny()
+void Player::UnsummonPetTemporaryIfAny(bool full)
 {
-    if (!GetMap())
-        return;
-
     Pet* minipet = GetMiniPet();
 
-    if (minipet)
+    if (full && minipet)
         minipet->Unsummon(PET_SAVE_AS_DELETED, this);
 
     Pet* pet = GetPet();
+    if (!pet)
+        return;
 
-    if (pet && !m_temporaryUnsummonedPetNumber && pet->isControlled() && !pet->isTemporarySummoned())
-        m_temporaryUnsummonedPetNumber = pet->GetCharmInfo()->GetPetNumber();
+    Map* petmap = pet->GetMap();
+    if (!petmap)
+        return;
 
     GroupPetList m_groupPetsTmp = GetPets();  // Original list may be modified in this function
+    if (m_groupPetsTmp.empty())
+        return;
+
     for (GroupPetList::const_iterator itr = m_groupPetsTmp.begin(); itr != m_groupPetsTmp.end(); ++itr)
     {
-        if (Pet* _pet = GetMap(true)->GetPet(*itr))
+        if (Pet* pet = petmap->GetPet(*itr))
         {
-            if (!_pet->isTemporarySummoned())
-                _pet->Unsummon(PET_SAVE_AS_CURRENT, this);
+            if (!sWorld.getConfig(CONFIG_BOOL_PET_SAVE_ALL))
+            {
+                if (!GetTemporaryUnsummonedPetCount() && pet->isControlled() && !pet->isTemporarySummoned() && !pet->GetPetCounter())
+                {
+                    SetTemporaryUnsummonedPetNumber(pet->GetCharmInfo()->GetPetNumber());
+                    pet->Unsummon(PET_SAVE_AS_CURRENT, this);
+                }
+                else
+                    if (full)
+                        pet->Unsummon(PET_SAVE_NOT_IN_SLOT, this);
+            }
             else
-                _pet->Unsummon(PET_SAVE_NOT_IN_SLOT, this);
+            {
+                SetTemporaryUnsummonedPetNumber(pet->GetCharmInfo()->GetPetNumber(), pet->GetPetCounter());
+                if (!pet->GetPetCounter() && pet->getPetType() == HUNTER_PET)
+                    pet->Unsummon(PET_SAVE_AS_CURRENT, this);
+                else
+                    pet->Unsummon(PET_SAVE_NOT_IN_SLOT, this);
+            }
         }
     }
 
@@ -23391,23 +23471,36 @@ void Player::UnsummonPetTemporaryIfAny()
 
 void Player::ResummonPetTemporaryUnSummonedIfAny()
 {
-    if (!m_temporaryUnsummonedPetNumber)
+    if (!GetTemporaryUnsummonedPetCount())
         return;
 
     // not resummon in not appropriate state
     if (IsPetNeedBeTemporaryUnsummoned())
         return;
 
-    if (GetPetGuid())
-        return;
+//    if (GetPetGuid())
+//        return;
 
-    Pet* NewPet = new Pet;
-    NewPet->SetPetCounter(0);
-    if(!NewPet->LoadPetFromDB(this, 0, m_temporaryUnsummonedPetNumber, true))
-        delete NewPet;
-
-    m_temporaryUnsummonedPetNumber = 0;
+    // sort petlist - 0 must be _last_
+    for (uint8 count = GetTemporaryUnsummonedPetCount(); count != 0; --count)
+    {
+        uint32 petnum = GetTemporaryUnsummonedPetNumber(count-1);
+        if (petnum == 0)
+            continue;
+        DEBUG_LOG("Player::ResummonPetTemporaryUnSummonedIfAny summon pet %u count %u",petnum, count-1);
+        Pet* NewPet = new Pet;
+        NewPet->SetPetCounter(count-1);
+        if(!NewPet->LoadPetFromDB(this, 0, petnum))
+            delete NewPet;
+    }
+    ClearTemporaryUnsummonedPetStorage();
 }
+
+uint32 Player::GetTemporaryUnsummonedPetNumber(uint8 count)
+{
+    PetNumberList::const_iterator itr = m_temporaryUnsummonedPetNumber.find(count);
+    return itr != m_temporaryUnsummonedPetNumber.end() ? itr->second : 0;
+};
 
 bool Player::canSeeSpellClickOn(Creature const *c) const
 {
@@ -23835,7 +23928,43 @@ void Player::ActivateSpec(uint8 specNum)
 
             for(int r = 0; r < MAX_TALENT_RANK; ++r)
                 if (talentInfo->RankID[r])
+                {
                     removeSpell(talentInfo->RankID[r],!IsPassiveSpell(talentInfo->RankID[r]),false);
+
+                    // if spell is a buff, remove it from group members
+                    // TODO: this should affect all players, not only group members?
+                    if (SpellEntry const *spellInfo = sSpellStore.LookupEntry(talentInfo->RankID[r]))
+                    {
+                        bool bRemoveAura = false;
+                        for (int i = 0; i < MAX_EFFECT_INDEX; ++i)
+                        {
+                            if ((spellInfo->Effect[i] == SPELL_EFFECT_APPLY_AURA ||
+                                spellInfo->Effect[i] == SPELL_EFFECT_APPLY_AREA_AURA_RAID) &&
+                                IsPositiveEffect(spellInfo, SpellEffectIndex(i)))
+                            {
+                                bRemoveAura = true;
+                                break;
+                            }
+                        }
+
+                        Group *group = GetGroup();
+
+                        if (bRemoveAura && group)
+                        {
+                            for(GroupReference *itr = group->GetFirstMember(); itr != NULL; itr = itr->next())
+                            {
+                                if (Player *pGroupGuy = itr->getSource())
+                                {
+                                    if (pGroupGuy->GetObjectGuid() == GetObjectGuid())
+                                        continue;
+
+                                    if (SpellAuraHolder *holder = pGroupGuy->GetSpellAuraHolder(talentInfo->RankID[r], GetObjectGuid()))
+                                        pGroupGuy->RemoveSpellAuraHolder(holder);
+                                }
+                            }
+                        }
+                    }
+                }
 
             specIter = m_talents[m_activeSpec].begin();
         }

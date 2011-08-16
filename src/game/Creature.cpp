@@ -173,6 +173,8 @@ m_creatureInfo(NULL)
     m_CreatureSpellCooldowns.clear();
     m_CreatureCategoryCooldowns.clear();
 
+    SetWalk(true);
+
     ResetObtainedDamage();
 }
 
@@ -539,6 +541,7 @@ void Creature::Update(uint32 update_diff, uint32 diff)
             }
             else
             {
+                Unit::Update(update_diff, diff);
                 m_corpseDecayTimer -= update_diff;
                 if (m_groupLootId)
                 {
@@ -547,8 +550,6 @@ void Creature::Update(uint32 update_diff, uint32 diff)
                     else
                         StopGroupLoot();
                 }
-                m_Events.Update(update_diff);
-                _UpdateSpells(update_diff);
             }
             break;
         }
@@ -1498,6 +1499,8 @@ void Creature::SetDeathState(DeathState s)
         // return, since we promote to CORPSE_FALLING. CORPSE_FALLING is promoted to CORPSE at next update.
         if (CanFly() && FallGround())
             return;
+        else
+            SetLevitate(false);
 
         Unit::SetDeathState(CORPSE);
     }
@@ -1508,6 +1511,7 @@ void Creature::SetDeathState(DeathState s)
 
         SetHealth(GetMaxHealth());
         SetLootRecipient(NULL);
+        SetWalk(true);
         ResetObtainedDamage();
 
         if (GetTemporaryFactionFlags() & TEMPFACTION_RESTORE_RESPAWN)
@@ -1516,7 +1520,7 @@ void Creature::SetDeathState(DeathState s)
         Unit::SetDeathState(ALIVE);
 
         clearUnitState(UNIT_STAT_ALL_STATE);
-        i_motionMaster.Clear();
+        i_motionMaster.Initialize();
 
         SetMeleeDamageSchool(SpellSchools(cinfo->dmgschool));
 
@@ -1569,9 +1573,6 @@ bool Creature::FallGround()
     init.SetFall();
     init.Launch();
 
-    // hacky solution: by some reason died creatures not updated, that's why need finalize movement state
-    GetMap(true)->CreatureRelocation(this, GetPositionX(), GetPositionY(), tz, GetOrientation());
-    DisableSpline();
     return true;
 }
 

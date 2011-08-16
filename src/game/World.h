@@ -27,7 +27,6 @@
 #include "Timer.h"
 #include "Policies/Singleton.h"
 #include "SharedDefines.h"
-#include <ace/RW_Thread_Mutex.h>
 
 #include <map>
 #include <set>
@@ -89,15 +88,6 @@ enum WorldTimers
     WUPDATE_QUERYCOUNTER = 12,
 
     WUPDATE_COUNT       = 13
-};
-
-// World RW locking types for mtmaps
-enum WorldLockType
-{
-    WORLD_LOCK_AURAS,
-    WORLD_LOCK_TARGETS,
-    WORLD_LOCK_THREAT,
-    WORLD_LOCK_MAX,
 };
 
 /// Configuration elements
@@ -424,8 +414,9 @@ enum eConfigBoolValues
     CONFIG_BOOL_PLAYERBOT_DEBUGWHISPER,
     CONFIG_BOOL_CHECK_GO_IN_PATH,
     CONFIG_BOOL_ALLOW_HONOR_KILLS_TITLES,
+    CONFIG_BOOL_PET_SAVE_ALL,
 
-    CONFIG_BOOL_VALUE_COUNT
+    CONFIG_BOOL_VALUE_COUNT,
 };
 
 /// Can be used in SMSG_AUTH_RESPONSE packet
@@ -676,12 +667,6 @@ class World
         char const* GetDBVersion() { return m_DBVersion.c_str(); }
         char const* GetCreatureEventAIVersion() { return m_CreatureEventAIVersion.c_str(); }
 
-        // World events locking
-        typedef ACE_RW_Thread_Mutex               WorldLock;
-        typedef ACE_Read_Guard<WorldLock>         WorldReadGuard;
-        typedef ACE_Write_Guard<WorldLock>        WorldWriteGuard;
-        WorldLock& GetLock(WorldLockType type)    { return i_worldLock[type]; }
-
 
         // FG
         bool IsNonInstanceableMap(uint32);
@@ -797,8 +782,6 @@ class World
         //used versions
         std::string m_DBVersion;
         std::string m_CreatureEventAIVersion;
-
-        WorldLock    i_worldLock[WORLD_LOCK_MAX];
 
 
         // FG

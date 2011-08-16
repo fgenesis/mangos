@@ -524,7 +524,7 @@ void ThreatManager::tauntApply(Unit* pTaunter)
             // Ok, temp threat is unused
             if(ref->getTempThreatModifyer() == 0.0f)
             {
-                ref->setTempThreat(getCurrentVictim()->getThreat());
+                ref->setTempThreat(getCurrentVictim()->getThreat()*1.4f);
                 iUpdateNeed = true;
             }
         }

@@ -557,17 +557,9 @@ inline bool IsSpellReduceThreat(SpellEntry const* spellInfo)
     return false;
 }
 
-inline bool IsSpellHiddenStackable(SpellEntry const* spellInfo)
+inline bool IsSpellAllowDeadTarget(SpellEntry const* spellInfo)
 {
-    if (!spellInfo || !(spellInfo->AttributesEx & SPELL_ATTR_EX_HIDDEN_AURA))
-        return false;
-
-    if (spellInfo->Attributes & SPELL_ATTR_CANT_CANCEL ||
-        spellInfo->Attributes & SPELL_ATTR_NOT_SHAPESHIFT ||
-        spellInfo->AttributesEx3 & SPELL_ATTR_EX3_DEATH_PERSISTENT)
-        return false;
-
-    return true;
+    return spellInfo ? spellInfo->AttributesEx2 & SPELL_ATTR2_ALLOW_DEAD_TARGET : false;
 }
 
 // Diminishing Returns interaction with spells
@@ -1072,6 +1064,9 @@ class SpellMgr
         {
             return !canStackSpellRanksInSpellBook(spellInfo) && GetSpellRank(spellInfo->Id) != 0;
         }
+
+        static bool IsGroupBuff(SpellEntry const *spellInfo);
+        static bool IsStackableSpellAuraHolder(SpellEntry const *spellInfo);
 
         SpellEntry const* SelectAuraRankForLevel(SpellEntry const* spellInfo, uint32 Level) const;
 

@@ -174,6 +174,13 @@ bool VehicleKit::AddPassenger(Unit *passenger, int8 seatId)
         passenger->SendMessageToSet(&data, true);
     }
 
+    switch (m_pBase->GetEntry())
+    {
+        case 28817:
+            passenger->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+            break;
+    }
+
     if (seat->second.seatInfo->m_flags & SEAT_FLAG_UNATTACKABLE || seat->second.seatInfo->m_flags & SEAT_FLAG_CAN_CONTROL)
     {
         switch (m_pBase->GetEntry())
@@ -240,6 +247,11 @@ bool VehicleKit::AddPassenger(Unit *passenger, int8 seatId)
             data2 << (uint32)(2);
             m_pBase->SendMessageToSet(&data2,false);
         }
+        else if (passenger->m_movementInfo.GetMovementFlags() & MOVEFLAG_WALK_MODE)
+            ((Creature*)m_pBase)->SetWalk(true);
+        else
+            ((Creature*)m_pBase)->SetWalk(false);
+
     }
 
     passenger->SendMonsterMoveTransport(m_pBase, SPLINETYPE_FACINGANGLE, SPLINEFLAG_UNKNOWN5, 0, 0.0f);
@@ -303,6 +315,13 @@ void VehicleKit::RemovePassenger(Unit *passenger)
 
         if(!(((Creature*)m_pBase)->GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_KEEP_AI))
             ((Creature*)m_pBase)->AIM_Initialize();
+    }
+
+    switch (m_pBase->GetEntry())
+    {
+        case 28817:
+            passenger->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+            break;
     }
 
     if (passenger->GetTypeId() == TYPEID_PLAYER)
