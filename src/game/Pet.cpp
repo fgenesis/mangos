@@ -178,8 +178,10 @@ bool Pet::LoadPetFromDB( Player* owner, uint32 petentry, uint32 petnumber, bool 
 
     Map *map = owner->GetMap();
 
+    CreatureCreatePos pos2(owner, owner->GetOrientation(), PET_FOLLOW_DIST, GetPetFollowAngle());
+
     if (!pos)
-        pos = &CreatureCreatePos(owner, owner->GetOrientation(), PET_FOLLOW_DIST, GetPetFollowAngle());
+        pos = &pos2;
 
     uint32 guid = pos->GetMap()->GenerateLocalLowGuid(HIGHGUID_PET);
 
